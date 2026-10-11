@@ -1,0 +1,135 @@
+.quarters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2px;
+    height: 100vh;
+    background: #2c2c33;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: #1e1e24;
+}
+
+header {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 6px 12px;
+    background: #26262d;
+    font-weight: 600;
+}
+
+.status {
+    margin-left: auto;
+    font-weight: normal;
+    color: #9a9aa6;
+}
+
+.code {
+    flex: 1;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    font: 13px/1.45 ui-monospace, Menlo, Consolas, monospace;
+    tab-size: 4;
+}
+
+.view {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    cursor: grab;
+    touch-action: none;
+}
+
+.view:active {
+    cursor: grabbing;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px;
+    padding: 12px;
+    overflow: auto;
+}
+
+button {
+    padding: 8px;
+    border: 1px solid #3a3a44;
+    border-radius: 4px;
+    background: #2a2a32;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #34343e;
+}
+
+.error {
+    color: #f08a86;
+    font-weight: normal;
+}
+
+.panel > .error {
+    padding: 6px 12px 0;
+}
+
+.backdrop {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.popup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 320px;
+    padding: 16px;
+    border: 1px solid #3a3a44;
+    border-radius: 6px;
+    background: #1e1e24;
+}
+
+.popup h3 {
+    margin: 0;
+}
+
+.popup label {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.popup label span {
+    min-width: 90px;
+    color: #9a9aa6;
+}
+
+.popup input, .popup select {
+    flex: 1;
+    min-width: 0;
+    padding: 6px;
+    border: 1px solid #3a3a44;
+    border-radius: 4px;
+    background: #16161a;
+    color: inherit;
+    font: inherit;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}

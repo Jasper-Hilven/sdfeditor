@@ -106,10 +106,12 @@ public sealed class PointerTables
 
     public Evaluable MapTree(Evaluable root, Func<Evaluable, Evaluable> map)
     {
-        root = map(root);
+        // Walk the original tree and map the root last, so nodes produced by map are never mapped again
         foreach (var id in Subtree(root))
             Set(id, EvaluableChildren.MapChildren(Get(id), map));
-        return PointerId(root) is null ? EvaluableChildren.MapChildren(root, map) : root;
+        if (PointerId(root) is null)
+            root = EvaluableChildren.MapChildren(root, map);
+        return map(root);
     }
 
     public SDFPointers ToPointers(long nextFreePointer) => new(sdf, sdf2D, floats, integers, nextFreePointer);

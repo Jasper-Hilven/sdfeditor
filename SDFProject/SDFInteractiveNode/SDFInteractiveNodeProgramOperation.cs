@@ -36,3 +36,8 @@ public record RotateYUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation
 public record RotateYDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
 public record RotateZUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
 public record RotateZDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+
+public record SelectNextSibling(): ISdfInteractiveNodeProgramOperation;
+public record SelectPreviousSibling(): ISdfInteractiveNodeProgramOperation;
+public record SelectParent(): ISdfInteractiveNodeProgramOperation;
+public record SelectFirstChild(): ISdfInteractiveNodeProgramOperation;

@@ -1,0 +1,198 @@
+@page "/"
+@using IDE.Operations
+@using SDFProject.Calculation
+@using SDFProject.ProgramDefinition
+@using SDFProject.SDFInteractiveNode
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>SDF IDE</PageTitle>
+
+<div class="quarters">
+    <section class="panel">
+        <header>Program</header>
+        <pre class="code">@string.Join("\n", yamlRender.GetRender(program))</pre>
+    </section>
+
+    <section class="panel">
+        <header>
+            Render
+            @if (renderError is not null)
+            {
+                <span class="error" title="@renderError">shader error, showing the last scene that worked</span>
+            }
+        </header>
+        <canvas class="view" @ref="canvas"></canvas>
+    </section>
+
+    <section class="panel">
+        <header>
+            Operations
+            <span class="status">selected @(program.SelectedNodeId ?? "none") · zoom @program.StrZoomLevel</span>
+        </header>
+        @if (operationError is not null)
+        {
+            <div class="error">@operationError</div>
+        }
+        <div class="buttons">
+            @foreach (var operation in OperationDefinition.All)
+            {
+                <button @onclick="() => Start(operation)">@operation.Label</button>
+            }
+        </div>
+    </section>
+
+    <section class="panel">
+        <header>WebGL2 code</header>
+        <pre class="code">@shaderCode</pre>
+    </section>
+</div>
+
+@if (pending is not null)
+{
+    <div class="backdrop" @onclick="Cancel">
+        <form class="popup" @onclick:stopPropagation @onsubmit="Submit">
+            <h3>@pending.Label</h3>
+            @foreach (var input in pendingInputs)
+            {
+                <label>
+                    <span>@input.Name</span>
+                    @if (input.Type.IsEnum)
+                    {
+                        <select @bind="input.Texts[0]">
+                            @foreach (var name in Enum.GetNames(input.Type))
+                            {
+                                <option value="@name">@name</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        @for (var i = 0; i < input.Texts.Length; i++)
+                        {
+                            var index = i;
+                            <input @bind="input.Texts[index]" inputmode="@(input.Type == typeof(string) ? "text" : "decimal")" />
+                        }
+                    }
+                </label>
+            }
+            @if (popupError is not null)
+            {
+                <div class="error">@popupError</div>
+            }
+            <div class="actions">
+                <button type="button" @onclick="Cancel">Cancel</button>
+                <button type="submit">Run</button>
+            </div>
+        </form>
+    </div>
+}
+
+@code {
+    private readonly SdfInteractiveNodeProgramOperator programOperator = new();
+    private readonly YamlRender yamlRender = new();
+    private readonly Webgl2CodeGenerator codeGenerator = new();
+
+    private SdfInteractiveNodeProgram program = SdfInteractiveNodeProgramConstants.GetInitialProgram();
+    private string shaderCode = "";
+    private string? operationError;
+
+    private OperationDefinition? pending;
+    private OperationParameterInput[] pendingInputs = [];
+    private string? popupError;
+
+    private ElementReference canvas;
+    private IJSObjectReference? rendererModule;
+    private IJSObjectReference? renderer;
+    private string? renderedCode;
+    private string? renderError;
+
+    protected override void OnInitialized() => shaderCode = codeGenerator.GenerateShaderCode(program.Program);
+
+    private void Start(OperationDefinition operation)
+    {
+        if (operation.Parameters.Length == 0)
+        {
+            Run(operation.Create([]));
+            return;
+        }
+
+        pending = operation;
+        pendingInputs = operation.Parameters.Select(p => new OperationParameterInput(p)).ToArray();
+        popupError = null;
+    }
+
+    private void Submit()
+    {
+        object[] arguments;
+        try
+        {
+            arguments = pendingInputs.Select(i => i.Parse()).ToArray();
+        }
+        catch (FormatException e)
+        {
+            popupError = e.Message;
+            return;
+        }
+
+        Run(pending!.Create(arguments));
+        pending = null;
+    }
+
+    private void Cancel() => pending = null;
+
+    // A failing operation leaves the program as it was and shows why
+    private void Run(ISdfInteractiveNodeProgramOperation operation)
+    {
+        try
+        {
+            var result = programOperator.ApplyOperation(program, operation);
+            shaderCode = codeGenerator.GenerateShaderCode(result.Program);
+            program = result;
+            operationError = null;
+        }
+        catch (Exception e)
+        {
+            operationError = $"{operation.GetType().Name} failed: {e.Message}";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            rendererModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/sdf-renderer.js");
+            try
+            {
+                renderer = await rendererModule.InvokeAsync<IJSObjectReference>("createRenderer", canvas);
+            }
+            catch (JSException e)
+            {
+                renderError = e.Message;
+                StateHasChanged();
+            }
+        }
+
+        if (renderer is null || renderedCode == shaderCode)
+            return;
+
+        renderedCode = shaderCode;
+        var error = await renderer.InvokeAsync<string?>("setCode", shaderCode);
+        if (error != renderError)
+        {
+            renderError = error;
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (renderer is not null)
+        {
+            await renderer.InvokeVoidAsync("dispose");
+            await renderer.DisposeAsync();
+        }
+        if (rendererModule is not null)
+            await rendererModule.DisposeAsync();
+    }
+}

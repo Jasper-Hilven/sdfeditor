@@ -32,6 +32,20 @@ public class SdfInteractiveNodeProgramOperator
         string Selected() => program.SelectedNodeId
                              ?? throw new InvalidOperationException($"{operation.GetType().Name} needs a selected node, but no node is selected");
 
+        // Selecting another node only moves the selection, not the program
+        var pointers = program.Program.pointers;
+        switch (operation)
+        {
+            case SelectNextSibling:
+                return program with { SelectedNodeId = NodeNavigation.NextSiblingOrParent(pointers, Selected()) };
+            case SelectPreviousSibling:
+                return program with { SelectedNodeId = NodeNavigation.PreviousSiblingOrParent(pointers, Selected()) };
+            case SelectParent:
+                return program with { SelectedNodeId = NodeNavigation.Parent(pointers, Selected()) };
+            case SelectFirstChild:
+                return program with { SelectedNodeId = NodeNavigation.FirstChild(pointers, Selected()) };
+        }
+
         var zoomLevel = program.StrZoomLevel;
         AdjustScaleTranslateRotate Scale(float sign) =>
             new(Selected(), sign * TranslateZoomScaleToScale(zoomLevel), Zero, Zero);

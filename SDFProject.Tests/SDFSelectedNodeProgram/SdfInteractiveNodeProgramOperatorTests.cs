@@ -17,6 +17,59 @@ public class SdfInteractiveNodeProgramOperatorTests
     private static string NodeId<T>(SDFProgram program) where T : SDFEvaluable =>
         program.pointers.SDFEvaluablePointers.Single(e => e.Value is T).Key;
 
+    #region Selection
+
+    [Theory]
+    [InlineData(1f, "Sphere(2)")]
+    [InlineData(2f, "Sphere(3)")]
+    [InlineData(3f, "Union(Sphere(1), Sphere(2), Sphere(3))")]
+    public void SelectNextSibling_SelectsNextSiblingOrElseParent(float radius, string expected)
+    {
+        var program = Program(new Union(Sphere(1), Sphere(2), Sphere(3)));
+
+        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectNextSibling());
+
+        Assert.Equal(expected, Selected(result));
+    }
+
+    [Theory]
+    [InlineData(2f, "Sphere(1)")]
+    [InlineData(1f, "Union(Sphere(1), Sphere(2))")]
+    public void SelectPreviousSibling_SelectsPreviousSiblingOrElseParent(float radius, string expected)
+    {
+        var program = Program(new Union(Sphere(1), Sphere(2)));
+
+        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectPreviousSibling());
+
+        Assert.Equal(expected, Selected(result));
+    }
+
+    [Fact]
+    public void SelectParentAndFirstChild_MoveUpAndDown()
+    {
+        var program = Program(new Union(Sphere(1), Sphere(2)));
+        var start = Interactive(program, SphereId(program, 2));
+
+        var parent = InteractiveNodeOperator.ApplyOperation(start, new SelectParent());
+        var child = InteractiveNodeOperator.ApplyOperation(parent, new SelectFirstChild());
+
+        Assert.Equal("Union(Sphere(1), Sphere(2))", Selected(parent));
+        Assert.Equal("Sphere(1)", Selected(child));
+    }
+
+    [Fact]
+    public void SelectionOperations_StayWhenThereIsNowhereToMove()
+    {
+        var program = Program(Sphere(1));
+        var start = Interactive(program, SphereId(program, 1));
+
+        foreach (ISdfInteractiveNodeProgramOperation operation in
+                 new ISdfInteractiveNodeProgramOperation[] { new SelectNextSibling(), new SelectPreviousSibling(), new SelectParent(), new SelectFirstChild() })
+            Assert.Equal(start.SelectedNodeId, InteractiveNodeOperator.ApplyOperation(start, operation).SelectedNodeId);
+    }
+
+    #endregion
+
     #region Interactive operations
 
     [Fact]
@@ -38,6 +91,28 @@ public class SdfInteractiveNodeProgramOperatorTests
         var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 2)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
 
         Assert.Equal("Intersection(Sphere(1), Union(Sphere(2), Sphere(0.5)))", DescribeScene(result.Program));
+        Assert.Equal("Sphere(0.5)", Selected(result));
+    }
+
+    [Fact]
+    public void AddNodeNextTo_SceneRoot_WrapsRootInNewUnion()
+    {
+        var program = Program(Sphere(1));
+
+        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
+
+        Assert.Equal("Union(Sphere(1), Sphere(0.5))", DescribeScene(result.Program));
+        Assert.Equal("Sphere(0.5)", Selected(result));
+    }
+
+    [Fact]
+    public void AddNodeNextTo_InitialProgram_AddsNextToBox()
+    {
+        var initial = SdfInteractiveNodeProgramConstants.GetInitialProgram();
+
+        var result = InteractiveNodeOperator.ApplyOperation(initial, new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
+
+        Assert.Matches(@"^Union\(Box\(.*\), Sphere\(0\.5\)\)$", DescribeScene(result.Program));
         Assert.Equal("Sphere(0.5)", Selected(result));
     }
 

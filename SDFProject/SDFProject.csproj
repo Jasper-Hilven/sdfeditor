@@ -10,6 +10,8 @@
     <!-- The viewer that Program.cs serves -->
     <ItemGroup>
         <None Update="Resources\SdfViewer\**" CopyToOutputDirectory="PreserveNewest" />
+        <!-- The renderer is shared with the IDE, whose dev server only serves files that are really in its wwwroot -->
+        <None Include="..\IDE\wwwroot\js\sdf-renderer.js" Link="Resources\SdfViewer\sdf-renderer.js" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
