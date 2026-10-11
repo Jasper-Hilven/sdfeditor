@@ -1,38 +1,38 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 
 namespace SDFProject.SDFInteractiveNode;
 
-public interface SDFInteractiveNodeProgramOperation;
+public interface ISdfInteractiveNodeProgramOperation;
 
-public record InteractiveAddNodeNextTo(SDFNodeType type) : SDFInteractiveNodeProgramOperation;
+public record InteractiveAddNodeNextTo(SDFNodeType Type) : ISdfInteractiveNodeProgramOperation;
 
-public record InteractiveInlineVariable() : SDFInteractiveNodeProgramOperation;
+public record InteractiveInlineVariable() : ISdfInteractiveNodeProgramOperation;
 
-public record InteractiveExtractVariable(string variableName) : SDFInteractiveNodeProgramOperation;
+public record InteractiveExtractVariable(string VariableName) : ISdfInteractiveNodeProgramOperation;
 
-public record InteractiveEmptyNode() : SDFInteractiveNodeProgramOperation;
+public record InteractiveEmptyNode() : ISdfInteractiveNodeProgramOperation;
 
-public record InteractiveCleanEmptyNodesFromUnionsAndIntersections() : SDFInteractiveNodeProgramOperation;
+public record InteractiveCleanEmptyNodesFromUnionsAndIntersections() : ISdfInteractiveNodeProgramOperation;
 
-public record InteractiveAdjustScaleTranslateRotate(float scale, V3 translation, V3 rotation) : SDFInteractiveNodeProgramOperation;
+public record InteractiveAdjustScaleTranslateRotate(float Scale, V3 Translation, V3 Rotation) : ISdfInteractiveNodeProgramOperation;
 
-public record IncreaseStrZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record DecreaseStrZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record ZoomFullyOutStrZoomLevel(): SDFInteractiveNodeProgramOperation;
+public record IncreaseStrZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record DecreaseStrZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ZoomFullyOutStrZoomLevel(): ISdfInteractiveNodeProgramOperation;
 
-public record ScaleUpAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record ScaleDownAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
+public record ScaleUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ScaleDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
 
-public record TranslateXUpAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record TranslateXDownAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record TranslateYUpAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record TranslateYDownAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record TranslateZUpAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record TranslateZDownAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
+public record TranslateXUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record TranslateXDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record TranslateYUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record TranslateYDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record TranslateZUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record TranslateZDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
 
-public record RotateXUpAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record RotateXDownAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record RotateYUpAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record RotateYDownAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record RotateZUpAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
-public record RotateZDownAtCurrentZoomLevel(): SDFInteractiveNodeProgramOperation;
+public record RotateXUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record RotateXDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record RotateYUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record RotateYDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record RotateZUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record RotateZDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;

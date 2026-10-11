@@ -1,17 +1,17 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 using SDFProject.SDFInteractiveNode;
-using InteractiveProgram = SDFProject.SDFInteractiveNode.SDFInteractiveNodeProgram;
+using SDFProject.SDFProgramOperator;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;
 
 public class SdfInteractiveNodeProgramOperatorTests
 {
-    private static readonly SDFInteractiveNodeProgramOperator InteractiveNodeOperator = new();
+    private static readonly SdfInteractiveNodeProgramOperator InteractiveNodeOperator = new();
 
-    private static InteractiveProgram Interactive(SDFProgram program, string? selectedNodeId) => new(program, selectedNodeId, 0);
+    private static SdfInteractiveNodeProgram Interactive(SDFProgram program, string? selectedNodeId) => new(program, selectedNodeId, 0);
 
-    private static string Selected(InteractiveProgram program) =>
+    private static string Selected(SdfInteractiveNodeProgram program) =>
         Describe(program.Program, new SDFEvaluablePointerable(program.SelectedNodeId!));
 
     private static string NodeId<T>(SDFProgram program) where T : SDFEvaluable =>
@@ -49,7 +49,7 @@ public class SdfInteractiveNodeProgramOperatorTests
 
         var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, selected), new InteractiveExtractVariable("v"));
 
-        var variable = Assert.Single(result.Program.functions[0].variables);
+        var variable = Assert.Single(result.Program.Functions[0].variables);
         Assert.Equal($"Union(Sphere(1), ${variable.id})", DescribeBody(result.Program));
         Assert.Equal(selected, result.SelectedNodeId);
     }
@@ -63,7 +63,7 @@ public class SdfInteractiveNodeProgramOperatorTests
 
         var result = InteractiveNodeOperator.ApplyOperation(extracted, new InteractiveInlineVariable());
 
-        Assert.Empty(result.Program.functions[0].variables);
+        Assert.Empty(result.Program.Functions[0].variables);
         Assert.Equal("Union(Sphere(1), Sphere(2))", DescribeBody(result.Program));
         Assert.Equal(selected, result.SelectedNodeId);
     }
@@ -125,7 +125,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new InteractiveProgram(program, SphereId(program, 1), 3), new InteractiveEmptyNode());
+        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), 3), new InteractiveEmptyNode());
 
         Assert.Equal(3, result.StrZoomLevel);
     }
@@ -142,7 +142,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new InteractiveProgram(program, null, level), new IncreaseStrZoomLevel());
+        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, level), new IncreaseStrZoomLevel());
 
         Assert.Equal(expected, result.StrZoomLevel);
         Assert.Same(program, result.Program);
@@ -155,7 +155,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new InteractiveProgram(program, null, level), new DecreaseStrZoomLevel());
+        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, level), new DecreaseStrZoomLevel());
 
         Assert.Equal(expected, result.StrZoomLevel);
     }
@@ -165,7 +165,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new InteractiveProgram(program, null, 3), new ZoomFullyOutStrZoomLevel());
+        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, 3), new ZoomFullyOutStrZoomLevel());
 
         Assert.Equal(0, result.StrZoomLevel);
     }
@@ -174,10 +174,10 @@ public class SdfInteractiveNodeProgramOperatorTests
 
     #region Scale, translate and rotate at the current zoom level
 
-    private static ScaleTranslateRotate AdjustSelectedSphere(int zoomLevel, SDFInteractiveNodeProgramOperation operation)
+    private static ScaleTranslateRotate AdjustSelectedSphere(int zoomLevel, ISdfInteractiveNodeProgramOperation operation)
     {
         var program = Program(new Union(Sphere(1)));
-        var result = InteractiveNodeOperator.ApplyOperation(new InteractiveProgram(program, SphereId(program, 1), zoomLevel), operation);
+        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), zoomLevel), operation);
         return (ScaleTranslateRotate)result.Program.pointers.SDFEvaluablePointers.Values.Single(n => n is ScaleTranslateRotate);
     }
 
@@ -202,7 +202,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     [InlineData(3)]
     public void ScaleUpAndDown_UseScaleStepOfZoomLevel(int zoomLevel)
     {
-        var step = SDFInteractiveNodeProgramOperator.TranslateZoomScaleToScale(zoomLevel);
+        var step = SdfInteractiveNodeProgramOperator.TranslateZoomScaleToScale(zoomLevel);
 
         AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleUpAtCurrentZoomLevel()), 1 + step, new V3(0, 0, 0), new V3(0, 0, 0));
         AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleDownAtCurrentZoomLevel()), 1 - step, new V3(0, 0, 0), new V3(0, 0, 0));
@@ -215,7 +215,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     [InlineData(3)]
     public void Translate_MovesAlongAxisByTranslationStepOfZoomLevel(int zoomLevel)
     {
-        var step = SDFInteractiveNodeProgramOperator.TranslateZoomScaleToTranslation(zoomLevel);
+        var step = SdfInteractiveNodeProgramOperator.TranslateZoomScaleToTranslation(zoomLevel);
         var none = new V3(0, 0, 0);
 
         AssertTransform(AdjustSelectedSphere(zoomLevel, new TranslateXUpAtCurrentZoomLevel()), 1, new V3(step, 0, 0), none);
@@ -233,7 +233,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     [InlineData(3)]
     public void Rotate_TurnsAroundAxisByDegreeStepOfZoomLevelInRadians(int zoomLevel)
     {
-        var step = SDFInteractiveNodeProgramOperator.TranslateZoomScaleToDegree(zoomLevel) * MathF.PI / 180;
+        var step = SdfInteractiveNodeProgramOperator.TranslateZoomScaleToDegree(zoomLevel) * MathF.PI / 180;
         var none = new V3(0, 0, 0);
 
         AssertTransform(AdjustSelectedSphere(zoomLevel, new RotateXUpAtCurrentZoomLevel()), 1, none, new V3(step, 0, 0));
@@ -254,13 +254,13 @@ public class SdfInteractiveNodeProgramOperatorTests
     public void RepeatedTranslate_AddsUpOnSameNode()
     {
         var program = Program(new Union(Sphere(1)));
-        var interactive = new InteractiveProgram(program, SphereId(program, 1), 0);
+        var interactive = new SdfInteractiveNodeProgram(program, SphereId(program, 1), 0);
 
         interactive = InteractiveNodeOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
         interactive = InteractiveNodeOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
 
         var node = Assert.Single(interactive.Program.pointers.SDFEvaluablePointers.Values.OfType<ScaleTranslateRotate>());
-        AssertV3(new V3(2, 0, 0), ((ConstValueV3)node.translation).v3);
+        AssertV3(new V3(2 * SdfInteractiveNodeProgramOperator.TranslateZoomScaleToTranslation(0), 0, 0), ((ConstValueV3)node.translation).v3);
     }
 
     #endregion

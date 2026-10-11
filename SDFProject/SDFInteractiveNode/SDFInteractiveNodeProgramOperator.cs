@@ -1,9 +1,10 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
+using SDFProject.SDFProgramOperator;
 using SDFProject.SDFProgramOperator.Helpers;
 
 namespace SDFProject.SDFInteractiveNode;
 
-public class SDFInteractiveNodeProgramOperator
+public class SdfInteractiveNodeProgramOperator
 {
     // From this level on the Translate methods give their finest step, so zooming in further changes nothing
     public const int MaxStrZoomLevel = 3;
@@ -13,9 +14,9 @@ public class SDFInteractiveNodeProgramOperator
     private static readonly V3 UnitY = new(0, 1, 0);
     private static readonly V3 UnitZ = new(0, 0, 1);
 
-    private readonly SDFProgramOperator.SDFProgramOperator programOperator = new();
+    private readonly SDFProgramOperator.SDFProgramOperator _programOperator = new();
 
-    public SDFInteractiveNodeProgram ApplyOperation(SDFInteractiveNodeProgram program, SDFInteractiveNodeProgramOperation operation)
+    public SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, ISdfInteractiveNodeProgramOperation operation)
     {
         // Zooming only changes the step size of the scale, translate and rotate operations, not the program
         switch (operation)
@@ -42,12 +43,12 @@ public class SDFInteractiveNodeProgramOperator
 
         SDFProgramOperation programOperation = operation switch
         {
-            InteractiveAddNodeNextTo o => new AddNodeNextTo(Selected(), o.type),
+            InteractiveAddNodeNextTo o => new AddNodeNextTo(Selected(), o.Type),
             InteractiveInlineVariable => new InlineVariable(VariableContaining(program.Program, Selected())),
-            InteractiveExtractVariable o => new ExtractVariable(Selected(), o.variableName),
+            InteractiveExtractVariable o => new ExtractVariable(Selected(), o.VariableName),
             InteractiveEmptyNode => new EmptyNode(Selected()),
             InteractiveCleanEmptyNodesFromUnionsAndIntersections => new CleanEmptyNodesFromUnionsAndIntersections(),
-            InteractiveAdjustScaleTranslateRotate o => new AdjustScaleTranslateRotate(Selected(), o.scale, o.translation, o.rotation),
+            InteractiveAdjustScaleTranslateRotate o => new AdjustScaleTranslateRotate(Selected(), o.Scale, o.Translation, o.Rotation),
             ScaleUpAtCurrentZoomLevel => Scale(1),
             ScaleDownAtCurrentZoomLevel => Scale(-1),
             TranslateXUpAtCurrentZoomLevel => Translate(UnitX, 1),
@@ -62,15 +63,15 @@ public class SDFInteractiveNodeProgramOperator
             RotateYDownAtCurrentZoomLevel => Rotate(UnitY, -1),
             RotateZUpAtCurrentZoomLevel => Rotate(UnitZ, 1),
             RotateZDownAtCurrentZoomLevel => Rotate(UnitZ, -1),
-            _ => throw new NotSupportedException($"Unknown {nameof(SDFInteractiveNodeProgramOperation)}: {operation.GetType().Name}"),
+            _ => throw new NotSupportedException($"Unknown {nameof(ISdfInteractiveNodeProgramOperation)}: {operation.GetType().Name}"),
         };
 
         return ApplyOperation(program, programOperation);
     }
 
-    public SDFInteractiveNodeProgram ApplyOperation(SDFInteractiveNodeProgram program, SDFProgramOperation operation)
+    public SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, SDFProgramOperation operation)
     {
-        var result = programOperator.ApplyOperation(program.Program, operation);
+        var result = _programOperator.ApplyOperation(program.Program, operation);
 
         var selectedNodeId = operation switch
         {
@@ -86,7 +87,7 @@ public class SDFInteractiveNodeProgramOperator
     private static string VariableContaining(SDFProgram program, string nodeId)
     {
         var tables = new PointerTables(program.pointers);
-        return program.functions
+        return program.Functions
                    .SelectMany(f => f.variables)
                    .FirstOrDefault(v => tables.Subtree(v.value).Contains(nodeId))?.id
                ?? throw new InvalidOperationException($"Node '{nodeId}' is not part of a variable's value");
@@ -102,7 +103,7 @@ public class SDFInteractiveNodeProgramOperator
         return PointerTables.PointerId(union.primitives[index + 1]);
     }
 
-    private static string? SurvivingSelection(SDFInteractiveNodeProgram program, SDFProgram result)
+    private static string? SurvivingSelection(SdfInteractiveNodeProgram program, SDFProgram result)
     {
         var tables = new PointerTables(program.Program.pointers);
         var id = program.SelectedNodeId;

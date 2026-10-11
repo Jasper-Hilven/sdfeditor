@@ -1,4 +1,4 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 using SDFProject.SDFProgramOperator.Helpers;
 
 namespace SDFProject.SDFProgramOperator.Operations;
@@ -27,23 +27,23 @@ public class ApplyExtractVariable
         };
 
         program = program.ReplaceOnlyReference(tables, operation.onNodeId, _ => reference);
-        var function = program.functions[functionIndex];
+        var function = program.Functions[functionIndex];
 
         // Declared right before its only use, so every variable the extracted nodes reference is still visible
         var variables = function.variables.ToList();
         variables.Insert(declarationIndex, new VariableDeclaration(operation.variableName, variableId, onNode));
 
-        var functions = program.functions.ToArray();
+        var functions = program.Functions.ToArray();
         functions[functionIndex] = function.With(variables.ToArray(), function.functionBody);
 
-        return program with { functions = functions, pointers = tables.ToPointers(nextFreePointer) };
+        return program with { Functions = functions, pointers = tables.ToPointers(nextFreePointer) };
     }
 
     private static (int functionIndex, int declarationIndex) FindOwner(SDFProgram program, PointerTables tables, string nodeId)
     {
-        for (var f = 0; f < program.functions.Length; f++)
+        for (var f = 0; f < program.Functions.Length; f++)
         {
-            var function = program.functions[f];
+            var function = program.Functions[f];
             for (var v = 0; v < function.variables.Length; v++)
             {
                 if (tables.Subtree(function.variables[v].value).Contains(nodeId))

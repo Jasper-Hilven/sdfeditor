@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SDF Viewer</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #16161a;
+        }
+
+        body {
+            display: flex;
+        }
+
+        #code {
+            box-sizing: border-box;
+            width: 38%;
+            height: 100%;
+            margin: 0;
+            padding: 12px;
+            border: 2px solid #2c2c33;
+            outline: none;
+            resize: none;
+            background: #1e1e24;
+            color: #d8d8e0;
+            font: 13px/1.45 ui-monospace, Menlo, Consolas, monospace;
+            tab-size: 4;
+            white-space: pre;
+        }
+
+        #code.error {
+            border-color: #d9534f;
+        }
+
+        #view {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        #view:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+<textarea id="code" spellcheck="false" title="Paste the generated WebGL2 code here; it needs a function float sdf_scene(vec3 p)">float maxComponent(vec3 v) { return max(v.x, max(v.y, v.z)); }
+
+float opSmoothMin(float a, float b, float k)
+{
+    if (k <= 0.0) return min(a, b);
+    k *= 4.0;
+    float h = max(k - abs(a - b), 0.0);
+    return min(a, b) - h * h * 0.25 / k;
+}
+
+float sdSphere(vec3 p, float r) { return length(p) - r; }
+
+float sdBox(vec3 p, vec3 b)
+{
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(maxComponent(q), 0.0);
+}
+
+float sdf_scene(vec3 p)
+{
+    float d0 = sdSphere(p, 1.0);
+    float d1 = sdBox(p, vec3(0.5, 1.0, 1.5));
+    float d2 = opSmoothMin(d0, d1, 0.25);
+    return d2;
+}</textarea>
+<canvas id="view"></canvas>
+<script src="sdf-viewer.js"></script>
+</body>
+</html>

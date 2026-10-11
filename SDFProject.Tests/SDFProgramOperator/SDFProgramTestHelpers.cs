@@ -1,5 +1,5 @@
 using System.Globalization;
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 using SDFProject.SDFProgramOperator;
 using SDFProject.SDFProgramOperator.Helpers;
 
@@ -47,13 +47,13 @@ public static class SDFProgramTestHelpers
 
     public static string DescribeScene(SDFProgram program) => Describe(program, program.scene);
 
-    public static string DescribeBody(SDFProgram program) => Describe(program, program.functions[0].functionBody);
+    public static string DescribeBody(SDFProgram program) => Describe(program, program.Functions[0].functionBody);
 
     // Every pointer in the tables is used exactly once, and every used pointer exists
     public static void AssertPointersConsistent(SDFProgram program)
     {
         var tables = new PointerTables(program.pointers);
-        var used = program.functions
+        var used = program.Functions
             .SelectMany(f => f.variables.Select(v => v.value).Append(f.functionBody))
             .Append(program.scene)
             .SelectMany(tables.Subtree)

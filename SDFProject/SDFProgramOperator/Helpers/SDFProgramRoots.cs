@@ -1,4 +1,4 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 
 namespace SDFProject.SDFProgramOperator.Helpers;
 
@@ -6,11 +6,11 @@ public static class SDFProgramRoots
 {
     public static SDFProgram MapRoots(this SDFProgram program, Func<Evaluable, Evaluable> mapRoot)
     {
-        var functions = program.functions.Select(f => f.With(
+        var functions = program.Functions.Select(f => f.With(
             f.variables.Select(v => v with { value = mapRoot(v.value) }).ToArray(),
             (SDFEvaluable)mapRoot(f.functionBody))).ToArray();
 
-        return program with { functions = functions, scene = (SDFEvaluable)mapRoot(program.scene) };
+        return program with { Functions = functions, scene = (SDFEvaluable)mapRoot(program.scene) };
     }
 
     public static SDFProgram ReplaceOnlyReference(this SDFProgram program, PointerTables tables, string id, Func<Evaluable, Evaluable> replace)
@@ -40,7 +40,7 @@ public static class SDFProgramRoots
         new SDFFunction(function.name, function.id, function.argumentNames, variables, functionBody);
 
     public static HashSet<string> VariableIds(this SDFProgram program) =>
-        program.functions.SelectMany(f => f.variables).Select(v => v.id).ToHashSet();
+        program.Functions.SelectMany(f => f.variables).Select(v => v.id).ToHashSet();
 
     public static string AllocateId(ref long nextFreePointer, Func<string, bool> isTaken)
     {

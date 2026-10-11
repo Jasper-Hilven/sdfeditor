@@ -1,4 +1,6 @@
-namespace SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
+
+namespace SDFProject.SDFProgramOperator;
 
 public interface SDFProgramOperation;
 

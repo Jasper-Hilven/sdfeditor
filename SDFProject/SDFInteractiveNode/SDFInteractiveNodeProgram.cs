@@ -1,8 +1,8 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 
 namespace SDFProject.SDFInteractiveNode;
 
-public record SDFInteractiveNodeProgram(
+public record SdfInteractiveNodeProgram(
     SDFProgram Program,
     string? SelectedNodeId,
     int StrZoomLevel);

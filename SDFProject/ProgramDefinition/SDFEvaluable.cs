@@ -1,7 +1,7 @@
-namespace SDFProject.Definitions;
+namespace SDFProject.ProgramDefinition;
 
 public sealed record SDFProgram(
-    SDFFunctionDefinition[] functions,
+    SDFFunctionDefinition[] Functions,
     SDFPointers pointers,
     SDFEvaluable scene);
 

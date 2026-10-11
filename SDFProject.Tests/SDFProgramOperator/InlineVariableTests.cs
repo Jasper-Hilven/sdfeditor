@@ -1,4 +1,5 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
+using SDFProject.SDFProgramOperator;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;
@@ -11,9 +12,9 @@ public class InlineVariableTests
         var program = Program(new Empty(), Function(new Union(Sphere(1), Sphere(2))));
         var extracted = Operator.ApplyOperation(program, new ExtractVariable(SphereId(program, 2), "v"));
 
-        var result = Operator.ApplyOperation(extracted, new InlineVariable(extracted.functions[0].variables[0].id));
+        var result = Operator.ApplyOperation(extracted, new InlineVariable(extracted.Functions[0].variables[0].id));
 
-        Assert.Empty(result.functions[0].variables);
+        Assert.Empty(result.Functions[0].variables);
         Assert.Equal("Union(Sphere(1), Sphere(2))", DescribeBody(result));
         AssertPointersConsistent(result);
     }
@@ -38,7 +39,7 @@ public class InlineVariableTests
 
         var result = Operator.ApplyOperation(program, new InlineVariable("var"));
 
-        Assert.Empty(result.functions[0].variables);
+        Assert.Empty(result.Functions[0].variables);
         Assert.Equal("Union(Sphere(2))", DescribeBody(result));
         AssertPointersConsistent(result);
     }

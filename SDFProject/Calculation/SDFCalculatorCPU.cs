@@ -1,37 +1,37 @@
 using System.Numerics;
-using SDFProject.Definitions;
-using static SDFProject.Calculation.SDFMath;
-using Heart2D = SDFProject.Definitions.Heart2D;
-using Plane = SDFProject.Definitions.Plane;
+using SDFProject.ProgramDefinition;
+using static SDFProject.Calculation.SdfMath;
+using Heart2D = SDFProject.ProgramDefinition.Heart2D;
+using Plane = SDFProject.ProgramDefinition.Plane;
 
 namespace SDFProject.Calculation;
 
-public class SDFCalculatorCPU
+public class SdfCalculatorCpu
 {
-    private sealed record FunctionInfo(SDFFunctionDefinition definition, Dictionary<string, int> variableIndices);
+    private sealed record FunctionInfo(SDFFunctionDefinition Definition, Dictionary<string, int> VariableIndices);
 
     private readonly record struct EvaluationContext(
-        object[] parameterValues,
-        object[] variableValues,
-        Dictionary<string, int> variableIndices,
+        object[] ParameterValues,
+        object[] VariableValues,
+        Dictionary<string, int> VariableIndices,
         Dictionary<string, SDFEvaluable> SdfEvaluables,
         Dictionary<string, SDF2DEvaluable> Sdf2DEvaluables,
         Dictionary<string, FloatEvaluable> FloatEvaluables,
         Dictionary<string, IntegerEvaluable> IntegerEvaluables,
-        int visibleVariableCount)
+        int VisibleVariableCount)
     {
 
         public int VariableIndex(string variableId) =>
-            variableIndices.TryGetValue(variableId, out var index) && index < visibleVariableCount
+            VariableIndices.TryGetValue(variableId, out var index) && index < VisibleVariableCount
                 ? index
                 : throw new InvalidOperationException($"Variable '{variableId}' is not declared before it is used");
 
-        public object VariableValue(string variableId) => variableValues[VariableIndex(variableId)];
+        public object VariableValue(string variableId) => VariableValues[VariableIndex(variableId)];
     }
 
     public float Calculate(V3 position, SDFProgram program)
     {
-        var idToFunctions = program.functions.ToDictionary(f => f.id,
+        var idToFunctions = program.Functions.ToDictionary(f => f.id,
             f => new FunctionInfo(f, f.variables.Select((v, i) => (v.id, i)).ToDictionary(x => x.id, x => x.i)));
 
         var pointers = program.pointers;
@@ -55,12 +55,12 @@ public class SDFCalculatorCPU
     private float CalculateFunctionCall(Vector3 p, SDFFunctionCall call, Dictionary<string, FunctionInfo> idToFunctions, EvaluationContext callerContext)
     {
         var function = idToFunctions[call.functionId];
-        var declarations = function.definition.variables;
+        var declarations = function.Definition.variables;
         var variableValues = new object[declarations.Length];
         var context = new EvaluationContext(
             call.arguments.Select(a => EvaluateValue(a, callerContext)).ToArray(),
             variableValues,
-            function.variableIndices,
+            function.VariableIndices,
             callerContext.SdfEvaluables,
             callerContext.Sdf2DEvaluables,
             callerContext.FloatEvaluables,
@@ -71,10 +71,10 @@ public class SDFCalculatorCPU
         {
             variableValues[i] = declarations[i].value is SDFEvaluable or SDF2DEvaluable
                 ? declarations[i].value
-                : EvaluateValue(declarations[i].value, context with { visibleVariableCount = i });
+                : EvaluateValue(declarations[i].value, context with { VisibleVariableCount = i });
         }
 
-        return Calculate(p, function.definition.functionBody, idToFunctions, context with { visibleVariableCount = declarations.Length });
+        return Calculate(p, function.Definition.functionBody, idToFunctions, context with { VisibleVariableCount = declarations.Length });
     }
 
     private float Calculate(Vector3 p, SDFEvaluable evaluable, Dictionary<string, FunctionInfo> idToFunctions, EvaluationContext context)
@@ -87,63 +87,63 @@ public class SDFCalculatorCPU
 
         return evaluable switch
         {
-            ArbitraryCappedCone e => SDFMath.ArbitraryCappedCone(p, Vec3(e.a), Vec3(e.b), Float(e.radiusA), Float(e.radiusB)),
-            ArbitraryCappedCylinder e => SDFMath.ArbitraryCappedCylinder(p, Vec3(e.a), Vec3(e.b), Float(e.radius)),
-            ArbitraryRoundCone e => SDFMath.ArbitraryRoundCone(p, Vec3(e.a), Vec3(e.b), Float(e.radiusA), Float(e.radiusB)),
-            Box e => SDFMath.Box(p, Vec3(e.size)),
-            BoxFrame e => SDFMath.BoxFrame(p, Vec3(e.size), Float(e.edgeThickness)),
-            CappedCone e => SDFMath.CappedCone(p, Float(e.height), Float(e.bottomRadius), Float(e.topRadius)),
-            CappedCylinder e => SDFMath.CappedCylinder(p, Float(e.radius), Float(e.height)),
-            CappedTorus e => SDFMath.CappedTorus(p, Vec2(e.sinCos), Float(e.majorRadius), Float(e.minorRadius)),
-            Capsule e => SDFMath.Capsule(p, Vec3(e.a), Vec3(e.b), Float(e.radius)),
+            ArbitraryCappedCone e => SdfMath.ArbitraryCappedCone(p, Vec3(e.a), Vec3(e.b), Float(e.radiusA), Float(e.radiusB)),
+            ArbitraryCappedCylinder e => SdfMath.ArbitraryCappedCylinder(p, Vec3(e.a), Vec3(e.b), Float(e.radius)),
+            ArbitraryRoundCone e => SdfMath.ArbitraryRoundCone(p, Vec3(e.a), Vec3(e.b), Float(e.radiusA), Float(e.radiusB)),
+            Box e => SdfMath.Box(p, Vec3(e.size)),
+            BoxFrame e => SdfMath.BoxFrame(p, Vec3(e.size), Float(e.edgeThickness)),
+            CappedCone e => SdfMath.CappedCone(p, Float(e.height), Float(e.bottomRadius), Float(e.topRadius)),
+            CappedCylinder e => SdfMath.CappedCylinder(p, Float(e.radius), Float(e.height)),
+            CappedTorus e => SdfMath.CappedTorus(p, Vec2(e.sinCos), Float(e.majorRadius), Float(e.minorRadius)),
+            Capsule e => SdfMath.Capsule(p, Vec3(e.a), Vec3(e.b), Float(e.radius)),
             CheapBend e => Sdf(e.primitive, CalculateCheapBend(p, Float(e.amount))),
-            Cone e => SDFMath.Cone(p, Vec2(e.sinCos), Float(e.height)),
-            CutHollowSphere e => SDFMath.CutHollowSphere(p, Float(e.radius), Float(e.cutHeight), Float(e.thickness)),
-            CutSphere e => SDFMath.CutSphere(p, Float(e.radius), Float(e.cutHeight)),
-            DeathStar e => SDFMath.DeathStar(p, Float(e.radiusA), Float(e.radiusB), Float(e.distance)),
+            Cone e => SdfMath.Cone(p, Vec2(e.sinCos), Float(e.height)),
+            CutHollowSphere e => SdfMath.CutHollowSphere(p, Float(e.radius), Float(e.cutHeight), Float(e.thickness)),
+            CutSphere e => SdfMath.CutSphere(p, Float(e.radius), Float(e.cutHeight)),
+            DeathStar e => SdfMath.DeathStar(p, Float(e.radiusA), Float(e.radiusB), Float(e.distance)),
             Displace e => Sdf(e.primitive, p) + Sdf(e.displacement, p),
             Empty => float.PositiveInfinity,
-            Ellipsoid e => SDFMath.Ellipsoid(p, Vec3(e.radii)),
+            Ellipsoid e => SdfMath.Ellipsoid(p, Vec3(e.radii)),
             Elongate e => Sdf(e.primitive, p - Vector3.Clamp(p, -Vec3(e.amount), Vec3(e.amount))),
             ElongateExactInterior e => CalculateElongateExactInterior(p, e, Vec3(e.amount), idToFunctions, context),
-            Extrusion e => CalculateExtrusion(p, Sdf2D(e.primitive, XY(p)), Float(e.height)),
-            HexPrism e => SDFMath.HexPrism(p, Vec2(e.size)),
-            InfiniteCone e => SDFMath.InfiniteCone(p, Vec2(e.sinCos)),
-            InfiniteCylinder e => SDFMath.InfiniteCylinder(p, Vec2(e.center), Float(e.radius)),
+            Extrusion e => CalculateExtrusion(p, Sdf2D(e.primitive, Xy(p)), Float(e.height)),
+            HexPrism e => SdfMath.HexPrism(p, Vec2(e.size)),
+            InfiniteCone e => SdfMath.InfiniteCone(p, Vec2(e.sinCos)),
+            InfiniteCylinder e => SdfMath.InfiniteCylinder(p, Vec2(e.center), Float(e.radius)),
             Intersection e => CalculateIntersection(p, e, idToFunctions, context),
             LimitedRepetition e => Sdf(e.primitive, RepeatLimited(p, Float(e.spacing), Vec3(e.limits))),
-            Link e => SDFMath.Link(p, Float(e.length), Float(e.majorRadius), Float(e.minorRadius)),
-            Octahedron e => SDFMath.Octahedron(p, Float(e.size)),
-            OctahedronBound e => SDFMath.OctahedronBound(p, Float(e.size)),
+            Link e => SdfMath.Link(p, Float(e.length), Float(e.majorRadius), Float(e.minorRadius)),
+            Octahedron e => SdfMath.Octahedron(p, Float(e.size)),
+            OctahedronBound e => SdfMath.OctahedronBound(p, Float(e.size)),
             Onion e => MathF.Abs(Sdf(e.primitive, p)) - Float(e.thickness),
-            Plane e => SDFMath.Plane(p, Vec3(e.normal), Float(e.height)),
-            Pyramid e => SDFMath.Pyramid(p, Float(e.height)),
-            Quad e => SDFMath.Quad(p, Vec3(e.a), Vec3(e.b), Vec3(e.c), Vec3(e.d)),
+            Plane e => SdfMath.Plane(p, Vec3(e.normal), Float(e.height)),
+            Pyramid e => SdfMath.Pyramid(p, Float(e.height)),
+            Quad e => SdfMath.Quad(p, Vec3(e.a), Vec3(e.b), Vec3(e.c), Vec3(e.d)),
             Repetition e => Sdf(e.primitive, Repeat(p, Vec3(e.spacing))),
-            Revolution e => Sdf2D(e.primitive, new Vector2(Length(XZ(p)) - Float(e.offset), p.Y)),
-            Rhombus e => SDFMath.Rhombus(p, Float(e.lengthA), Float(e.lengthB), Float(e.height), Float(e.roundness)),
+            Revolution e => Sdf2D(e.primitive, new Vector2(Length(Xz(p)) - Float(e.offset), p.Y)),
+            Rhombus e => SdfMath.Rhombus(p, Float(e.lengthA), Float(e.lengthB), Float(e.height), Float(e.roundness)),
             Round e => Sdf(e.primitive, p) - Float(e.radius),
-            RoundBox e => SDFMath.RoundBox(p, Vec3(e.size), Float(e.roundness)),
-            RoundCone e => SDFMath.RoundCone(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
-            RoundedCylinder e => SDFMath.RoundedCylinder(p, Float(e.radius), Float(e.roundness), Float(e.height)),
+            RoundBox e => SdfMath.RoundBox(p, Vec3(e.size), Float(e.roundness)),
+            RoundCone e => SdfMath.RoundCone(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
+            RoundedCylinder e => SdfMath.RoundedCylinder(p, Float(e.radius), Float(e.roundness), Float(e.height)),
             SDFFunctionCall call => CalculateFunctionCall(p, call, idToFunctions, context),
             ScaleTranslateRotate e => CalculateScaleTranslateRotate(p, e, Float(e.scale), Vec3(e.translation), Vec3(e.rotation), idToFunctions, context),
             SmoothIntersection e => CalculateSmoothIntersection(p, e, Float(e.smoothness), idToFunctions, context),
             SmoothSubtraction e => -SmoothMin(-Sdf(e.a, p), Sdf(e.b, p), Float(e.smoothness)),
             SmoothUnion e => CalculateSmoothUnion(p, e, Float(e.smoothness), idToFunctions, context),
-            SolidAngle e => SDFMath.SolidAngle(p, Vec2(e.sinCos), Float(e.radius)),
-            Sphere e => SDFMath.Sphere(p, Float(e.radius)),
+            SolidAngle e => SdfMath.SolidAngle(p, Vec2(e.sinCos), Float(e.radius)),
+            Sphere e => SdfMath.Sphere(p, Float(e.radius)),
             Subtraction e => MathF.Max(Sdf(e.a, p), -Sdf(e.b, p)),
             SymmetryX e => Sdf(e.primitive, p with { X = MathF.Abs(p.X) }),
             SymmetryXZ e => Sdf(e.primitive, p with { X = MathF.Abs(p.X), Z = MathF.Abs(p.Z) }),
             Torus e => CalculateTorus(p, Float(e.innerRadius), Float(e.outerRadius)),
-            TriPrism e => SDFMath.TriPrism(p, Vec2(e.size)),
-            Triangle e => SDFMath.Triangle(p, Vec3(e.a), Vec3(e.b), Vec3(e.c)),
+            TriPrism e => SdfMath.TriPrism(p, Vec2(e.size)),
+            Triangle e => SdfMath.Triangle(p, Vec3(e.a), Vec3(e.b), Vec3(e.c)),
             Twist e => Sdf(e.primitive, CalculateTwist(p, Float(e.amount))),
             Union e => CalculateUnion(p, e, idToFunctions, context),
             VariableReferenceSDF r => CalculateVariable(p, r.variableId, idToFunctions, context),
-            VerticalCapsule e => SDFMath.VerticalCapsule(p, Float(e.height), Float(e.radius)),
-            VesicaSegment e => SDFMath.VesicaSegment(p, Vec3(e.a), Vec3(e.b), Float(e.width)),
+            VerticalCapsule e => SdfMath.VerticalCapsule(p, Float(e.height), Float(e.radius)),
+            VesicaSegment e => SdfMath.VesicaSegment(p, Vec3(e.a), Vec3(e.b), Float(e.width)),
             Xor e => CalculateXor(Sdf(e.a, p), Sdf(e.b, p)),
             SDFEvaluablePointerable e => Calculate(p, context.SdfEvaluables[e.PointerId], idToFunctions, context),
 
@@ -161,35 +161,35 @@ public class SDFCalculatorCPU
         {
             VariableReferenceSDF2D r => CalculateVariable(p, r.variableId, context),
             SDF2DEvaluablePointerable e => Calculate(p, context.Sdf2DEvaluables[e.PointerId], context),
-            Circle e => SDFMath.Circle(p, Float(e.radius)),
-            Box2D e => SDFMath.Box2D(p, Vec2(e.size)),
-            RoundedBox2D e => SDFMath.RoundedBox2D(p, Vec2(e.size), Float(e.radiusTopRight), Float(e.radiusBottomRight), Float(e.radiusTopLeft), Float(e.radiusBottomLeft)),
-            OrientedBox2D e => SDFMath.OrientedBox2D(p, Vec2(e.a), Vec2(e.b), Float(e.thickness)),
-            Segment2D e => SDFMath.Segment2D(p, Vec2(e.a), Vec2(e.b)),
-            Rhombus2D e => SDFMath.Rhombus2D(p, Vec2(e.size)),
-            Trapezoid2D e => SDFMath.Trapezoid2D(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
-            Parallelogram2D e => SDFMath.Parallelogram2D(p, Float(e.width), Float(e.height), Float(e.skew)),
-            EquilateralTriangle2D e => SDFMath.EquilateralTriangle2D(p, Float(e.radius)),
-            IsoscelesTriangle2D e => SDFMath.IsoscelesTriangle2D(p, Vec2(e.size)),
-            Triangle2D e => SDFMath.Triangle2D(p, Vec2(e.a), Vec2(e.b), Vec2(e.c)),
-            UnevenCapsule2D e => SDFMath.UnevenCapsule2D(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
-            Pentagon2D e => SDFMath.Pentagon2D(p, Float(e.radius)),
-            Hexagon2D e => SDFMath.Hexagon2D(p, Float(e.radius)),
-            Octagon2D e => SDFMath.Octagon2D(p, Float(e.radius)),
-            Hexagram2D e => SDFMath.Hexagram2D(p, Float(e.radius)),
-            Star2D e => SDFMath.Star2D(p, Float(e.radius), Calculate(e.points, context), Float(e.innerFactor)),
-            Pie2D e => SDFMath.Pie2D(p, Vec2(e.sinCos), Float(e.radius)),
-            Arc2D e => SDFMath.Arc2D(p, Vec2(e.sinCos), Float(e.radius), Float(e.thickness)),
-            Ring2D e => SDFMath.Ring2D(p, Vec2(e.sinCos), Float(e.radius), Float(e.thickness)),
-            Moon2D e => SDFMath.Moon2D(p, Float(e.distance), Float(e.radiusA), Float(e.radiusB)),
-            Vesica2D e => SDFMath.Vesica2D(p, Float(e.width), Float(e.height)),
-            Egg2D e => SDFMath.Egg2D(p, Float(e.radiusA), Float(e.radiusB)),
-            Heart2D => SDFMath.Heart2D(p),
-            Cross2D e => SDFMath.Cross2D(p, Vec2(e.size), Float(e.roundness)),
-            RoundedX2D e => SDFMath.RoundedX2D(p, Float(e.width), Float(e.roundness)),
-            Ellipse2D e => SDFMath.Ellipse2D(p, Vec2(e.radii)),
-            Parabola2D e => SDFMath.Parabola2D(p, Float(e.k)),
-            Horseshoe2D e => SDFMath.Horseshoe2D(p, Vec2(e.sinCos), Float(e.radius), Vec2(e.size)),
+            Circle e => SdfMath.Circle(p, Float(e.radius)),
+            Box2D e => SdfMath.Box2D(p, Vec2(e.size)),
+            RoundedBox2D e => SdfMath.RoundedBox2D(p, Vec2(e.size), Float(e.radiusTopRight), Float(e.radiusBottomRight), Float(e.radiusTopLeft), Float(e.radiusBottomLeft)),
+            OrientedBox2D e => SdfMath.OrientedBox2D(p, Vec2(e.a), Vec2(e.b), Float(e.thickness)),
+            Segment2D e => SdfMath.Segment2D(p, Vec2(e.a), Vec2(e.b)),
+            Rhombus2D e => SdfMath.Rhombus2D(p, Vec2(e.size)),
+            Trapezoid2D e => SdfMath.Trapezoid2D(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
+            Parallelogram2D e => SdfMath.Parallelogram2D(p, Float(e.width), Float(e.height), Float(e.skew)),
+            EquilateralTriangle2D e => SdfMath.EquilateralTriangle2D(p, Float(e.radius)),
+            IsoscelesTriangle2D e => SdfMath.IsoscelesTriangle2D(p, Vec2(e.size)),
+            Triangle2D e => SdfMath.Triangle2D(p, Vec2(e.a), Vec2(e.b), Vec2(e.c)),
+            UnevenCapsule2D e => SdfMath.UnevenCapsule2D(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
+            Pentagon2D e => SdfMath.Pentagon2D(p, Float(e.radius)),
+            Hexagon2D e => SdfMath.Hexagon2D(p, Float(e.radius)),
+            Octagon2D e => SdfMath.Octagon2D(p, Float(e.radius)),
+            Hexagram2D e => SdfMath.Hexagram2D(p, Float(e.radius)),
+            Star2D e => SdfMath.Star2D(p, Float(e.radius), Calculate(e.points, context), Float(e.innerFactor)),
+            Pie2D e => SdfMath.Pie2D(p, Vec2(e.sinCos), Float(e.radius)),
+            Arc2D e => SdfMath.Arc2D(p, Vec2(e.sinCos), Float(e.radius), Float(e.thickness)),
+            Ring2D e => SdfMath.Ring2D(p, Vec2(e.sinCos), Float(e.radius), Float(e.thickness)),
+            Moon2D e => SdfMath.Moon2D(p, Float(e.distance), Float(e.radiusA), Float(e.radiusB)),
+            Vesica2D e => SdfMath.Vesica2D(p, Float(e.width), Float(e.height)),
+            Egg2D e => SdfMath.Egg2D(p, Float(e.radiusA), Float(e.radiusB)),
+            Heart2D => SdfMath.Heart2D(p),
+            Cross2D e => SdfMath.Cross2D(p, Vec2(e.size), Float(e.roundness)),
+            RoundedX2D e => SdfMath.RoundedX2D(p, Float(e.width), Float(e.roundness)),
+            Ellipse2D e => SdfMath.Ellipse2D(p, Vec2(e.radii)),
+            Parabola2D e => SdfMath.Parabola2D(p, Float(e.k)),
+            Horseshoe2D e => SdfMath.Horseshoe2D(p, Vec2(e.sinCos), Float(e.radius), Vec2(e.size)),
 
             Round2D e => Sdf2D(e.primitive, p) - Float(e.radius),
             Onion2D e => MathF.Abs(Sdf2D(e.primitive, p)) - Float(e.thickness),
@@ -198,7 +198,7 @@ public class SDFCalculatorCPU
             Intersection2D e => CalculateIntersection2D(p, e, context),
             SmoothUnion2D e => CalculateSmoothUnion2D(p, e, Float(e.smoothness), context),
             Translate2D e => Sdf2D(e.primitive, p - Vec2(e.offset)),
-            Rotate2D e => Sdf2D(e.primitive, SDFMath.Rotate(p, MathF.Cos(Float(e.angle)), MathF.Sin(Float(e.angle)))),
+            Rotate2D e => Sdf2D(e.primitive, SdfMath.Rotate(p, MathF.Cos(Float(e.angle)), MathF.Sin(Float(e.angle)))),
 
             _ => throw new NotImplementedException($"Unknown {nameof(SDF2DEvaluable)}: {evaluable.GetType().Name}"),
         };
@@ -209,7 +209,7 @@ public class SDFCalculatorCPU
         return floatEvaluable switch
         {
             ConstValueFloat c => c.value,
-            FunctionParameterValueFloat fp => (float)context.parameterValues[fp.functionParameterIndex],
+            FunctionParameterValueFloat fp => (float)context.ParameterValues[fp.functionParameterIndex],
             VariableReferenceFloat r => (float)context.VariableValue(r.variableId),
             FloatEvaluablePointerable e => Calculate(context.FloatEvaluables[e.PointerId], context),
             _ => throw new NotImplementedException($"Unknown {nameof(FloatEvaluable)}: {floatEvaluable.GetType().Name}"),
@@ -221,7 +221,7 @@ public class SDFCalculatorCPU
         return v2Evaluable switch
         {
             ConstValueV2 c => new Vector2(c.v2.x, c.v2.y),
-            FunctionParameterValueV2 fp => (Vector2)context.parameterValues[fp.functionParameterIndex],
+            FunctionParameterValueV2 fp => (Vector2)context.ParameterValues[fp.functionParameterIndex],
             VariableReferenceV2 r => (Vector2)context.VariableValue(r.variableId),
             _ => throw new NotImplementedException($"Unknown {nameof(V2Evaluable)}: {v2Evaluable.GetType().Name}"),
         };
@@ -232,7 +232,7 @@ public class SDFCalculatorCPU
         return v3Evaluable switch
         {
             ConstValueV3 c => new Vector3(c.v3.x, c.v3.y, c.v3.z),
-            FunctionParameterValueV3 fp => (Vector3)context.parameterValues[fp.functionParameterIndex],
+            FunctionParameterValueV3 fp => (Vector3)context.ParameterValues[fp.functionParameterIndex],
             VariableReferenceV3 r => (Vector3)context.VariableValue(r.variableId),
             _ => throw new NotImplementedException($"Unknown {nameof(V3Evaluable)}: {v3Evaluable.GetType().Name}"),
         };
@@ -243,7 +243,7 @@ public class SDFCalculatorCPU
         return intEvaluable switch
         {
             ConstValueInt c => c.value,
-            FunctionParameterValueInt fp => (int)context.parameterValues[fp.functionParameterIndex],
+            FunctionParameterValueInt fp => (int)context.ParameterValues[fp.functionParameterIndex],
             VariableReferenceInt r => (int)context.VariableValue(r.variableId),
             IntegerEvaluablePointerable e => Calculate(context.IntegerEvaluables[e.PointerId], context),
             _ => throw new NotImplementedException($"Unknown {nameof(IntegerEvaluable)}: {intEvaluable.GetType().Name}"),
@@ -253,18 +253,18 @@ public class SDFCalculatorCPU
     private float CalculateVariable(Vector3 p, string variableId, Dictionary<string, FunctionInfo> idToFunctions, EvaluationContext context)
     {
         var index = context.VariableIndex(variableId);
-        return Calculate(p, (SDFEvaluable)context.variableValues[index], idToFunctions, context with { visibleVariableCount = index });
+        return Calculate(p, (SDFEvaluable)context.VariableValues[index], idToFunctions, context with { VisibleVariableCount = index });
     }
 
     private float CalculateVariable(Vector2 p, string variableId, EvaluationContext context)
     {
         var index = context.VariableIndex(variableId);
-        return Calculate(p, (SDF2DEvaluable)context.variableValues[index], context with { visibleVariableCount = index });
+        return Calculate(p, (SDF2DEvaluable)context.VariableValues[index], context with { VisibleVariableCount = index });
     }
 
     // innerRadius/outerRadius are the radii of the hole and the outer rim of the torus
     private static float CalculateTorus(Vector3 p, float innerRadius, float outerRadius) =>
-        SDFMath.Torus(p, (outerRadius + innerRadius) * 0.5f, (outerRadius - innerRadius) * 0.5f);
+        SdfMath.Torus(p, (outerRadius + innerRadius) * 0.5f, (outerRadius - innerRadius) * 0.5f);
 
     private static float CalculateExtrusion(Vector3 p, float d, float h)
     {
@@ -368,13 +368,13 @@ public class SDFCalculatorCPU
 
     private static Vector3 CalculateTwist(Vector3 p, float k)
     {
-        var xz = SDFMath.Rotate(XZ(p), MathF.Cos(k * p.Y), MathF.Sin(k * p.Y));
+        var xz = SdfMath.Rotate(Xz(p), MathF.Cos(k * p.Y), MathF.Sin(k * p.Y));
         return new Vector3(xz.X, p.Y, xz.Y);
     }
 
     private static Vector3 CalculateCheapBend(Vector3 p, float k)
     {
-        var xy = SDFMath.Rotate(XY(p), MathF.Cos(k * p.X), MathF.Sin(k * p.X));
+        var xy = SdfMath.Rotate(Xy(p), MathF.Cos(k * p.X), MathF.Sin(k * p.X));
         return new Vector3(xy.X, xy.Y, p.Z);
     }
 }

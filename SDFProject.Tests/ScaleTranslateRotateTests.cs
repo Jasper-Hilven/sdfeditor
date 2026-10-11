@@ -1,12 +1,12 @@
 using SDFProject.Calculation;
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;
 
 public class ScaleTranslateRotateTests
 {
-    private static readonly SDFCalculatorCPU Calculator = new();
+    private static readonly SdfCalculatorCpu Calculator = new();
 
     // A box that is long along the x-axis
     private static readonly SDFEvaluable LongBox = new Box(new ConstValueV3(new V3(2, 0.5f, 0.5f)));

@@ -1,4 +1,4 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 using SDFProject.SDFProgramOperator.Helpers;
 using SDFProject.SDFProgramOperator.Operations;
 

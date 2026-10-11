@@ -1,4 +1,4 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 
 namespace SDFProject.SDFProgramOperator.Helpers;
 

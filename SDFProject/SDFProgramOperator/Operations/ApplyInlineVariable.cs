@@ -1,4 +1,4 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 using SDFProject.SDFProgramOperator.Helpers;
 
 namespace SDFProject.SDFProgramOperator.Operations;
@@ -7,11 +7,11 @@ public class ApplyInlineVariable
 {
     public static SDFProgram DoApplyInlineVariable(SDFProgram program, InlineVariable operation)
     {
-        var functionIndex = Array.FindIndex(program.functions, f => f.variables.Any(v => v.id == operation.variableId));
+        var functionIndex = Array.FindIndex(program.Functions, f => f.variables.Any(v => v.id == operation.variableId));
         if (functionIndex < 0)
             throw new KeyNotFoundException($"There is no variable with id '{operation.variableId}'");
 
-        var function = program.functions[functionIndex];
+        var function = program.Functions[functionIndex];
         var variableIndex = Array.FindIndex(function.variables, v => v.id == operation.variableId);
         var value = function.variables[variableIndex].value;
         var tables = new PointerTables(program.pointers);
@@ -39,9 +39,9 @@ public class ApplyInlineVariable
 
         variables.RemoveAt(variableIndex);
 
-        var functions = program.functions.ToArray();
+        var functions = program.Functions.ToArray();
         functions[functionIndex] = function.With(variables.ToArray(), body);
 
-        return program with { functions = functions, pointers = tables.ToPointers(program.pointers.nextFreePointer) };
+        return program with { Functions = functions, pointers = tables.ToPointers(program.pointers.nextFreePointer) };
     }
 }

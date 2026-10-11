@@ -7,4 +7,9 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <!-- The viewer that Program.cs serves -->
+    <ItemGroup>
+        <None Update="Resources\SdfViewer\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

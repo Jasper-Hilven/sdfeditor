@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
 
 namespace SDFProject.SDFProgramOperator.Helpers;
 

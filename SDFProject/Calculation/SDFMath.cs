@@ -4,7 +4,7 @@ namespace SDFProject.Calculation;
 
 // CPU ports of https://iquilezles.org/articles/distfunctions/ and https://iquilezles.org/articles/distfunctions2d/
 /*THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.*/
-internal static class SDFMath
+internal static class SdfMath
 {
     public static float Sign(float x) => x > 0 ? 1 : x < 0 ? -1 : 0;
     public static float Clamp(float x, float min, float max) => MathF.Min(MathF.Max(x, min), max);
@@ -13,8 +13,8 @@ internal static class SDFMath
     public static Vector2 Max0(Vector2 v) => Vector2.Max(v, Vector2.Zero);
     public static Vector3 Max0(Vector3 v) => Vector3.Max(v, Vector3.Zero);
     public static float MaxComponent(Vector3 v) => MathF.Max(v.X, MathF.Max(v.Y, v.Z));
-    public static Vector2 XY(Vector3 v) => new(v.X, v.Y);
-    public static Vector2 XZ(Vector3 v) => new(v.X, v.Z);
+    public static Vector2 Xy(Vector3 v) => new(v.X, v.Y);
+    public static Vector2 Xz(Vector3 v) => new(v.X, v.Z);
 
     public static float Length(Vector2 v) => v.Length();
     public static float Length(Vector3 v) => v.Length();
@@ -58,14 +58,14 @@ internal static class SDFMath
 
     public static float Torus(Vector3 p, float majorRadius, float minorRadius)
     {
-        var q = new Vector2(Length(XZ(p)) - majorRadius, p.Y);
+        var q = new Vector2(Length(Xz(p)) - majorRadius, p.Y);
         return Length(q) - minorRadius;
     }
 
     public static float CappedTorus(Vector3 p, Vector2 sc, float ra, float rb)
     {
         p.X = MathF.Abs(p.X);
-        var pxy = XY(p);
+        var pxy = Xy(p);
         var k = sc.Y * p.X > sc.X * p.Y ? Vector2.Dot(pxy, sc) : Length(pxy);
         return MathF.Sqrt(Vector3.Dot(p, p) + ra * ra - 2f * ra * k) - rb;
     }
@@ -73,15 +73,15 @@ internal static class SDFMath
     public static float Link(Vector3 p, float le, float r1, float r2)
     {
         var q = new Vector3(p.X, MathF.Max(MathF.Abs(p.Y) - le, 0f), p.Z);
-        return Length(new Vector2(Length(XY(q)) - r1, q.Z)) - r2;
+        return Length(new Vector2(Length(Xy(q)) - r1, q.Z)) - r2;
     }
 
-    public static float InfiniteCylinder(Vector3 p, Vector2 center, float radius) => Length(XZ(p) - center) - radius;
+    public static float InfiniteCylinder(Vector3 p, Vector2 center, float radius) => Length(Xz(p) - center) - radius;
 
     public static float Cone(Vector3 p, Vector2 c, float h)
     {
         var q = h * new Vector2(c.X / c.Y, -1f);
-        var w = new Vector2(Length(XZ(p)), p.Y);
+        var w = new Vector2(Length(Xz(p)), p.Y);
         var a = w - q * Clamp(Vector2.Dot(w, q) / Vector2.Dot(q, q), 0f, 1f);
         var b = w - q * new Vector2(Clamp(w.X / q.X, 0f, 1f), 1f);
         var k = Sign(q.Y);
@@ -92,7 +92,7 @@ internal static class SDFMath
 
     public static float InfiniteCone(Vector3 p, Vector2 c)
     {
-        var q = new Vector2(Length(XZ(p)), -p.Y);
+        var q = new Vector2(Length(Xz(p)), -p.Y);
         var d = Length(q - c * MathF.Max(Vector2.Dot(q, c), 0f));
         return d * (q.X * c.Y - q.Y * c.X < 0f ? -1f : 1f);
     }
@@ -104,7 +104,7 @@ internal static class SDFMath
         var k = new Vector3(-0.8660254f, 0.5f, 0.57735f);
         var kxy = new Vector2(k.X, k.Y);
         p = Vector3.Abs(p);
-        var pxy = XY(p) - 2f * MathF.Min(Vector2.Dot(kxy, XY(p)), 0f) * kxy;
+        var pxy = Xy(p) - 2f * MathF.Min(Vector2.Dot(kxy, Xy(p)), 0f) * kxy;
         var d = new Vector2(
             Length(pxy - new Vector2(Clamp(pxy.X, -k.Z * h.X, k.Z * h.X), h.X)) * Sign(pxy.Y - h.X),
             p.Z - h.Y);
@@ -126,7 +126,7 @@ internal static class SDFMath
 
     public static float CappedCylinder(Vector3 p, float r, float h)
     {
-        var d = Vector2.Abs(new Vector2(Length(XZ(p)), p.Y)) - new Vector2(r, h);
+        var d = Vector2.Abs(new Vector2(Length(Xz(p)), p.Y)) - new Vector2(r, h);
         return MathF.Min(MathF.Max(d.X, d.Y), 0f) + Length(Max0(d));
     }
 
@@ -146,13 +146,13 @@ internal static class SDFMath
 
     public static float RoundedCylinder(Vector3 p, float ra, float rb, float h)
     {
-        var d = new Vector2(Length(XZ(p)) - ra + rb, MathF.Abs(p.Y) - h + rb);
+        var d = new Vector2(Length(Xz(p)) - ra + rb, MathF.Abs(p.Y) - h + rb);
         return MathF.Min(MathF.Max(d.X, d.Y), 0f) + Length(Max0(d)) - rb;
     }
 
     public static float CappedCone(Vector3 p, float h, float r1, float r2)
     {
-        var q = new Vector2(Length(XZ(p)), p.Y);
+        var q = new Vector2(Length(Xz(p)), p.Y);
         var k1 = new Vector2(r2, h);
         var k2 = new Vector2(r2 - r1, 2f * h);
         var ca = new Vector2(q.X - MathF.Min(q.X, q.Y < 0f ? r1 : r2), MathF.Abs(q.Y) - h);
@@ -180,7 +180,7 @@ internal static class SDFMath
 
     public static float SolidAngle(Vector3 p, Vector2 c, float ra)
     {
-        var q = new Vector2(Length(XZ(p)), p.Y);
+        var q = new Vector2(Length(Xz(p)), p.Y);
         var l = Length(q) - ra;
         var m = Length(q - c * Clamp(Vector2.Dot(q, c), 0f, ra));
         return MathF.Max(l, m * Sign(c.Y * q.X - c.X * q.Y));
@@ -189,7 +189,7 @@ internal static class SDFMath
     public static float CutSphere(Vector3 p, float r, float h)
     {
         var w = MathF.Sqrt(r * r - h * h);
-        var q = new Vector2(Length(XZ(p)), p.Y);
+        var q = new Vector2(Length(Xz(p)), p.Y);
         var s = MathF.Max((h - r) * q.X * q.X + w * w * (h + r - 2f * q.Y), h * q.X - w * q.Y);
         return s < 0f ? Length(q) - r
             : q.X < w ? h - q.Y
@@ -199,7 +199,7 @@ internal static class SDFMath
     public static float CutHollowSphere(Vector3 p, float r, float h, float t)
     {
         var w = MathF.Sqrt(r * r - h * h);
-        var q = new Vector2(Length(XZ(p)), p.Y);
+        var q = new Vector2(Length(Xz(p)), p.Y);
         return (h * q.X < w * q.Y ? Length(q - new Vector2(w, h)) : MathF.Abs(Length(q) - r)) - t;
     }
 
@@ -217,7 +217,7 @@ internal static class SDFMath
     {
         var b = (r1 - r2) / h;
         var a = MathF.Sqrt(1f - b * b);
-        var q = new Vector2(Length(XZ(p)), p.Y);
+        var q = new Vector2(Length(Xz(p)), p.Y);
         var k = Vector2.Dot(q, new Vector2(-b, a));
         if (k < 0f) return Length(q) - r1;
         if (k > a * h) return Length(q - new Vector2(0f, h)) - r2;
@@ -264,7 +264,7 @@ internal static class SDFMath
     {
         p = Vector3.Abs(p);
         var f = Clamp((la * p.X - lb * p.Z + lb * lb) / (la * la + lb * lb), 0f, 1f);
-        var w = XZ(p) - new Vector2(la, lb) * new Vector2(f, 1f - f);
+        var w = Xz(p) - new Vector2(la, lb) * new Vector2(f, 1f - f);
         var q = new Vector2(Length(w) * Sign(w.X) - ra, p.Y - h);
         return MathF.Min(MathF.Max(q.X, q.Y), 0f) + Length(Max0(q));
     }
@@ -293,7 +293,7 @@ internal static class SDFMath
     {
         var m2 = h * h + 0.25f;
 
-        var xz = Vector2.Abs(XZ(p));
+        var xz = Vector2.Abs(Xz(p));
         if (xz.Y > xz.X) xz = new Vector2(xz.Y, xz.X);
         xz -= new Vector2(0.5f);
         p = new Vector3(xz.X, p.Y, xz.Y);

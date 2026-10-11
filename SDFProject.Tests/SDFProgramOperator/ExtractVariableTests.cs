@@ -1,4 +1,5 @@
-using SDFProject.Definitions;
+using SDFProject.ProgramDefinition;
+using SDFProject.SDFProgramOperator;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;
@@ -12,7 +13,7 @@ public class ExtractVariableTests
 
         var result = Operator.ApplyOperation(program, new ExtractVariable(SphereId(program, 2), "v"));
 
-        var variable = Assert.Single(result.functions[0].variables);
+        var variable = Assert.Single(result.Functions[0].variables);
         Assert.Equal("v", variable.name);
         Assert.Equal("Sphere(2)", Describe(result, variable.value));
         Assert.Equal($"Union(Sphere(1), ${variable.id})", DescribeBody(result));
