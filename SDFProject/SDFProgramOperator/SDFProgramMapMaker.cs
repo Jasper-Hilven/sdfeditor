@@ -4,16 +4,9 @@ public class SDFProgramMapMaker
 {
     public static SDFProgram Pointerify(SDFProgram program)
     {
-        var mapper = new Mapper(program.pointers);
+        var mapper = new Mapper(program.pointers, program.VariableIds());
 
-        var functions = program.functions.Select(f => (SDFFunctionDefinition)new SDFFunction(
-            f.name,
-            f.id,
-            f.argumentNames,
-            f.variables.Select(v => v with { value = mapper.Map(v.value) }).ToArray(),
-            (SDFEvaluable)mapper.Map(f.functionBody))).ToArray();
-
-        var scene = (SDFEvaluable)mapper.Map(program.scene);
+        program = program.MapRoots(mapper.Map);
 
         mapper.FlattenExistingEntries();
 
@@ -24,7 +17,7 @@ public class SDFProgramMapMaker
             mapper.integers.pointers,
             mapper.nextFreePointer);
 
-        return new SDFProgram(functions, pointers, scene);
+        return program with { pointers = pointers };
     }
 
     private sealed class PointerTable<T>(Dictionary<string, T> existing, Func<string> allocateId, Func<string, T> createPointer)
@@ -58,8 +51,11 @@ public class SDFProgramMapMaker
         public readonly PointerTable<IntegerEvaluable> integers;
         public long nextFreePointer;
 
-        public Mapper(SDFPointers existing)
+        private readonly HashSet<string> variableIds;
+
+        public Mapper(SDFPointers existing, HashSet<string> variableIds)
         {
+            this.variableIds = variableIds;
             nextFreePointer = existing.nextFreePointer;
             sdf = new(existing.SDFEvaluablePointers, AllocateId, id => new SDFEvaluablePointerable(id));
             sdf2D = new(existing.SDF2DEvaluablePointers, AllocateId, id => new SDF2DEvaluablePointerable(id));
@@ -67,14 +63,9 @@ public class SDFProgramMapMaker
             integers = new(existing.IntegerEvaluablePointers, AllocateId, id => new IntegerEvaluablePointerable(id));
         }
 
-        // Pointer ids are unique over all pointer dictionaries; skip ids that are already taken in case nextFreePointer lags behind
-        private string AllocateId()
-        {
-            string id;
-            do id = (nextFreePointer++).ToString();
-            while (sdf.Contains(id) || sdf2D.Contains(id) || floats.Contains(id) || integers.Contains(id));
-            return id;
-        }
+        // Skip ids that are already taken in case nextFreePointer lags behind
+        private string AllocateId() => SDFProgramRoots.AllocateId(ref nextFreePointer,
+            id => sdf.Contains(id) || sdf2D.Contains(id) || floats.Contains(id) || integers.Contains(id) || variableIds.Contains(id));
 
         /// <summary>Returns the evaluable with its subtree flattened; the result is a pointer if it has children.</summary>
         public Evaluable Map(Evaluable evaluable)

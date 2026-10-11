@@ -36,7 +36,10 @@ public sealed record SDFFunction(
 
 public sealed record VariableDeclaration(string name, string id, Evaluable value);
 
-public interface VariableReference: Evaluable;
+public interface VariableReference : Evaluable
+{
+    string variableId { get; }
+}
 public sealed record VariableReferenceSDF(string variableId) : SDFEvaluable, VariableReference;
 public sealed record VariableReferenceSDF2D(string variableId) : SDF2DEvaluable, VariableReference;
 public sealed record VariableReferenceFloat(string variableId) : FloatEvaluable, VariableReference;
@@ -97,15 +100,15 @@ public sealed record Onion(SDFEvaluable primitive, FloatEvaluable thickness) : S
 
 public sealed record Union(params SDFEvaluable[] primitives) : SDFEvaluable;
 public sealed record Subtraction(SDFEvaluable a, SDFEvaluable b) : SDFEvaluable;
-public sealed record Intersection(SDFEvaluable a, SDFEvaluable b) : SDFEvaluable;
+public sealed record Intersection(params SDFEvaluable[] primitives) : SDFEvaluable;
 public sealed record Xor(SDFEvaluable a, SDFEvaluable b) : SDFEvaluable;
 public sealed record SmoothUnion(FloatEvaluable smoothness, params SDFEvaluable[] primitives) : SDFEvaluable;
 public sealed record SmoothSubtraction(SDFEvaluable a, SDFEvaluable b, FloatEvaluable smoothness) : SDFEvaluable;
-public sealed record SmoothIntersection(SDFEvaluable a, SDFEvaluable b, FloatEvaluable smoothness) : SDFEvaluable;
+public sealed record SmoothIntersection(FloatEvaluable smoothness, params SDFEvaluable[] primitives) : SDFEvaluable;
 
-public sealed record Translate(SDFEvaluable primitive, V3Evaluable offset) : SDFEvaluable;
-public sealed record Rotate(SDFEvaluable primitive, V3Evaluable axis, FloatEvaluable angle) : SDFEvaluable;
-public sealed record Scale(SDFEvaluable primitive, FloatEvaluable factor) : SDFEvaluable;
+// Scales the primitive, rotates it around its own origin and then moves it by the translation.
+// The rotation is in Euler angles (radians), applied around x, then y, then z
+public sealed record ScaleTranslateRotate(SDFEvaluable primitive, FloatEvaluable scale, V3Evaluable translation, V3Evaluable rotation) : SDFEvaluable;
 
 public sealed record SymmetryX(SDFEvaluable primitive) : SDFEvaluable;
 public sealed record SymmetryXZ(SDFEvaluable primitive) : SDFEvaluable;
@@ -152,7 +155,7 @@ public sealed record Round2D(SDF2DEvaluable primitive, FloatEvaluable radius) : 
 public sealed record Onion2D(SDF2DEvaluable primitive, FloatEvaluable thickness) : SDF2DEvaluable;
 public sealed record Union2D(params SDF2DEvaluable[] primitives) : SDF2DEvaluable;
 public sealed record Subtraction2D(SDF2DEvaluable a, SDF2DEvaluable b) : SDF2DEvaluable;
-public sealed record Intersection2D(SDF2DEvaluable a, SDF2DEvaluable b) : SDF2DEvaluable;
+public sealed record Intersection2D(params SDF2DEvaluable[] primitives) : SDF2DEvaluable;
 public sealed record SmoothUnion2D(FloatEvaluable smoothness, params SDF2DEvaluable[] primitives) : SDF2DEvaluable;
 public sealed record Translate2D(SDF2DEvaluable primitive, V2Evaluable offset) : SDF2DEvaluable;
 public sealed record Rotate2D(SDF2DEvaluable primitive, FloatEvaluable angle) : SDF2DEvaluable;

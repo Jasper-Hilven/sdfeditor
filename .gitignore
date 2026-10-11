@@ -1,5 +1,30 @@
+# Build output
 bin/
 obj/
 /packages/
+*.nupkg
+
+# Test results and coverage
+TestResults/
+*.trx
+coverage*.json
+coverage*.xml
+*.coverage
+
+# User-specific IDE files
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
 riderModule.iml
 /_ReSharper.Caches/
+.vs/
+.vscode/
+
+# Rider keeps shared settings in .idea and ignores its own user-specific files there
+.idea/**/workspace.xml
+.idea/**/shelf/
+
+# OS files
+.DS_Store
+Thumbs.db
