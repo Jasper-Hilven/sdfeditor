@@ -1,4 +1,7 @@
-namespace SDFProject.SDFInteractiveNodeProgram;
+using SDFProject.Definitions;
+using SDFProject.SDFProgramOperator.Helpers;
+
+namespace SDFProject.SDFInteractiveNode;
 
 public class SDFInteractiveNodeProgramOperator
 {
@@ -10,7 +13,7 @@ public class SDFInteractiveNodeProgramOperator
     private static readonly V3 UnitY = new(0, 1, 0);
     private static readonly V3 UnitZ = new(0, 0, 1);
 
-    private readonly SDFProgramOperator programOperator = new();
+    private readonly SDFProgramOperator.SDFProgramOperator programOperator = new();
 
     public SDFInteractiveNodeProgram ApplyOperation(SDFInteractiveNodeProgram program, SDFInteractiveNodeProgramOperation operation)
     {

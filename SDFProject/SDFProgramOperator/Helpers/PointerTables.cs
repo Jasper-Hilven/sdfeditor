@@ -1,6 +1,7 @@
-namespace SDFProject;
+using SDFProject.Definitions;
 
-// Mutable copy of the pointer dictionaries of a program, addressable by pointer id regardless of the node type
+namespace SDFProject.SDFProgramOperator.Helpers;
+
 public sealed class PointerTables
 {
     private readonly Dictionary<string, SDFEvaluable> sdf;
@@ -50,7 +51,6 @@ public sealed class PointerTables
             Remove(id);
     }
 
-    /// <summary>The id of the pointer node that has the given pointer as a direct child, or null when only a root refers to it.</summary>
     public string? ParentOf(string id)
     {
         var pointer = PointerTo(id);
@@ -63,7 +63,6 @@ public sealed class PointerTables
             .Concat(floats.Select(e => (e.Key, (Evaluable)e.Value)))
             .Concat(integers.Select(e => (e.Key, (Evaluable)e.Value)));
 
-    /// <summary>The pointer node that refers to the given id.</summary>
     public Evaluable PointerTo(string id) =>
         sdf.ContainsKey(id) ? new SDFEvaluablePointerable(id)
         : sdf2D.ContainsKey(id) ? new SDF2DEvaluablePointerable(id)
@@ -80,7 +79,6 @@ public sealed class PointerTables
         _ => null,
     };
 
-    /// <summary>All pointer ids reachable from the node, including the node itself when it is a pointer.</summary>
     public List<string> Subtree(Evaluable root)
     {
         var ids = new List<string>();
@@ -99,7 +97,6 @@ public sealed class PointerTables
         return ids;
     }
 
-    /// <summary>The node with every pointer in its subtree replaced by the node it points to.</summary>
     public Evaluable Expand(Evaluable node)
     {
         if (PointerId(node) is { } id)
@@ -107,7 +104,6 @@ public sealed class PointerTables
         return EvaluableChildren.MapChildren(node, Expand);
     }
 
-    /// <summary>Maps the root itself and the direct children of every node reachable from it.</summary>
     public Evaluable MapTree(Evaluable root, Func<Evaluable, Evaluable> map)
     {
         root = map(root);

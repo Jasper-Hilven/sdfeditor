@@ -1,4 +1,7 @@
-namespace SDFProject;
+using SDFProject.Definitions;
+using SDFProject.SDFProgramOperator.Helpers;
+
+namespace SDFProject.SDFProgramOperator.Operations;
 
 public class ApplyEmptyNode
 {

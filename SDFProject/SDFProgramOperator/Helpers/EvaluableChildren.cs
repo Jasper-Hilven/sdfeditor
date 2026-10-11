@@ -1,10 +1,9 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using SDFProject.Definitions;
 
-namespace SDFProject;
+namespace SDFProject.SDFProgramOperator.Helpers;
 
-// Evaluables are positional records: the public constructor's parameters match their properties by name,
-// so the direct children of any node can be read and replaced generically
 public static class EvaluableChildren
 {
     private sealed record NodeShape(ConstructorInfo constructor, PropertyInfo[] properties);

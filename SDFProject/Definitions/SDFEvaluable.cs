@@ -1,4 +1,4 @@
-namespace SDFProject;
+namespace SDFProject.Definitions;
 
 public sealed record SDFProgram(
     SDFFunctionDefinition[] functions,

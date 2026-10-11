@@ -1,5 +1,6 @@
-using SDFProject.SDFInteractiveNodeProgram;
-using InteractiveProgram = SDFProject.SDFInteractiveNodeProgram.SDFInteractiveNodeProgram;
+using SDFProject.Definitions;
+using SDFProject.SDFInteractiveNode;
+using InteractiveProgram = SDFProject.SDFInteractiveNode.SDFInteractiveNodeProgram;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;

@@ -1,3 +1,5 @@
+using SDFProject.Calculation;
+using SDFProject.Definitions;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;

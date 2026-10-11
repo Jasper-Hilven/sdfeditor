@@ -1,7 +1,10 @@
 using System.Numerics;
-using static SDFProject.SDFMath;
+using SDFProject.Definitions;
+using static SDFProject.Calculation.SDFMath;
+using Heart2D = SDFProject.Definitions.Heart2D;
+using Plane = SDFProject.Definitions.Plane;
 
-namespace SDFProject;
+namespace SDFProject.Calculation;
 
 public class SDFCalculatorCPU
 {

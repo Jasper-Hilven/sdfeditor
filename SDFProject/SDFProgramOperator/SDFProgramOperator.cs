@@ -1,4 +1,8 @@
-namespace SDFProject;
+using SDFProject.Definitions;
+using SDFProject.SDFProgramOperator.Helpers;
+using SDFProject.SDFProgramOperator.Operations;
+
+namespace SDFProject.SDFProgramOperator;
 
 public class SDFProgramOperator
 {
@@ -15,10 +19,6 @@ public class SDFProgramOperator
             _ => throw new NotSupportedException($"Unknown {nameof(SDFProgramOperation)}: {operation.GetType().Name}"),
         };
 
-        return SDFProgramMapMaker.Pointerify(result);
+        return SDFProgramNormalizePointers.Pointerify(result);
     }
-
-    
-
-
 }

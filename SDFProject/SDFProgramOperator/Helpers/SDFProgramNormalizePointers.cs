@@ -1,6 +1,8 @@
-namespace SDFProject;
+using SDFProject.Definitions;
 
-public class SDFProgramMapMaker
+namespace SDFProject.SDFProgramOperator.Helpers;
+
+public class SDFProgramNormalizePointers
 {
     public static SDFProgram Pointerify(SDFProgram program)
     {

@@ -1,18 +1,21 @@
 using System.Globalization;
+using SDFProject.Definitions;
+using SDFProject.SDFProgramOperator;
+using SDFProject.SDFProgramOperator.Helpers;
 
 namespace SDFProject.Tests;
 
 // Builds small programs and inspects the result of operations on them
 public static class SDFProgramTestHelpers
 {
-    public static readonly SDFProgramOperator Operator = new();
+    public static readonly SDFProgramOperator.SDFProgramOperator Operator = new();
 
     public static readonly SDFPointers NoPointers = new(new(), new(), new(), new(), 0);
 
     public static SDFEvaluable Sphere(float radius) => new Sphere(new ConstValueFloat(radius));
 
     public static SDFProgram Program(SDFEvaluable scene, params SDFFunctionDefinition[] functions) =>
-        SDFProgramMapMaker.Pointerify(new SDFProgram(functions, NoPointers, scene));
+        SDFProgramNormalizePointers.Pointerify(new SDFProgram(functions, NoPointers, scene));
 
     public static SDFFunction Function(SDFEvaluable body, params VariableDeclaration[] variables) =>
         new("f", "f", [], variables, body);

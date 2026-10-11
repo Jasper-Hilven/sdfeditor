@@ -1,4 +1,4 @@
-namespace SDFProject;
+namespace SDFProject.Definitions;
 
 public class SDFNodeDefaultValues
 {
