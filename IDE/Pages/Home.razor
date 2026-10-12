@@ -3,6 +3,8 @@
 @using SDFProject.Calculation
 @using SDFProject.ProgramDefinition
 @using SDFProject.SDFInteractiveNode
+@using SDFProject.SDFInteractiveNode.InteractiveCommands
+@using SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -28,7 +30,7 @@
     <section class="panel">
         <header>
             Operations
-            <span class="status">selected @(program.SelectedNodeId ?? "none") · zoom @program.StrZoomLevel</span>
+            <span class="status">mode @partialProgram.state.Mode · selected @(program.SelectedNodeId ?? "none") · zoom @program.StrZoomLevel</span>
         </header>
         @if (operationError is not null)
         {
@@ -89,11 +91,13 @@
 }
 
 @code {
-    private readonly SdfInteractiveNodeProgramOperator programOperator = new();
     private readonly YamlRender yamlRender = new();
     private readonly Webgl2CodeGenerator codeGenerator = new();
 
-    private SdfInteractiveNodeProgram program = SdfInteractiveNodeProgramConstants.GetInitialProgram();
+    private SDFPartialCommandNodeProgram partialProgram = new(
+        SdfInteractiveNodeProgramConstants.GetInitialProgram(),
+        new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home));
+    private SdfInteractiveNodeProgram program => partialProgram.interactiveProgram;
     private string shaderCode = "";
     private string? operationError;
 
@@ -106,6 +110,10 @@
     private IJSObjectReference? renderer;
     private string? renderedCode;
     private string? renderError;
+
+    private DotNetObjectReference<Home>? keyHandler;
+    private IJSObjectReference? keyboardModule;
+    private IJSObjectReference? keyListener;
 
     protected override void OnInitialized() => shaderCode = codeGenerator.GenerateShaderCode(program.Program);
 
@@ -141,19 +149,36 @@
 
     private void Cancel() => pending = null;
 
+    private void Run(ISdfInteractiveNodeProgramOperation operation) =>
+        Update(operation.GetType().Name, () => partialProgram with
+        {
+            interactiveProgram = SdfInteractiveNodeProgramOperator.ApplyOperation(program, operation)
+        });
+
+    // Key presses outside the popup's fields, mapped to finger keys by the Belgian AZERTY layout
+    [JSInvokable]
+    public void OnKeyDown(string key)
+    {
+        if (pending is not null || !FingerKeyLayouts.AzertyBeFingerKeyToIndex.TryGetValue(key, out var inputKey))
+            return;
+
+        Update(inputKey.ToString(), () => SDFPartialCommandNodeProgramOperator.Operate(partialProgram, inputKey));
+        StateHasChanged();
+    }
+
     // A failing operation leaves the program as it was and shows why
-    private void Run(ISdfInteractiveNodeProgramOperation operation)
+    private void Update(string name, Func<SDFPartialCommandNodeProgram> operate)
     {
         try
         {
-            var result = programOperator.ApplyOperation(program, operation);
-            shaderCode = codeGenerator.GenerateShaderCode(result.Program);
-            program = result;
+            var result = operate();
+            shaderCode = codeGenerator.GenerateShaderCode(result.interactiveProgram.Program);
+            partialProgram = result;
             operationError = null;
         }
         catch (Exception e)
         {
-            operationError = $"{operation.GetType().Name} failed: {e.Message}";
+            operationError = $"{name} failed: {e.Message}";
         }
     }
 
@@ -161,6 +186,10 @@
     {
         if (firstRender)
         {
+            keyHandler = DotNetObjectReference.Create(this);
+            keyboardModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/keyboard.js");
+            keyListener = await keyboardModule.InvokeAsync<IJSObjectReference>("listenToKeys", keyHandler);
+
             rendererModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/sdf-renderer.js");
             try
             {
@@ -187,6 +216,15 @@
 
     public async ValueTask DisposeAsync()
     {
+        if (keyListener is not null)
+        {
+            await keyListener.InvokeVoidAsync("dispose");
+            await keyListener.DisposeAsync();
+        }
+        if (keyboardModule is not null)
+            await keyboardModule.DisposeAsync();
+        keyHandler?.Dispose();
+
         if (renderer is not null)
         {
             await renderer.InvokeVoidAsync("dispose");

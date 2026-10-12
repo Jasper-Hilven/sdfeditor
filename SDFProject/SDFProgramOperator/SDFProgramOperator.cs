@@ -4,9 +4,9 @@ using SDFProject.SDFProgramOperator.Operations;
 
 namespace SDFProject.SDFProgramOperator;
 
-public class SDFProgramOperator
+public class SdfProgramOperator
 {
-    public SDFProgram ApplyOperation(SDFProgram program, SDFProgramOperation operation)
+    public static SDFProgram ApplyOperation(SDFProgram program, SDFProgramOperation operation)
     {
         var result = operation switch
         {

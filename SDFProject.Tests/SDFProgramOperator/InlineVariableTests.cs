@@ -10,9 +10,9 @@ public class InlineVariableTests
     public void UndoesExtractVariable()
     {
         var program = Program(new Empty(), Function(new Union(Sphere(1), Sphere(2))));
-        var extracted = Operator.ApplyOperation(program, new ExtractVariable(SphereId(program, 2), "v"));
+        var extracted = SdfProgramOperator.ApplyOperation(program, new ExtractVariable(SphereId(program, 2), "v"));
 
-        var result = Operator.ApplyOperation(extracted, new InlineVariable(extracted.Functions[0].variables[0].id));
+        var result = SdfProgramOperator.ApplyOperation(extracted, new InlineVariable(extracted.Functions[0].variables[0].id));
 
         Assert.Empty(result.Functions[0].variables);
         Assert.Equal("Union(Sphere(1), Sphere(2))", DescribeBody(result));
@@ -25,7 +25,7 @@ public class InlineVariableTests
         var variable = new VariableDeclaration("v", "var", Sphere(1));
         var program = Program(new Empty(), Function(new Union(new VariableReferenceSDF("var"), new VariableReferenceSDF("var")), variable));
 
-        var result = Operator.ApplyOperation(program, new InlineVariable("var"));
+        var result = SdfProgramOperator.ApplyOperation(program, new InlineVariable("var"));
 
         Assert.Equal("Union(Sphere(1), Sphere(1))", DescribeBody(result));
         AssertPointersConsistent(result);
@@ -37,7 +37,7 @@ public class InlineVariableTests
         var variable = new VariableDeclaration("v", "var", Sphere(1));
         var program = Program(new Empty(), Function(new Union(Sphere(2)), variable));
 
-        var result = Operator.ApplyOperation(program, new InlineVariable("var"));
+        var result = SdfProgramOperator.ApplyOperation(program, new InlineVariable("var"));
 
         Assert.Empty(result.Functions[0].variables);
         Assert.Equal("Union(Sphere(2))", DescribeBody(result));
@@ -49,6 +49,6 @@ public class InlineVariableTests
     {
         var program = Program(new Empty(), Function(new Union(Sphere(1))));
 
-        Assert.Throws<KeyNotFoundException>(() => Operator.ApplyOperation(program, new InlineVariable("missing")));
+        Assert.Throws<KeyNotFoundException>(() => SdfProgramOperator.ApplyOperation(program, new InlineVariable("missing")));
     }
 }

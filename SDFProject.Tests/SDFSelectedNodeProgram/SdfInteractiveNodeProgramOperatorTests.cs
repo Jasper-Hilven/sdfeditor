@@ -1,5 +1,6 @@
 using SDFProject.ProgramDefinition;
 using SDFProject.SDFInteractiveNode;
+using SDFProject.SDFInteractiveNode.InteractiveCommands;
 using SDFProject.SDFProgramOperator;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
@@ -7,8 +8,6 @@ namespace SDFProject.Tests;
 
 public class SdfInteractiveNodeProgramOperatorTests
 {
-    private static readonly SdfInteractiveNodeProgramOperator InteractiveNodeOperator = new();
-
     private static SdfInteractiveNodeProgram Interactive(SDFProgram program, string? selectedNodeId) => new(program, selectedNodeId, 0);
 
     private static string Selected(SdfInteractiveNodeProgram program) =>
@@ -27,7 +26,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1), Sphere(2), Sphere(3)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectNextSibling());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectNextSibling());
 
         Assert.Equal(expected, Selected(result));
     }
@@ -39,7 +38,44 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1), Sphere(2)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectPreviousSibling());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectPreviousSibling());
+
+        Assert.Equal(expected, Selected(result));
+    }
+
+    [Theory]
+    [InlineData(1f, "Union(Sphere(2), Sphere(3))")]
+    [InlineData(2f, "Sphere(3)")]
+    [InlineData(3f, "Sphere(4)")]
+    public void SelectNext_SelectsFirstChildElseNextSiblingOfNodeOrNearestAncestor(float radius, string expected)
+    {
+        var program = Program(new Union(new Union(Sphere(1), new Union(Sphere(2), Sphere(3))), Sphere(4)));
+
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectNext());
+
+        Assert.Equal(expected, Selected(result));
+    }
+
+    [Fact]
+    public void SelectNext_FromNodeWithChildren_SelectsFirstChild()
+    {
+        var program = Program(new Union(Sphere(1), Sphere(2)));
+
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, NodeId<Union>(program)), new SelectNext());
+
+        Assert.Equal("Sphere(1)", Selected(result));
+    }
+
+    [Theory]
+    [InlineData(4f, "Sphere(3)")]
+    [InlineData(3f, "Sphere(2)")]
+    [InlineData(2f, "Union(Sphere(2), Sphere(3))")]
+    [InlineData(1f, "Union(Sphere(1), Union(Sphere(2), Sphere(3)))")]
+    public void SelectPrevious_SelectsDeepestLastDescendantOfPreviousSiblingElseParent(float radius, string expected)
+    {
+        var program = Program(new Union(new Union(Sphere(1), new Union(Sphere(2), Sphere(3))), Sphere(4)));
+
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, radius)), new SelectPrevious());
 
         Assert.Equal(expected, Selected(result));
     }
@@ -50,8 +86,8 @@ public class SdfInteractiveNodeProgramOperatorTests
         var program = Program(new Union(Sphere(1), Sphere(2)));
         var start = Interactive(program, SphereId(program, 2));
 
-        var parent = InteractiveNodeOperator.ApplyOperation(start, new SelectParent());
-        var child = InteractiveNodeOperator.ApplyOperation(parent, new SelectFirstChild());
+        var parent = SdfInteractiveNodeProgramOperator.ApplyOperation(start, new SelectParent());
+        var child = SdfInteractiveNodeProgramOperator.ApplyOperation(parent, new SelectFirstChild());
 
         Assert.Equal("Union(Sphere(1), Sphere(2))", Selected(parent));
         Assert.Equal("Sphere(1)", Selected(child));
@@ -64,8 +100,8 @@ public class SdfInteractiveNodeProgramOperatorTests
         var start = Interactive(program, SphereId(program, 1));
 
         foreach (ISdfInteractiveNodeProgramOperation operation in
-                 new ISdfInteractiveNodeProgramOperation[] { new SelectNextSibling(), new SelectPreviousSibling(), new SelectParent(), new SelectFirstChild() })
-            Assert.Equal(start.SelectedNodeId, InteractiveNodeOperator.ApplyOperation(start, operation).SelectedNodeId);
+                 new ISdfInteractiveNodeProgramOperation[] { new SelectNext(), new SelectPrevious(), new SelectNextSibling(), new SelectPreviousSibling(), new SelectParent(), new SelectFirstChild() })
+            Assert.Equal(start.SelectedNodeId, SdfInteractiveNodeProgramOperator.ApplyOperation(start, operation).SelectedNodeId);
     }
 
     #endregion
@@ -77,7 +113,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1), Sphere(2)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
 
         Assert.Equal("Union(Sphere(1), Sphere(0.5), Sphere(2))", DescribeScene(result.Program));
         Assert.Equal("Sphere(0.5)", Selected(result));
@@ -88,7 +124,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Intersection(Sphere(1), Sphere(2)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 2)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, 2)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
 
         Assert.Equal("Intersection(Sphere(1), Union(Sphere(2), Sphere(0.5)))", DescribeScene(result.Program));
         Assert.Equal("Sphere(0.5)", Selected(result));
@@ -99,7 +135,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(Sphere(1));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
 
         Assert.Equal("Union(Sphere(1), Sphere(0.5))", DescribeScene(result.Program));
         Assert.Equal("Sphere(0.5)", Selected(result));
@@ -110,7 +146,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var initial = SdfInteractiveNodeProgramConstants.GetInitialProgram();
 
-        var result = InteractiveNodeOperator.ApplyOperation(initial, new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(initial, new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
 
         Assert.Matches(@"^Union\(Box\(.*\), Sphere\(0\.5\)\)$", DescribeScene(result.Program));
         Assert.Equal("Sphere(0.5)", Selected(result));
@@ -122,7 +158,7 @@ public class SdfInteractiveNodeProgramOperatorTests
         var program = Program(new Empty(), Function(new Union(Sphere(1), Sphere(2))));
         var selected = SphereId(program, 2);
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, selected), new InteractiveExtractVariable("v"));
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, selected), new InteractiveExtractVariable("v"));
 
         var variable = Assert.Single(result.Program.Functions[0].variables);
         Assert.Equal($"Union(Sphere(1), ${variable.id})", DescribeBody(result.Program));
@@ -134,9 +170,9 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Empty(), Function(new Union(Sphere(1), Sphere(2))));
         var selected = SphereId(program, 2);
-        var extracted = InteractiveNodeOperator.ApplyOperation(Interactive(program, selected), new InteractiveExtractVariable("v"));
+        var extracted = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, selected), new InteractiveExtractVariable("v"));
 
-        var result = InteractiveNodeOperator.ApplyOperation(extracted, new InteractiveInlineVariable());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(extracted, new InteractiveInlineVariable());
 
         Assert.Empty(result.Program.Functions[0].variables);
         Assert.Equal("Union(Sphere(1), Sphere(2))", DescribeBody(result.Program));
@@ -149,7 +185,7 @@ public class SdfInteractiveNodeProgramOperatorTests
         var program = Program(new Union(Sphere(1)));
 
         Assert.Throws<InvalidOperationException>(() =>
-            InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveInlineVariable()));
+            SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveInlineVariable()));
     }
 
     [Fact]
@@ -157,7 +193,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1), Sphere(2)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveEmptyNode());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new InteractiveEmptyNode());
 
         Assert.Equal("Union(Empty, Sphere(2))", DescribeScene(result.Program));
         Assert.Equal(NodeId<Union>(program), result.SelectedNodeId);
@@ -168,7 +204,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1), new Empty()));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, null), new InteractiveCleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, null), new InteractiveCleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal("Union(Sphere(1))", DescribeScene(result.Program));
         Assert.Null(result.SelectedNodeId);
@@ -180,7 +216,7 @@ public class SdfInteractiveNodeProgramOperatorTests
         var program = Program(new Union(Sphere(1), Sphere(2)));
         var selected = SphereId(program, 1);
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, selected),
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, selected),
             new InteractiveAdjustScaleTranslateRotate(1, new V3(1, 0, 0), new V3(0, 0, 0)));
 
         Assert.Equal("Union(ScaleTranslateRotate(Sphere(1), 2, ConstValueV3, ConstValueV3), Sphere(2))", DescribeScene(result.Program));
@@ -192,7 +228,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        Assert.Throws<InvalidOperationException>(() => InteractiveNodeOperator.ApplyOperation(Interactive(program, null), new InteractiveEmptyNode()));
+        Assert.Throws<InvalidOperationException>(() => SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, null), new InteractiveEmptyNode()));
     }
 
     [Fact]
@@ -200,7 +236,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), 3), new InteractiveEmptyNode());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), 3), new InteractiveEmptyNode());
 
         Assert.Equal(3, result.StrZoomLevel);
     }
@@ -217,7 +253,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, level), new IncreaseStrZoomLevel());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, level), new IncreaseStrZoomLevel());
 
         Assert.Equal(expected, result.StrZoomLevel);
         Assert.Same(program, result.Program);
@@ -230,7 +266,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, level), new DecreaseStrZoomLevel());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, level), new DecreaseStrZoomLevel());
 
         Assert.Equal(expected, result.StrZoomLevel);
     }
@@ -240,7 +276,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, 3), new ZoomFullyOutStrZoomLevel());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, null, 3), new ZoomFullyOutStrZoomLevel());
 
         Assert.Equal(0, result.StrZoomLevel);
     }
@@ -252,7 +288,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     private static ScaleTranslateRotate AdjustSelectedSphere(int zoomLevel, ISdfInteractiveNodeProgramOperation operation)
     {
         var program = Program(new Union(Sphere(1)));
-        var result = InteractiveNodeOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), zoomLevel), operation);
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), zoomLevel), operation);
         return (ScaleTranslateRotate)result.Program.pointers.SDFEvaluablePointers.Values.Single(n => n is ScaleTranslateRotate);
     }
 
@@ -325,14 +361,78 @@ public class SdfInteractiveNodeProgramOperatorTests
         AssertTransform(AdjustSelectedSphere(0, new RotateZUpAtCurrentZoomLevel()), 1, new V3(0, 0, 0), new V3(0, 0, MathF.PI / 2));
     }
 
+    private static ScaleTranslateRotate AdjustTransformedSphere(float scale, V3 translation, V3 rotation, ISdfInteractiveNodeProgramOperation operation)
+    {
+        var program = Program(new Union(new ScaleTranslateRotate(Sphere(1), new ConstValueFloat(scale), new ConstValueV3(translation), new ConstValueV3(rotation))));
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), 0), operation);
+        return (ScaleTranslateRotate)result.Program.pointers.SDFEvaluablePointers.Values.Single(n => n is ScaleTranslateRotate);
+    }
+
+    [Theory]
+    [InlineData(.3f, true, .5f)]
+    [InlineData(.3f, false, 0f)]
+    [InlineData(.5f, true, 1f)]
+    [InlineData(.5f, false, 0f)]
+    [InlineData(-.3f, true, 0f)]
+    [InlineData(-.3f, false, -.5f)]
+    public void Translate_SnapsToNextMultipleOfStep(float x, bool up, float expectedX)
+    {
+        var none = new V3(0, 0, 0);
+        ISdfInteractiveNodeProgramOperation operation = up ? new TranslateXUpAtCurrentZoomLevel() : new TranslateXDownAtCurrentZoomLevel();
+
+        AssertTransform(AdjustTransformedSphere(1, new V3(x, .3f, .3f), none, operation), 1, new V3(expectedX, .3f, .3f), none);
+    }
+
+    [Theory]
+    [InlineData(1.2f, true, 1.5f)]
+    [InlineData(1.2f, false, 1f)]
+    public void Scale_SnapsToNextMultipleOfStep(float scale, bool up, float expectedScale)
+    {
+        var none = new V3(0, 0, 0);
+        ISdfInteractiveNodeProgramOperation operation = up ? new ScaleUpAtCurrentZoomLevel() : new ScaleDownAtCurrentZoomLevel();
+
+        AssertTransform(AdjustTransformedSphere(scale, none, none, operation), expectedScale, none, none);
+    }
+
+    [Theory]
+    [InlineData(10f, true, 90f)]
+    [InlineData(10f, false, 0f)]
+    [InlineData(90f, true, 180f)]
+    public void Rotate_SnapsToNextMultipleOfDegreeStep(float degrees, bool up, float expectedDegrees)
+    {
+        var none = new V3(0, 0, 0);
+        ISdfInteractiveNodeProgramOperation operation = up ? new RotateZUpAtCurrentZoomLevel() : new RotateZDownAtCurrentZoomLevel();
+
+        AssertTransform(AdjustTransformedSphere(1, none, new V3(0, 0, degrees * MathF.PI / 180), operation), 1, none, new V3(0, 0, expectedDegrees * MathF.PI / 180));
+    }
+
+    [Fact]
+    public void Translate_SnapsOnTransformCreatedByEarlierAdjust()
+    {
+        var interactive = SdfInteractiveNodeProgramConstants.GetInitialProgram();
+        void Apply(ISdfInteractiveNodeProgramOperation operation) =>
+            interactive = SdfInteractiveNodeProgramOperator.ApplyOperation(interactive, operation);
+
+        Apply(new TranslateXUpAtCurrentZoomLevel());
+        Apply(new TranslateXUpAtCurrentZoomLevel());
+        Apply(new IncreaseStrZoomLevel());
+        Apply(new IncreaseStrZoomLevel());
+        Apply(new TranslateXDownAtCurrentZoomLevel());
+        Apply(new ZoomFullyOutStrZoomLevel());
+        Apply(new TranslateXDownAtCurrentZoomLevel());
+
+        var node = Assert.Single(interactive.Program.pointers.SDFEvaluablePointers.Values.OfType<ScaleTranslateRotate>());
+        AssertV3(new V3(.5f, 0, 0), ((ConstValueV3)node.translation).v3);
+    }
+
     [Fact]
     public void RepeatedTranslate_AddsUpOnSameNode()
     {
         var program = Program(new Union(Sphere(1)));
         var interactive = new SdfInteractiveNodeProgram(program, SphereId(program, 1), 0);
 
-        interactive = InteractiveNodeOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
-        interactive = InteractiveNodeOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
+        interactive = SdfInteractiveNodeProgramOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
+        interactive = SdfInteractiveNodeProgramOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
 
         var node = Assert.Single(interactive.Program.pointers.SDFEvaluablePointers.Values.OfType<ScaleTranslateRotate>());
         AssertV3(new V3(2 * SdfInteractiveNodeProgramOperator.TranslateZoomScaleToTranslation(0), 0, 0), ((ConstValueV3)node.translation).v3);
@@ -348,7 +448,7 @@ public class SdfInteractiveNodeProgramOperatorTests
         var program = Program(new Intersection(Sphere(1), new Union(new Union(new Empty()))));
         var innerUnionId = program.pointers.SDFEvaluablePointers.Single(e => e.Value is Union { primitives: [Empty] }).Key;
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, innerUnionId), new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, innerUnionId), new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal(NodeId<Intersection>(program), result.SelectedNodeId);
     }
@@ -358,7 +458,7 @@ public class SdfInteractiveNodeProgramOperatorTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        var result = InteractiveNodeOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new EmptyNode(NodeId<Union>(program)));
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new EmptyNode(NodeId<Union>(program)));
 
         Assert.Null(result.SelectedNodeId);
     }

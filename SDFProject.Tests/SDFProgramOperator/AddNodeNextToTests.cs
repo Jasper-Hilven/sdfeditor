@@ -11,7 +11,7 @@ public class AddNodeNextToTests
     {
         var program = Program(new Union(Sphere(1), Sphere(2)));
 
-        var result = Operator.ApplyOperation(program, new AddNodeNextTo(SphereId(program, 1), SDFNodeType.Sphere));
+        var result = SdfProgramOperator.ApplyOperation(program, new AddNodeNextTo(SphereId(program, 1), SDFNodeType.Sphere));
 
         Assert.Equal("Union(Sphere(1), Sphere(0.5), Sphere(2))", DescribeScene(result));
         AssertPointersConsistent(result);
@@ -22,7 +22,7 @@ public class AddNodeNextToTests
     {
         var program = Program(new Intersection(Sphere(1), Sphere(2)));
 
-        var result = Operator.ApplyOperation(program, new AddNodeNextTo(SphereId(program, 2), SDFNodeType.Sphere));
+        var result = SdfProgramOperator.ApplyOperation(program, new AddNodeNextTo(SphereId(program, 2), SDFNodeType.Sphere));
 
         Assert.Equal("Intersection(Sphere(1), Union(Sphere(2), Sphere(0.5)))", DescribeScene(result));
         AssertPointersConsistent(result);
@@ -33,6 +33,6 @@ public class AddNodeNextToTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        Assert.Throws<KeyNotFoundException>(() => Operator.ApplyOperation(program, new AddNodeNextTo("missing", SDFNodeType.Sphere)));
+        Assert.Throws<KeyNotFoundException>(() => SdfProgramOperator.ApplyOperation(program, new AddNodeNextTo("missing", SDFNodeType.Sphere)));
     }
 }

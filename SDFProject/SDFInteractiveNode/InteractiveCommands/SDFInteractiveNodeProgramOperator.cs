@@ -1,8 +1,9 @@
 using SDFProject.ProgramDefinition;
 using SDFProject.SDFProgramOperator;
 using SDFProject.SDFProgramOperator.Helpers;
+using SDFProject.SDFProgramOperator.Operations;
 
-namespace SDFProject.SDFInteractiveNode;
+namespace SDFProject.SDFInteractiveNode.InteractiveCommands;
 
 public class SdfInteractiveNodeProgramOperator
 {
@@ -14,9 +15,9 @@ public class SdfInteractiveNodeProgramOperator
     private static readonly V3 UnitY = new(0, 1, 0);
     private static readonly V3 UnitZ = new(0, 0, 1);
 
-    private readonly SDFProgramOperator.SDFProgramOperator _programOperator = new();
+    private readonly SDFProgramOperator.SdfProgramOperator _programOperator = new();
 
-    public SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, ISdfInteractiveNodeProgramOperation operation)
+    public static SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, ISdfInteractiveNodeProgramOperation operation)
     {
         // Zooming only changes the step size of the scale, translate and rotate operations, not the program
         switch (operation)
@@ -36,6 +37,10 @@ public class SdfInteractiveNodeProgramOperator
         var pointers = program.Program.pointers;
         switch (operation)
         {
+            case SelectNext:
+                return program with { SelectedNodeId = NodeNavigation.Next(pointers, Selected()) };
+            case SelectPrevious:
+                return program with { SelectedNodeId = NodeNavigation.Previous(pointers, Selected()) };
             case SelectNextSibling:
                 return program with { SelectedNodeId = NodeNavigation.NextSiblingOrParent(pointers, Selected()) };
             case SelectPreviousSibling:
@@ -46,14 +51,17 @@ public class SdfInteractiveNodeProgramOperator
                 return program with { SelectedNodeId = NodeNavigation.FirstChild(pointers, Selected()) };
         }
 
+        // Each step snaps to the next multiple of the zoom level's step size, so with a step of .5 going up from .3 lands on .5
         var zoomLevel = program.StrZoomLevel;
+        (float Scale, V3 Translation, V3 Rotation) Current() =>
+            ApplyAdjustScaleTranslateRotate.CurrentTransform(program.Program, Selected());
         AdjustScaleTranslateRotate Scale(float sign) =>
-            new(Selected(), sign * TranslateZoomScaleToScale(zoomLevel), Zero, Zero);
+            new(Selected(), SnapDelta(Current().Scale, TranslateZoomScaleToScale(zoomLevel), sign), Zero, Zero);
         AdjustScaleTranslateRotate Translate(V3 axis, float sign) =>
-            new(Selected(), 0, Times(axis, sign * TranslateZoomScaleToTranslation(zoomLevel)), Zero);
-        // The rotation of a ScaleTranslateRotate is in radians
+            new(Selected(), 0, Times(axis, SnapDelta(Dot(Current().Translation, axis), TranslateZoomScaleToTranslation(zoomLevel), sign)), Zero);
+        // The rotation of a ScaleTranslateRotate is in radians, but snaps to the zoom level's step in degrees
         AdjustScaleTranslateRotate Rotate(V3 axis, float sign) =>
-            new(Selected(), 0, Zero, Times(axis, sign * TranslateZoomScaleToDegree(zoomLevel) * MathF.PI / 180));
+            new(Selected(), 0, Zero, Times(axis, SnapDelta(Dot(Current().Rotation, axis) * 180 / MathF.PI, TranslateZoomScaleToDegree(zoomLevel), sign) * MathF.PI / 180));
 
         SDFProgramOperation programOperation = operation switch
         {
@@ -83,9 +91,9 @@ public class SdfInteractiveNodeProgramOperator
         return ApplyOperation(program, programOperation);
     }
 
-    public SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, SDFProgramOperation operation)
+    public static SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, SDFProgramOperation operation)
     {
-        var result = _programOperator.ApplyOperation(program.Program, operation);
+        var result = SdfProgramOperator.ApplyOperation(program.Program, operation);
 
         var selectedNodeId = operation switch
         {
@@ -97,6 +105,18 @@ public class SdfInteractiveNodeProgramOperator
     }
 
     private static V3 Times(V3 v, float factor) => new(v.x * factor, v.y * factor, v.z * factor);
+
+    private static float Dot(V3 a, V3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
+
+    // How far the value has to move to reach the next multiple of the step in the direction of the sign
+    private static float SnapDelta(float value, float step, float sign)
+    {
+        // Leaves room for float rounding, so a value that is a multiple of the step up to rounding counts as on that multiple
+        const float tolerance = 1e-3f;
+        var steps = value / step;
+        var target = sign > 0 ? MathF.Floor(steps + tolerance) + 1 : MathF.Ceiling(steps - tolerance) - 1;
+        return target * step - value;
+    }
 
     private static string VariableContaining(SDFProgram program, string nodeId)
     {

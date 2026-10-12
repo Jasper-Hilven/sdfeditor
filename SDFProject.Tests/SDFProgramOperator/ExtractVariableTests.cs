@@ -11,7 +11,7 @@ public class ExtractVariableTests
     {
         var program = Program(new Empty(), Function(new Union(Sphere(1), Sphere(2))));
 
-        var result = Operator.ApplyOperation(program, new ExtractVariable(SphereId(program, 2), "v"));
+        var result = SdfProgramOperator.ApplyOperation(program, new ExtractVariable(SphereId(program, 2), "v"));
 
         var variable = Assert.Single(result.Functions[0].variables);
         Assert.Equal("v", variable.name);
@@ -26,6 +26,6 @@ public class ExtractVariableTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        Assert.Throws<InvalidOperationException>(() => Operator.ApplyOperation(program, new ExtractVariable(SphereId(program, 1), "v")));
+        Assert.Throws<InvalidOperationException>(() => SdfProgramOperator.ApplyOperation(program, new ExtractVariable(SphereId(program, 1), "v")));
     }
 }

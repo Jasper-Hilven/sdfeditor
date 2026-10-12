@@ -11,10 +11,7 @@ public class ApplyAdjustScaleTranslateRotate
         if (tables.PointerTo(operation.nodeId) is not SDFEvaluablePointerable)
             throw new KeyNotFoundException($"There is no SDF node with pointer '{operation.nodeId}'");
 
-        // A ScaleTranslateRotate has a single SDF child, so a node whose parent is one is always that parent's primitive
-        var adjustedId = tables.Get(operation.nodeId) is ScaleTranslateRotate ? operation.nodeId
-            : tables.ParentOf(operation.nodeId) is { } parentId && tables.Get(parentId) is ScaleTranslateRotate ? parentId
-            : null;
+        var adjustedId = AdjustedId(tables, operation.nodeId);
 
         if (adjustedId is not null)
         {
@@ -26,6 +23,23 @@ public class ApplyAdjustScaleTranslateRotate
         program = program.ReplaceOnlyReference(tables, operation.nodeId, child => Adjust(identity with { primitive = (SDFEvaluable)child }, operation));
         return program with { pointers = tables.ToPointers(program.pointers.nextFreePointer) };
     }
+
+    // The scale, translation and rotation an adjustment of the node starts from: those of the ScaleTranslateRotate it would adjust, or the identity
+    public static (float Scale, V3 Translation, V3 Rotation) CurrentTransform(SDFProgram program, string nodeId)
+    {
+        var tables = new PointerTables(program.pointers);
+        if (AdjustedId(tables, nodeId) is not { } adjustedId)
+            return (1, new V3(0, 0, 0), new V3(0, 0, 0));
+
+        var node = (ScaleTranslateRotate)tables.Get(adjustedId);
+        return (Constant(node.scale, nameof(node.scale)), Constant(node.translation, nameof(node.translation)), Constant(node.rotation, nameof(node.rotation)));
+    }
+
+    // A ScaleTranslateRotate has a single SDF child, so a node whose parent is one is always that parent's primitive
+    private static string? AdjustedId(PointerTables tables, string nodeId) =>
+        tables.Get(nodeId) is ScaleTranslateRotate ? nodeId
+        : tables.ParentOf(nodeId) is { } parentId && tables.Get(parentId) is ScaleTranslateRotate ? parentId
+        : null;
 
     private static ScaleTranslateRotate Adjust(ScaleTranslateRotate node, AdjustScaleTranslateRotate operation) => node with
     {

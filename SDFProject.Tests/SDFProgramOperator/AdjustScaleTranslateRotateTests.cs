@@ -28,7 +28,7 @@ public class AdjustScaleTranslateRotateTests
         var program = Program(new Union(Transform(Sphere(1), 2, new V3(1, 1, 1), new V3(1, 0, 0))));
         var id = TransformId(program);
 
-        var result = Operator.ApplyOperation(program, Adjustment with { nodeId = id });
+        var result = SdfProgramOperator.ApplyOperation(program, Adjustment with { nodeId = id });
 
         AssertTransform(result, id, 2.5f, new V3(2, 3, 4), new V3(1.1f, 0.2f, 0.3f));
         Assert.Equal("Union(ScaleTranslateRotate(Sphere(1), 2.5, ConstValueV3, ConstValueV3))", DescribeScene(result));
@@ -41,7 +41,7 @@ public class AdjustScaleTranslateRotateTests
         var program = Program(new Union(Transform(Sphere(1), 2, new V3(1, 1, 1), new V3(1, 0, 0))));
         var id = TransformId(program);
 
-        var result = Operator.ApplyOperation(program, Adjustment with { nodeId = SphereId(program, 1) });
+        var result = SdfProgramOperator.ApplyOperation(program, Adjustment with { nodeId = SphereId(program, 1) });
 
         AssertTransform(result, id, 2.5f, new V3(2, 3, 4), new V3(1.1f, 0.2f, 0.3f));
         Assert.Equal("Union(ScaleTranslateRotate(Sphere(1), 2.5, ConstValueV3, ConstValueV3))", DescribeScene(result));
@@ -53,7 +53,7 @@ public class AdjustScaleTranslateRotateTests
     {
         var program = Program(new Union(Sphere(1), Sphere(2)));
 
-        var result = Operator.ApplyOperation(program, Adjustment with { nodeId = SphereId(program, 2) });
+        var result = SdfProgramOperator.ApplyOperation(program, Adjustment with { nodeId = SphereId(program, 2) });
 
         Assert.Equal("Union(Sphere(1), ScaleTranslateRotate(Sphere(2), 1.5, ConstValueV3, ConstValueV3))", DescribeScene(result));
         AssertTransform(result, TransformId(result), 1.5f, new V3(1, 2, 3), new V3(0.1f, 0.2f, 0.3f));
@@ -66,7 +66,7 @@ public class AdjustScaleTranslateRotateTests
         var transform = new ScaleTranslateRotate(Sphere(1), new VariableReferenceFloat("v"), new ConstValueV3(new V3(0, 0, 0)), new ConstValueV3(new V3(0, 0, 0)));
         var program = Program(new Union(transform));
 
-        Assert.Throws<InvalidOperationException>(() => Operator.ApplyOperation(program, Adjustment with { nodeId = TransformId(program) }));
+        Assert.Throws<InvalidOperationException>(() => SdfProgramOperator.ApplyOperation(program, Adjustment with { nodeId = TransformId(program) }));
     }
 
     [Fact]
@@ -74,6 +74,6 @@ public class AdjustScaleTranslateRotateTests
     {
         var program = Program(new Union(Sphere(1)));
 
-        Assert.Throws<KeyNotFoundException>(() => Operator.ApplyOperation(program, Adjustment with { nodeId = "missing" }));
+        Assert.Throws<KeyNotFoundException>(() => SdfProgramOperator.ApplyOperation(program, Adjustment with { nodeId = "missing" }));
     }
 }

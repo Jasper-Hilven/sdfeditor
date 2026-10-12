@@ -8,8 +8,6 @@ namespace SDFProject.Tests;
 // Builds small programs and inspects the result of operations on them
 public static class SDFProgramTestHelpers
 {
-    public static readonly SDFProgramOperator.SDFProgramOperator Operator = new();
-
     public static readonly SDFPointers NoPointers = new(new(), new(), new(), new(), 0);
 
     public static SDFEvaluable Sphere(float radius) => new Sphere(new ConstValueFloat(radius));

@@ -11,7 +11,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
     {
         var program = Program(new Union(new Empty(), Sphere(1), new Intersection(Sphere(2), new Empty())));
 
-        var result = Operator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal("Union(Sphere(1), Intersection(Sphere(2)))", DescribeScene(result));
         AssertPointersConsistent(result);
@@ -22,7 +22,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
     {
         var program = Program(new Union(Sphere(1), new Union(new Empty(), new Empty())));
 
-        var result = Operator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal("Union(Sphere(1))", DescribeScene(result));
         AssertPointersConsistent(result);
@@ -33,7 +33,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
     {
         var program = Program(new Union(Sphere(1), new Union(new Intersection(new Empty()), new Union())));
 
-        var result = Operator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal("Union(Sphere(1))", DescribeScene(result));
         AssertPointersConsistent(result);
@@ -44,7 +44,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
     {
         var program = Program(new Union(Sphere(1), new SmoothUnion(new ConstValueFloat(0.1f), new Empty())));
 
-        var result = Operator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal("Union(Sphere(1))", DescribeScene(result));
         AssertPointersConsistent(result);
@@ -55,7 +55,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
     {
         var program = Program(new Union(new Subtraction(Sphere(1), new Union(new Empty()))));
 
-        var result = Operator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal("Union(Sphere(1))", DescribeScene(result));
         AssertPointersConsistent(result);
@@ -66,7 +66,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
     {
         var program = Program(new Union(new Empty(), new Intersection(new Empty())));
 
-        var result = Operator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.IsType<Empty>(result.scene);
         AssertPointersConsistent(result);
@@ -77,7 +77,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
     {
         var program = Program(new Empty(), Function(new Union(Sphere(1), new Empty())));
 
-        var result = Operator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
+        var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
         Assert.Equal("Union(Sphere(1))", DescribeBody(result));
         AssertPointersConsistent(result);
