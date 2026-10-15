@@ -8,40 +8,36 @@ public class SDFPartialCommandNodeProgramOperator
     public static SDFPartialCommandNodeProgram Operate(SDFPartialCommandNodeProgram partialCommandProgram,
         InputKey inputKey)
     {
-        var ret = (partialCommandProgram.state.Mode, inputKey) switch
-        {
-            (Home, InputKey.RMiddleHome) =>
-                Apply(partialCommandProgram, new SelectNext()),
-            (Home, InputKey.RMiddleUp) =>
-                Apply(partialCommandProgram, new SelectPrevious()),
-            (Home, InputKey.RIndexHome) =>
-                Apply(partialCommandProgram, new SelectParent()),
-            (Home, InputKey.RRingHome) =>
-                Apply(partialCommandProgram, new SelectFirstChild()),
-            (_, InputKey.LPinkHome) =>
-                SwitchMode(partialCommandProgram, Home),
-            (Home, InputKey.LRingHome) =>
-                SwitchMode(partialCommandProgram, ScaleRotateTranslate),
-            (ScaleRotateTranslate, InputKey.LMiddleHome) => Translate(partialCommandProgram, Dimension.X, false),
-            (ScaleRotateTranslate, InputKey.LIndexHome) => Translate(partialCommandProgram, Dimension.X, true),
-            (ScaleRotateTranslate, InputKey.RIndexHome) => Translate(partialCommandProgram, Dimension.Y, false),
-            (ScaleRotateTranslate, InputKey.RMiddleHome) => Translate(partialCommandProgram, Dimension.Y, true),
-            (ScaleRotateTranslate, InputKey.RRingHome) => Translate(partialCommandProgram, Dimension.Z, false),
-            (ScaleRotateTranslate, InputKey.RPinkHome) => Translate(partialCommandProgram, Dimension.Z, true),
-            (ScaleRotateTranslate, InputKey.LMiddleUp) => Rotate(partialCommandProgram, Dimension.X, false),
-            (ScaleRotateTranslate, InputKey.LIndexUp) => Rotate(partialCommandProgram, Dimension.X, true),
-            (ScaleRotateTranslate, InputKey.RIndexUp) => Rotate(partialCommandProgram, Dimension.Y, false),
-            (ScaleRotateTranslate, InputKey.RMiddleUp) => Rotate(partialCommandProgram, Dimension.Y, true),
-            (ScaleRotateTranslate, InputKey.RRingUp) => Rotate(partialCommandProgram, Dimension.Z, false),
-            (ScaleRotateTranslate, InputKey.RPinkUp) => Rotate(partialCommandProgram, Dimension.Z, true),
-            (ScaleRotateTranslate, InputKey.LMiddleDown) => Apply(partialCommandProgram, new DecreaseStrZoomLevel()),
-            (ScaleRotateTranslate, InputKey.LIndexDown) => Apply(partialCommandProgram, new IncreaseStrZoomLevel()),
-            (ScaleRotateTranslate, InputKey.RIndexDown) => Apply(partialCommandProgram, new ScaleDownAtCurrentZoomLevel()),
-            (ScaleRotateTranslate, InputKey.RMiddleDown) => Apply(partialCommandProgram, new ScaleUpAtCurrentZoomLevel()),
-            _=> partialCommandProgram
-        };
+        // A key without a binding in the current mode does nothing
+        if (!SDFPartialKeyBindings.Bindings.TryGetValue((partialCommandProgram.state.Mode, inputKey), out var action))
+            return partialCommandProgram;
 
-        return ret;
+        return action switch
+        {
+            SDFPartialActionEnum.SelectNext => Apply(partialCommandProgram, new SelectNext()),
+            SDFPartialActionEnum.SelectPrevious => Apply(partialCommandProgram, new SelectPrevious()),
+            SDFPartialActionEnum.SelectParent => Apply(partialCommandProgram, new SelectParent()),
+            SDFPartialActionEnum.SelectFirstChild => Apply(partialCommandProgram, new SelectFirstChild()),
+            SDFPartialActionEnum.SwitchToHomeMode => SwitchMode(partialCommandProgram, Home),
+            SDFPartialActionEnum.SwitchToScaleRotateTranslateMode => SwitchMode(partialCommandProgram, ScaleRotateTranslate),
+            SDFPartialActionEnum.TranslateXDown => Translate(partialCommandProgram, Dimension.X, false),
+            SDFPartialActionEnum.TranslateXUp => Translate(partialCommandProgram, Dimension.X, true),
+            SDFPartialActionEnum.TranslateYDown => Translate(partialCommandProgram, Dimension.Y, false),
+            SDFPartialActionEnum.TranslateYUp => Translate(partialCommandProgram, Dimension.Y, true),
+            SDFPartialActionEnum.TranslateZDown => Translate(partialCommandProgram, Dimension.Z, false),
+            SDFPartialActionEnum.TranslateZUp => Translate(partialCommandProgram, Dimension.Z, true),
+            SDFPartialActionEnum.RotateXDown => Rotate(partialCommandProgram, Dimension.X, false),
+            SDFPartialActionEnum.RotateXUp => Rotate(partialCommandProgram, Dimension.X, true),
+            SDFPartialActionEnum.RotateYDown => Rotate(partialCommandProgram, Dimension.Y, false),
+            SDFPartialActionEnum.RotateYUp => Rotate(partialCommandProgram, Dimension.Y, true),
+            SDFPartialActionEnum.RotateZDown => Rotate(partialCommandProgram, Dimension.Z, false),
+            SDFPartialActionEnum.RotateZUp => Rotate(partialCommandProgram, Dimension.Z, true),
+            SDFPartialActionEnum.DecreaseZoomLevel => Apply(partialCommandProgram, new DecreaseStrZoomLevel()),
+            SDFPartialActionEnum.IncreaseZoomLevel => Apply(partialCommandProgram, new IncreaseStrZoomLevel()),
+            SDFPartialActionEnum.ScaleDown => Apply(partialCommandProgram, new ScaleDownAtCurrentZoomLevel()),
+            SDFPartialActionEnum.ScaleUp => Apply(partialCommandProgram, new ScaleUpAtCurrentZoomLevel()),
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
+        };
     }
 
     private static SDFPartialCommandNodeProgram SwitchMode(SDFPartialCommandNodeProgram program, SDFPartialCommandNodeProgramMode mode)
