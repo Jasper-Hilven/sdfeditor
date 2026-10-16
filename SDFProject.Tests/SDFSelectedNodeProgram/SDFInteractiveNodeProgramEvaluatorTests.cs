@@ -3,6 +3,11 @@ using SDFProject.SDFInteractiveNode;
 using SDFProject.SDFInteractiveNode.InteractiveCommands;
 using SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing;
 using static SDFProject.Tests.SDFProgramTestHelpers;
+using ToggleSmoothness = SDFProject.SDFInteractiveNode.ToggleSmoothness;
+using SelectParent = SDFProject.SDFInteractiveNode.SelectParent;
+using SelectFirstChild = SDFProject.SDFInteractiveNode.SelectFirstChild;
+using SelectNext = SDFProject.SDFInteractiveNode.SelectNext;
+using SelectPrevious = SDFProject.SDFInteractiveNode.SelectPrevious;
 
 namespace SDFProject.Tests;
 
@@ -58,12 +63,12 @@ public class SDFInteractiveNodeProgramEvaluatorTests
     }
 
     [Fact]
-    public void Variables_OnlyInsideFunctions()
+    public void Extract_AnywhereInTheScene_InlineOnlyInsideAVariable()
     {
         var program = Program(Sphere(1));
         var sphere = Interactive(program, SphereId(program, 1));
 
-        Assert.False(SDFInteractiveNodeProgramEvaluator.IsActionAvailable(sphere, new InteractiveExtractVariable("v")));
+        Assert.True(SDFInteractiveNodeProgramEvaluator.IsActionAvailable(sphere, new InteractiveExtractVariable("v")));
         Assert.False(SDFInteractiveNodeProgramEvaluator.IsActionAvailable(sphere, new InteractiveInlineVariable()));
     }
 
@@ -75,9 +80,8 @@ public class SDFInteractiveNodeProgramEvaluatorTests
             new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home));
 
         Assert.False(SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(program, InputKey.LPinkHome));
-        Assert.True(SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(program, InputKey.LRingHome));
+        Assert.True(SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(program, InputKey.RMiddleDown));
         Assert.False(SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(program, InputKey.Enter));
-        // The initial program is a single box, which has nothing to make smooth
         Assert.False(SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(program, InputKey.LMiddleHome));
     }
 }

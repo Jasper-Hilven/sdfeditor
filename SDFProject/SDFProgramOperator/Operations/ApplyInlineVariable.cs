@@ -7,41 +7,45 @@ public class ApplyInlineVariable
 {
     public static SDFProgram DoApplyInlineVariable(SDFProgram program, InlineVariable operation)
     {
-        var functionIndex = Array.FindIndex(program.Functions, f => f.variables.Any(v => v.id == operation.variableId));
-        if (functionIndex < 0)
+        var scopes = program.Scopes();
+        var scopeIndex = Array.FindIndex(scopes, s => s.variables.Any(v => v.id == operation.variableId));
+        if (scopeIndex < 0)
             throw new KeyNotFoundException($"There is no variable with id '{operation.variableId}'");
 
-        var function = program.Functions[functionIndex];
-        var variableIndex = Array.FindIndex(function.variables, v => v.id == operation.variableId);
-        var value = function.variables[variableIndex].value;
+        var scope = scopes[scopeIndex];
+        var variableIndex = Array.FindIndex(scope.variables, v => v.id == operation.variableId);
+        var value = scope.variables[variableIndex].value;
         var tables = new PointerTables(program.pointers);
         var useCount = 0;
 
-        // The first use takes over the variable's nodes, every further use gets its own copy so that
-        // each pointer id keeps standing for exactly one node
+        var removedReferenceIds = new List<string>();
+
         Evaluable ReplaceWithValue(Evaluable child)
         {
-            if (child is not VariableReference reference || reference.variableId != operation.variableId)
+            var referenceId = PointerTables.PointerId(child);
+            var node = referenceId is null ? child : tables.Get(referenceId);
+            if (node is not VariableReference reference || reference.variableId != operation.variableId)
                 return child;
 
+            if (referenceId is not null)
+                removedReferenceIds.Add(referenceId);
             useCount++;
             return useCount == 1 ? value : tables.Expand(value);
         }
 
-        // A variable is only visible to the variables declared after it and to the function body
-        var variables = function.variables.ToList();
+        var variables = scope.variables.ToList();
         for (var i = variableIndex + 1; i < variables.Count; i++)
             variables[i] = variables[i] with { value = tables.MapTree(variables[i].value, ReplaceWithValue) };
-        var body = (SDFEvaluable)tables.MapTree(function.functionBody, ReplaceWithValue);
+        var body = (SDFEvaluable)tables.MapTree(scope.body, ReplaceWithValue);
 
+        foreach (var id in removedReferenceIds)
+            tables.Remove(id);
         if (useCount == 0)
             tables.RemoveSubtree(value);
 
         variables.RemoveAt(variableIndex);
 
-        var functions = program.Functions.ToArray();
-        functions[functionIndex] = function.With(variables.ToArray(), body);
-
-        return program with { Functions = functions, pointers = tables.ToPointers(program.pointers.nextFreePointer) };
+        program = program.WithScope(scopeIndex, new VariableScope(variables.ToArray(), body));
+        return program with { pointers = tables.ToPointers(program.pointers.nextFreePointer) };
     }
 }

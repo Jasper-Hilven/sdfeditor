@@ -12,17 +12,17 @@ public class SDFPartialAddNodeTests
         SdfInteractiveNodeProgramConstants.GetInitialProgram(),
         new SDFPartialCommandNodeProgramState(Home));
 
-    private static InputKey KeyFor(SDFPartialCommandNodeProgramMode mode, SDFPartialActionEnum action) =>
-        SDFPartialKeyBindings.Bindings.Single(b => b.Key.Mode == mode && b.Value == action).Key.Key;
+    private static InputKey KeyFor(SDFPartialCommandNodeProgramMode mode, ISDFPartialAction action) =>
+        SDFPartialKeyBindings.Bindings.Single(b => b.Key.Mode == mode && b.Value.Equals(action)).Key.Key;
 
-    private static SDFPartialCommandNodeProgram Press(SDFPartialCommandNodeProgram program, SDFPartialActionEnum action) =>
+    private static SDFPartialCommandNodeProgram Press(SDFPartialCommandNodeProgram program, ISDFPartialAction action) =>
         SDFPartialCommandNodeProgramOperator.Operate(program, KeyFor(program.state.Mode, action));
 
     [Fact]
     public void EveryNodeType_HasAKeyOnOneOfTheAddNodePages()
     {
         var bound = SDFPartialKeyBindings.Bindings
-            .Where(b => b.Key.Mode is AddNode or AddNodeMore)
+            .Where(b => b.Key.Mode is SDFPartialCommandNodeProgramMode.AddNode or AddNodeMore)
             .Select(b => SDFPartialCommandNodeProgramOperator.NodeTypeToAdd(b.Value))
             .OfType<SDFNodeType>();
 
@@ -32,10 +32,10 @@ public class SDFPartialAddNodeTests
     [Fact]
     public void AddingANode_AddsItNextToTheSelectionAndReturnsHome()
     {
-        var adding = Press(Initial(), SDFPartialActionEnum.AddNode);
-        Assert.Equal(AddNode, adding.state.Mode);
+        var adding = Press(Initial(), new AddNode());
+        Assert.Equal(SDFPartialCommandNodeProgramMode.AddNode, adding.state.Mode);
 
-        var result = Press(adding, SDFPartialActionEnum.AddSphere);
+        var result = Press(adding, new AddSphere());
 
         Assert.Equal(Home, result.state.Mode);
         Assert.Equal("Union(Box(ConstValueV3), Sphere(0.5))", DescribeScene(result.interactiveProgram.Program));
@@ -44,10 +44,10 @@ public class SDFPartialAddNodeTests
     [Fact]
     public void NodeTypesOnTheSecondPage_CanBeAdded()
     {
-        var more = Press(Press(Initial(), SDFPartialActionEnum.AddNode), SDFPartialActionEnum.ShowMoreNodeTypes);
+        var more = Press(Press(Initial(), new AddNode()), new ShowMoreNodeTypes());
         Assert.Equal(AddNodeMore, more.state.Mode);
 
-        var result = Press(more, SDFPartialActionEnum.AddOctahedronBound);
+        var result = Press(more, new AddOctahedronBound());
 
         Assert.Equal(Home, result.state.Mode);
         Assert.Contains("OctahedronBound", DescribeScene(result.interactiveProgram.Program));
@@ -58,7 +58,7 @@ public class SDFPartialAddNodeTests
     {
         var initial = Initial();
 
-        var result = Press(Press(initial, SDFPartialActionEnum.AddNode), SDFPartialActionEnum.CancelAddNode);
+        var result = Press(Press(initial, new AddNode()), new CancelAddNode());
 
         Assert.Equal(Home, result.state.Mode);
         Assert.Same(initial.interactiveProgram, result.interactiveProgram);
@@ -69,14 +69,14 @@ public class SDFPartialAddNodeTests
     {
         var program = Initial() with { interactiveProgram = Initial().interactiveProgram with { SelectedNodeId = null } };
 
-        Assert.False(SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(program, KeyFor(Home, SDFPartialActionEnum.AddNode)));
+        Assert.False(SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(program, KeyFor(Home, new AddNode())));
     }
 
     [Fact]
     public void EveryNodeType_HasAKeyOnOneOfTheReplaceNodePages()
     {
         var bound = SDFPartialKeyBindings.Bindings
-            .Where(b => b.Key.Mode is ReplaceNode or ReplaceNodeMore)
+            .Where(b => b.Key.Mode is SDFPartialCommandNodeProgramMode.ReplaceNode or ReplaceNodeMore)
             .Select(b => SDFPartialCommandNodeProgramOperator.NodeTypeToReplaceWith(b.Value))
             .OfType<SDFNodeType>();
 
@@ -87,10 +87,10 @@ public class SDFPartialAddNodeTests
     public void ReplacingANode_KeepsItSelectedAndReturnsHome()
     {
         var initial = Initial();
-        var replacing = Press(initial, SDFPartialActionEnum.ReplaceNode);
-        Assert.Equal(ReplaceNode, replacing.state.Mode);
+        var replacing = Press(initial, new ReplaceNode());
+        Assert.Equal(SDFPartialCommandNodeProgramMode.ReplaceNode, replacing.state.Mode);
 
-        var result = Press(Press(replacing, SDFPartialActionEnum.ShowMoreReplaceNodeTypes), SDFPartialActionEnum.ReplaceWithOctahedronBound);
+        var result = Press(Press(replacing, new ShowMoreReplaceNodeTypes()), new ReplaceWithOctahedronBound());
 
         Assert.Equal(Home, result.state.Mode);
         Assert.Equal("OctahedronBound(0.5)", DescribeScene(result.interactiveProgram.Program));
@@ -103,7 +103,7 @@ public class SDFPartialAddNodeTests
     {
         var initial = Initial();
 
-        var result = Press(Press(initial, SDFPartialActionEnum.ReplaceNode), SDFPartialActionEnum.CancelReplaceNode);
+        var result = Press(Press(initial, new ReplaceNode()), new CancelReplaceNode());
 
         Assert.Equal(Home, result.state.Mode);
         Assert.Same(initial.interactiveProgram, result.interactiveProgram);

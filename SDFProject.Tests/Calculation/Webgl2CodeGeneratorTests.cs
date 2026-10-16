@@ -71,7 +71,7 @@ public class Webgl2CodeGeneratorTests
         var function = new SDFFunction("f", "f", [], [new VariableDeclaration("ball", "b", Sphere(1))],
             new Union(
                 new VariableReferenceSDF("b"),
-                new ScaleTranslateRotate(new VariableReferenceSDF("b"), new ConstValueFloat(2), new ConstValueV3(new V3(1, 0, 0)), new ConstValueV3(new V3(0, 0, 0)))));
+                new Translate(new VariableReferenceSDF("b"), new ConstValueV3(new V3(1, 0, 0)))));
 
         var code = Generator.generateSdfCode(Program(new SDFFunctionCall("f"), function))[0];
 
@@ -146,14 +146,12 @@ public class Webgl2CodeGeneratorTests
     {
         var code = Generator.GenerateShaderCode(Program(new Repetition(new CappedCone(new ConstValueFloat(1), new ConstValueFloat(0.5f), new ConstValueFloat(0.2f)), new ConstValueV3(new V3(2, 0, 2)))));
 
-        // opRepeat needs opRepeatAxis, which needs opRoundAwayFromZero; sdCappedCone needs dot2
         Assert.Contains("vec3 opRepeat(", code);
         Assert.Contains("float opRepeatAxis(", code);
         Assert.Contains("float opRoundAwayFromZero(", code);
         Assert.Contains("float sdCappedCone(", code);
         Assert.Contains("float dot2(vec2 v)", code);
         Assert.Contains("float dot2(vec3 v)", code);
-        // Every library method comes before the generated functions that call it
         Assert.True(code.IndexOf("float opRoundAwayFromZero(", StringComparison.Ordinal) < code.IndexOf("float opRepeatAxis(", StringComparison.Ordinal));
         Assert.True(code.IndexOf("float sdCappedCone(", StringComparison.Ordinal) < code.IndexOf("float sdf_scene(", StringComparison.Ordinal));
     }

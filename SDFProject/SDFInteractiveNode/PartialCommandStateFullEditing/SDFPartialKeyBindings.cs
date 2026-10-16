@@ -2,153 +2,185 @@ using static SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing.SDFPar
 
 namespace SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing;
 
-// Which action each finger key does in each mode; SDFPartialCommandNodeProgramOperator carries the actions out
 public static class SDFPartialKeyBindings
 {
-    // Declared before Bindings since static fields initialize in order
-    private static readonly SDFPartialActionEnum[] FirstPageNodeTypes =
+    private static readonly ISDFPartialAction[] FirstPageNodeTypes =
     [
-        SDFPartialActionEnum.AddSphere,
-        SDFPartialActionEnum.AddBox,
-        SDFPartialActionEnum.AddRoundBox,
-        SDFPartialActionEnum.AddTorus,
-        SDFPartialActionEnum.AddBoxFrame,
-        SDFPartialActionEnum.AddCappedTorus,
-        SDFPartialActionEnum.AddLink,
-        SDFPartialActionEnum.AddInfiniteCylinder,
-        SDFPartialActionEnum.AddCone,
-        SDFPartialActionEnum.AddPlane,
-        SDFPartialActionEnum.AddHexPrism,
-        SDFPartialActionEnum.AddCapsule,
-        SDFPartialActionEnum.AddVerticalCapsule,
-        SDFPartialActionEnum.AddCappedCylinder,
-        SDFPartialActionEnum.AddRoundedCylinder,
-        SDFPartialActionEnum.AddCappedCone,
-        SDFPartialActionEnum.AddSolidAngle,
-        SDFPartialActionEnum.AddCutSphere,
-        SDFPartialActionEnum.AddCutHollowSphere,
-        SDFPartialActionEnum.AddDeathStar,
-        SDFPartialActionEnum.AddRoundCone,
-        SDFPartialActionEnum.AddRhombus,
-        SDFPartialActionEnum.AddOctahedron,
-        SDFPartialActionEnum.AddPyramid,
-        SDFPartialActionEnum.AddTriangle,
-        SDFPartialActionEnum.AddQuad,
-        SDFPartialActionEnum.AddEllipsoid,
-        SDFPartialActionEnum.AddTriPrism,
+        new AddSphere(),
+        new AddBox(),
+        new AddRoundBox(),
+        new AddTorus(),
+        new AddBoxFrame(),
+        new AddCappedTorus(),
+        new AddLink(),
+        new AddInfiniteCylinder(),
+        new AddCone(),
+        new AddInfiniteCone(),
+        new AddPlane(),
+        new AddHexPrism(),
+        new AddCapsule(),
+        new AddVerticalCapsule(),
+        new AddCappedCylinder(),
+        new AddRoundedCylinder(),
+        new AddCappedCone(),
+        new AddSolidAngle(),
+        new AddCutSphere(),
+        new AddCutHollowSphere(),
+        new AddRoundCone(),
+        new AddRhombus(),
+        new AddOctahedron(),
+        new AddPyramid(),
+        new AddTriangle(),
+        new AddQuad(),
+        new AddEllipsoid(),
+        new AddTriPrism(),
     ];
 
-    private static readonly SDFPartialActionEnum[] MoreNodeTypes =
+    private static readonly ISDFPartialAction[] MoreNodeTypes =
     [
-        SDFPartialActionEnum.AddInfiniteCone,
-        SDFPartialActionEnum.AddArbitraryCappedCylinder,
-        SDFPartialActionEnum.AddArbitraryCappedCone,
-        SDFPartialActionEnum.AddArbitraryRoundCone,
-        SDFPartialActionEnum.AddVesicaSegment,
-        SDFPartialActionEnum.AddOctahedronBound,
+        new AddArbitraryCappedCylinder(),
+        new AddArbitraryCappedCone(),
+        new AddArbitraryRoundCone(),
+        new AddVesicaSegment(),
+        new AddOctahedronBound(),
     ];
 
-    private static readonly SDFPartialActionEnum[] FirstPageReplaceNodeTypes =
+    private static readonly ISDFPartialAction[] FirstPageReplaceNodeTypes =
     [
-        SDFPartialActionEnum.ReplaceWithSphere,
-        SDFPartialActionEnum.ReplaceWithBox,
-        SDFPartialActionEnum.ReplaceWithRoundBox,
-        SDFPartialActionEnum.ReplaceWithTorus,
-        SDFPartialActionEnum.ReplaceWithBoxFrame,
-        SDFPartialActionEnum.ReplaceWithCappedTorus,
-        SDFPartialActionEnum.ReplaceWithLink,
-        SDFPartialActionEnum.ReplaceWithInfiniteCylinder,
-        SDFPartialActionEnum.ReplaceWithCone,
-        SDFPartialActionEnum.ReplaceWithPlane,
-        SDFPartialActionEnum.ReplaceWithHexPrism,
-        SDFPartialActionEnum.ReplaceWithCapsule,
-        SDFPartialActionEnum.ReplaceWithVerticalCapsule,
-        SDFPartialActionEnum.ReplaceWithCappedCylinder,
-        SDFPartialActionEnum.ReplaceWithRoundedCylinder,
-        SDFPartialActionEnum.ReplaceWithCappedCone,
-        SDFPartialActionEnum.ReplaceWithSolidAngle,
-        SDFPartialActionEnum.ReplaceWithCutSphere,
-        SDFPartialActionEnum.ReplaceWithCutHollowSphere,
-        SDFPartialActionEnum.ReplaceWithDeathStar,
-        SDFPartialActionEnum.ReplaceWithRoundCone,
-        SDFPartialActionEnum.ReplaceWithRhombus,
-        SDFPartialActionEnum.ReplaceWithOctahedron,
-        SDFPartialActionEnum.ReplaceWithPyramid,
-        SDFPartialActionEnum.ReplaceWithTriangle,
-        SDFPartialActionEnum.ReplaceWithQuad,
-        SDFPartialActionEnum.ReplaceWithEllipsoid,
-        SDFPartialActionEnum.ReplaceWithTriPrism,
+        new ReplaceWithSphere(),
+        new ReplaceWithBox(),
+        new ReplaceWithRoundBox(),
+        new ReplaceWithTorus(),
+        new ReplaceWithBoxFrame(),
+        new ReplaceWithCappedTorus(),
+        new ReplaceWithLink(),
+        new ReplaceWithInfiniteCylinder(),
+        new ReplaceWithCone(),
+        new ReplaceWithInfiniteCone(),
+        new ReplaceWithPlane(),
+        new ReplaceWithHexPrism(),
+        new ReplaceWithCapsule(),
+        new ReplaceWithVerticalCapsule(),
+        new ReplaceWithCappedCylinder(),
+        new ReplaceWithRoundedCylinder(),
+        new ReplaceWithCappedCone(),
+        new ReplaceWithSolidAngle(),
+        new ReplaceWithCutSphere(),
+        new ReplaceWithCutHollowSphere(),
+        new ReplaceWithRoundCone(),
+        new ReplaceWithRhombus(),
+        new ReplaceWithOctahedron(),
+        new ReplaceWithPyramid(),
+        new ReplaceWithTriangle(),
+        new ReplaceWithQuad(),
+        new ReplaceWithEllipsoid(),
+        new ReplaceWithTriPrism(),
     ];
 
-    private static readonly SDFPartialActionEnum[] MoreReplaceNodeTypes =
+    private static readonly ISDFPartialAction[] MoreReplaceNodeTypes =
     [
-        SDFPartialActionEnum.ReplaceWithInfiniteCone,
-        SDFPartialActionEnum.ReplaceWithArbitraryCappedCylinder,
-        SDFPartialActionEnum.ReplaceWithArbitraryCappedCone,
-        SDFPartialActionEnum.ReplaceWithArbitraryRoundCone,
-        SDFPartialActionEnum.ReplaceWithVesicaSegment,
-        SDFPartialActionEnum.ReplaceWithOctahedronBound,
+        new ReplaceWithArbitraryCappedCylinder(),
+        new ReplaceWithArbitraryCappedCone(),
+        new ReplaceWithArbitraryRoundCone(),
+        new ReplaceWithVesicaSegment(),
+        new ReplaceWithOctahedronBound(),
     ];
 
-    public static readonly Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), SDFPartialActionEnum> Bindings =
+    public static readonly Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), ISDFPartialAction> Bindings =
         BuildKeyBindings();
 
-    private static Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), SDFPartialActionEnum> BuildKeyBindings()
+    private static Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), ISDFPartialAction> BuildKeyBindings()
     {
-        var bindings = new Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), SDFPartialActionEnum>
+        var bindings = new Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), ISDFPartialAction>
         {
-            [(Home, InputKey.RMiddleHome)] = SDFPartialActionEnum.SelectNext,
-            [(Home, InputKey.RMiddleUp)] = SDFPartialActionEnum.SelectPrevious,
-            [(Home, InputKey.RIndexHome)] = SDFPartialActionEnum.SelectParent,
-            [(Home, InputKey.RRingHome)] = SDFPartialActionEnum.SelectFirstChild,
-            [(Home, InputKey.LRingHome)] = SDFPartialActionEnum.SwitchToScaleRotateTranslateMode,
-            [(Home, InputKey.LMiddleHome)] = SDFPartialActionEnum.ToggleSmoothness,
-            [(Home, InputKey.LIndexHome)] = SDFPartialActionEnum.AddNode,
-            [(Home, InputKey.LMiddleUp)] = SDFPartialActionEnum.EmptyNode,
-            [(Home, InputKey.LIndexUp)] = SDFPartialActionEnum.ReplaceNode,
-            [(ScaleRotateTranslate, InputKey.LMiddleHome)] = SDFPartialActionEnum.TranslateXDown,
-            [(ScaleRotateTranslate, InputKey.LIndexHome)] = SDFPartialActionEnum.TranslateXUp,
-            [(ScaleRotateTranslate, InputKey.RIndexHome)] = SDFPartialActionEnum.TranslateYDown,
-            [(ScaleRotateTranslate, InputKey.RMiddleHome)] = SDFPartialActionEnum.TranslateYUp,
-            [(ScaleRotateTranslate, InputKey.RRingHome)] = SDFPartialActionEnum.TranslateZDown,
-            [(ScaleRotateTranslate, InputKey.RPinkHome)] = SDFPartialActionEnum.TranslateZUp,
-            [(ScaleRotateTranslate, InputKey.LMiddleUp)] = SDFPartialActionEnum.RotateXDown,
-            [(ScaleRotateTranslate, InputKey.LIndexUp)] = SDFPartialActionEnum.RotateXUp,
-            [(ScaleRotateTranslate, InputKey.RIndexUp)] = SDFPartialActionEnum.RotateYDown,
-            [(ScaleRotateTranslate, InputKey.RMiddleUp)] = SDFPartialActionEnum.RotateYUp,
-            [(ScaleRotateTranslate, InputKey.RRingUp)] = SDFPartialActionEnum.RotateZDown,
-            [(ScaleRotateTranslate, InputKey.RPinkUp)] = SDFPartialActionEnum.RotateZUp,
-            [(ScaleRotateTranslate, InputKey.LMiddleDown)] = SDFPartialActionEnum.DecreaseZoomLevel,
-            [(ScaleRotateTranslate, InputKey.LIndexDown)] = SDFPartialActionEnum.IncreaseZoomLevel,
-            [(ScaleRotateTranslate, InputKey.RIndexDown)] = SDFPartialActionEnum.ScaleDown,
-            [(ScaleRotateTranslate, InputKey.RMiddleDown)] = SDFPartialActionEnum.ScaleUp,
+            [(Home, InputKey.RMiddleHome)] = new SelectNext(),
+            [(Home, InputKey.RMiddleUp)] = new SelectPrevious(),
+            [(Home, InputKey.RIndexHome)] = new SelectParent(),
+            [(Home, InputKey.RRingHome)] = new SelectFirstChild(),
+            [(Home, InputKey.RMiddleDown)] = new SwitchToScaleMode(),
+            [(Home, InputKey.RRingDown)] = new SwitchToRotateMode(),
+            [(Home, InputKey.RPinkDown)] = new SwitchToTranslateMode(),
+            [(Home, InputKey.LMiddleHome)] = new ToggleSmoothness(),
+            [(Home, InputKey.LIndexHome)] = new AddNode(),
+            [(Home, InputKey.LMiddleUp)] = new EmptyNode(),
+            [(Home, InputKey.LIndexUp)] = new ReplaceNode(),
+            [(Home, InputKey.LIndexDown)] = new EditNode(),
+            [(Home, InputKey.LIndex2Home)] = new SubtractNode(),
+            [(Home, InputKey.RIndex2Home)] = new IntersectNode(),
+            [(Home, InputKey.LIndex2Up)] = new DissolveNode(),
+            [(Home, InputKey.RIndexUp)] = new ExtractVariable(),
+            [(Home, InputKey.RIndex2Up)] = new InlineVariable(),
+            [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LRingHome)] = new EditParameter1(),
+            [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LMiddleHome)] = new EditParameter2(),
+            [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LIndexHome)] = new EditParameter3(),
+            [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LIndex2Home)] = new EditParameter4(),
+            [(EditParameter, InputKey.LMiddleHome)] = new ParameterXDown(),
+            [(EditParameter, InputKey.LIndexHome)] = new ParameterXUp(),
+            [(EditParameter, InputKey.RIndexHome)] = new ParameterYDown(),
+            [(EditParameter, InputKey.RMiddleHome)] = new ParameterYUp(),
+            [(EditParameter, InputKey.RRingHome)] = new ParameterZDown(),
+            [(EditParameter, InputKey.RPinkHome)] = new ParameterZUp(),
+            [(EditParameter, InputKey.LMiddleDown)] = new DecreaseZoomLevel(),
+            [(EditParameter, InputKey.LIndexDown)] = new IncreaseZoomLevel(),
+            [(EditParameter, InputKey.LRingHome)] = new TypeParameterValue(),
+            [(Translate, InputKey.LMiddleHome)] = new TranslateXDown(),
+            [(Translate, InputKey.LIndexHome)] = new TranslateXUp(),
+            [(Translate, InputKey.RIndexHome)] = new TranslateYDown(),
+            [(Translate, InputKey.RMiddleHome)] = new TranslateYUp(),
+            [(Translate, InputKey.RRingHome)] = new TranslateZDown(),
+            [(Translate, InputKey.RPinkHome)] = new TranslateZUp(),
+            [(Rotate, InputKey.LMiddleHome)] = new RotateXDown(),
+            [(Rotate, InputKey.LIndexHome)] = new RotateXUp(),
+            [(Rotate, InputKey.RIndexHome)] = new RotateYDown(),
+            [(Rotate, InputKey.RMiddleHome)] = new RotateYUp(),
+            [(Rotate, InputKey.RRingHome)] = new RotateZDown(),
+            [(Rotate, InputKey.RPinkHome)] = new RotateZUp(),
+            [(Scale, InputKey.LMiddleHome)] = new ScaleXDown(),
+            [(Scale, InputKey.LIndexHome)] = new ScaleXUp(),
+            [(Scale, InputKey.RIndexHome)] = new ScaleYDown(),
+            [(Scale, InputKey.RMiddleHome)] = new ScaleYUp(),
+            [(Scale, InputKey.RRingHome)] = new ScaleZDown(),
+            [(Scale, InputKey.RPinkHome)] = new ScaleZUp(),
+            [(Scale, InputKey.RIndexUp)] = new ScaleDown(),
+            [(Scale, InputKey.RMiddleUp)] = new ScaleUp(),
         };
 
-        // Going back to the home mode works from every mode
         foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>())
-            bindings[(mode, InputKey.LPinkHome)] = SDFPartialActionEnum.SwitchToHomeMode;
+            bindings[(mode, InputKey.LPinkHome)] = new SwitchToHomeMode();
 
-        // The node types to add fill the keys left after cancel and the page switch, over two pages
-        bindings[(AddNode, InputKey.LPinkHome)] = SDFPartialActionEnum.CancelAddNode;
-        bindings[(AddNodeMore, InputKey.LPinkHome)] = SDFPartialActionEnum.CancelAddNode;
-        bindings[(AddNode, InputKey.LPinkDown)] = SDFPartialActionEnum.ShowMoreNodeTypes;
-        bindings[(AddNodeMore, InputKey.LPinkDown)] = SDFPartialActionEnum.ShowFirstNodeTypes;
-        AddInFreeKeys(bindings, AddNode, FirstPageNodeTypes);
+        foreach (var mode in new[] { Scale, Rotate, Translate })
+        {
+            bindings[(mode, InputKey.LMiddleDown)] = new DecreaseZoomLevel();
+            bindings[(mode, InputKey.LIndexDown)] = new IncreaseZoomLevel();
+        }
+
+        bindings[(EditParameter, InputKey.LPinkHome)] = new StopEditingParameter();
+
+        foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>().Where(SDFPartialCommandNodeProgramOperator.TakesText))
+        {
+            bindings[(mode, InputKey.Enter)] = new ConfirmText();
+            bindings[(mode, InputKey.LPinkHome)] = new CancelText();
+        }
+
+        bindings[(SDFPartialCommandNodeProgramMode.AddNode, InputKey.LPinkHome)] = new CancelAddNode();
+        bindings[(AddNodeMore, InputKey.LPinkHome)] = new CancelAddNode();
+        bindings[(SDFPartialCommandNodeProgramMode.AddNode, InputKey.LPinkDown)] = new ShowMoreNodeTypes();
+        bindings[(AddNodeMore, InputKey.LPinkDown)] = new ShowFirstNodeTypes();
+        AddInFreeKeys(bindings, SDFPartialCommandNodeProgramMode.AddNode, FirstPageNodeTypes);
         AddInFreeKeys(bindings, AddNodeMore, MoreNodeTypes);
 
-        // Replacing picks the node type on the same keys as adding
-        bindings[(ReplaceNode, InputKey.LPinkHome)] = SDFPartialActionEnum.CancelReplaceNode;
-        bindings[(ReplaceNodeMore, InputKey.LPinkHome)] = SDFPartialActionEnum.CancelReplaceNode;
-        bindings[(ReplaceNode, InputKey.LPinkDown)] = SDFPartialActionEnum.ShowMoreReplaceNodeTypes;
-        bindings[(ReplaceNodeMore, InputKey.LPinkDown)] = SDFPartialActionEnum.ShowFirstReplaceNodeTypes;
-        AddInFreeKeys(bindings, ReplaceNode, FirstPageReplaceNodeTypes);
+        bindings[(SDFPartialCommandNodeProgramMode.ReplaceNode, InputKey.LPinkHome)] = new CancelReplaceNode();
+        bindings[(ReplaceNodeMore, InputKey.LPinkHome)] = new CancelReplaceNode();
+        bindings[(SDFPartialCommandNodeProgramMode.ReplaceNode, InputKey.LPinkDown)] = new ShowMoreReplaceNodeTypes();
+        bindings[(ReplaceNodeMore, InputKey.LPinkDown)] = new ShowFirstReplaceNodeTypes();
+        AddInFreeKeys(bindings, SDFPartialCommandNodeProgramMode.ReplaceNode, FirstPageReplaceNodeTypes);
         AddInFreeKeys(bindings, ReplaceNodeMore, MoreReplaceNodeTypes);
 
         return bindings;
     }
 
-    private static void AddInFreeKeys(Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), SDFPartialActionEnum> bindings,
-        SDFPartialCommandNodeProgramMode mode, SDFPartialActionEnum[] actions)
+    private static void AddInFreeKeys(Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), ISDFPartialAction> bindings,
+        SDFPartialCommandNodeProgramMode mode, ISDFPartialAction[] actions)
     {
         var freeKeys = Enum.GetValues<InputKey>()
             .Where(key => key != InputKey.Enter && !bindings.ContainsKey((mode, key)))

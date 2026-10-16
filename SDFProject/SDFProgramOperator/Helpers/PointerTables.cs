@@ -44,7 +44,6 @@ public sealed class PointerTables
         integers.Remove(id);
     }
 
-    /// <summary>Removes the pointers of every node reachable from the root, including the root itself when it is a pointer.</summary>
     public void RemoveSubtree(Evaluable root)
     {
         foreach (var id in Subtree(root))
@@ -106,7 +105,6 @@ public sealed class PointerTables
 
     public Evaluable MapTree(Evaluable root, Func<Evaluable, Evaluable> map)
     {
-        // Walk the original tree and map the root last, so nodes produced by map are never mapped again
         foreach (var id in Subtree(root))
             Set(id, EvaluableChildren.MapChildren(Get(id), map));
         if (PointerId(root) is null)

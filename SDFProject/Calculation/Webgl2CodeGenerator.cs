@@ -12,14 +12,12 @@ public partial class Webgl2CodeGenerator
 
     public string[] generateSdfCode(SDFProgram program) => Generate(program).functions;
 
-    /// <summary>The library methods the generated functions use, followed by those functions, ready to paste into a shader.</summary>
     public string GenerateShaderCode(SDFProgram program)
     {
         var (functions, context) = Generate(program);
         return string.Join("\n\n", functions.Prepend(Webgl2SdfLibrary.CodeFor(context.UsedLibraryMethods.Keys)));
     }
 
-    /// <summary>How often each method or constant of <see cref="Webgl2SdfLibrary"/> occurs in the generated functions.</summary>
     public IReadOnlyDictionary<string, int> CountLibraryMethodUses(SDFProgram program) => Generate(program).context.UsedLibraryMethods;
 
     private static (string[] functions, GeneratorContext context) Generate(SDFProgram program)
@@ -27,7 +25,7 @@ public partial class Webgl2CodeGenerator
         var context = new GeneratorContext(program, FunctionNames(program), ParameterTypes(program), []);
 
         var code = OrderCalleesFirst(program).Select(f => GenerateFunction(context, f)).ToList();
-        code.Add(GenerateScene(context, program.scene));
+        code.Add(GenerateScene(context, program));
         return (code.ToArray(), context);
     }
 
@@ -54,27 +52,31 @@ public partial class Webgl2CodeGenerator
             .Select((_, i) => Identifier($"a{i}_{(i < function.argumentNames.Length ? function.argumentNames[i] : "")}"))
             .ToArray();
         var writer = new FunctionWriter(context, parameterNames);
-
-        for (var i = 0; i < function.variables.Length; i++)
-        {
-            var variable = function.variables[i];
-            var name = Identifier($"v{i}_{variable.name}");
-            writer.Declare(variable, name);
-            if (variable.value is not (SDFEvaluable or SDF2DEvaluable))
-                writer.Line($"{Type(variable.value)} {name} = {writer.Value(variable.value)};");
-        }
-
+        DeclareVariables(writer, function.variables);
         writer.Line($"return {writer.Sdf(function.functionBody, "p")};");
 
         var parameters = string.Concat(types.Select((type, i) => $", {type} {parameterNames[i]}"));
         return writer.ToFunction($"float {context.FunctionNames[function.id]}(vec3 p{parameters})");
     }
 
-    private static string GenerateScene(GeneratorContext context, SDFEvaluable scene)
+    private static string GenerateScene(GeneratorContext context, SDFProgram program)
     {
         var writer = new FunctionWriter(context, []);
-        writer.Line($"return {writer.Sdf(scene, "p")};");
+        DeclareVariables(writer, program.sceneVariables);
+        writer.Line($"return {writer.Sdf(program.scene, "p")};");
         return writer.ToFunction($"float {SceneFunctionName}(vec3 p)");
+    }
+
+    private static void DeclareVariables(FunctionWriter writer, VariableDeclaration[] variables)
+    {
+        for (var i = 0; i < variables.Length; i++)
+        {
+            var variable = variables[i];
+            var name = Identifier($"v{i}_{variable.name}");
+            writer.Declare(variable, name);
+            if (variable.value is not (SDFEvaluable or SDF2DEvaluable))
+                writer.Line($"{Type(variable.value)} {name} = {writer.Value(variable.value)};");
+        }
     }
 
     private sealed class FunctionWriter(GeneratorContext context, string[] parameterNames)
@@ -136,7 +138,6 @@ public partial class Webgl2CodeGenerator
                 Cone e => Distance($"sdCone({p}, {V2(e.sinCos)}, {F(e.height)})"),
                 CutHollowSphere e => Distance($"sdCutHollowSphere({p}, {F(e.radius)}, {F(e.cutHeight)}, {F(e.thickness)})"),
                 CutSphere e => Distance($"sdCutSphere({p}, {F(e.radius)}, {F(e.cutHeight)})"),
-                DeathStar e => Distance($"sdDeathStar({p}, {F(e.radiusA)}, {F(e.radiusB)}, {F(e.distance)})"),
                 Ellipsoid e => Distance($"sdEllipsoid({p}, {V3(e.radii)})"),
                 Empty => Distance("SDF_INFINITY"),
                 HexPrism e => Distance($"sdHexPrism({p}, {V2(e.size)})"),
@@ -154,7 +155,6 @@ public partial class Webgl2CodeGenerator
                 RoundedCylinder e => Distance($"sdRoundedCylinder({p}, {F(e.radius)}, {F(e.roundness)}, {F(e.height)})"),
                 SolidAngle e => Distance($"sdSolidAngle({p}, {V2(e.sinCos)}, {F(e.radius)})"),
                 Sphere e => Distance($"sdSphere({p}, {F(e.radius)})"),
-                // innerRadius/outerRadius are the radii of the hole and the outer rim of the torus
                 Torus e => Distance($"sdTorus({p}, ({F(e.outerRadius)} + {F(e.innerRadius)}) * 0.5, ({F(e.outerRadius)} - {F(e.innerRadius)}) * 0.5)"),
                 TriPrism e => Distance($"sdTriPrism({p}, {V2(e.size)})"),
                 Triangle e => Distance($"sdTriangle({p}, {V3(e.a)}, {V3(e.b)}, {V3(e.c)})"),
@@ -177,7 +177,9 @@ public partial class Webgl2CodeGenerator
                 SmoothIntersection e => Combine(e.primitives, p, (a, b) => $"-opSmoothMin(-{a}, -{b}, {F(e.smoothness)})", "-SDF_INFINITY"),
                 SmoothSubtraction e => Distance($"-opSmoothMin(-{Sdf(e.a, p)}, {Sdf(e.b, p)}, {F(e.smoothness)})"),
 
-                ScaleTranslateRotate e => ScaleTranslateRotate(e, p),
+                Scale e => ScaleSdf(e, p),
+                Translate e => Sdf(e.primitive, Position3($"{p} - {V3(e.translation)}")),
+                Rotate e => Sdf(e.primitive, Position3($"opInverseRotateXYZ({p}, {V3(e.rotation)})")),
 
                 SymmetryX e => Sdf(e.primitive, Position3($"vec3(abs({p}.x), {p}.yz)")),
                 SymmetryXZ e => Sdf(e.primitive, Position3($"vec3(abs({p}.x), {p}.y, abs({p}.z))")),
@@ -254,12 +256,10 @@ public partial class Webgl2CodeGenerator
             return Distance($"{d} + min(maxComponent({q}), 0.0)");
         }
 
-        // Undoes the transformation in reverse order: translate, then rotate, then scale
-        private string ScaleTranslateRotate(ScaleTranslateRotate e, string p)
+        private string ScaleSdf(Scale e, string p)
         {
-            var scale = Float(e.scale);
-            var q = Position3($"opInverseRotateXYZ({p} - {Vec3(e.translation)}, {Vec3(e.rotation)}) / {scale}");
-            return Distance($"{Sdf(e.primitive, q)} * {scale}");
+            var scale = Vec3(e.scale);
+            return Distance($"{Sdf(e.primitive, Position3($"{p} / {scale}"))} * minComponent({scale})");
         }
 
         private string Combine(SDFEvaluable[] primitives, string p, Func<string, string, string> combine, string empty) =>
@@ -275,7 +275,7 @@ public partial class Webgl2CodeGenerator
         private string Inline(string variableId, Func<Evaluable, string> generate)
         {
             if (!variables.TryGetValue(variableId, out var variable))
-                throw new InvalidOperationException($"Variable '{variableId}' is not declared in this function");
+                throw new InvalidOperationException($"Variable '{variableId}' is not declared in this function or scene");
             if (!inlining.Add(variableId))
                 throw new InvalidOperationException($"Variable '{variable.declaration.name}' refers to itself");
 
@@ -340,10 +340,9 @@ public partial class Webgl2CodeGenerator
         private string Variable(string variableId) =>
             variables.TryGetValue(variableId, out var variable)
                 ? variable.name
-                : throw new InvalidOperationException($"Variable '{variableId}' is not declared in this function");
+                : throw new InvalidOperationException($"Variable '{variableId}' is not declared in this function or scene");
     }
 
-    // Negative literals get parentheses, so that "-" + literal never turns into the decrement operator "--"
     private static string Literal(float value)
     {
         if (!float.IsFinite(value))
@@ -364,7 +363,6 @@ public partial class Webgl2CodeGenerator
         _ => throw new NotSupportedException($"Values of type {value.GetType().Name} have no GLSL type"),
     };
 
-    // GLSL identifiers only allow letters, digits and single underscores
     private static string Identifier(string name) =>
         MultipleUnderscores().Replace(InvalidIdentifierCharacters().Replace(name, "_"), "_").TrimEnd('_');
 
@@ -383,7 +381,6 @@ public partial class Webgl2CodeGenerator
         foreach (var function in program.Functions)
         {
             var name = Identifier($"sdf_{function.name}_{function.id}");
-            // Different ids can become the same identifier once their invalid characters are replaced
             var unique = name;
             for (var i = 2; names.ContainsValue(unique) || unique == SceneFunctionName; i++)
                 unique = $"{name}_{i}";
@@ -392,7 +389,6 @@ public partial class Webgl2CodeGenerator
         return names;
     }
 
-    // Parameters are only referenced by index, so their types come from how the function uses them, or else from what callers pass
     private static Dictionary<string, string[]> ParameterTypes(SDFProgram program)
     {
         var tables = new PointerTables(program.pointers);
@@ -413,8 +409,7 @@ public partial class Webgl2CodeGenerator
             }
         }
 
-        // Unused parameters still need a type in the signature, which callers can tell
-        var callers = program.Functions.SelectMany(Roots).Append(program.scene);
+        var callers = program.AllRoots();
         foreach (var call in callers.SelectMany(root => Descendants(tables, root)).OfType<SDFFunctionCall>())
         {
             if (!known.TryGetValue(call.functionId, out var types))
@@ -441,7 +436,6 @@ public partial class Webgl2CodeGenerator
         _ => throw new NotImplementedException($"Unknown {nameof(FunctionParameterValue)}: {parameter.GetType().Name}"),
     };
 
-    // GLSL has no recursion and needs every function declared before it is called
     private static List<SDFFunctionDefinition> OrderCalleesFirst(SDFProgram program)
     {
         var tables = new PointerTables(program.pointers);
@@ -477,7 +471,6 @@ public partial class Webgl2CodeGenerator
     private static IEnumerable<Evaluable> Roots(SDFFunctionDefinition function) =>
         function.variables.Select(v => v.value).Append(function.functionBody);
 
-    // Every node reachable from the root, looking through pointers
     private static IEnumerable<Evaluable> Descendants(PointerTables tables, Evaluable root)
     {
         var pending = new Stack<Evaluable>([root]);

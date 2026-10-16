@@ -4,7 +4,6 @@ using SDFProject.SDFInteractiveNode;
 
 namespace IDE.Operations;
 
-// One button per operation; the parameters of its constructor are asked in a popup before it runs
 public sealed partial class OperationDefinition(Type type)
 {
     public static readonly OperationDefinition[] All = typeof(ISdfInteractiveNodeProgramOperation).Assembly.GetTypes()
@@ -16,7 +15,6 @@ public sealed partial class OperationDefinition(Type type)
 
     public ParameterInfo[] Parameters => Constructor.GetParameters();
 
-    // "InteractiveAddNodeNextTo" is shown as "Add Node Next To"
     public string Label => string.Join(" ", Words().Matches(type.Name.Replace("Interactive", "")).Select(m => m.Value));
 
     public ISdfInteractiveNodeProgramOperation Create(object?[] arguments) =>

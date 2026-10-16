@@ -29,7 +29,6 @@ public class ApplyToggleNodeSmoothness
         };
         tables.Set(operation.nodeId, toggled);
 
-        // Drops the pointers of the smoothness that disappears with the smooth variant
         Evaluable RemoveWith(Evaluable discarded, Evaluable result)
         {
             tables.RemoveSubtree(discarded);

@@ -39,11 +39,9 @@ public class ReplaceNodeTests
         var result = SdfProgramOperator.ApplyOperation(program, new ReplaceNode(treeId, SDFNodeType.Sphere));
 
         Assert.Equal("Union(Sphere(9), Sphere(0.5))", DescribeScene(result));
-        // SDF and 2D descendants alike, at every depth
         Assert.Contains(descendants, id => program.pointers.SDF2DEvaluablePointers.ContainsKey(id));
         Assert.All(descendants, id => Assert.False(result.pointers.ContainsPointer(id)));
         AssertPointersConsistent(result);
-        // Nothing is left over: the result has as many pointers as the same program built from scratch
         var fresh = Program(new Union(Sphere(9), Sphere(0.5f)));
         Assert.Equal(PointerCount(fresh), PointerCount(result));
     }

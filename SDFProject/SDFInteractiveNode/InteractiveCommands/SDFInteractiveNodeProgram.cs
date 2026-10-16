@@ -14,7 +14,7 @@ public static class SdfInteractiveNodeProgramConstants
     {
         var noPointers = new SDFPointers(new(), new(), new(), new(), 0);
         var cube = SDFNodeDefaultValues.CreateNode(SDFNodeType.Box);
-        var program = SDFProgramNormalizePointers.Pointerify(new SDFProgram([], noPointers, cube));
+        var program = SDFProgramNormalizePointers.Pointerify(new SDFProgram([], noPointers, [], cube));
         return new SdfInteractiveNodeProgram(program, PointerTables.PointerId(program.scene), 0);
     }
 }

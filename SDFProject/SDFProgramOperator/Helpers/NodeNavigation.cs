@@ -2,7 +2,6 @@ using SDFProject.ProgramDefinition;
 
 namespace SDFProject.SDFProgramOperator.Helpers;
 
-/// <summary>Moves a node selection through the pointer tree; every method returns the given id when there is nowhere to move.</summary>
 public static class NodeNavigation
 {
     public static string NextSiblingOrParent(SDFPointers pointers, string id) => SiblingOrParent(pointers, id, 1);
@@ -14,14 +13,14 @@ public static class NodeNavigation
     public static string FirstChild(SDFPointers pointers, string id) =>
         ChildIds(new PointerTables(pointers), id).FirstOrDefault() ?? id;
 
-    // Depth-first order: the first child, else the next sibling of the node or of its nearest ancestor that has one
-    public static string Next(SDFPointers pointers, string id)
+    public static string Next(SDFProgram program, string id)
     {
-        var tables = new PointerTables(pointers);
+        var tables = new PointerTables(program.pointers);
         if (ChildIds(tables, id).FirstOrDefault() is { } firstChild)
             return firstChild;
 
-        for (var current = id; tables.ParentOf(current) is { } parentId; current = parentId)
+        var current = id;
+        for (; tables.ParentOf(current) is { } parentId; current = parentId)
         {
             var siblings = ChildIds(tables, parentId);
             var index = siblings.IndexOf(current) + 1;
@@ -29,26 +28,38 @@ public static class NodeNavigation
                 return siblings[index];
         }
 
-        return id;
+        var roots = ScopeRootIds(program, current);
+        var rootIndex = roots.IndexOf(current) + 1;
+        return rootIndex > 0 && rootIndex < roots.Count ? roots[rootIndex] : id;
     }
 
-    // Reverse of Next: the deepest last descendant of the previous sibling, else the parent
-    public static string Previous(SDFPointers pointers, string id)
+    public static string Previous(SDFProgram program, string id)
     {
-        var tables = new PointerTables(pointers);
+        var tables = new PointerTables(program.pointers);
         if (tables.ParentOf(id) is not { } parentId)
-            return id;
+        {
+            var roots = ScopeRootIds(program, id);
+            var rootIndex = roots.IndexOf(id) - 1;
+            return rootIndex >= 0 ? DeepestLastDescendant(tables, roots[rootIndex]) : id;
+        }
 
         var siblings = ChildIds(tables, parentId);
         var index = siblings.IndexOf(id) - 1;
-        if (index < 0)
-            return parentId;
+        return index < 0 ? parentId : DeepestLastDescendant(tables, siblings[index]);
+    }
 
-        var current = siblings[index];
+    private static string DeepestLastDescendant(PointerTables tables, string id)
+    {
+        var current = id;
         while (ChildIds(tables, current).LastOrDefault() is { } lastChild)
             current = lastChild;
         return current;
     }
+
+    private static List<string> ScopeRootIds(SDFProgram program, string rootId) =>
+        program.Scopes()
+            .Select(scope => scope.Roots.Select(PointerTables.PointerId).OfType<string>().ToList())
+            .FirstOrDefault(ids => ids.Contains(rootId)) ?? [];
 
     private static string SiblingOrParent(SDFPointers pointers, string id, int offset)
     {
@@ -61,7 +72,6 @@ public static class NodeNavigation
         return index >= 0 && index < siblings.Count ? siblings[index] : parentId;
     }
 
-    // Only children behind a pointer are nodes that can be selected, inline children are leaves without an id
     private static List<string> ChildIds(PointerTables tables, string id) =>
         EvaluableChildren.Children(tables.Get(id))
             .Select(PointerTables.PointerId)

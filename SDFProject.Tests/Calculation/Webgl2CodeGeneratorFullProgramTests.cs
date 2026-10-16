@@ -5,7 +5,6 @@ using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;
 
-// Renders the complete shader code of whole programs: the library methods they use followed by their functions
 public class Webgl2CodeGeneratorFullProgramTests(ITestOutputHelper output)
 {
     private static readonly Webgl2CodeGenerator Generator = new();

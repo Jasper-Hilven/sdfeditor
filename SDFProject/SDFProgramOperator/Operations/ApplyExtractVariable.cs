@@ -11,7 +11,7 @@ public class ApplyExtractVariable
         if (!tables.Contains(operation.onNodeId))
             throw new KeyNotFoundException($"There is no node with pointer '{operation.onNodeId}'");
 
-        var (functionIndex, declarationIndex) = FindOwner(program, tables, operation.onNodeId);
+        var (scopeIndex, declarationIndex) = FindOwner(program, tables, operation.onNodeId);
 
         var variableIds = program.VariableIds();
         var nextFreePointer = program.pointers.nextFreePointer;
@@ -27,43 +27,45 @@ public class ApplyExtractVariable
         };
 
         program = program.ReplaceOnlyReference(tables, operation.onNodeId, _ => reference);
-        var function = program.Functions[functionIndex];
+        var scope = program.Scopes()[scopeIndex];
 
-        // Declared right before its only use, so every variable the extracted nodes reference is still visible
-        var variables = function.variables.ToList();
+        var variables = scope.variables.ToList();
         variables.Insert(declarationIndex, new VariableDeclaration(operation.variableName, variableId, onNode));
+        program = program.WithScope(scopeIndex, scope with { variables = variables.ToArray() });
 
-        var functions = program.Functions.ToArray();
-        functions[functionIndex] = function.With(variables.ToArray(), function.functionBody);
-
-        return program with { Functions = functions, pointers = tables.ToPointers(nextFreePointer) };
+        return program with { pointers = tables.ToPointers(nextFreePointer) };
     }
 
-    // Variables can only be declared inside a function, so the node has to be part of a function's variable or body
     public static bool CanExtract(SDFProgram program, string nodeId)
     {
         var tables = new PointerTables(program.pointers);
-        return tables.Contains(nodeId) && program.Functions.Any(f =>
-            f.variables.Any(v => tables.Subtree(v.value).Contains(nodeId)) || tables.Subtree(f.functionBody).Contains(nodeId));
+        return tables.Contains(nodeId) && program.AllRoots().Any(root => tables.Subtree(root).Contains(nodeId));
     }
 
-    private static (int functionIndex, int declarationIndex) FindOwner(SDFProgram program, PointerTables tables, string nodeId)
+    public static string UnusedVariableName(SDFProgram program)
     {
-        for (var f = 0; f < program.Functions.Length; f++)
+        var names = program.Scopes().SelectMany(s => s.variables).Select(v => v.name).ToHashSet();
+        var i = 1;
+        while (names.Contains($"var{i}"))
+            i++;
+        return $"var{i}";
+    }
+
+    private static (int scopeIndex, int declarationIndex) FindOwner(SDFProgram program, PointerTables tables, string nodeId)
+    {
+        var scopes = program.Scopes();
+        for (var s = 0; s < scopes.Length; s++)
         {
-            var function = program.Functions[f];
-            for (var v = 0; v < function.variables.Length; v++)
+            var scope = scopes[s];
+            for (var v = 0; v < scope.variables.Length; v++)
             {
-                if (tables.Subtree(function.variables[v].value).Contains(nodeId))
-                    return (f, v);
+                if (tables.Subtree(scope.variables[v].value).Contains(nodeId))
+                    return (s, v);
             }
 
-            if (tables.Subtree(function.functionBody).Contains(nodeId))
-                return (f, function.variables.Length);
+            if (tables.Subtree(scope.body).Contains(nodeId))
+                return (s, scope.variables.Length);
         }
-
-        if (tables.Subtree(program.scene).Contains(nodeId))
-            throw new InvalidOperationException($"Node '{nodeId}' is part of the scene, variables can only be declared inside a function");
 
         throw new InvalidOperationException($"Node '{nodeId}' is not used anywhere in the program");
     }

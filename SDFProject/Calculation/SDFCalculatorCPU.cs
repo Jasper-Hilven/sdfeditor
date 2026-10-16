@@ -20,7 +20,6 @@ public class SdfCalculatorCpu
         Dictionary<string, IntegerEvaluable> IntegerEvaluables,
         int VisibleVariableCount)
     {
-
         public int VariableIndex(string variableId) =>
             VariableIndices.TryGetValue(variableId, out var index) && index < VisibleVariableCount
                 ? index
@@ -32,12 +31,28 @@ public class SdfCalculatorCpu
     public float Calculate(V3 position, SDFProgram program)
     {
         var idToFunctions = program.Functions.ToDictionary(f => f.id,
-            f => new FunctionInfo(f, f.variables.Select((v, i) => (v.id, i)).ToDictionary(x => x.id, x => x.i)));
+            f => new FunctionInfo(f, VariableIndices(f.variables)));
 
         var pointers = program.pointers;
-        var context = new EvaluationContext([], [], new Dictionary<string, int>(), pointers.SDFEvaluablePointers, pointers.SDF2DEvaluablePointers,
+        var variables = program.sceneVariables;
+        var variableValues = new object[variables.Length];
+        var context = new EvaluationContext([], variableValues, VariableIndices(variables), pointers.SDFEvaluablePointers, pointers.SDF2DEvaluablePointers,
             pointers.FloatEvaluablePointers, pointers.IntegerEvaluablePointers, 0);
-        return Calculate(new Vector3(position.x, position.y, position.z), program.scene, idToFunctions, context);
+        EvaluateVariables(variables, variableValues, context);
+        return Calculate(new Vector3(position.x, position.y, position.z), program.scene, idToFunctions, context with { VisibleVariableCount = variables.Length });
+    }
+
+    private static Dictionary<string, int> VariableIndices(VariableDeclaration[] variables) =>
+        variables.Select((v, i) => (v.id, i)).ToDictionary(x => x.id, x => x.i);
+
+    private void EvaluateVariables(VariableDeclaration[] declarations, object[] variableValues, EvaluationContext context)
+    {
+        for (var i = 0; i < declarations.Length; i++)
+        {
+            variableValues[i] = declarations[i].value is SDFEvaluable or SDF2DEvaluable
+                ? declarations[i].value
+                : EvaluateValue(declarations[i].value, context with { VisibleVariableCount = i });
+        }
     }
 
     private object EvaluateValue(Evaluable evaluable, EvaluationContext context)
@@ -67,13 +82,7 @@ public class SdfCalculatorCpu
             callerContext.IntegerEvaluables,
             0);
 
-        for (var i = 0; i < declarations.Length; i++)
-        {
-            variableValues[i] = declarations[i].value is SDFEvaluable or SDF2DEvaluable
-                ? declarations[i].value
-                : EvaluateValue(declarations[i].value, context with { VisibleVariableCount = i });
-        }
-
+        EvaluateVariables(declarations, variableValues, context);
         return Calculate(p, function.Definition.functionBody, idToFunctions, context with { VisibleVariableCount = declarations.Length });
     }
 
@@ -100,7 +109,6 @@ public class SdfCalculatorCpu
             Cone e => SdfMath.Cone(p, Vec2(e.sinCos), Float(e.height)),
             CutHollowSphere e => SdfMath.CutHollowSphere(p, Float(e.radius), Float(e.cutHeight), Float(e.thickness)),
             CutSphere e => SdfMath.CutSphere(p, Float(e.radius), Float(e.cutHeight)),
-            DeathStar e => SdfMath.DeathStar(p, Float(e.radiusA), Float(e.radiusB), Float(e.distance)),
             Displace e => Sdf(e.primitive, p) + Sdf(e.displacement, p),
             Empty => float.PositiveInfinity,
             Ellipsoid e => SdfMath.Ellipsoid(p, Vec3(e.radii)),
@@ -122,12 +130,13 @@ public class SdfCalculatorCpu
             Repetition e => Sdf(e.primitive, Repeat(p, Vec3(e.spacing))),
             Revolution e => Sdf2D(e.primitive, new Vector2(Length(Xz(p)) - Float(e.offset), p.Y)),
             Rhombus e => SdfMath.Rhombus(p, Float(e.lengthA), Float(e.lengthB), Float(e.height), Float(e.roundness)),
+            Rotate e => Sdf(e.primitive, InverseRotateXYZ(p, Vec3(e.rotation))),
             Round e => Sdf(e.primitive, p) - Float(e.radius),
             RoundBox e => SdfMath.RoundBox(p, Vec3(e.size), Float(e.roundness)),
             RoundCone e => SdfMath.RoundCone(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
             RoundedCylinder e => SdfMath.RoundedCylinder(p, Float(e.radius), Float(e.roundness), Float(e.height)),
             SDFFunctionCall call => CalculateFunctionCall(p, call, idToFunctions, context),
-            ScaleTranslateRotate e => CalculateScaleTranslateRotate(p, e, Float(e.scale), Vec3(e.translation), Vec3(e.rotation), idToFunctions, context),
+            Scale e => CalculateScale(p, e, Vec3(e.scale), idToFunctions, context),
             SmoothIntersection e => CalculateSmoothIntersection(p, e, Float(e.smoothness), idToFunctions, context),
             SmoothSubtraction e => -SmoothMin(-Sdf(e.a, p), Sdf(e.b, p), Float(e.smoothness)),
             SmoothUnion e => CalculateSmoothUnion(p, e, Float(e.smoothness), idToFunctions, context),
@@ -137,6 +146,7 @@ public class SdfCalculatorCpu
             SymmetryX e => Sdf(e.primitive, p with { X = MathF.Abs(p.X) }),
             SymmetryXZ e => Sdf(e.primitive, p with { X = MathF.Abs(p.X), Z = MathF.Abs(p.Z) }),
             Torus e => CalculateTorus(p, Float(e.innerRadius), Float(e.outerRadius)),
+            Translate e => Sdf(e.primitive, p - Vec3(e.translation)),
             TriPrism e => SdfMath.TriPrism(p, Vec2(e.size)),
             Triangle e => SdfMath.Triangle(p, Vec3(e.a), Vec3(e.b), Vec3(e.c)),
             Twist e => Sdf(e.primitive, CalculateTwist(p, Float(e.amount))),
@@ -262,7 +272,6 @@ public class SdfCalculatorCpu
         return Calculate(p, (SDF2DEvaluable)context.VariableValues[index], context with { VisibleVariableCount = index });
     }
 
-    // innerRadius/outerRadius are the radii of the hole and the outer rim of the torus
     private static float CalculateTorus(Vector3 p, float innerRadius, float outerRadius) =>
         SdfMath.Torus(p, (outerRadius + innerRadius) * 0.5f, (outerRadius - innerRadius) * 0.5f);
 
@@ -278,7 +287,6 @@ public class SdfCalculatorCpu
         return Calculate(Max0(q), e.primitive, idToFunctions, context) + MathF.Min(MaxComponent(q), 0f);
     }
 
-    // An empty union contains nothing, so it is infinitely far away
     private float CalculateUnion(Vector3 p, Union e, Dictionary<string, FunctionInfo> idToFunctions, EvaluationContext context)
     {
         var d = float.PositiveInfinity;
@@ -287,7 +295,6 @@ public class SdfCalculatorCpu
         return d;
     }
 
-    // An empty intersection is unconstrained, so it contains everything
     private float CalculateIntersection(Vector3 p, Intersection e, Dictionary<string, FunctionInfo> idToFunctions, EvaluationContext context)
     {
         var d = float.NegativeInfinity;
@@ -341,17 +348,17 @@ public class SdfCalculatorCpu
 
     private static float CalculateXor(float a, float b) => MathF.Max(MathF.Min(a, b), -MathF.Max(a, b));
 
-    // Undoes the transformation in reverse order: translate, then rotate, then scale
-    private float CalculateScaleTranslateRotate(Vector3 p, ScaleTranslateRotate e, float s, Vector3 translation, Vector3 rotation, Dictionary<string, FunctionInfo> idToFunctions, EvaluationContext context)
+    private float CalculateScale(Vector3 p, Scale e, Vector3 s, Dictionary<string, FunctionInfo> idToFunctions, EvaluationContext context) =>
+        Calculate(p / s, e.primitive, idToFunctions, context) * MinComponent(s);
+
+    private static Vector3 InverseRotateXYZ(Vector3 p, Vector3 rotation)
     {
         var rotateXThenYThenZ = Quaternion.Concatenate(
             Quaternion.Concatenate(Quaternion.CreateFromAxisAngle(Vector3.UnitX, rotation.X), Quaternion.CreateFromAxisAngle(Vector3.UnitY, rotation.Y)),
             Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rotation.Z));
-        var q = Vector3.Transform(p - translation, Quaternion.Inverse(rotateXThenYThenZ));
-        return Calculate(q / s, e.primitive, idToFunctions, context) * s;
+        return Vector3.Transform(p, Quaternion.Inverse(rotateXThenYThenZ));
     }
 
-    // A spacing of 0 on an axis disables repetition along that axis
     private static float RepeatAxis(float x, float s) => s == 0f ? x : x - s * MathF.Round(x / s, MidpointRounding.AwayFromZero);
 
     private static Vector3 Repeat(Vector3 p, Vector3 s) => new(RepeatAxis(p.X, s.X), RepeatAxis(p.Y, s.Y), RepeatAxis(p.Z, s.Z));

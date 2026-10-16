@@ -1,9 +1,7 @@
 namespace SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing;
 
-//Design philosophy: fully commandable software with 30 keys (3 keys per finger, thumbs are given to pointer finger)
 public static class FingerKeyLayouts
 {
-    //Columns left to right across the letter block, declared first since static fields initialize in order
     private static readonly (InputKey Up, InputKey Home, InputKey Down)[] Columns =
     [
         (InputKey.LPinkUp, InputKey.LPinkHome, InputKey.LPinkDown),
@@ -17,6 +15,8 @@ public static class FingerKeyLayouts
         (InputKey.RRingUp, InputKey.RRingHome, InputKey.RRingDown),
         (InputKey.RPinkUp, InputKey.RPinkHome, InputKey.RPinkDown),
     ];
+
+    public static IReadOnlyList<(InputKey Up, InputKey Home, InputKey Down)> KeyColumns => Columns;
 
     public static readonly Dictionary<string, InputKey> AzertyBeFingerKeyToIndex = Build(
         ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"],

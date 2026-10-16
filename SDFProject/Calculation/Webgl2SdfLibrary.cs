@@ -2,13 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace SDFProject.Calculation;
 
-// GLSL ES 3.00 ports of SdfMath and the operations of SdfCalculatorCpu, called by the code of Webgl2CodeGenerator.
-// Original distance functions from https://iquilezles.org/articles/distfunctions/ and https://iquilezles.org/articles/distfunctions2d/
-/*THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.*/
 public static partial class Webgl2SdfLibrary
 {
     public const string SdfInfinity = """
-        // GLSL has no infinity literal; the CPU calculator uses float.PositiveInfinity instead
         const float SDF_INFINITY = 1e20;
         """;
 
@@ -29,17 +25,19 @@ public static partial class Webgl2SdfLibrary
         float maxComponent(vec3 v) { return max(v.x, max(v.y, v.z)); }
         """;
 
+    public const string MinComponent = """
+        float minComponent(vec3 v) { return min(v.x, min(v.y, v.z)); }
+        """;
+
     public const string OpCbrt = """
         float opCbrt(float x) { return sign(x) * pow(abs(x), 1.0 / 3.0); }
         """;
 
     public const string OpRoundAwayFromZero = """
-        // round() rounds halves in an implementation-defined direction, the CPU calculator rounds them away from zero
         float opRoundAwayFromZero(float x) { return sign(x) * floor(abs(x) + 0.5); }
         """;
 
     public const string OpRotate2D = """
-        // mat2(c,-s,s,c) * v
         vec2 opRotate2D(vec2 v, float c, float s) { return vec2(c * v.x + s * v.y, -s * v.x + c * v.y); }
         """;
 
@@ -58,7 +56,6 @@ public static partial class Webgl2SdfLibrary
         """;
 
     public const string OpInverseRotateXYZ = """
-        // Undoes a rotation around x, then y, then z by rotating back around z, then y, then x
         vec3 opInverseRotateXYZ(vec3 p, vec3 r)
         {
             float c = cos(r.z), s = sin(r.z);
@@ -71,7 +68,6 @@ public static partial class Webgl2SdfLibrary
         """;
 
     public const string OpRepeatAxis = """
-        // A spacing of 0 on an axis disables repetition along that axis
         float opRepeatAxis(float x, float s) { return s == 0.0 ? x : x - s * opRoundAwayFromZero(x / s); }
         """;
 
@@ -111,8 +107,6 @@ public static partial class Webgl2SdfLibrary
             return min(max(w.x, w.y), 0.0) + length(max(w, 0.0));
         }
         """;
-
-    // 3D primitives
 
     public const string SdSphere = """
         float sdSphere(vec3 p, float r) { return length(p) - r; }
@@ -327,18 +321,6 @@ public static partial class Webgl2SdfLibrary
         }
         """;
 
-    public const string SdDeathStar = """
-        float sdDeathStar(vec3 p2, float ra, float rb, float d)
-        {
-            float a = (ra * ra - rb * rb + d * d) / (2.0 * d);
-            float b = sqrt(max(ra * ra - a * a, 0.0));
-            vec2 p = vec2(p2.x, length(p2.yz));
-            if (p.x * b - p.y * a > d * max(b - p.y, 0.0))
-                return length(p - vec2(a, b));
-            return max(length(p) - ra, -(length(p - vec2(d, 0.0)) - rb));
-        }
-        """;
-
     public const string SdRoundCone = """
         float sdRoundCone(vec3 p, float r1, float r2, float h)
         {
@@ -507,8 +489,6 @@ public static partial class Webgl2SdfLibrary
             return max(q.z - h.y, max(q.x * 0.866025 + p.y * 0.5, -p.y) - h.x * 0.5);
         }
         """;
-
-    // 2D primitives
 
     public const string SdCircle = """
         float sdCircle(vec2 p, float r) { return length(p) - r; }
@@ -702,7 +682,6 @@ public static partial class Webgl2SdfLibrary
         """;
 
     public const string SdStar2D = """
-        // m is in [2, n], 2 gives the sharpest star and n a regular polygon
         float sdStar2D(vec2 p, float r, int n, float m)
         {
             float an = SDF_PI / float(n);
@@ -759,7 +738,6 @@ public static partial class Webgl2SdfLibrary
         """;
 
     public const string SdVesica2D = """
-        // w is the half width (tips on the x axis), h the half height
         float sdVesica2D(vec2 p, float w, float h)
         {
             float d = 0.5 * (w * w - h * h) / h;
@@ -860,7 +838,6 @@ public static partial class Webgl2SdfLibrary
         }
         """;
 
-    // Every constant above, each after the definitions it uses
     private static readonly string[] All =
     [
         SdfInfinity,
@@ -868,6 +845,7 @@ public static partial class Webgl2SdfLibrary
         Dot2,
         Ndot,
         MaxComponent,
+        MinComponent,
         OpCbrt,
         OpRoundAwayFromZero,
         OpRotate2D,
@@ -902,7 +880,6 @@ public static partial class Webgl2SdfLibrary
         SdSolidAngle,
         SdCutSphere,
         SdCutHollowSphere,
-        SdDeathStar,
         SdRoundCone,
         SdArbitraryRoundCone,
         SdVesicaSegment,
@@ -945,10 +922,8 @@ public static partial class Webgl2SdfLibrary
         SdHorseshoe2D,
     ];
 
-    /// <summary>The whole library.</summary>
     public static string Code => string.Join("\n\n", All);
 
-    // A constant of this class: the GLSL name it declares and the names of the other constants it uses
     private sealed record Definition(string Name, string Code, string[] Dependencies);
 
     private static readonly Definition[] Definitions = CreateDefinitions();
@@ -957,7 +932,6 @@ public static partial class Webgl2SdfLibrary
 
     public static bool Contains(string name) => Names.Contains(name);
 
-    /// <summary>The definitions with the given GLSL names and everything they use, in the order of <see cref="All"/>.</summary>
     public static string CodeFor(IEnumerable<string> usedNames)
     {
         var byName = Definitions.ToDictionary(d => d.Name);
@@ -990,7 +964,6 @@ public static partial class Webgl2SdfLibrary
             .ToArray();
     }
 
-    // The first line that is not a comment declares the name, e.g. "float sdSphere(" or "const float SDF_PI ="
     [GeneratedRegex(@"^(?:const\s+)?\w+\s+(\w+)\s*[(=]", RegexOptions.Multiline)]
     private static partial Regex DefinitionName();
 

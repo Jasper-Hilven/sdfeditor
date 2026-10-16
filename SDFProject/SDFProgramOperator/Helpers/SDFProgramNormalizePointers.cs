@@ -10,10 +10,6 @@ public class SDFProgramNormalizePointers
 
         program = program.MapRoots(mapper.Map);
 
-        // The scene root always has a pointer, even without children, so an empty scene can still be selected
-        if (PointerTables.PointerId(program.scene) is null)
-            program = program with { scene = mapper.sdf.PointerTo(program.scene) };
-
         mapper.FlattenExistingEntries();
 
         var pointers = new SDFPointers(
@@ -33,8 +29,6 @@ public class SDFProgramNormalizePointers
 
         public bool Contains(string id) => pointers.ContainsKey(id);
 
-        // Every node gets its own pointer, even when an identical node exists: a pointer id stands for exactly one
-        // node in the program, reuse only happens through variables
         public T PointerTo(T node)
         {
             var id = allocateId();
@@ -69,14 +63,12 @@ public class SDFProgramNormalizePointers
             integers = new(existing.IntegerEvaluablePointers, AllocateId, id => new IntegerEvaluablePointerable(id));
         }
 
-        // Skip ids that are already taken in case nextFreePointer lags behind
         private string AllocateId() => SDFProgramRoots.AllocateId(ref nextFreePointer,
             id => sdf.Contains(id) || sdf2D.Contains(id) || floats.Contains(id) || integers.Contains(id) || variableIds.Contains(id));
 
-        /// <summary>Returns the evaluable with its subtree flattened; the result is a pointer if it has children.</summary>
         public Evaluable Map(Evaluable evaluable)
         {
-            if (!EvaluableChildren.HasChildren(evaluable))
+            if (evaluable is Pointerable || !EvaluableChildren.HasChildren(evaluable) && evaluable is not (SDFEvaluable or SDF2DEvaluable))
                 return evaluable;
 
             var flat = EvaluableChildren.MapChildren(evaluable, Map);

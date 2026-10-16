@@ -23,7 +23,6 @@ public enum SDFNodeType{
     SolidAngle,
     CutSphere,
     CutHollowSphere,
-    DeathStar,
     RoundCone,
     ArbitraryRoundCone,
     VesicaSegment,

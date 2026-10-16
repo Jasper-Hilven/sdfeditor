@@ -15,9 +15,13 @@ public class SdfProgramOperator
             ExtractVariable o => ApplyExtractVariable.DoApplyExtractVariable(program, o),
             EmptyNode o => ApplyEmptyNode.DoApplyEmptyNode(program, o),
             CleanEmptyNodesFromUnionsAndIntersections o => ApplyCleanEmptyNodesFromUnionsAndIntersections.DoApplyCleanEmptyNodesFromUnionsAndIntersections(program, o),
-            AdjustScaleTranslateRotate o => ApplyAdjustScaleTranslateRotate.DoApplyAdjustScaleTranslateRotate(program, o),
+            AdjustTransform o => ApplyAdjustTransform.DoApplyAdjustTransform(program, o),
             ToggleNodeSmoothness o => ApplyToggleNodeSmoothness.DoApplyToggleNodeSmoothness(program, o),
             ReplaceNode o => ApplyReplaceNode.DoApplyReplaceNode(program, o),
+            WrapInSubtraction o => ApplyWrapInSubtraction.DoApplyWrapInSubtraction(program, o),
+            WrapInIntersection o => ApplyWrapInIntersection.DoApplyWrapInIntersection(program, o),
+            DissolveNode o => ApplyDissolveNode.DoApplyDissolveNode(program, o),
+            SetNodeParameter o => ApplySetNodeParameter.DoApplySetNodeParameter(program, o),
             _ => throw new NotSupportedException($"Unknown {nameof(SDFProgramOperation)}: {operation.GetType().Name}"),
         };
 

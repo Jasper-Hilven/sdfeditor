@@ -1,4 +1,5 @@
 using SDFProject.ProgramDefinition;
+using SDFProject.SDFProgramOperator;
 
 namespace SDFProject.SDFInteractiveNode;
 
@@ -16,7 +17,7 @@ public record InteractiveEmptyNode() : ISdfInteractiveNodeProgramOperation;
 
 public record InteractiveCleanEmptyNodesFromUnionsAndIntersections() : ISdfInteractiveNodeProgramOperation;
 
-public record InteractiveAdjustScaleTranslateRotate(float Scale, V3 Translation, V3 Rotation) : ISdfInteractiveNodeProgramOperation;
+public record InteractiveAdjustTransform(TransformKind Kind, V3 Delta) : ISdfInteractiveNodeProgramOperation;
 
 public record IncreaseStrZoomLevel(): ISdfInteractiveNodeProgramOperation;
 public record DecreaseStrZoomLevel(): ISdfInteractiveNodeProgramOperation;
@@ -24,6 +25,12 @@ public record ZoomFullyOutStrZoomLevel(): ISdfInteractiveNodeProgramOperation;
 
 public record ScaleUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
 public record ScaleDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ScaleXUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ScaleXDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ScaleYUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ScaleYDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ScaleZUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
+public record ScaleZDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
 
 public record TranslateXUpAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
 public record TranslateXDownAtCurrentZoomLevel(): ISdfInteractiveNodeProgramOperation;
@@ -48,3 +55,13 @@ public record SelectParent(): ISdfInteractiveNodeProgramOperation;
 public record SelectFirstChild(): ISdfInteractiveNodeProgramOperation;
 
 public record ToggleSmoothness(): ISdfInteractiveNodeProgramOperation;
+
+public record InteractiveWrapInSubtraction() : ISdfInteractiveNodeProgramOperation;
+
+public record InteractiveWrapInIntersection() : ISdfInteractiveNodeProgramOperation;
+
+public record InteractiveDissolveNode() : ISdfInteractiveNodeProgramOperation;
+
+public record InteractiveSetNodeParameter(string Parameter, float[] Components) : ISdfInteractiveNodeProgramOperation;
+
+public record AdjustNodeParameterAtCurrentZoomLevel(string Parameter, int Component, float Sign) : ISdfInteractiveNodeProgramOperation;

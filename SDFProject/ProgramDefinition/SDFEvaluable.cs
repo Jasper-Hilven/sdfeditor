@@ -3,6 +3,7 @@ namespace SDFProject.ProgramDefinition;
 public sealed record SDFProgram(
     SDFFunctionDefinition[] Functions,
     SDFPointers pointers,
+    VariableDeclaration[] sceneVariables,
     SDFEvaluable scene);
 
 public sealed record SDFPointers(
@@ -24,7 +25,6 @@ public interface SDFFunctionDefinition
     string[] argumentNames{ get; }
         VariableDeclaration[] variables{ get; }
     SDFEvaluable functionBody{ get; }
-    
 }
 
 public sealed record SDFFunction(
@@ -47,12 +47,10 @@ public sealed record VariableReferenceV3(string variableId) : V3Evaluable, Varia
 public sealed record VariableReferenceV2(string variableId) : V2Evaluable, VariableReference;
 public sealed record VariableReferenceInt(string variableId) : IntegerEvaluable, VariableReference;
 
-
 public interface Evaluable;
 public sealed record SDFFunctionCall(string functionId, params Evaluable[] arguments) : SDFEvaluable;
 public interface SDFEvaluable : Evaluable;
 public sealed record SDFEvaluablePointerable(string PointerId) : Pointerable, SDFEvaluable;
-
 
 public sealed record Empty : SDFEvaluable;
 public sealed record Sphere(FloatEvaluable radius): SDFEvaluable;
@@ -77,7 +75,6 @@ public sealed record ArbitraryCappedCone(V3Evaluable a, V3Evaluable b, FloatEval
 public sealed record SolidAngle(V2Evaluable sinCos, FloatEvaluable radius) : SDFEvaluable;
 public sealed record CutSphere(FloatEvaluable radius, FloatEvaluable cutHeight) : SDFEvaluable;
 public sealed record CutHollowSphere(FloatEvaluable radius, FloatEvaluable cutHeight, FloatEvaluable thickness) : SDFEvaluable;
-public sealed record DeathStar(FloatEvaluable radiusA, FloatEvaluable radiusB, FloatEvaluable distance) : SDFEvaluable;
 public sealed record RoundCone(FloatEvaluable bottomRadius, FloatEvaluable topRadius, FloatEvaluable height) : SDFEvaluable;
 public sealed record ArbitraryRoundCone(V3Evaluable a, V3Evaluable b, FloatEvaluable radiusA, FloatEvaluable radiusB) : SDFEvaluable;
 public sealed record VesicaSegment(V3Evaluable a, V3Evaluable b, FloatEvaluable width) : SDFEvaluable;
@@ -106,9 +103,9 @@ public sealed record SmoothUnion(FloatEvaluable smoothness, params SDFEvaluable[
 public sealed record SmoothSubtraction(SDFEvaluable a, SDFEvaluable b, FloatEvaluable smoothness) : SDFEvaluable;
 public sealed record SmoothIntersection(FloatEvaluable smoothness, params SDFEvaluable[] primitives) : SDFEvaluable;
 
-// Scales the primitive, rotates it around its own origin and then moves it by the translation.
-// The rotation is in Euler angles (radians), applied around x, then y, then z
-public sealed record ScaleTranslateRotate(SDFEvaluable primitive, FloatEvaluable scale, V3Evaluable translation, V3Evaluable rotation) : SDFEvaluable;
+public sealed record Scale(SDFEvaluable primitive, V3Evaluable scale) : SDFEvaluable;
+public sealed record Translate(SDFEvaluable primitive, V3Evaluable translation) : SDFEvaluable;
+public sealed record Rotate(SDFEvaluable primitive, V3Evaluable rotation) : SDFEvaluable;
 
 public sealed record SymmetryX(SDFEvaluable primitive) : SDFEvaluable;
 public sealed record SymmetryXZ(SDFEvaluable primitive) : SDFEvaluable;
@@ -171,7 +168,6 @@ public record V3(float x, float y, float z);
 public interface V3Evaluable : Evaluable;
 public sealed record FunctionParameterValueV3(int functionParameterIndex): V3Evaluable, FunctionParameterValue;
 public sealed record ConstValueV3(V3 v3): V3Evaluable;
-
 
 public record V2(float x, float y);
 public interface V2Evaluable : Evaluable;

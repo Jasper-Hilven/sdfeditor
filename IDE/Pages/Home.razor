@@ -1,5 +1,7 @@
 @page "/"
+@using System.Globalization
 @using System.Text.RegularExpressions
+@using SDFProject.SDFProgramOperator.Helpers
 @using IDE.Operations
 @using SDFProject.Calculation
 @using SDFProject.ProgramDefinition
@@ -24,21 +26,69 @@
             {
                 <span class="error" title="@renderError">shader error, showing the last scene that worked</span>
             }
+            <span class="view-options">
+                <button class="toggle @(quadView ? "active" : "")" @onclick="ToggleQuadView">Quad view</button>
+                <button class="toggle @(rotateView ? "active" : "")" @onclick="ToggleRotateView">Rotate view</button>
+            </span>
         </header>
-        <canvas class="view" @ref="canvas"></canvas>
+        <div class="view-area">
+            <canvas class="view" @ref="canvas"></canvas>
+            @if (quadView)
+            {
+                <span class="view-label" style="left: 0; top: 0">x</span>
+                <span class="view-label" style="left: 50%; top: 0">y</span>
+                <span class="view-label" style="left: 0; top: 50%">z</span>
+                <span class="view-label" style="left: 50%; top: 50%">standard</span>
+                <div class="quad-divider horizontal"></div>
+                <div class="quad-divider vertical"></div>
+            }
+        </div>
     </section>
 
     <section class="panel">
         <header class="tabs">
-            <button class="tab @(showKeys ? "active" : "")" @onclick="() => showKeys = true">Keys</button>
-            <button class="tab @(showKeys ? "" : "active")" @onclick="() => showKeys = false">Operations</button>
-            <span class="status">mode @partialProgram.state.Mode · selected @(program.SelectedNodeId ?? "none") · zoom @program.StrZoomLevel</span>
+            @foreach (var tab in Enum.GetValues<Tab>())
+            {
+                <button class="tab @(shownTab == tab ? "active" : "")" @onclick="() => shownTab = tab">@tab</button>
+            }
+            <span class="status">
+                mode @partialProgram.state.Mode · selected @(program.SelectedNodeId ?? "none") · zoom @program.StrZoomLevel
+                @if (partialProgram.state.Mode == SDFPartialCommandNodeProgramMode.EditParameter
+                     && SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { IsConstant: true } edited)
+                {
+                    <text> · @edited.Name = @FormatComponents(edited)</text>
+                }
+            </span>
         </header>
         @if (operationError is not null)
         {
             <div class="error">@operationError</div>
         }
-        @if (showKeys)
+        @if (shownTab == Tab.Keyboard)
+        {
+            var letters = KeyLetters;
+            <div class="keyboard">
+                @foreach (var row in KeyboardRows())
+                {
+                    <div class="keyboard-row">
+                        @foreach (var key in row)
+                        {
+                            var binding = KeyCap(key);
+                            <button class="keycap @binding.Style" title="@binding.Name" disabled="@(!binding.Available)"
+                                    @onclick="() => Press(key)">
+                                <span class="keycap-letter">@letters[key].ToUpperInvariant()</span>
+                                <span class="keycap-symbol">@binding.Label?.Symbol</span>
+                                <span class="keycap-text">@binding.Label?.Text</span>
+                            </button>
+                        }
+                    </div>
+                }
+                <button class="layout-switch" @onclick="() => qwerty = !qwerty">
+                    Layout: @(qwerty ? "QWERTY" : "AZERTY (BE)") · switch to @(qwerty ? "AZERTY (BE)" : "QWERTY")
+                </button>
+            </div>
+        }
+        else if (shownTab == Tab.Keys)
         {
             var bindings = CurrentKeyBindings().ToList();
             <div class="keys">
@@ -67,6 +117,22 @@
                             </ul>
                         }
                     </div>
+                }
+            </div>
+        }
+        else if (shownTab == Tab.History)
+        {
+            var actions = history.Actions;
+            <div class="history">
+                <ol>
+                    @for (var i = 0; i < actions.Count; i++)
+                    {
+                        <li class="@(i == actions.Count - 1 ? "latest" : "")">@HistoryEntry(actions[i])</li>
+                    }
+                </ol>
+                @if (actions.Count == 0)
+                {
+                    <p class="hint">No commands yet</p>
                 }
             </div>
         }
@@ -127,13 +193,37 @@
     </div>
 }
 
+@if (SDFPartialCommandNodeProgramOperator.TakesText(partialProgram.state.Mode))
+{
+    var typed = partialProgram.state.Text;
+    <div class="backdrop" @onclick="() => Act(new CancelText())">
+        <div class="popup" @onclick:stopPropagation>
+            <h3>@TextTitle()</h3>
+            <div class="typed">@typed<span class="caret"></span>@if (typed.Length == 0)
+                {
+                    <span class="suggestion">@TextSuggestion()</span>
+                }</div>
+            @if (operationError is not null)
+            {
+                <div class="error">@operationError</div>
+            }
+            <div class="hint">Enter to confirm, Esc to cancel</div>
+            <div class="actions">
+                <button type="button" @onclick="() => Act(new CancelText())">Cancel</button>
+                <button type="button" @onclick="() => Act(new ConfirmText())">OK</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private readonly YamlRender yamlRender = new();
     private readonly Webgl2CodeGenerator codeGenerator = new();
 
-    private SDFPartialCommandNodeProgram partialProgram = new(
+    private SDFPartialActionHistory history = SDFPartialActionHistory.Start(new(
         SdfInteractiveNodeProgramConstants.GetInitialProgram(),
-        new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home));
+        new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home)));
+    private SDFPartialCommandNodeProgram partialProgram => history.Current;
     private SdfInteractiveNodeProgram program => partialProgram.interactiveProgram;
     private string shaderCode = "";
     private string? operationError;
@@ -147,8 +237,12 @@
     private IJSObjectReference? renderer;
     private string? renderedCode;
     private string? renderError;
+    private bool quadView;
+    private bool rotateView;
 
-    private bool showKeys = true;
+    private enum Tab { Keyboard, Keys, History, Operations }
+
+    private Tab shownTab = Tab.Keyboard;
 
     private DotNetObjectReference<Home>? keyHandler;
     private IJSObjectReference? keyboardModule;
@@ -188,61 +282,178 @@
 
     private void Cancel() => pending = null;
 
-    private void Run(ISdfInteractiveNodeProgramOperation operation) =>
-        Update(operation.GetType().Name, () => partialProgram with
-        {
-            interactiveProgram = SdfInteractiveNodeProgramOperator.ApplyOperation(program, operation)
-        });
+    private void Run(ISdfInteractiveNodeProgramOperation operation) => Act(new ApplyInteractiveOperation(operation));
 
-    // Key presses outside the popup's fields, mapped to finger keys by the Belgian AZERTY layout
+    private static IEnumerable<InputKey[]> KeyboardRows() =>
+    [
+        FingerKeyLayouts.KeyColumns.Select(c => c.Up).ToArray(),
+        FingerKeyLayouts.KeyColumns.Select(c => c.Home).ToArray(),
+        FingerKeyLayouts.KeyColumns.Select(c => c.Down).ToArray(),
+    ];
+
+    private bool qwerty;
+
+    private Dictionary<string, InputKey> Layout =>
+        qwerty ? FingerKeyLayouts.QwertyFingerKeyToIndex : FingerKeyLayouts.AzertyBeFingerKeyToIndex;
+
+    private Dictionary<InputKey, string> KeyLetters => Layout.ToDictionary(pair => pair.Value, pair => pair.Key);
+
+    private (SDFPartialActionLabel? Label, string Name, bool Available, string Style) KeyCap(InputKey key)
+    {
+        if (!SDFPartialKeyBindings.Bindings.TryGetValue((partialProgram.state.Mode, key), out var action) || NotOnThisNode(action))
+            return (null, "", false, "unbound");
+
+        var available = SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(partialProgram, key);
+        var style = ModeSwitchingActions.Contains(action) ? "mode" : "";
+        return (SDFPartialActionLabels.Label(action, partialProgram), Describe(action), available, available ? style : $"{style} unavailable");
+    }
+
+    private void Press(InputKey key)
+    {
+        if (SDFPartialKeyBindings.Bindings.TryGetValue((partialProgram.state.Mode, key), out var action))
+            Act(action);
+    }
+
+    private ISDFPartialAction? TextAction(string key) => key switch
+    {
+        "Enter" => new ConfirmText(),
+        "Escape" => new CancelText(),
+        "Backspace" => new DeleteLastCharacter(),
+        _ when key.Length == 1 => new InsertText(key),
+        _ => null,
+    };
+
+    private string TextTitle() =>
+        partialProgram.state.Mode == SDFPartialCommandNodeProgramMode.ExtractVariable
+            ? "Extract variable"
+            : SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { } edited
+                ? $"{edited.Name}{(edited.Kind == NodeParameterKind.Angle ? " (degrees)" : "")}, numbers separated by commas"
+                : "Value";
+
+    private string TextSuggestion() =>
+        partialProgram.state.Mode == SDFPartialCommandNodeProgramMode.ExtractVariable
+            ? SDFPartialCommandNodeProgramOperator.SuggestedVariableName(partialProgram)
+            : SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { } edited
+                ? string.Join(", ", edited.Components().Select(Format))
+                : "";
+
+    private static string Format(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    private static string FormatComponents(NodeParameter parameter)
+    {
+        var text = string.Join(", ", parameter.Components().Select(Format));
+        return parameter.Kind switch
+        {
+            NodeParameterKind.Angle => $"{text}°",
+            NodeParameterKind.Number => text,
+            _ => $"({text})",
+        };
+    }
+
+    private bool NotOnThisNode(ISDFPartialAction action) => action switch
+    {
+        EditParameter1 or EditParameter2 or EditParameter3 or EditParameter4
+            => SDFPartialCommandNodeProgramOperator.ParameterToEdit(partialProgram, action) is null,
+        ParameterYDown or ParameterYUp
+            => SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is not { ComponentCount: >= 2 },
+        ParameterZDown or ParameterZUp
+            => SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is not { ComponentCount: 3 },
+        _ => false,
+    };
+
+    private string Describe(ISDFPartialAction action) =>
+        SDFPartialCommandNodeProgramOperator.ParameterToEdit(partialProgram, action) is { } picked ? $"Edit {picked.Name}"
+        : action is ParameterXDown or ParameterXUp or ParameterYDown or ParameterYUp or ParameterZDown or ParameterZUp
+              or TypeParameterValue
+          && SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { } edited ? $"{SpelledOut(action)} ({edited.Name})"
+        : SpelledOut(action);
+
+    private static string SpelledOut(ISDFPartialAction action) => SpelledOut(action.GetType());
+
+    private static string SpelledOut(Type type) => Regex.Replace(type.Name, "(?<=[a-z])(?=[A-Z])", " ");
+
+    private static string HistoryEntry(ISDFPartialAction action) => action switch
+    {
+        InsertText insert => $"Insert Text \"{insert.text}\"",
+        ApplyInteractiveOperation apply => $"Operation: {SpelledOut(apply.operation.GetType())}",
+        _ => SpelledOut(action),
+    };
+
     [JSInvokable]
     public void OnKeyDown(string key)
     {
-        if (pending is not null || !FingerKeyLayouts.AzertyBeFingerKeyToIndex.TryGetValue(key, out var inputKey))
+        if (pending is not null)
             return;
 
-        Update(inputKey.ToString(), () => SDFPartialCommandNodeProgramOperator.Operate(partialProgram, inputKey));
+        if (SDFPartialCommandNodeProgramOperator.TakesText(partialProgram.state.Mode))
+        {
+            if (TextAction(key) is not { } action)
+                return;
+            Act(action);
+        }
+        else if (Layout.TryGetValue(key, out var inputKey))
+        {
+            Press(inputKey);
+        }
+        else
+        {
+            return;
+        }
+
         StateHasChanged();
     }
 
-    // Actions that move to another mode or page, listed apart from the ones that edit the program
-    private static readonly HashSet<SDFPartialActionEnum> ModeSwitchingActions =
+    private static readonly HashSet<ISDFPartialAction> ModeSwitchingActions =
     [
-        SDFPartialActionEnum.SwitchToHomeMode,
-        SDFPartialActionEnum.SwitchToScaleRotateTranslateMode,
-        SDFPartialActionEnum.AddNode,
-        SDFPartialActionEnum.CancelAddNode,
-        SDFPartialActionEnum.ShowMoreNodeTypes,
-        SDFPartialActionEnum.ShowFirstNodeTypes,
-        SDFPartialActionEnum.ReplaceNode,
-        SDFPartialActionEnum.CancelReplaceNode,
-        SDFPartialActionEnum.ShowMoreReplaceNodeTypes,
-        SDFPartialActionEnum.ShowFirstReplaceNodeTypes,
+        new SwitchToHomeMode(),
+        new SwitchToScaleMode(),
+        new SwitchToRotateMode(),
+        new SwitchToTranslateMode(),
+        new StopEditingParameter(),
+        new CancelAddNode(),
+        new ShowMoreNodeTypes(),
+        new ShowFirstNodeTypes(),
+        new CancelReplaceNode(),
+        new ShowMoreReplaceNodeTypes(),
+        new ShowFirstReplaceNodeTypes(),
+        new CancelText(),
     ];
 
-    // The keys that would do something right now, sorted by key, with the action spelled out ("Select Next")
     private IEnumerable<(string Key, string Action, bool SwitchesMode)> CurrentKeyBindings() =>
-        FingerKeyLayouts.AzertyBeFingerKeyToIndex
+        Layout
             .Where(pair => SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(partialProgram, pair.Value))
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)
             .Select(pair => (pair.Key, Action: SDFPartialKeyBindings.Bindings[(partialProgram.state.Mode, pair.Value)]))
-            .Select(pair => (pair.Key, Regex.Replace(pair.Action.ToString(), "(?<=[a-z])(?=[A-Z])", " "),
-                ModeSwitchingActions.Contains(pair.Action)));
+            .Select(pair => (pair.Key, Describe(pair.Action), ModeSwitchingActions.Contains(pair.Action)));
 
-    // A failing operation leaves the program as it was and shows why
-    private void Update(string name, Func<SDFPartialCommandNodeProgram> operate)
+    private void Act(ISDFPartialAction action)
     {
+        var name = action is ApplyInteractiveOperation apply ? apply.operation.GetType().Name : action.GetType().Name;
         try
         {
-            var result = operate();
-            shaderCode = codeGenerator.GenerateShaderCode(result.interactiveProgram.Program);
-            partialProgram = result;
+            var next = history.Do(action);
+            shaderCode = codeGenerator.GenerateShaderCode(next.Current.interactiveProgram.Program);
+            history = next;
             operationError = null;
         }
         catch (Exception e)
         {
             operationError = $"{name} failed: {e.Message}";
         }
+    }
+
+    private async Task ToggleQuadView()
+    {
+        quadView = !quadView;
+        if (renderer is not null)
+            await renderer.InvokeVoidAsync("setQuadView", quadView);
+    }
+
+    private async Task ToggleRotateView()
+    {
+        rotateView = !rotateView;
+        if (renderer is not null)
+            await renderer.InvokeVoidAsync("setRotateView", rotateView);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

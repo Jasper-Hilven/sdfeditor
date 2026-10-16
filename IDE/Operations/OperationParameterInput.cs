@@ -4,7 +4,6 @@ using SDFProject.ProgramDefinition;
 
 namespace IDE.Operations;
 
-// The text the user entered for one constructor parameter of an operation; a V3 has a text per component
 public sealed class OperationParameterInput(ParameterInfo parameter)
 {
     public string Name => parameter.Name!;
@@ -13,10 +12,9 @@ public sealed class OperationParameterInput(ParameterInfo parameter)
 
     public string[] Texts { get; } = parameter.ParameterType == typeof(V3) ? ["0", "0", "0"]
         : parameter.ParameterType.IsEnum ? [Enum.GetNames(parameter.ParameterType)[0]]
-        : parameter.ParameterType == typeof(string) ? [""]
+        : parameter.ParameterType == typeof(string) || parameter.ParameterType == typeof(float[]) ? [""]
         : ["0"];
 
-    // Throws a FormatException naming the parameter when a text is not a valid value
     public object Parse()
     {
         try
@@ -25,6 +23,7 @@ public sealed class OperationParameterInput(ParameterInfo parameter)
                 : Type == typeof(float) ? Float(Texts[0])
                 : Type == typeof(int) ? int.Parse(Texts[0], CultureInfo.InvariantCulture)
                 : Type == typeof(V3) ? new V3(Float(Texts[0]), Float(Texts[1]), Float(Texts[2]))
+                : Type == typeof(float[]) ? Texts[0].Split(',').Select(Float).ToArray()
                 : Type.IsEnum ? Enum.Parse(Type, Texts[0])
                 : throw new NotSupportedException($"Parameters of type {Type.Name} cannot be entered");
         }

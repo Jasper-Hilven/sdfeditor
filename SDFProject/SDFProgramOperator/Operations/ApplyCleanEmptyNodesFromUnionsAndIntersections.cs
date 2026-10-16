@@ -7,28 +7,22 @@ public class ApplyCleanEmptyNodesFromUnionsAndIntersections
 {
     public static SDFProgram DoApplyCleanEmptyNodesFromUnionsAndIntersections(SDFProgram program, CleanEmptyNodesFromUnionsAndIntersections operation)
     {
-        program = ReplaceInlineNodesWithoutPrimitives(program);
-
         while (FindNodeWithOnlyEmptyPrimitives(program) is { } id)
             program = ApplyEmptyNode.DoApplyEmptyNode(program, new EmptyNode(id));
 
         return RemoveEmptyPrimitives(program);
     }
 
-    // A union without primitives has no children, so it lives inline in its parent without a pointer that EmptyNode could target
-    private static SDFProgram ReplaceInlineNodesWithoutPrimitives(SDFProgram program)
+    private static string? FindNodeWithOnlyEmptyPrimitives(SDFProgram program)
     {
         var tables = new PointerTables(program.pointers);
-        Evaluable Replace(Evaluable node) => node is SDFEvaluable sdf && Primitives(sdf) is [] ? new Empty() : node;
-
-        program = program.MapRoots(root => tables.MapTree(root, Replace));
-        return program with { pointers = tables.ToPointers(program.pointers.nextFreePointer) };
+        return program.pointers.SDFEvaluablePointers
+            .FirstOrDefault(e => Primitives(e.Value) is { } primitives && primitives.All(p => Resolve(tables, p) is Empty))
+            .Key;
     }
 
-    private static string? FindNodeWithOnlyEmptyPrimitives(SDFProgram program) =>
-        program.pointers.SDFEvaluablePointers
-            .FirstOrDefault(e => Primitives(e.Value) is { } primitives && primitives.All(p => p is Empty))
-            .Key;
+    private static Evaluable Resolve(PointerTables tables, Evaluable node) =>
+        PointerTables.PointerId(node) is { } id ? tables.Get(id) : node;
 
     private static SDFEvaluable[]? Primitives(SDFEvaluable node) => node switch
     {
@@ -39,7 +33,6 @@ public class ApplyCleanEmptyNodesFromUnionsAndIntersections
         _ => null,
     };
 
-    // Every union and intersection has a non-empty primitive left at this point, so none of them disappears
     private static SDFProgram RemoveEmptyPrimitives(SDFProgram program)
     {
         var tables = new PointerTables(program.pointers);
@@ -51,9 +44,7 @@ public class ApplyCleanEmptyNodesFromUnionsAndIntersections
 
             var simplified = Simplify(EvaluableChildren.MapChildren(tables.Get(id), Clean));
 
-            // A subtraction replaced by its first child hands over that child's pointer,
-            // or puts it inline in the parent when the child has no children of its own
-            if (!EvaluableChildren.HasChildren(simplified) || PointerTables.PointerId(simplified) is not null)
+            if (simplified is Empty || PointerTables.PointerId(simplified) is not null)
             {
                 tables.Remove(id);
                 return simplified;
@@ -76,7 +67,6 @@ public class ApplyCleanEmptyNodesFromUnionsAndIntersections
 
         static SDFEvaluable[] WithoutEmpty(SDFEvaluable[] primitives) => primitives.Where(p => p is not Empty).ToArray();
 
-        // Drops the pointers of a subtree that disappears together with its parent
         Evaluable RemoveWith(Evaluable discarded, Evaluable result)
         {
             tables.RemoveSubtree(discarded);

@@ -8,7 +8,6 @@ public class SDFNodeDefaultValues
         V2Evaluable V2(float x, float y) => new ConstValueV2(new V2(x, y));
         V3Evaluable V3(float x, float y, float z) => new ConstValueV3(new V3(x, y, z));
 
-        // Angles are passed as (sin, cos)
         var sinCos30 = V2(0.5f, 0.8660254f);
         var sinCos120 = V2(0.8660254f, -0.5f);
 
@@ -36,7 +35,6 @@ public class SDFNodeDefaultValues
             SDFNodeType.SolidAngle => new SolidAngle(sinCos30, F(0.5f)),
             SDFNodeType.CutSphere => new CutSphere(F(0.5f), F(0.2f)),
             SDFNodeType.CutHollowSphere => new CutHollowSphere(F(0.5f), F(0.2f), F(0.05f)),
-            SDFNodeType.DeathStar => new DeathStar(F(0.5f), F(0.35f), F(0.5f)),
             SDFNodeType.RoundCone => new RoundCone(F(0.5f), F(0.2f), F(0.8f)),
             SDFNodeType.ArbitraryRoundCone => new ArbitraryRoundCone(V3(0f, 0f, 0f), V3(0f, 1f, 0f), F(0.5f), F(0.2f)),
             SDFNodeType.VesicaSegment => new VesicaSegment(V3(0f, 0f, 0f), V3(0f, 1f, 0f), F(0.3f)),

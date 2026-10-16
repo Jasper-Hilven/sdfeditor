@@ -212,16 +212,30 @@ public class SdfInteractiveNodeProgramOperatorTests
     }
 
     [Fact]
-    public void AdjustScaleTranslateRotate_WrapsSelectedNodeAndKeepsItSelected()
+    public void AdjustTransform_WrapsSelectedNodeAndKeepsItSelected()
     {
         var program = Program(new Union(Sphere(1), Sphere(2)));
         var selected = SphereId(program, 1);
 
         var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, selected),
-            new InteractiveAdjustScaleTranslateRotate(1, new V3(1, 0, 0), new V3(0, 0, 0)));
+            new InteractiveAdjustTransform(TransformKind.Translate, new V3(1, 0, 0)));
 
-        Assert.Equal("Union(ScaleTranslateRotate(Sphere(1), 2, ConstValueV3, ConstValueV3), Sphere(2))", DescribeScene(result.Program));
+        Assert.Equal("Union(Translate(Sphere(1), ConstValueV3), Sphere(2))", DescribeScene(result.Program));
         Assert.Equal(selected, result.SelectedNodeId);
+    }
+
+    [Fact]
+    public void AdjustTransform_ToIdentityOnSelectedTransform_RemovesItAndSelectsItsChild()
+    {
+        var program = Program(new Union(new Translate(new Scale(Sphere(1), new ConstValueV3(new V3(2, 2, 2))), new ConstValueV3(new V3(1, 0, 0)))));
+        var translateId = program.pointers.SDFEvaluablePointers.Single(e => e.Value is Translate).Key;
+        var scaleId = program.pointers.SDFEvaluablePointers.Single(e => e.Value is Scale).Key;
+
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, translateId),
+            new InteractiveAdjustTransform(TransformKind.Translate, new V3(-1, 0, 0)));
+
+        Assert.Equal("Union(Scale(Sphere(1), ConstValueV3))", DescribeScene(result.Program));
+        Assert.Equal(scaleId, result.SelectedNodeId);
     }
 
     [Fact]
@@ -286,18 +300,21 @@ public class SdfInteractiveNodeProgramOperatorTests
 
     #region Scale, translate and rotate at the current zoom level
 
-    private static ScaleTranslateRotate AdjustSelectedSphere(int zoomLevel, ISdfInteractiveNodeProgramOperation operation)
+    private static SDFProgram AdjustSelectedSphere(int zoomLevel, ISdfInteractiveNodeProgramOperation operation)
     {
         var program = Program(new Union(Sphere(1)));
-        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), zoomLevel), operation);
-        return (ScaleTranslateRotate)result.Program.pointers.SDFEvaluablePointers.Values.Single(n => n is ScaleTranslateRotate);
+        return SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), zoomLevel), operation).Program;
     }
 
-    private static void AssertTransform(ScaleTranslateRotate node, float scale, V3 translation, V3 rotation)
+    private static void AssertTransform(SDFProgram program, float scale, V3 translation, V3 rotation) =>
+        AssertTransform(program, new V3(scale, scale, scale), translation, rotation);
+
+    private static void AssertTransform(SDFProgram program, V3 scale, V3 translation, V3 rotation)
     {
-        Assert.Equal(scale, ((ConstValueFloat)node.scale).value, 0.0001f);
-        AssertV3(translation, ((ConstValueV3)node.translation).v3);
-        AssertV3(rotation, ((ConstValueV3)node.rotation).v3);
+        var nodes = program.pointers.SDFEvaluablePointers.Values.ToArray();
+        AssertV3(scale, nodes.OfType<Scale>().SingleOrDefault() is { } s ? ((ConstValueV3)s.scale).v3 : new V3(1, 1, 1));
+        AssertV3(translation, nodes.OfType<Translate>().SingleOrDefault() is { } t ? ((ConstValueV3)t.translation).v3 : new V3(0, 0, 0));
+        AssertV3(rotation, nodes.OfType<Rotate>().SingleOrDefault() is { } r ? ((ConstValueV3)r.rotation).v3 : new V3(0, 0, 0));
     }
 
     private static void AssertV3(V3 expected, V3 actual)
@@ -318,6 +335,24 @@ public class SdfInteractiveNodeProgramOperatorTests
 
         AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleUpAtCurrentZoomLevel()), 1 + step, new V3(0, 0, 0), new V3(0, 0, 0));
         AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleDownAtCurrentZoomLevel()), 1 - step, new V3(0, 0, 0), new V3(0, 0, 0));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ScaleAxis_ScalesOnlyThatAxisByScaleStepOfZoomLevel(int zoomLevel)
+    {
+        var step = SdfInteractiveNodeProgramOperator.TranslateZoomScaleToScale(zoomLevel);
+        var none = new V3(0, 0, 0);
+
+        AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleXUpAtCurrentZoomLevel()), new V3(1 + step, 1, 1), none, none);
+        AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleXDownAtCurrentZoomLevel()), new V3(1 - step, 1, 1), none, none);
+        AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleYUpAtCurrentZoomLevel()), new V3(1, 1 + step, 1), none, none);
+        AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleYDownAtCurrentZoomLevel()), new V3(1, 1 - step, 1), none, none);
+        AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleZUpAtCurrentZoomLevel()), new V3(1, 1, 1 + step), none, none);
+        AssertTransform(AdjustSelectedSphere(zoomLevel, new ScaleZDownAtCurrentZoomLevel()), new V3(1, 1, 1 - step), none, none);
     }
 
     [Theory]
@@ -362,11 +397,13 @@ public class SdfInteractiveNodeProgramOperatorTests
         AssertTransform(AdjustSelectedSphere(0, new RotateZUpAtCurrentZoomLevel()), 1, new V3(0, 0, 0), new V3(0, 0, MathF.PI / 2));
     }
 
-    private static ScaleTranslateRotate AdjustTransformedSphere(float scale, V3 translation, V3 rotation, ISdfInteractiveNodeProgramOperation operation)
+    private static SDFProgram AdjustTransformedSphere(float scale, V3 translation, V3 rotation, ISdfInteractiveNodeProgramOperation operation) =>
+        AdjustTransformedSphere(new V3(scale, scale, scale), translation, rotation, operation);
+
+    private static SDFProgram AdjustTransformedSphere(V3 scale, V3 translation, V3 rotation, ISdfInteractiveNodeProgramOperation operation)
     {
-        var program = Program(new Union(new ScaleTranslateRotate(Sphere(1), new ConstValueFloat(scale), new ConstValueV3(translation), new ConstValueV3(rotation))));
-        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), 0), operation);
-        return (ScaleTranslateRotate)result.Program.pointers.SDFEvaluablePointers.Values.Single(n => n is ScaleTranslateRotate);
+        var program = Program(new Union(new Translate(new Scale(new Rotate(Sphere(1), new ConstValueV3(rotation)), new ConstValueV3(scale)), new ConstValueV3(translation))));
+        return SdfInteractiveNodeProgramOperator.ApplyOperation(new SdfInteractiveNodeProgram(program, SphereId(program, 1), 0), operation).Program;
     }
 
     [Theory]
@@ -393,6 +430,22 @@ public class SdfInteractiveNodeProgramOperatorTests
         ISdfInteractiveNodeProgramOperation operation = up ? new ScaleUpAtCurrentZoomLevel() : new ScaleDownAtCurrentZoomLevel();
 
         AssertTransform(AdjustTransformedSphere(scale, none, none, operation), expectedScale, none, none);
+    }
+
+    [Fact]
+    public void Scale_SnapsEachAxisToItsNextMultipleOfStep()
+    {
+        var none = new V3(0, 0, 0);
+
+        AssertTransform(AdjustTransformedSphere(new V3(1.2f, 2, .7f), none, none, new ScaleUpAtCurrentZoomLevel()), new V3(1.5f, 2.5f, 1), none, none);
+    }
+
+    [Fact]
+    public void ScaleAxis_SnapsOnlyThatAxis()
+    {
+        var none = new V3(0, 0, 0);
+
+        AssertTransform(AdjustTransformedSphere(new V3(1.2f, 1.2f, 1.2f), none, none, new ScaleYDownAtCurrentZoomLevel()), new V3(1.2f, 1, 1.2f), none, none);
     }
 
     [Theory]
@@ -422,7 +475,7 @@ public class SdfInteractiveNodeProgramOperatorTests
         Apply(new ZoomFullyOutStrZoomLevel());
         Apply(new TranslateXDownAtCurrentZoomLevel());
 
-        var node = Assert.Single(interactive.Program.pointers.SDFEvaluablePointers.Values.OfType<ScaleTranslateRotate>());
+        var node = Assert.Single(interactive.Program.pointers.SDFEvaluablePointers.Values.OfType<Translate>());
         AssertV3(new V3(.5f, 0, 0), ((ConstValueV3)node.translation).v3);
     }
 
@@ -435,7 +488,7 @@ public class SdfInteractiveNodeProgramOperatorTests
         interactive = SdfInteractiveNodeProgramOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
         interactive = SdfInteractiveNodeProgramOperator.ApplyOperation(interactive, new TranslateXUpAtCurrentZoomLevel());
 
-        var node = Assert.Single(interactive.Program.pointers.SDFEvaluablePointers.Values.OfType<ScaleTranslateRotate>());
+        var node = Assert.Single(interactive.Program.pointers.SDFEvaluablePointers.Values.OfType<Translate>());
         AssertV3(new V3(2 * SdfInteractiveNodeProgramOperator.TranslateZoomScaleToTranslation(0), 0, 0), ((ConstValueV3)node.translation).v3);
     }
 
@@ -447,7 +500,8 @@ public class SdfInteractiveNodeProgramOperatorTests
     public void SelectsNearestSurvivingAncestorWhenAncestorsAreRemovedToo()
     {
         var program = Program(new Intersection(Sphere(1), new Union(new Union(new Empty()))));
-        var innerUnionId = program.pointers.SDFEvaluablePointers.Single(e => e.Value is Union { primitives: [Empty] }).Key;
+        var innerUnionId = program.pointers.SDFEvaluablePointers
+            .Single(e => e.Value is Union { primitives: [SDFEvaluablePointerable only] } && program.pointers.SDFEvaluablePointers[only.PointerId] is Empty).Key;
 
         var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, innerUnionId), new CleanEmptyNodesFromUnionsAndIntersections());
 

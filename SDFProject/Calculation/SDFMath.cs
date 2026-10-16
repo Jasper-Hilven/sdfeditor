@@ -2,8 +2,6 @@ using System.Numerics;
 
 namespace SDFProject.Calculation;
 
-// CPU ports of https://iquilezles.org/articles/distfunctions/ and https://iquilezles.org/articles/distfunctions2d/
-/*THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.*/
 internal static class SdfMath
 {
     public static float Sign(float x) => x > 0 ? 1 : x < 0 ? -1 : 0;
@@ -13,13 +11,13 @@ internal static class SdfMath
     public static Vector2 Max0(Vector2 v) => Vector2.Max(v, Vector2.Zero);
     public static Vector3 Max0(Vector3 v) => Vector3.Max(v, Vector3.Zero);
     public static float MaxComponent(Vector3 v) => MathF.Max(v.X, MathF.Max(v.Y, v.Z));
+    public static float MinComponent(Vector3 v) => MathF.Min(v.X, MathF.Min(v.Y, v.Z));
     public static Vector2 Xy(Vector3 v) => new(v.X, v.Y);
     public static Vector2 Xz(Vector3 v) => new(v.X, v.Z);
 
     public static float Length(Vector2 v) => v.Length();
     public static float Length(Vector3 v) => v.Length();
 
-    // GLSL mat2(c,-s,s,c) * v
     public static Vector2 Rotate(Vector2 v, float c, float s) => new(c * v.X + s * v.Y, -s * v.X + c * v.Y);
 
     public static float SmoothMin(float a, float b, float k)
@@ -201,16 +199,6 @@ internal static class SdfMath
         var w = MathF.Sqrt(r * r - h * h);
         var q = new Vector2(Length(Xz(p)), p.Y);
         return (h * q.X < w * q.Y ? Length(q - new Vector2(w, h)) : MathF.Abs(Length(q) - r)) - t;
-    }
-
-    public static float DeathStar(Vector3 p2, float ra, float rb, float d)
-    {
-        var a = (ra * ra - rb * rb + d * d) / (2f * d);
-        var b = MathF.Sqrt(MathF.Max(ra * ra - a * a, 0f));
-        var p = new Vector2(p2.X, Length(new Vector2(p2.Y, p2.Z)));
-        if (p.X * b - p.Y * a > d * MathF.Max(b - p.Y, 0f))
-            return Length(p - new Vector2(a, b));
-        return MathF.Max(Length(p) - ra, -(Length(p - new Vector2(d, 0f)) - rb));
     }
 
     public static float RoundCone(Vector3 p, float r1, float r2, float h)
@@ -527,7 +515,6 @@ internal static class SdfMath
         return Length(p) * Sign(p.Y);
     }
 
-    // m is in [2, n], 2 gives the sharpest star and n a regular polygon
     public static float Star2D(Vector2 p, float r, int n, float m)
     {
         var an = MathF.PI / n;
@@ -574,7 +561,6 @@ internal static class SdfMath
         return MathF.Max(Length(p) - ra, -(Length(p - new Vector2(d, 0f)) - rb));
     }
 
-    // w is the half width (tips on the x axis), h the half height
     public static float Vesica2D(Vector2 p, float w, float h)
     {
         var d = 0.5f * (w * w - h * h) / h;

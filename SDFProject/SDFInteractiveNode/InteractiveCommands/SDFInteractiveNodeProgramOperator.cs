@@ -7,19 +7,17 @@ namespace SDFProject.SDFInteractiveNode.InteractiveCommands;
 
 public class SdfInteractiveNodeProgramOperator
 {
-    // From this level on the Translate methods give their finest step, so zooming in further changes nothing
     public const int MaxStrZoomLevel = 3;
 
-    private static readonly V3 Zero = new(0, 0, 0);
     private static readonly V3 UnitX = new(1, 0, 0);
     private static readonly V3 UnitY = new(0, 1, 0);
     private static readonly V3 UnitZ = new(0, 0, 1);
+    private static readonly V3 AllAxes = new(1, 1, 1);
 
     private readonly SDFProgramOperator.SdfProgramOperator _programOperator = new();
 
     public static SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, ISdfInteractiveNodeProgramOperation operation)
     {
-        // Zooming only changes the step size of the scale, translate and rotate operations, not the program
         switch (operation)
         {
             case IncreaseStrZoomLevel:
@@ -33,14 +31,13 @@ public class SdfInteractiveNodeProgramOperator
         string Selected() => program.SelectedNodeId
                              ?? throw new InvalidOperationException($"{operation.GetType().Name} needs a selected node, but no node is selected");
 
-        // Selecting another node only moves the selection, not the program
         var pointers = program.Program.pointers;
         switch (operation)
         {
             case SelectNext:
-                return program with { SelectedNodeId = NodeNavigation.Next(pointers, Selected()) };
+                return program with { SelectedNodeId = NodeNavigation.Next(program.Program, Selected()) };
             case SelectPrevious:
-                return program with { SelectedNodeId = NodeNavigation.Previous(pointers, Selected()) };
+                return program with { SelectedNodeId = NodeNavigation.Previous(program.Program, Selected()) };
             case SelectNextSibling:
                 return program with { SelectedNodeId = NodeNavigation.NextSiblingOrParent(pointers, Selected()) };
             case SelectPreviousSibling:
@@ -51,30 +48,56 @@ public class SdfInteractiveNodeProgramOperator
                 return program with { SelectedNodeId = NodeNavigation.FirstChild(pointers, Selected()) };
         }
 
-        // Each step snaps to the next multiple of the zoom level's step size, so with a step of .5 going up from .3 lands on .5
         var zoomLevel = program.StrZoomLevel;
-        (float Scale, V3 Translation, V3 Rotation) Current() =>
-            ApplyAdjustScaleTranslateRotate.CurrentTransform(program.Program, Selected());
-        AdjustScaleTranslateRotate Scale(float sign) =>
-            new(Selected(), SnapDelta(Current().Scale, TranslateZoomScaleToScale(zoomLevel), sign), Zero, Zero);
-        AdjustScaleTranslateRotate Translate(V3 axis, float sign) =>
-            new(Selected(), 0, Times(axis, SnapDelta(Dot(Current().Translation, axis), TranslateZoomScaleToTranslation(zoomLevel), sign)), Zero);
-        // The rotation of a ScaleTranslateRotate is in radians, but snaps to the zoom level's step in degrees
-        AdjustScaleTranslateRotate Rotate(V3 axis, float sign) =>
-            new(Selected(), 0, Zero, Times(axis, SnapDelta(Dot(Current().Rotation, axis) * 180 / MathF.PI, TranslateZoomScaleToDegree(zoomLevel), sign) * MathF.PI / 180));
+        V3 Current(TransformKind kind) => ApplyAdjustTransform.Current(program.Program, Selected(), kind);
+        AdjustTransform Scale(V3 axes, float sign)
+        {
+            var step = TranslateZoomScaleToScale(zoomLevel);
+            var scale = Current(TransformKind.Scale);
+            float Delta(float value, float onAxis) => onAxis == 0 ? 0 : SnapDelta(value, step, sign);
+            return new(Selected(), TransformKind.Scale, new V3(Delta(scale.x, axes.x), Delta(scale.y, axes.y), Delta(scale.z, axes.z)));
+        }
+        AdjustTransform Translate(V3 axis, float sign) =>
+            new(Selected(), TransformKind.Translate, Times(axis, SnapDelta(Dot(Current(TransformKind.Translate), axis), TranslateZoomScaleToTranslation(zoomLevel), sign)));
+        AdjustTransform Rotate(V3 axis, float sign) =>
+            new(Selected(), TransformKind.Rotate, Times(axis, SnapDelta(Dot(Current(TransformKind.Rotate), axis) * 180 / MathF.PI, TranslateZoomScaleToDegree(zoomLevel), sign) * MathF.PI / 180));
+
+        SetNodeParameter AdjustParameter(AdjustNodeParameterAtCurrentZoomLevel o)
+        {
+            var node = new PointerTables(pointers).Get(Selected());
+            var parameter = NodeParameters.Find(node, o.Parameter)
+                            ?? throw new KeyNotFoundException($"A {node.GetType().Name} has no parameter '{o.Parameter}'");
+            var step = parameter.Kind == NodeParameterKind.Angle
+                ? TranslateZoomScaleToDegree(zoomLevel)
+                : TranslateZoomScaleToTranslation(zoomLevel);
+            var components = parameter.Components();
+            components[o.Component] += SnapDelta(components[o.Component], step, o.Sign);
+            return new SetNodeParameter(Selected(), o.Parameter, components);
+        }
 
         SDFProgramOperation programOperation = operation switch
         {
             InteractiveAddNodeNextTo o => new AddNodeNextTo(Selected(), o.Type),
             InteractiveReplaceNode o => new ReplaceNode(Selected(), o.Type),
-            InteractiveInlineVariable => new InlineVariable(VariableContaining(program.Program, Selected())),
+            InteractiveInlineVariable => new InlineVariable(VariableToInline(program.Program, Selected())),
             InteractiveExtractVariable o => new ExtractVariable(Selected(), o.VariableName),
             InteractiveEmptyNode => new EmptyNode(Selected()),
             InteractiveCleanEmptyNodesFromUnionsAndIntersections => new CleanEmptyNodesFromUnionsAndIntersections(),
-            InteractiveAdjustScaleTranslateRotate o => new AdjustScaleTranslateRotate(Selected(), o.Scale, o.Translation, o.Rotation),
+            InteractiveAdjustTransform o => new AdjustTransform(Selected(), o.Kind, o.Delta),
             ToggleSmoothness => new ToggleNodeSmoothness(Selected()),
-            ScaleUpAtCurrentZoomLevel => Scale(1),
-            ScaleDownAtCurrentZoomLevel => Scale(-1),
+            InteractiveWrapInSubtraction => new WrapInSubtraction(Selected()),
+            InteractiveWrapInIntersection => new WrapInIntersection(Selected()),
+            InteractiveDissolveNode => new DissolveNode(Selected()),
+            InteractiveSetNodeParameter o => new SetNodeParameter(Selected(), o.Parameter, o.Components),
+            AdjustNodeParameterAtCurrentZoomLevel o => AdjustParameter(o),
+            ScaleUpAtCurrentZoomLevel => Scale(AllAxes, 1),
+            ScaleDownAtCurrentZoomLevel => Scale(AllAxes, -1),
+            ScaleXUpAtCurrentZoomLevel => Scale(UnitX, 1),
+            ScaleXDownAtCurrentZoomLevel => Scale(UnitX, -1),
+            ScaleYUpAtCurrentZoomLevel => Scale(UnitY, 1),
+            ScaleYDownAtCurrentZoomLevel => Scale(UnitY, -1),
+            ScaleZUpAtCurrentZoomLevel => Scale(UnitZ, 1),
+            ScaleZDownAtCurrentZoomLevel => Scale(UnitZ, -1),
             TranslateXUpAtCurrentZoomLevel => Translate(UnitX, 1),
             TranslateXDownAtCurrentZoomLevel => Translate(UnitX, -1),
             TranslateYUpAtCurrentZoomLevel => Translate(UnitY, 1),
@@ -95,11 +118,18 @@ public class SdfInteractiveNodeProgramOperator
 
     public static SdfInteractiveNodeProgram ApplyOperation(SdfInteractiveNodeProgram program, SDFProgramOperation operation)
     {
+        var dissolvedInto = operation is DissolveNode dissolve ? ApplyDissolveNode.FirstChildId(program.Program, dissolve.nodeId) : null;
+        var inlinedInto = operation is InlineVariable inline ? InlinedValueId(program, inline.variableId) : null;
         var result = SdfProgramOperator.ApplyOperation(program.Program, operation);
 
         var selectedNodeId = operation switch
         {
             AddNodeNextTo o => AddedNodeId(result, o.onNodeId) ?? SurvivingSelection(program, result),
+            WrapInSubtraction o => SubtractedNodeId(result, o.nodeId) ?? SurvivingSelection(program, result),
+            WrapInIntersection o => IntersectedNodeId(result, o.nodeId) ?? SurvivingSelection(program, result),
+            DissolveNode when dissolvedInto is not null && new PointerTables(result.pointers).Contains(dissolvedInto) => dissolvedInto,
+            InlineVariable when inlinedInto is not null && new PointerTables(result.pointers).Contains(inlinedInto) => inlinedInto,
+            AdjustTransform => SurvivingPrimitive(program, result) ?? SurvivingSelection(program, result),
             _ => SurvivingSelection(program, result),
         };
 
@@ -110,25 +140,41 @@ public class SdfInteractiveNodeProgramOperator
 
     private static float Dot(V3 a, V3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
 
-    // How far the value has to move to reach the next multiple of the step in the direction of the sign
     private static float SnapDelta(float value, float step, float sign)
     {
-        // Leaves room for float rounding, so a value that is a multiple of the step up to rounding counts as on that multiple
         const float tolerance = 1e-3f;
         var steps = value / step;
         var target = sign > 0 ? MathF.Floor(steps + tolerance) + 1 : MathF.Ceiling(steps - tolerance) - 1;
         return target * step - value;
     }
 
-    private static string VariableContaining(SDFProgram program, string nodeId) =>
-        FindVariableContaining(program, nodeId)
-        ?? throw new InvalidOperationException($"Node '{nodeId}' is not part of a variable's value");
+    private static string VariableToInline(SDFProgram program, string nodeId) =>
+        FindVariableToInline(program, nodeId)
+        ?? throw new InvalidOperationException($"Node '{nodeId}' is neither a variable reference nor part of a variable's value");
+
+    public static string? FindVariableToInline(SDFProgram program, string nodeId)
+    {
+        var tables = new PointerTables(program.pointers);
+        return tables.Contains(nodeId) && tables.Get(nodeId) is VariableReference reference
+            ? reference.variableId
+            : FindVariableContaining(program, nodeId);
+    }
+
+    private static string? InlinedValueId(SdfInteractiveNodeProgram program, string variableId)
+    {
+        var tables = new PointerTables(program.Program.pointers);
+        if (program.SelectedNodeId is not { } id || !tables.Contains(id) || tables.Get(id) is not VariableReference reference
+            || reference.variableId != variableId)
+            return null;
+
+        return PointerTables.PointerId(program.Program.Scopes().SelectMany(s => s.variables).Single(v => v.id == variableId).value);
+    }
 
     public static string? FindVariableContaining(SDFProgram program, string nodeId)
     {
         var tables = new PointerTables(program.pointers);
-        return program.Functions
-            .SelectMany(f => f.variables)
+        return program.Scopes()
+            .SelectMany(s => s.variables)
             .FirstOrDefault(v => tables.Subtree(v.value).Contains(nodeId))?.id;
     }
 
@@ -142,6 +188,37 @@ public class SdfInteractiveNodeProgramOperator
         return PointerTables.PointerId(union.primitives[index + 1]);
     }
 
+    private static string? SubtractedNodeId(SDFProgram result, string nodeId)
+    {
+        var tables = new PointerTables(result.pointers);
+        return tables.ParentOf(nodeId) is { } parentId && tables.Get(parentId) is Subtraction subtraction
+            ? PointerTables.PointerId(subtraction.b)
+            : null;
+    }
+
+    private static string? IntersectedNodeId(SDFProgram result, string nodeId)
+    {
+        var tables = new PointerTables(result.pointers);
+        return tables.ParentOf(nodeId) is { } parentId && tables.Get(parentId) is Intersection { primitives.Length: 2 } intersection
+            ? PointerTables.PointerId(intersection.primitives[1])
+            : null;
+    }
+
+    private static string? SurvivingPrimitive(SdfInteractiveNodeProgram program, SDFProgram result)
+    {
+        var tables = new PointerTables(program.Program.pointers);
+        var id = program.SelectedNodeId;
+        while (id is not null && !result.pointers.ContainsPointer(id))
+            id = tables.Get(id) switch
+            {
+                Scale e => PointerTables.PointerId(e.primitive),
+                Rotate e => PointerTables.PointerId(e.primitive),
+                Translate e => PointerTables.PointerId(e.primitive),
+                _ => null,
+            };
+        return id;
+    }
+
     private static string? SurvivingSelection(SdfInteractiveNodeProgram program, SDFProgram result)
     {
         var tables = new PointerTables(program.Program.pointers);
@@ -149,7 +226,6 @@ public class SdfInteractiveNodeProgramOperator
         while (id is not null && !result.pointers.ContainsPointer(id))
             id = tables.ParentOf(id);
 
-        // When the selected node and all its parents are gone, such as after emptying the scene root, the scene root is selected
         return id ?? (program.SelectedNodeId is null ? null : PointerTables.PointerId(result.scene));
     }
     

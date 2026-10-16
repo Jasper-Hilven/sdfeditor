@@ -12,7 +12,22 @@ public class YamlRender
     public string[] GetRender(SdfInteractiveNodeProgram program)
     {
         var tables = new PointerTables(program.Program.pointers);
+        var names = program.Program.Scopes().SelectMany(s => s.variables).ToDictionary(v => v.id, v => v.name);
         var lines = new List<string>();
+
+        foreach (var variable in program.Program.sceneVariables)
+        {
+            if (IsNode(tables, variable.value))
+            {
+                lines.Add($"{variable.name} =");
+                Render(variable.value, 1);
+            }
+            else
+            {
+                lines.Add($"{variable.name} = {Value(tables, names, variable.value)}");
+            }
+        }
+
         Render(program.Program.scene, 0);
         return lines.ToArray();
 
@@ -31,11 +46,11 @@ public class YamlRender
                         children.Add(child);
                         break;
                     case Evaluable child:
-                        parameters.Add($"{name}={Value(tables, child)}");
+                        parameters.Add($"{name}={Value(tables, names, child)}");
                         break;
                     case Evaluable[] elements:
                         children.AddRange(elements.Where(e => IsNode(tables, e)));
-                        var values = elements.Where(e => !IsNode(tables, e)).Select(e => Value(tables, e)).ToArray();
+                        var values = elements.Where(e => !IsNode(tables, e)).Select(e => Value(tables, names, e)).ToArray();
                         if (values.Length > 0)
                             parameters.Add($"{name}=[{string.Join(", ", values)}]");
                         break;
@@ -45,7 +60,9 @@ public class YamlRender
                 }
             }
 
-            var text = string.Join(" ", parameters.Prepend(node.GetType().Name));
+            var text = node is VariableReference
+                ? Value(tables, names, node)
+                : string.Join(" ", parameters.Prepend(node.GetType().Name));
             if (id is not null && id == program.SelectedNodeId)
                 text = $"{text} <---";
             lines.Add(string.Concat(Enumerable.Repeat(Indent, depth)) + text);
@@ -58,11 +75,10 @@ public class YamlRender
     private static Evaluable Resolve(PointerTables tables, Evaluable node) =>
         PointerTables.PointerId(node) is { } id ? tables.Get(id) : node;
 
-    // Shapes and operations get their own line, plain values are shown as parameters of their parent
     private static bool IsNode(PointerTables tables, Evaluable evaluable) =>
         Resolve(tables, evaluable) is SDFEvaluable or SDF2DEvaluable;
 
-    private static string Value(PointerTables tables, Evaluable evaluable) => Resolve(tables, evaluable) switch
+    private static string Value(PointerTables tables, Dictionary<string, string> variableNames, Evaluable evaluable) => Resolve(tables, evaluable) switch
     {
         ConstValueFloat c => Number(c.value),
         ConstValueInt c => c.value.ToString(CultureInfo.InvariantCulture),
@@ -72,7 +88,7 @@ public class YamlRender
         FunctionParameterValueInt p => $"arg{p.functionParameterIndex}",
         FunctionParameterValueV2 p => $"arg{p.functionParameterIndex}",
         FunctionParameterValueV3 p => $"arg{p.functionParameterIndex}",
-        VariableReference v => $"${v.variableId}",
+        VariableReference v => $"${variableNames.GetValueOrDefault(v.variableId, v.variableId)}",
         var other => other.GetType().Name,
     };
 

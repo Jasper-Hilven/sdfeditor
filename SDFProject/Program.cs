@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Net;
 
-// Serves the SDF viewer (Resources/SdfViewer) so code from Webgl2CodeGenerator.GenerateShaderCode can be pasted in and rendered.
-// Usage: SDFProject [port] [--no-browser]
 var port = args.FirstOrDefault(a => int.TryParse(a, out _)) is { } portArgument ? int.Parse(portArgument) : 5173;
 var openBrowser = !args.Contains("--no-browser");
 
@@ -52,7 +50,6 @@ while (listener.IsListening)
     if (relativePath == "")
         relativePath = "index.html";
 
-    // Only files inside the viewer folder can be served
     var path = Path.GetFullPath(Path.Combine(root, relativePath));
     if (!path.StartsWith(root + Path.DirectorySeparatorChar) || !File.Exists(path))
     {
@@ -62,7 +59,6 @@ while (listener.IsListening)
     }
 
     response.ContentType = contentTypes.GetValueOrDefault(Path.GetExtension(path), "application/octet-stream");
-    // Always load the latest files after a rebuild
     response.Headers["Cache-Control"] = "no-store";
     var content = await File.ReadAllBytesAsync(path);
     response.ContentLength64 = content.Length;
