@@ -159,6 +159,25 @@
                 </div>
             </div>
         }
+        else if (shownTab == Tab.File)
+        {
+            <div class="file">
+                <section>
+                    <h3>Export</h3>
+                    <p class="hint">Saves every command in the history, all branches included, and where you are in it.</p>
+                    <button type="button" @onclick="Export">Download program</button>
+                </section>
+                <section>
+                    <h3>Import</h3>
+                    <p class="hint">Replaces the current program and its history with those of the file.</p>
+                    <InputFile OnChange="Import" accept=".json,application/json" />
+                </section>
+                @if (fileMessage is not null)
+                {
+                    <p class="@(fileFailed ? "error" : "hint")">@fileMessage</p>
+                }
+            </div>
+        }
     </section>
 
     <section class="panel">
@@ -218,9 +237,11 @@
     private readonly YamlRender yamlRender = new();
     private readonly Webgl2CodeGenerator codeGenerator = new();
 
-    private SDFPartialActionHistory history = SDFPartialActionHistory.Start(new(
+    private static SDFPartialCommandNodeProgram InitialProgram() => new(
         SdfInteractiveNodeProgramConstants.GetInitialProgram(),
-        new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home)));
+        new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home));
+
+    private SDFPartialActionHistory history = SDFPartialActionHistory.Start(InitialProgram());
     private SDFPartialCommandNodeProgram partialProgram => history.Current;
     private SdfInteractiveNodeProgram program => partialProgram.interactiveProgram;
     private string shaderCode = "";
@@ -234,7 +255,7 @@
     private bool quadView;
     private bool rotateView;
 
-    private enum Tab { Keyboard, Keys, History }
+    private enum Tab { Keyboard, Keys, History, File }
 
     private Tab shownTab = Tab.Keyboard;
 
@@ -446,6 +467,37 @@
         }
     }
 
+    private IJSObjectReference? filesModule;
+    private string? fileMessage;
+    private bool fileFailed;
+
+    private async Task Export()
+    {
+        filesModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/files.js");
+        await filesModule.InvokeVoidAsync("downloadText", "sdf-program.json", SDFPartialHistorySerializer.Serialize(history));
+        fileMessage = $"Exported {history.Entries.Count} command(s)";
+        fileFailed = false;
+    }
+
+    private async Task Import(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            using var reader = new StreamReader(e.File.OpenReadStream(maxAllowedSize: 50_000_000));
+            var imported = SDFPartialHistorySerializer.Deserialize(await reader.ReadToEndAsync(), InitialProgram());
+            shaderCode = codeGenerator.GenerateShaderCode(imported.Current.interactiveProgram.Program);
+            history = imported;
+            operationError = null;
+            fileMessage = $"Imported {e.File.Name} with {imported.Entries.Count} command(s)";
+            fileFailed = false;
+        }
+        catch (Exception exception)
+        {
+            fileMessage = $"Could not import {e.File.Name}: {exception.Message}";
+            fileFailed = true;
+        }
+    }
+
     private async Task ToggleQuadView()
     {
         quadView = !quadView;
@@ -517,5 +569,7 @@
         }
         if (rendererModule is not null)
             await rendererModule.DisposeAsync();
+        if (filesModule is not null)
+            await filesModule.DisposeAsync();
     }
 }
