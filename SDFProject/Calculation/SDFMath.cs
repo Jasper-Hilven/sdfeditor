@@ -342,6 +342,39 @@ internal static class SdfMath
         return k0 * (k0 - 1f) / k1;
     }
 
+    public static float Distort(Vector3 p, float amount, float frequency)
+    {
+        var q = p * frequency;
+        var n = 0.65f * ValueNoise(q) + 0.35f * ValueNoise(q * 2.03f + new Vector3(17.1f));
+        return amount * (2f * n - 1f);
+    }
+
+    private static float ValueNoise(Vector3 p)
+    {
+        var i = new Vector3(MathF.Floor(p.X), MathF.Floor(p.Y), MathF.Floor(p.Z));
+        var f = p - i;
+        var u = f * f * (new Vector3(3f) - 2f * f);
+        var x00 = Lerp(Hash(i), Hash(i + new Vector3(1, 0, 0)), u.X);
+        var x10 = Lerp(Hash(i + new Vector3(0, 1, 0)), Hash(i + new Vector3(1, 1, 0)), u.X);
+        var x01 = Lerp(Hash(i + new Vector3(0, 0, 1)), Hash(i + new Vector3(1, 0, 1)), u.X);
+        var x11 = Lerp(Hash(i + new Vector3(0, 1, 1)), Hash(i + new Vector3(1, 1, 1)), u.X);
+        return Lerp(Lerp(x00, x10, u.Y), Lerp(x01, x11, u.Y), u.Z);
+    }
+
+    private static float Hash(Vector3 c)
+    {
+        unchecked
+        {
+            var x = (uint)((int)c.X + 32768) * 1597334673u;
+            var y = (uint)((int)c.Y + 32768) * 3812015801u;
+            var z = (uint)((int)c.Z + 32768) * 2798796415u;
+            var n = (x ^ y ^ z) * 1597334673u;
+            return (n >> 8) * (1f / 16777216f);
+        }
+    }
+
+    private static float Lerp(float a, float b, float t) => a + (b - a) * t;
+
     public static float TriPrism(Vector3 p, Vector2 h)
     {
         var q = Vector3.Abs(p);

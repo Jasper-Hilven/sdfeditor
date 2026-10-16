@@ -271,6 +271,7 @@ public class SDFPartialCommandNodeProgramOperator
         ToggleSmoothness => new SDFInteractiveNode.ToggleSmoothness(),
         SubtractNode => new InteractiveWrapInSubtraction(),
         IntersectNode => new InteractiveWrapInIntersection(),
+        DistortNode => new InteractiveWrapInDistortion(),
         DissolveNode => new InteractiveDissolveNode(),
         InlineVariable => new InteractiveInlineVariable(),
         EmptyNode => new InteractiveEmptyNode(),

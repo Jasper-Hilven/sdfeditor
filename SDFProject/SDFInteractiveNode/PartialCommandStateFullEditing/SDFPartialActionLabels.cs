@@ -49,6 +49,7 @@ public static class SDFPartialActionLabels
             ToggleSmoothness => new("≈", "smooth"),
             SubtractNode => new("⊖", "subtract"),
             IntersectNode => new("∩", "intersect"),
+            DistortNode => new("≋", "distort"),
             DissolveNode => new("⤒", "dissolve"),
             ExtractVariable => new("$", "extract"),
             InlineVariable => new("⇲", "inline"),

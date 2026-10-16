@@ -124,6 +124,7 @@ public class SdfCalculatorCpu
             Octahedron e => SdfMath.Octahedron(p, Float(e.size)),
             OctahedronBound e => SdfMath.OctahedronBound(p, Float(e.size)),
             Onion e => MathF.Abs(Sdf(e.primitive, p)) - Float(e.thickness),
+            Distort e => Sdf(e.primitive, p) + SdfMath.Distort(p, Float(e.amount), Float(e.frequency)),
             Plane e => SdfMath.Plane(p, Vec3(e.normal), Float(e.height)),
             Pyramid e => SdfMath.Pyramid(p, Float(e.height)),
             Quad e => SdfMath.Quad(p, Vec3(e.a), Vec3(e.b), Vec3(e.c), Vec3(e.d)),

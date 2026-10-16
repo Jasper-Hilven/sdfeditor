@@ -25,6 +25,7 @@ public record ReplaceNode(string nodeId, SDFNodeType type) : SDFProgramOperation
 public record WrapInSubtraction(string nodeId) : SDFProgramOperation;
 
 public record WrapInIntersection(string nodeId) : SDFProgramOperation;
+public record WrapInDistortion(string nodeId) : SDFProgramOperation;
 
 public record PaintNode(string nodeId, V3 color) : SDFProgramOperation;
 

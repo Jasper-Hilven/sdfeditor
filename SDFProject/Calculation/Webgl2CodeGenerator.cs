@@ -186,6 +186,7 @@ public partial class Webgl2CodeGenerator
                 Round e => Distance($"{Sdf(e.primitive, p)} - {F(e.radius)}"),
                 Onion e => Distance($"abs({Sdf(e.primitive, p)}) - {F(e.thickness)}"),
                 Color e => Sdf(e.primitive, p),
+                Distort e => Distance($"{Sdf(e.primitive, p)} + opDistort({p}, {F(e.amount)}, {F(e.frequency)})"),
 
                 Union e => Combine(e.primitives, p, (a, b) => $"min({a}, {b})", "SDF_INFINITY"),
                 Intersection e => Combine(e.primitives, p, (a, b) => $"max({a}, {b})", "-SDF_INFINITY"),
@@ -288,6 +289,7 @@ public partial class Webgl2CodeGenerator
                 Round e => Modified(e.primitive, p, color, d => $"{d} - {Float(e.radius)}"),
                 Onion e => Modified(e.primitive, p, color, d => $"abs({d}) - {Float(e.thickness)}"),
                 Displace e => Modified(e.primitive, p, color, d => $"{d} + {Sdf(e.displacement, p)}"),
+                Distort e => Modified(e.primitive, p, color, d => $"{d} + opDistort({p}, {Float(e.amount)}, {Float(e.frequency)})"),
                 Union e => CombineMaterials(e.primitives, p, color, (a, b) => Pick($"{a.distance} < {b.distance}", a, b, $"min({a.distance}, {b.distance})"), "SDF_INFINITY"),
                 Intersection e => CombineMaterials(e.primitives, p, color, (a, b) => Pick($"{a.distance} > {b.distance}", a, b, $"max({a.distance}, {b.distance})"), "-SDF_INFINITY"),
                 SmoothUnion e => CombineMaterials(e.primitives, p, color, (a, b) => Blend(a, b, e.smoothness, 1, $"opSmoothMin({a.distance}, {b.distance}, {Float(e.smoothness)})"), "SDF_INFINITY"),

@@ -100,6 +100,38 @@ public static partial class Webgl2SdfLibrary
         }
         """;
 
+    public const string SdfHash = """
+        float sdfHash(vec3 c)
+        {
+            uvec3 q = uvec3(ivec3(c) + 32768) * uvec3(1597334673u, 3812015801u, 2798796415u);
+            uint n = (q.x ^ q.y ^ q.z) * 1597334673u;
+            return float(n >> 8u) * (1.0 / 16777216.0);
+        }
+        """;
+
+    public const string SdfValueNoise = """
+        float sdfValueNoise(vec3 p)
+        {
+            vec3 i = floor(p);
+            vec3 f = p - i;
+            vec3 u = f * f * (3.0 - 2.0 * f);
+            float x00 = mix(sdfHash(i), sdfHash(i + vec3(1.0, 0.0, 0.0)), u.x);
+            float x10 = mix(sdfHash(i + vec3(0.0, 1.0, 0.0)), sdfHash(i + vec3(1.0, 1.0, 0.0)), u.x);
+            float x01 = mix(sdfHash(i + vec3(0.0, 0.0, 1.0)), sdfHash(i + vec3(1.0, 0.0, 1.0)), u.x);
+            float x11 = mix(sdfHash(i + vec3(0.0, 1.0, 1.0)), sdfHash(i + vec3(1.0, 1.0, 1.0)), u.x);
+            return mix(mix(x00, x10, u.y), mix(x01, x11, u.y), u.z);
+        }
+        """;
+
+    public const string OpDistort = """
+        float opDistort(vec3 p, float amount, float frequency)
+        {
+            vec3 q = p * frequency;
+            float n = 0.65 * sdfValueNoise(q) + 0.35 * sdfValueNoise(q * 2.03 + 17.1);
+            return amount * (2.0 * n - 1.0);
+        }
+        """;
+
     public const string OpExtrusion = """
         float opExtrusion(vec3 p, float d, float h)
         {
@@ -857,6 +889,9 @@ public static partial class Webgl2SdfLibrary
         OpRepeatLimited,
         OpTwist,
         OpCheapBend,
+        SdfHash,
+        SdfValueNoise,
+        OpDistort,
         OpExtrusion,
         SdSphere,
         SdBox,

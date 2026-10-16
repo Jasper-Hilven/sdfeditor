@@ -50,6 +50,7 @@ public record ScaleZUp() : ISDFPartialAction;
 public record ToggleSmoothness() : ISDFPartialAction;
 public record SubtractNode() : ISDFPartialAction;
 public record IntersectNode() : ISDFPartialAction;
+public record DistortNode() : ISDFPartialAction;
 public record DissolveNode() : ISDFPartialAction;
 public record ExtractVariable() : ISDFPartialAction;
 public record InlineVariable() : ISDFPartialAction;

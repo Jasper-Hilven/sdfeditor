@@ -20,6 +20,7 @@ public class SdfProgramOperator
             ReplaceNode o => ApplyReplaceNode.DoApplyReplaceNode(program, o),
             WrapInSubtraction o => ApplyWrapInSubtraction.DoApplyWrapInSubtraction(program, o),
             WrapInIntersection o => ApplyWrapInIntersection.DoApplyWrapInIntersection(program, o),
+            WrapInDistortion o => ApplyWrapInDistortion.DoApplyWrapInDistortion(program, o),
             PaintNode o => ApplyPaintNode.DoApplyPaintNode(program, o),
             DissolveNode o => ApplyDissolveNode.DoApplyDissolveNode(program, o),
             SetNodeParameter o => ApplySetNodeParameter.DoApplySetNodeParameter(program, o),
