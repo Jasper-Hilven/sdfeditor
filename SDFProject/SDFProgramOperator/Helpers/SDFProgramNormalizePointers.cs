@@ -10,6 +10,10 @@ public class SDFProgramNormalizePointers
 
         program = program.MapRoots(mapper.Map);
 
+        // The scene root always has a pointer, even without children, so an empty scene can still be selected
+        if (PointerTables.PointerId(program.scene) is null)
+            program = program with { scene = mapper.sdf.PointerTo(program.scene) };
+
         mapper.FlattenExistingEntries();
 
         var pointers = new SDFPointers(

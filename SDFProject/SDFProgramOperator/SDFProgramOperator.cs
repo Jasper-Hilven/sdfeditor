@@ -16,6 +16,8 @@ public class SdfProgramOperator
             EmptyNode o => ApplyEmptyNode.DoApplyEmptyNode(program, o),
             CleanEmptyNodesFromUnionsAndIntersections o => ApplyCleanEmptyNodesFromUnionsAndIntersections.DoApplyCleanEmptyNodesFromUnionsAndIntersections(program, o),
             AdjustScaleTranslateRotate o => ApplyAdjustScaleTranslateRotate.DoApplyAdjustScaleTranslateRotate(program, o),
+            ToggleNodeSmoothness o => ApplyToggleNodeSmoothness.DoApplyToggleNodeSmoothness(program, o),
+            ReplaceNode o => ApplyReplaceNode.DoApplyReplaceNode(program, o),
             _ => throw new NotSupportedException($"Unknown {nameof(SDFProgramOperation)}: {operation.GetType().Name}"),
         };
 

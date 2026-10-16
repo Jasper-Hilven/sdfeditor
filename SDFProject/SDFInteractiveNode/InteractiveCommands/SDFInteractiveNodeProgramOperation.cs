@@ -6,6 +6,8 @@ public interface ISdfInteractiveNodeProgramOperation;
 
 public record InteractiveAddNodeNextTo(SDFNodeType Type) : ISdfInteractiveNodeProgramOperation;
 
+public record InteractiveReplaceNode(SDFNodeType Type) : ISdfInteractiveNodeProgramOperation;
+
 public record InteractiveInlineVariable() : ISdfInteractiveNodeProgramOperation;
 
 public record InteractiveExtractVariable(string VariableName) : ISdfInteractiveNodeProgramOperation;
@@ -44,3 +46,5 @@ public record SelectNextSibling(): ISdfInteractiveNodeProgramOperation;
 public record SelectPreviousSibling(): ISdfInteractiveNodeProgramOperation;
 public record SelectParent(): ISdfInteractiveNodeProgramOperation;
 public record SelectFirstChild(): ISdfInteractiveNodeProgramOperation;
+
+public record ToggleSmoothness(): ISdfInteractiveNodeProgramOperation;

@@ -66,11 +66,13 @@ public class SdfInteractiveNodeProgramOperator
         SDFProgramOperation programOperation = operation switch
         {
             InteractiveAddNodeNextTo o => new AddNodeNextTo(Selected(), o.Type),
+            InteractiveReplaceNode o => new ReplaceNode(Selected(), o.Type),
             InteractiveInlineVariable => new InlineVariable(VariableContaining(program.Program, Selected())),
             InteractiveExtractVariable o => new ExtractVariable(Selected(), o.VariableName),
             InteractiveEmptyNode => new EmptyNode(Selected()),
             InteractiveCleanEmptyNodesFromUnionsAndIntersections => new CleanEmptyNodesFromUnionsAndIntersections(),
             InteractiveAdjustScaleTranslateRotate o => new AdjustScaleTranslateRotate(Selected(), o.Scale, o.Translation, o.Rotation),
+            ToggleSmoothness => new ToggleNodeSmoothness(Selected()),
             ScaleUpAtCurrentZoomLevel => Scale(1),
             ScaleDownAtCurrentZoomLevel => Scale(-1),
             TranslateXUpAtCurrentZoomLevel => Translate(UnitX, 1),
@@ -118,13 +120,16 @@ public class SdfInteractiveNodeProgramOperator
         return target * step - value;
     }
 
-    private static string VariableContaining(SDFProgram program, string nodeId)
+    private static string VariableContaining(SDFProgram program, string nodeId) =>
+        FindVariableContaining(program, nodeId)
+        ?? throw new InvalidOperationException($"Node '{nodeId}' is not part of a variable's value");
+
+    public static string? FindVariableContaining(SDFProgram program, string nodeId)
     {
         var tables = new PointerTables(program.pointers);
         return program.Functions
-                   .SelectMany(f => f.variables)
-                   .FirstOrDefault(v => tables.Subtree(v.value).Contains(nodeId))?.id
-               ?? throw new InvalidOperationException($"Node '{nodeId}' is not part of a variable's value");
+            .SelectMany(f => f.variables)
+            .FirstOrDefault(v => tables.Subtree(v.value).Contains(nodeId))?.id;
     }
 
     private static string? AddedNodeId(SDFProgram result, string onNodeId)
@@ -143,7 +148,9 @@ public class SdfInteractiveNodeProgramOperator
         var id = program.SelectedNodeId;
         while (id is not null && !result.pointers.ContainsPointer(id))
             id = tables.ParentOf(id);
-        return id;
+
+        // When the selected node and all its parents are gone, such as after emptying the scene root, the scene root is selected
+        return id ?? (program.SelectedNodeId is null ? null : PointerTables.PointerId(result.scene));
     }
     
     public static float TranslateZoomScaleToDegree(int scale)

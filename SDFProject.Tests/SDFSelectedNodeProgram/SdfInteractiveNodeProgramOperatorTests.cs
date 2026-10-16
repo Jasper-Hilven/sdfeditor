@@ -2,6 +2,7 @@ using SDFProject.ProgramDefinition;
 using SDFProject.SDFInteractiveNode;
 using SDFProject.SDFInteractiveNode.InteractiveCommands;
 using SDFProject.SDFProgramOperator;
+using SDFProject.SDFProgramOperator.Helpers;
 using static SDFProject.Tests.SDFProgramTestHelpers;
 
 namespace SDFProject.Tests;
@@ -454,13 +455,49 @@ public class SdfInteractiveNodeProgramOperatorTests
     }
 
     [Fact]
-    public void ClearsSelectionWhenNodeAndAllAncestorsAreRemoved()
+    public void SelectsSceneRootWhenNodeAndAllAncestorsAreRemoved()
     {
         var program = Program(new Union(Sphere(1)));
 
         var result = SdfInteractiveNodeProgramOperator.ApplyOperation(Interactive(program, SphereId(program, 1)), new EmptyNode(NodeId<Union>(program)));
 
-        Assert.Null(result.SelectedNodeId);
+        Assert.Equal(PointerTables.PointerId(result.Program.scene), result.SelectedNodeId);
+        Assert.Equal("Empty", Selected(result));
+    }
+
+    [Fact]
+    public void EmptyingTheInitialNode_KeepsTheEmptySceneSelectable()
+    {
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(
+            SdfInteractiveNodeProgramConstants.GetInitialProgram(), new InteractiveEmptyNode());
+
+        Assert.Equal("Empty", Selected(result));
+        AssertPointersConsistent(result.Program);
+    }
+
+    [Fact]
+    public void AddingNextToTheEmptyScene_ReplacesTheEmptyNodeAndSelectsIt()
+    {
+        var empty = SdfInteractiveNodeProgramOperator.ApplyOperation(
+            SdfInteractiveNodeProgramConstants.GetInitialProgram(), new InteractiveEmptyNode());
+
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(empty, new InteractiveAddNodeNextTo(SDFNodeType.Sphere));
+
+        Assert.Equal("Sphere(0.5)", DescribeScene(result.Program));
+        Assert.Equal("Sphere(0.5)", Selected(result));
+        AssertPointersConsistent(result.Program);
+    }
+
+    [Fact]
+    public void ReplacingTheEmptyScene_KeepsItSelected()
+    {
+        var empty = SdfInteractiveNodeProgramOperator.ApplyOperation(
+            SdfInteractiveNodeProgramConstants.GetInitialProgram(), new InteractiveEmptyNode());
+
+        var result = SdfInteractiveNodeProgramOperator.ApplyOperation(empty, new InteractiveReplaceNode(SDFNodeType.Torus));
+
+        Assert.Equal("Torus(0.3, 0.5)", Selected(result));
+        AssertPointersConsistent(result.Program);
     }
 
     #endregion

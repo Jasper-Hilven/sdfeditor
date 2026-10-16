@@ -35,6 +35,18 @@ public class ApplyAdjustScaleTranslateRotate
         return (Constant(node.scale, nameof(node.scale)), Constant(node.translation, nameof(node.translation)), Constant(node.rotation, nameof(node.rotation)));
     }
 
+    // Only an SDF node can be adjusted, and only when the ScaleTranslateRotate it would adjust holds constants
+    public static bool CanAdjust(SDFProgram program, string nodeId)
+    {
+        var tables = new PointerTables(program.pointers);
+        // An empty scene has nothing to transform
+        if (!tables.Contains(nodeId) || tables.PointerTo(nodeId) is not SDFEvaluablePointerable || tables.Get(nodeId) is Empty)
+            return false;
+
+        return AdjustedId(tables, nodeId) is not { } adjustedId
+               || tables.Get(adjustedId) is ScaleTranslateRotate { scale: ConstValueFloat, translation: ConstValueV3, rotation: ConstValueV3 };
+    }
+
     // A ScaleTranslateRotate has a single SDF child, so a node whose parent is one is always that parent's primitive
     private static string? AdjustedId(PointerTables tables, string nodeId) =>
         tables.Get(nodeId) is ScaleTranslateRotate ? nodeId

@@ -39,6 +39,14 @@ public class ApplyExtractVariable
         return program with { Functions = functions, pointers = tables.ToPointers(nextFreePointer) };
     }
 
+    // Variables can only be declared inside a function, so the node has to be part of a function's variable or body
+    public static bool CanExtract(SDFProgram program, string nodeId)
+    {
+        var tables = new PointerTables(program.pointers);
+        return tables.Contains(nodeId) && program.Functions.Any(f =>
+            f.variables.Any(v => tables.Subtree(v.value).Contains(nodeId)) || tables.Subtree(f.functionBody).Contains(nodeId));
+    }
+
     private static (int functionIndex, int declarationIndex) FindOwner(SDFProgram program, PointerTables tables, string nodeId)
     {
         for (var f = 0; f < program.Functions.Length; f++)

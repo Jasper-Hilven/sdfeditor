@@ -13,6 +13,13 @@ public class ApplyAddNodeNextTo
 
         var newNode = SDFNodeDefaultValues.CreateNode(operation.type);
 
+        // Only the scene root is an Empty with a pointer; a union with an Empty is the added node alone, so it takes the root's place
+        if (tables.Get(operation.onNodeId) is Empty)
+        {
+            tables.Set(operation.onNodeId, newNode);
+            return program with { pointers = tables.ToPointers(program.pointers.nextFreePointer) };
+        }
+
         var parentId = tables.ParentOf(operation.onNodeId);
         if (parentId is not null && tables.Get(parentId) is Union union)
         {

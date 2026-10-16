@@ -68,7 +68,7 @@ public class CleanEmptyNodesFromUnionsAndIntersectionsTests
 
         var result = SdfProgramOperator.ApplyOperation(program, new CleanEmptyNodesFromUnionsAndIntersections());
 
-        Assert.IsType<Empty>(result.scene);
+        Assert.Equal("Empty", DescribeScene(result));
         AssertPointersConsistent(result);
     }
 

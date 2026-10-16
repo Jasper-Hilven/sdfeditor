@@ -15,6 +15,10 @@ public enum SDFPartialCommandNodeProgramMode
     Home,
     ScaleRotateTranslate,
     AddNode,
+    // The second page of node types to add, for the ones that do not fit on the keys of AddNode
+    AddNodeMore,
+    ReplaceNode,
+    ReplaceNodeMore,
     InlineVariable,
     ExtractVariable
 }

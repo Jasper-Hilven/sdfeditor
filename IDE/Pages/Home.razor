@@ -1,4 +1,5 @@
 @page "/"
+@using System.Text.RegularExpressions
 @using IDE.Operations
 @using SDFProject.Calculation
 @using SDFProject.ProgramDefinition
@@ -28,20 +29,56 @@
     </section>
 
     <section class="panel">
-        <header>
-            Operations
+        <header class="tabs">
+            <button class="tab @(showKeys ? "active" : "")" @onclick="() => showKeys = true">Keys</button>
+            <button class="tab @(showKeys ? "" : "active")" @onclick="() => showKeys = false">Operations</button>
             <span class="status">mode @partialProgram.state.Mode · selected @(program.SelectedNodeId ?? "none") · zoom @program.StrZoomLevel</span>
         </header>
         @if (operationError is not null)
         {
             <div class="error">@operationError</div>
         }
-        <div class="buttons">
-            @foreach (var operation in OperationDefinition.All)
-            {
-                <button @onclick="() => Start(operation)">@operation.Label</button>
-            }
-        </div>
+        @if (showKeys)
+        {
+            var bindings = CurrentKeyBindings().ToList();
+            <div class="keys">
+                <div class="key-columns">
+                    @foreach (var column in bindings.Where(b => !b.SwitchesMode).Chunk(10))
+                    {
+                        <ul>
+                            @foreach (var (key, action, _) in column)
+                            {
+                                <li><kbd>@key.ToUpperInvariant()</kbd> @action</li>
+                            }
+                        </ul>
+                    }
+                </div>
+                @if (bindings.Any(b => b.SwitchesMode))
+                {
+                    <h3>Modes</h3>
+                    <div class="key-columns">
+                        @foreach (var column in bindings.Where(b => b.SwitchesMode).Chunk(10))
+                        {
+                            <ul>
+                                @foreach (var (key, action, _) in column)
+                                {
+                                    <li><kbd>@key.ToUpperInvariant()</kbd> @action</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="buttons">
+                @foreach (var operation in OperationDefinition.All)
+                {
+                    <button @onclick="() => Start(operation)">@operation.Label</button>
+                }
+            </div>
+        }
     </section>
 
     <section class="panel">
@@ -111,6 +148,8 @@
     private string? renderedCode;
     private string? renderError;
 
+    private bool showKeys = true;
+
     private DotNetObjectReference<Home>? keyHandler;
     private IJSObjectReference? keyboardModule;
     private IJSObjectReference? keyListener;
@@ -165,6 +204,30 @@
         Update(inputKey.ToString(), () => SDFPartialCommandNodeProgramOperator.Operate(partialProgram, inputKey));
         StateHasChanged();
     }
+
+    // Actions that move to another mode or page, listed apart from the ones that edit the program
+    private static readonly HashSet<SDFPartialActionEnum> ModeSwitchingActions =
+    [
+        SDFPartialActionEnum.SwitchToHomeMode,
+        SDFPartialActionEnum.SwitchToScaleRotateTranslateMode,
+        SDFPartialActionEnum.AddNode,
+        SDFPartialActionEnum.CancelAddNode,
+        SDFPartialActionEnum.ShowMoreNodeTypes,
+        SDFPartialActionEnum.ShowFirstNodeTypes,
+        SDFPartialActionEnum.ReplaceNode,
+        SDFPartialActionEnum.CancelReplaceNode,
+        SDFPartialActionEnum.ShowMoreReplaceNodeTypes,
+        SDFPartialActionEnum.ShowFirstReplaceNodeTypes,
+    ];
+
+    // The keys that would do something right now, sorted by key, with the action spelled out ("Select Next")
+    private IEnumerable<(string Key, string Action, bool SwitchesMode)> CurrentKeyBindings() =>
+        FingerKeyLayouts.AzertyBeFingerKeyToIndex
+            .Where(pair => SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(partialProgram, pair.Value))
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => (pair.Key, Action: SDFPartialKeyBindings.Bindings[(partialProgram.state.Mode, pair.Value)]))
+            .Select(pair => (pair.Key, Regex.Replace(pair.Action.ToString(), "(?<=[a-z])(?=[A-Z])", " "),
+                ModeSwitchingActions.Contains(pair.Action)));
 
     // A failing operation leaves the program as it was and shows why
     private void Update(string name, Func<SDFPartialCommandNodeProgram> operate)
