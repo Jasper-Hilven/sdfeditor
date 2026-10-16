@@ -12,21 +12,36 @@ public partial class Webgl2CodeGenerator
 
     public string[] generateSdfCode(SDFProgram program) => Generate(program).functions;
 
+    public const string MaterialFunctionName = "sdf_material";
+    public const string DefaultColor = "vec3(0.85, 0.62, 0.42)";
+
     public string GenerateShaderCode(SDFProgram program)
     {
-        var (functions, context) = Generate(program);
-        return string.Join("\n\n", functions.Prepend(Webgl2SdfLibrary.CodeFor(context.UsedLibraryMethods.Keys)));
+        var (functions, material, context) = Generate(program);
+        return string.Join("\n\n", functions.Append(material).Prepend(Webgl2SdfLibrary.CodeFor(context.UsedLibraryMethods.Keys)));
     }
 
     public IReadOnlyDictionary<string, int> CountLibraryMethodUses(SDFProgram program) => Generate(program).context.UsedLibraryMethods;
 
-    private static (string[] functions, GeneratorContext context) Generate(SDFProgram program)
+    private static (string[] functions, string material, GeneratorContext context) Generate(SDFProgram program)
     {
         var context = new GeneratorContext(program, FunctionNames(program), ParameterTypes(program), []);
 
         var code = OrderCalleesFirst(program).Select(f => GenerateFunction(context, f)).ToList();
         code.Add(GenerateScene(context, program));
-        return (code.ToArray(), context);
+        return (code.ToArray(), GenerateMaterial(context, program), context);
+    }
+
+    private static string GenerateMaterial(GeneratorContext context, SDFProgram program)
+    {
+        var writer = new FunctionWriter(context, []);
+        DeclareVariables(writer, program.sceneVariables);
+        if (!writer.ContainsColor(program.scene))
+            return $"vec3 {MaterialFunctionName}(vec3 p)\n{{\n    return {DefaultColor};\n}}";
+
+        var (_, color) = writer.Material(program.scene, "p", DefaultColor);
+        writer.Line($"return {color};");
+        return writer.ToFunction($"vec3 {MaterialFunctionName}(vec3 p)");
     }
 
     private sealed record GeneratorContext(
@@ -121,6 +136,9 @@ public partial class Webgl2CodeGenerator
             string V2(V2Evaluable e) => Vec2(e);
             string V3(V3Evaluable e) => Vec3(e);
 
+            if (Transformed(evaluable, p) is { } transformed)
+                return Sdf(transformed.child, transformed.p);
+
             return evaluable switch
             {
                 SDFEvaluablePointerable e => Sdf(pointers.SDFEvaluablePointers[e.PointerId], p),
@@ -164,10 +182,10 @@ public partial class Webgl2CodeGenerator
                 Revolution e => Sdf2D(e.primitive, Position2($"vec2(length({p}.xz) - {F(e.offset)}, {p}.y)")),
                 Extrusion e => Distance($"opExtrusion({p}, {Sdf2D(e.primitive, Position2($"{p}.xy"))}, {F(e.height)})"),
 
-                Elongate e => Sdf(e.primitive, Position3($"{p} - clamp({p}, -{V3(e.amount)}, {V3(e.amount)})")),
                 ElongateExactInterior e => ElongateExactInterior(e, p),
                 Round e => Distance($"{Sdf(e.primitive, p)} - {F(e.radius)}"),
                 Onion e => Distance($"abs({Sdf(e.primitive, p)}) - {F(e.thickness)}"),
+                Color e => Sdf(e.primitive, p),
 
                 Union e => Combine(e.primitives, p, (a, b) => $"min({a}, {b})", "SDF_INFINITY"),
                 Intersection e => Combine(e.primitives, p, (a, b) => $"max({a}, {b})", "-SDF_INFINITY"),
@@ -178,17 +196,9 @@ public partial class Webgl2CodeGenerator
                 SmoothSubtraction e => Distance($"-opSmoothMin(-{Sdf(e.a, p)}, {Sdf(e.b, p)}, {F(e.smoothness)})"),
 
                 Scale e => ScaleSdf(e, p),
-                Translate e => Sdf(e.primitive, Position3($"{p} - {V3(e.translation)}")),
-                Rotate e => Sdf(e.primitive, Position3($"opInverseRotateXYZ({p}, {V3(e.rotation)})")),
 
-                SymmetryX e => Sdf(e.primitive, Position3($"vec3(abs({p}.x), {p}.yz)")),
-                SymmetryXZ e => Sdf(e.primitive, Position3($"vec3(abs({p}.x), {p}.y, abs({p}.z))")),
-                Repetition e => Sdf(e.primitive, Position3($"opRepeat({p}, {V3(e.spacing)})")),
-                LimitedRepetition e => Sdf(e.primitive, Position3($"opRepeatLimited({p}, {F(e.spacing)}, {V3(e.limits)})")),
 
                 Displace e => Distance($"{Sdf(e.primitive, p)} + {Sdf(e.displacement, p)}"),
-                Twist e => Sdf(e.primitive, Position3($"opTwist({p}, {F(e.amount)})")),
-                CheapBend e => Sdf(e.primitive, Position3($"opCheapBend({p}, {F(e.amount)})")),
 
                 SDFFunctionCall call => Distance($"{FunctionName(call.functionId)}({p}{string.Concat(call.arguments.Select(a => ", " + Value(a)))})"),
 
@@ -249,6 +259,101 @@ public partial class Webgl2CodeGenerator
             };
         }
 
+        private (SDFEvaluable child, string p)? Transformed(SDFEvaluable evaluable, string p) => evaluable switch
+        {
+            Elongate e => (e.primitive, Position3($"{p} - clamp({p}, -{Vec3(e.amount)}, {Vec3(e.amount)})")),
+            Translate e => (e.primitive, Position3($"{p} - {Vec3(e.translation)}")),
+            Rotate e => (e.primitive, Position3($"opInverseRotateXYZ({p}, {Vec3(e.rotation)})")),
+            SymmetryX e => (e.primitive, Position3($"vec3(abs({p}.x), {p}.yz)")),
+            SymmetryXZ e => (e.primitive, Position3($"vec3(abs({p}.x), {p}.y, abs({p}.z))")),
+            Repetition e => (e.primitive, Position3($"opRepeat({p}, {Vec3(e.spacing)})")),
+            LimitedRepetition e => (e.primitive, Position3($"opRepeatLimited({p}, {Float(e.spacing)}, {Vec3(e.limits)})")),
+            Twist e => (e.primitive, Position3($"opTwist({p}, {Float(e.amount)})")),
+            CheapBend e => (e.primitive, Position3($"opCheapBend({p}, {Float(e.amount)})")),
+            _ => null,
+        };
+
+        public (string distance, string color) Material(SDFEvaluable evaluable, string p, string color)
+        {
+            if (!ContainsColor(evaluable))
+                return (Sdf(evaluable, p), color);
+            if (Transformed(evaluable, p) is { } transformed)
+                return Material(transformed.child, transformed.p, color);
+
+            return evaluable switch
+            {
+                SDFEvaluablePointerable e => Material(pointers.SDFEvaluablePointers[e.PointerId], p, color),
+                VariableReferenceSDF r => Inline(r.variableId, value => Material((SDFEvaluable)value, p, color)),
+                Color e => Material(e.primitive, p, ColorValue(Vec3(e.color))),
+                Round e => Modified(e.primitive, p, color, d => $"{d} - {Float(e.radius)}"),
+                Onion e => Modified(e.primitive, p, color, d => $"abs({d}) - {Float(e.thickness)}"),
+                Displace e => Modified(e.primitive, p, color, d => $"{d} + {Sdf(e.displacement, p)}"),
+                Union e => CombineMaterials(e.primitives, p, color, (a, b) => Pick($"{a.distance} < {b.distance}", a, b, $"min({a.distance}, {b.distance})"), "SDF_INFINITY"),
+                Intersection e => CombineMaterials(e.primitives, p, color, (a, b) => Pick($"{a.distance} > {b.distance}", a, b, $"max({a.distance}, {b.distance})"), "-SDF_INFINITY"),
+                SmoothUnion e => CombineMaterials(e.primitives, p, color, (a, b) => Blend(a, b, e.smoothness, 1, $"opSmoothMin({a.distance}, {b.distance}, {Float(e.smoothness)})"), "SDF_INFINITY"),
+                SmoothIntersection e => CombineMaterials(e.primitives, p, color, (a, b) => Blend(a, b, e.smoothness, -1, $"-opSmoothMin(-{a.distance}, -{b.distance}, {Float(e.smoothness)})"), "-SDF_INFINITY"),
+                Subtraction e => Modified(e.a, p, color, d => $"max({d}, -{Sdf(e.b, p)})"),
+                SmoothSubtraction e => Modified(e.a, p, color, d => $"-opSmoothMin(-{d}, {Sdf(e.b, p)}, {Float(e.smoothness)})"),
+                Xor e => CombineMaterials([e.a, e.b], p, color, (a, b) => Pick($"abs({a.distance}) < abs({b.distance})", a, b, $"opXor({a.distance}, {b.distance})"), "SDF_INFINITY"),
+                Scale e => ScaleMaterial(e, p, color),
+                ElongateExactInterior e => ElongateExactInteriorMaterial(e, p, color),
+                _ => (Sdf(evaluable, p), color),
+            };
+        }
+
+        private string ColorValue(string expression) => Temporary("vec3", "c", expression);
+
+        private (string distance, string color) Modified(SDFEvaluable child, string p, string color, Func<string, string> distance)
+        {
+            var (d, c) = Material(child, p, color);
+            return (Distance(distance(d)), c);
+        }
+
+        private (string distance, string color) Pick(string firstWins, (string distance, string color) a, (string distance, string color) b, string distance) =>
+            (Distance(distance), ColorValue($"({firstWins}) ? {a.color} : {b.color}"));
+
+        private (string distance, string color) Blend((string distance, string color) a, (string distance, string color) b, FloatEvaluable smoothness, int sign, string distance)
+        {
+            var weight = $"clamp(0.5 + {Literal(0.125f * sign)} * ({b.distance} - {a.distance}) / max({Float(smoothness)}, 1e-6), 0.0, 1.0)";
+            return (Distance(distance), ColorValue($"mix({b.color}, {a.color}, {weight})"));
+        }
+
+        private (string distance, string color) CombineMaterials(SDFEvaluable[] primitives, string p, string color,
+            Func<(string distance, string color), (string distance, string color), (string distance, string color)> combine, string empty) =>
+            primitives.Length == 0
+                ? (Distance(empty), color)
+                : primitives.Skip(1).Aggregate(Material(primitives[0], p, color), (result, primitive) => combine(result, Material(primitive, p, color)));
+
+        private (string distance, string color) ScaleMaterial(Scale e, string p, string color)
+        {
+            var scale = Vec3(e.scale);
+            var (d, c) = Material(e.primitive, Position3($"{p} / {scale}"), color);
+            return (Distance($"{d} * minComponent({scale})"), c);
+        }
+
+        private (string distance, string color) ElongateExactInteriorMaterial(ElongateExactInterior e, string p, string color)
+        {
+            var q = Position3($"abs({p}) - {Vec3(e.amount)}");
+            var (d, c) = Material(e.primitive, Position3($"max({q}, 0.0)"), color);
+            return (Distance($"{d} + min(maxComponent({q}), 0.0)"), c);
+        }
+
+        public bool ContainsColor(Evaluable evaluable) => ContainsColor(evaluable, []);
+
+        private bool ContainsColor(Evaluable evaluable, HashSet<string> visitedVariables)
+        {
+            var node = PointerTables.PointerId(evaluable) is { } id ? new PointerTables(pointers).Get(id) : evaluable;
+            return node switch
+            {
+                Color => true,
+                SDFFunctionCall => false,
+                VariableReferenceSDF r => visitedVariables.Add(r.variableId)
+                                          && variables.TryGetValue(r.variableId, out var variable)
+                                          && ContainsColor(variable.declaration.value, visitedVariables),
+                _ => EvaluableChildren.Children(node).Any(child => ContainsColor(child, visitedVariables)),
+            };
+        }
+
         private string ElongateExactInterior(ElongateExactInterior e, string p)
         {
             var q = Position3($"abs({p}) - {Vec3(e.amount)}");
@@ -272,7 +377,7 @@ public partial class Webgl2CodeGenerator
                 ? Distance(empty)
                 : primitives.Skip(1).Aggregate(Sdf2D(primitives[0], p), (d, primitive) => Distance(combine(d, Sdf2D(primitive, p))));
 
-        private string Inline(string variableId, Func<Evaluable, string> generate)
+        private T Inline<T>(string variableId, Func<Evaluable, T> generate)
         {
             if (!variables.TryGetValue(variableId, out var variable))
                 throw new InvalidOperationException($"Variable '{variableId}' is not declared in this function or scene");

@@ -113,7 +113,7 @@ void main()
     float specular = pow(max(dot(n, h), 0.0), 48.0) * diffuse;
     float occlusion = ambientOcclusion(p, n);
 
-    vec3 albedo = vec3(0.85, 0.62, 0.42);
+    vec3 albedo = sdf_material(p);
     vec3 lightColor = vec3(1.0, 0.95, 0.88) * 3.5;
     vec3 color = albedo * vec3(0.12, 0.13, 0.17) * occlusion
                + (albedo * diffuse + 0.5 * specular) * lightColor * attenuation * shadow;

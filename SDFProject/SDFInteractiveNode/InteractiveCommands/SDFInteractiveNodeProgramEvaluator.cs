@@ -43,6 +43,7 @@ public class SDFInteractiveNodeProgramEvaluator
             ToggleSmoothness => ApplyToggleNodeSmoothness.CanToggle(tables.Get(id)),
             InteractiveWrapInSubtraction => ApplyWrapInSubtraction.CanWrap(program.Program, id),
             InteractiveWrapInIntersection => ApplyWrapInIntersection.CanWrap(program.Program, id),
+            InteractivePaint => ApplyPaintNode.CanPaint(program.Program, id),
             InteractiveDissolveNode => ApplyDissolveNode.CanDissolve(program.Program, id),
             InteractiveSetNodeParameter o => ApplySetNodeParameter.CanSet(program.Program, id, o.Parameter)
                                              && NodeParameters.Find(tables.Get(id), o.Parameter)!.ComponentCount == o.Components.Length,

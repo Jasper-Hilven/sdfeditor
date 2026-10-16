@@ -103,6 +103,11 @@ public sealed record SDFPartialActionHistory(
         return path;
     }
 
+    public SDFPartialActionHistory StepForward(int child) =>
+        child >= 0 && child < Entries.Count && Entries[child].Parent == Position
+            ? MoveTo(child) with { ChoosingRedo = false }
+            : throw new ArgumentException($"Entry {child} does not follow entry {Position?.ToString() ?? "start"}", nameof(child));
+
     private SDFPartialActionHistory MoveTo(int child) => this with
     {
         Position = child,

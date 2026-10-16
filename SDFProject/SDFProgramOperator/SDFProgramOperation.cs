@@ -26,6 +26,8 @@ public record WrapInSubtraction(string nodeId) : SDFProgramOperation;
 
 public record WrapInIntersection(string nodeId) : SDFProgramOperation;
 
+public record PaintNode(string nodeId, V3 color) : SDFProgramOperation;
+
 public record DissolveNode(string nodeId) : SDFProgramOperation;
 
 public record SetNodeParameter(string nodeId, string parameter, float[] components) : SDFProgramOperation;

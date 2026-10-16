@@ -83,6 +83,7 @@ public class SDFPartialCommandNodeProgramOperator
         var editable = EditableParameters(program);
         return action switch
         {
+            EditColor when ColorParameter(program) is { } color => Edit(program, color),
             EditNode when editable.Count == 1 => Edit(program, editable[0]),
             EditNode => SwitchMode(program, Mode.EditNode),
             StopEditingParameter => SwitchMode(program, editable.Count == 1 ? Mode.Home : Mode.EditNode),
@@ -93,6 +94,19 @@ public class SDFPartialCommandNodeProgramOperator
 
     private static SDFPartialCommandNodeProgram Edit(SDFPartialCommandNodeProgram program, NodeParameter parameter) =>
         program with { state = new SDFPartialCommandNodeProgramState(Mode.EditParameter, parameter.Name) };
+
+    public static NodeParameter? ColorParameter(SDFPartialCommandNodeProgram program) =>
+        SelectedNode(program) is Color ? Parameters(program).FirstOrDefault(p => p is { Name: "color", IsConstant: true }) : null;
+
+    public static bool SelectedIsColor(SDFPartialCommandNodeProgram program) => SelectedNode(program) is Color;
+
+    private static Evaluable? SelectedNode(SDFPartialCommandNodeProgram program)
+    {
+        var interactive = program.interactiveProgram;
+        return interactive.SelectedNodeId is { } id && interactive.Program.pointers.ContainsPointer(id)
+            ? new PointerTables(interactive.Program.pointers).Get(id)
+            : null;
+    }
 
     public static IReadOnlyList<NodeParameter> Parameters(SDFPartialCommandNodeProgram program)
     {
@@ -138,6 +152,7 @@ public class SDFPartialCommandNodeProgramOperator
         ShowFirstReplaceNodeTypes => Mode.ReplaceNode,
         ExtractVariable => Mode.ExtractVariable,
         TypeParameterValue => Mode.TypeParameterValue,
+        SwitchToMaterialMode => Mode.Material,
         _ => null,
     };
 
@@ -260,6 +275,8 @@ public class SDFPartialCommandNodeProgramOperator
         InlineVariable => new InteractiveInlineVariable(),
         EmptyNode => new InteractiveEmptyNode(),
         ApplyInteractiveOperation apply => apply.operation,
+        PaintColor paint => new InteractivePaint(paint.color),
+        RemoveColor => new InteractiveDissolveNode(),
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 

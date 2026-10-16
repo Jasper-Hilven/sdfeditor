@@ -1,3 +1,4 @@
+using V3 = SDFProject.ProgramDefinition.V3;
 using static SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing.SDFPartialCommandNodeProgramMode;
 
 namespace SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing;
@@ -86,6 +87,24 @@ public static class SDFPartialKeyBindings
         new ReplaceWithOctahedronBound(),
     ];
 
+    public static readonly IReadOnlyList<PaintColor> Palette =
+    [
+        new("red", new V3(0.85f, 0.2f, 0.2f)),
+        new("orange", new V3(0.95f, 0.55f, 0.15f)),
+        new("yellow", new V3(0.95f, 0.85f, 0.25f)),
+        new("lime", new V3(0.6f, 0.85f, 0.25f)),
+        new("green", new V3(0.25f, 0.65f, 0.3f)),
+        new("teal", new V3(0.2f, 0.65f, 0.65f)),
+        new("blue", new V3(0.25f, 0.45f, 0.85f)),
+        new("purple", new V3(0.55f, 0.35f, 0.8f)),
+        new("pink", new V3(0.9f, 0.45f, 0.7f)),
+        new("brown", new V3(0.5f, 0.33f, 0.2f)),
+        new("tan", new V3(0.85f, 0.62f, 0.42f)),
+        new("white", new V3(0.92f, 0.92f, 0.92f)),
+        new("grey", new V3(0.5f, 0.5f, 0.5f)),
+        new("black", new V3(0.1f, 0.1f, 0.1f)),
+    ];
+
     public static readonly Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), ISDFPartialAction> Bindings =
         BuildKeyBindings();
 
@@ -110,6 +129,13 @@ public static class SDFPartialKeyBindings
             [(Home, InputKey.LIndex2Up)] = new DissolveNode(),
             [(Home, InputKey.RIndexUp)] = new ExtractVariable(),
             [(Home, InputKey.RIndex2Up)] = new InlineVariable(),
+            [(Home, InputKey.LMiddleDown)] = new SwitchToMaterialMode(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.RMiddleHome)] = new SelectNext(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.RMiddleUp)] = new SelectPrevious(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.RIndexHome)] = new SelectParent(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.RRingHome)] = new SelectFirstChild(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.LIndexDown)] = new EditColor(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.LIndex2Up)] = new RemoveColor(),
             [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LRingHome)] = new EditParameter1(),
             [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LMiddleHome)] = new EditParameter2(),
             [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LIndexHome)] = new EditParameter3(),
@@ -148,7 +174,7 @@ public static class SDFPartialKeyBindings
         foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>())
             bindings[(mode, InputKey.LPinkHome)] = new SwitchToHomeMode();
 
-        foreach (var mode in new[] { Home, Scale, Rotate, Translate, SDFPartialCommandNodeProgramMode.EditNode, EditParameter })
+        foreach (var mode in new[] { Home, Scale, Rotate, Translate, SDFPartialCommandNodeProgramMode.EditNode, EditParameter, SDFPartialCommandNodeProgramMode.Material })
             bindings[(mode, InputKey.LPinkDown)] = new Undo();
 
         foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>().Where(m => !SDFPartialCommandNodeProgramOperator.TakesText(m)))
@@ -185,6 +211,8 @@ public static class SDFPartialKeyBindings
         bindings[(ReplaceNodeMore, InputKey.RPinkDown)] = new ShowFirstReplaceNodeTypes();
         AddInFreeKeys(bindings, SDFPartialCommandNodeProgramMode.ReplaceNode, FirstPageReplaceNodeTypes);
         AddInFreeKeys(bindings, ReplaceNodeMore, MoreReplaceNodeTypes);
+
+        AddInFreeKeys(bindings, SDFPartialCommandNodeProgramMode.Material, Palette.ToArray<ISDFPartialAction>());
 
         return bindings;
     }

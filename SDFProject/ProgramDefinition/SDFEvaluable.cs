@@ -94,6 +94,7 @@ public sealed record Elongate(SDFEvaluable primitive, V3Evaluable amount) : SDFE
 public sealed record ElongateExactInterior(SDFEvaluable primitive, V3Evaluable amount) : SDFEvaluable;
 public sealed record Round(SDFEvaluable primitive, FloatEvaluable radius) : SDFEvaluable;
 public sealed record Onion(SDFEvaluable primitive, FloatEvaluable thickness) : SDFEvaluable;
+public sealed record Color(SDFEvaluable primitive, V3Evaluable color) : SDFEvaluable;
 
 public sealed record Union(params SDFEvaluable[] primitives) : SDFEvaluable;
 public sealed record Subtraction(SDFEvaluable a, SDFEvaluable b) : SDFEvaluable;

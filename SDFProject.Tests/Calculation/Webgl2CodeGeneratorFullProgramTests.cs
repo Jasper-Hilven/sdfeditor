@@ -46,6 +46,11 @@ public class Webgl2CodeGeneratorFullProgramTests(ITestOutputHelper output)
                 float d2 = opSmoothMin(d0, d1, 0.25);
                 return d2;
             }
+
+            vec3 sdf_material(vec3 p)
+            {
+                return vec3(0.85, 0.62, 0.42);
+            }
             """, code);
     }
 }

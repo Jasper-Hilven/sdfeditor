@@ -14,6 +14,7 @@ public class SDFPartialActionLabelsTests
         return type == typeof(InsertText) ? new InsertText("a")
             : type == typeof(ChooseRedoBranch) ? new ChooseRedoBranch(0)
             : type == typeof(GoToHistoryEntry) ? new GoToHistoryEntry(null)
+            : type == typeof(PaintColor) ? SDFPartialKeyBindings.Palette[0]
             : type == typeof(ApplyInteractiveOperation) ? new ApplyInteractiveOperation(new SDFInteractiveNode.SelectNext())
             : (ISDFPartialAction)Activator.CreateInstance(type)!;
     }

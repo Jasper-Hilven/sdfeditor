@@ -1,3 +1,5 @@
+using SDFProject.ProgramDefinition;
+
 namespace SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing;
 
 public interface ISDFPartialAction;
@@ -133,6 +135,10 @@ public record ConfirmText() : ISDFPartialAction;
 public record CancelText() : ISDFPartialAction;
 
 public record ApplyInteractiveOperation(ISdfInteractiveNodeProgramOperation operation) : ISDFPartialAction;
+public record SwitchToMaterialMode() : ISDFPartialAction;
+public record PaintColor(string name, V3 color) : ISDFPartialAction;
+public record EditColor() : ISDFPartialAction;
+public record RemoveColor() : ISDFPartialAction;
 public record Undo() : ISDFPartialAction;
 public record Redo() : ISDFPartialAction;
 public record ChooseRedoBranch(int index) : ISDFPartialAction;

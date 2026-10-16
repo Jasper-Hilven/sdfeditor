@@ -14,7 +14,7 @@ public class YamlRenderTests
     {
         var program = SdfInteractiveNodeProgramConstants.GetInitialProgram();
 
-        Assert.Equal(["[[Box size=(0.5, 0.5, 0.5)]]"], Render.GetRender(program));
+        Assert.Equal(["Box size=(0.5, 0.5, 0.5) <---"], Render.GetRender(program));
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public class YamlRenderTests
         [
             "SmoothUnion smoothness=0.25",
             "    Sphere radius=1",
-            "    [[Round radius=0.1]]",
+            "    Round radius=0.1 <---",
             "        Sphere radius=2",
         ], Render.GetRender(new SdfInteractiveNodeProgram(program, NodeId<Round>(program), 0)));
     }

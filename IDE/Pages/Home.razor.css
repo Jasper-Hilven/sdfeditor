@@ -327,6 +327,16 @@ kbd {
     border-color: #2c2c33;
 }
 
+.keycap.pressed,
+.keycap.pressed:disabled {
+    opacity: 1;
+    border-color: #8fb4ff;
+    border-bottom-width: 1px;
+    background: #3d4f7a;
+    box-shadow: 0 0 10px rgba(143, 180, 255, 0.55);
+    transform: translateY(1px);
+}
+
 .layout-switch {
     align-self: flex-start;
     margin-top: 8px;
@@ -457,4 +467,92 @@ kbd {
 
 .file p {
     margin: 0 0 8px;
+}
+
+.mesh-resolution {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    margin-right: 8px;
+    color: #9a9aa6;
+}
+
+.mesh-resolution select {
+    padding: 4px;
+    border: 1px solid #3a3a44;
+    border-radius: 4px;
+    background: #16161a;
+    color: inherit;
+    font: inherit;
+}
+
+.examples {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    overflow: auto;
+}
+
+.examples p {
+    margin: 0;
+}
+
+.example-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+.example {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.example-name {
+    font-weight: 600;
+}
+
+.example-description {
+    color: #9a9aa6;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.history-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px 0;
+}
+
+.history-controls button {
+    padding: 4px 10px;
+}
+
+.play-freeze {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    cursor: wait;
+}
+
+.play-status {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid #4a5a8a;
+    border-radius: 6px;
+    background: #262c40;
+    cursor: default;
 }

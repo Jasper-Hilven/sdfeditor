@@ -132,6 +132,7 @@ public class SdfCalculatorCpu
             Rhombus e => SdfMath.Rhombus(p, Float(e.lengthA), Float(e.lengthB), Float(e.height), Float(e.roundness)),
             Rotate e => Sdf(e.primitive, InverseRotateXYZ(p, Vec3(e.rotation))),
             Round e => Sdf(e.primitive, p) - Float(e.radius),
+            Color e => Sdf(e.primitive, p),
             RoundBox e => SdfMath.RoundBox(p, Vec3(e.size), Float(e.roundness)),
             RoundCone e => SdfMath.RoundCone(p, Float(e.bottomRadius), Float(e.topRadius), Float(e.height)),
             RoundedCylinder e => SdfMath.RoundedCylinder(p, Float(e.radius), Float(e.roundness), Float(e.height)),

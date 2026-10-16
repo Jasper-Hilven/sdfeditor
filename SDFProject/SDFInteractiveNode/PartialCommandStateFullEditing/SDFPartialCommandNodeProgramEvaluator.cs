@@ -29,6 +29,10 @@ public class SDFPartialCommandNodeProgramEvaluator
 
         switch (action)
         {
+            case EditColor:
+                return SDFPartialCommandNodeProgramOperator.ColorParameter(program) is not null;
+            case RemoveColor:
+                return SDFPartialCommandNodeProgramOperator.SelectedIsColor(program);
             case EditNode:
                 return SDFPartialCommandNodeProgramOperator.Parameters(program).Any(p => p.IsConstant);
             case EditParameter1 or EditParameter2

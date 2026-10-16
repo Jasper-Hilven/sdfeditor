@@ -22,4 +22,5 @@ public enum SDFPartialCommandNodeProgramMode
     EditNode,
     EditParameter,
     TypeParameterValue,
+    Material,
 }
