@@ -18,7 +18,7 @@ public class SDFPartialCommandNodeProgramOperator
     {
         if (TakesText(partialCommandProgram.state.Mode))
             return OperateOnText(partialCommandProgram, action);
-        if (action is InsertText or DeleteLastCharacter or ConfirmText or CancelText)
+        if (action is InsertText or DeleteLastCharacter or ConfirmText or CancelText or Undo or Redo or ChooseRedoBranch or CancelRedoChoice or GoToHistoryEntry)
             return partialCommandProgram;
 
         if (EditingTransition(partialCommandProgram, action) is { } editing)

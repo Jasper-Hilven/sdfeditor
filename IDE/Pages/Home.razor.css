@@ -105,14 +105,6 @@ header {
     width: 2px;
 }
 
-.buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 6px;
-    padding: 12px;
-    overflow: auto;
-}
-
 button {
     padding: 8px;
     border: 1px solid #3a3a44;
@@ -305,9 +297,12 @@ kbd {
 .keycap-text {
     max-width: 100%;
     font-size: 11px;
-    white-space: nowrap;
+    line-height: 1.15;
+    text-align: center;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .keycap.mode {
@@ -375,23 +370,73 @@ kbd {
 
 .history {
     flex: 1;
-    display: flex;
-    flex-direction: column-reverse;
-    padding: 12px;
+    padding: 8px 12px;
     overflow: auto;
 }
 
-.history ol {
-    margin: 0;
-    padding-left: 3em;
-    font: 13px/1.6 ui-monospace, Menlo, Consolas, monospace;
+.history-rows {
+    position: relative;
 }
 
-.history li::marker {
+.history-graph {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.history-graph path {
+    fill: none;
+    stroke-width: 2;
+}
+
+.history-graph circle {
+    stroke-width: 2;
+}
+
+.history-graph .off-path {
+    opacity: 0.35;
+}
+
+.history-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 24px;
+    line-height: 24px;
+    font: 13px/24px ui-monospace, Menlo, Consolas, monospace;
+    white-space: nowrap;
+}
+
+.history-row.current {
+    color: #f0f0f4;
+    font-weight: 600;
+}
+
+.history-row.off-path {
     color: #6c6c78;
 }
 
-.history li.latest {
-    color: #f0f0f4;
-    font-weight: 600;
+.history-row kbd {
+    margin-right: 6px;
+}
+
+.redo-option {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    text-align: left;
+}
+
+.redo-option .hint {
+    margin-left: auto;
+}
+
+.history-row {
+    cursor: pointer;
+}
+
+.history-row:hover {
+    background: #26262d;
 }

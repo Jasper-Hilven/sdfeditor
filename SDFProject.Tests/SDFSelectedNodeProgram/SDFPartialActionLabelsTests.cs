@@ -12,6 +12,8 @@ public class SDFPartialActionLabelsTests
     {
         var type = typeof(ISDFPartialAction).Assembly.GetTypes().Single(t => t.Name == name && typeof(ISDFPartialAction).IsAssignableFrom(t));
         return type == typeof(InsertText) ? new InsertText("a")
+            : type == typeof(ChooseRedoBranch) ? new ChooseRedoBranch(0)
+            : type == typeof(GoToHistoryEntry) ? new GoToHistoryEntry(null)
             : type == typeof(ApplyInteractiveOperation) ? new ApplyInteractiveOperation(new SDFInteractiveNode.SelectNext())
             : (ISDFPartialAction)Activator.CreateInstance(type)!;
     }
@@ -23,6 +25,6 @@ public class SDFPartialActionLabelsTests
         var label = SDFPartialActionLabels.Label(Create(name));
 
         Assert.False(string.IsNullOrEmpty(label.Symbol));
-        Assert.InRange(label.Text.Length, 1, 9);
+        Assert.InRange(label.Text.Length, 1, 20);
     }
 }

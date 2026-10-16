@@ -2,7 +2,6 @@
 @using System.Globalization
 @using System.Text.RegularExpressions
 @using SDFProject.SDFProgramOperator.Helpers
-@using IDE.Operations
 @using SDFProject.Calculation
 @using SDFProject.ProgramDefinition
 @using SDFProject.SDFInteractiveNode
@@ -49,7 +48,7 @@
         <header class="tabs">
             @foreach (var tab in Enum.GetValues<Tab>())
             {
-                <button class="tab @(shownTab == tab ? "active" : "")" @onclick="() => shownTab = tab">@tab</button>
+                <button class="tab @(shownTab == tab ? "active" : "")" @onclick="() => ShowTab(tab)">@tab</button>
             }
             <span class="status">
                 mode @partialProgram.state.Mode · selected @(program.SelectedNodeId ?? "none") · zoom @program.StrZoomLevel
@@ -122,27 +121,42 @@
         }
         else if (shownTab == Tab.History)
         {
-            var actions = history.Actions;
-            <div class="history">
-                <ol>
-                    @for (var i = 0; i < actions.Count; i++)
+            var graph = SDFPartialHistoryGraph.Of(history);
+            var rows = history.Entries.Count + 1;
+            var currentRow = SDFPartialHistoryGraph.Row(history.Position);
+            var onPath = history.Path(history.Position).Select(i => SDFPartialHistoryGraph.Row(i)).Append(0).ToHashSet();
+            var options = history.RedoOptions.Select(i => SDFPartialHistoryGraph.Row(i)).ToList();
+            var graphWidth = graph.LaneCount * LaneWidth + 8;
+            var letters = KeyLetters;
+            <div class="history" @ref="historyList">
+                <div class="history-rows" style="height: @(rows * RowHeight)px">
+                    <svg class="history-graph" width="@graphWidth" height="@(rows * RowHeight)">
+                        @foreach (var (parent, child) in graph.Edges)
+                        {
+                            <path d="@EdgePath(graph, rows, parent, child)" stroke="@LaneColor(graph.Lanes[child])"
+                                  class="@(onPath.Contains(child) ? "" : "off-path")" />
+                        }
+                        @for (var row = 0; row < rows; row++)
+                        {
+                            <circle cx="@LaneX(graph.Lanes[row])" cy="@RowY(rows, row)" r="@(row == currentRow ? 6 : 4)"
+                                    fill="@(row == currentRow ? LaneColor(graph.Lanes[row]) : "#1e1e24")" stroke="@LaneColor(graph.Lanes[row])"
+                                    class="@(onPath.Contains(row) ? "" : "off-path")" />
+                        }
+                    </svg>
+                    @for (var row = 0; row < rows; row++)
                     {
-                        <li class="@(i == actions.Count - 1 ? "latest" : "")">@HistoryEntry(actions[i])</li>
+                        var option = options.IndexOf(row);
+                        var entry = row == 0 ? (int?)null : row - 1;
+                        <div class="history-row @(row == currentRow ? "current" : onPath.Contains(row) ? "" : "off-path")"
+                             style="top: @((rows - 1 - row) * RowHeight)px; padding-left: @(graphWidth)px" @onclick="() => Act(new GoToHistoryEntry(entry))">
+                            @if (option >= 0)
+                            {
+                                <kbd>@letters[SDFPartialKeyBindings.RedoChoiceKeys[option]].ToUpperInvariant()</kbd>
+                            }
+                            @(row == 0 ? "start" : HistoryEntry(history.Entries[row - 1].Action))
+                        </div>
                     }
-                </ol>
-                @if (actions.Count == 0)
-                {
-                    <p class="hint">No commands yet</p>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="buttons">
-                @foreach (var operation in OperationDefinition.All)
-                {
-                    <button @onclick="() => Start(operation)">@operation.Label</button>
-                }
+                </div>
             </div>
         }
     </section>
@@ -152,46 +166,6 @@
         <pre class="code">@shaderCode</pre>
     </section>
 </div>
-
-@if (pending is not null)
-{
-    <div class="backdrop" @onclick="Cancel">
-        <form class="popup" @onclick:stopPropagation @onsubmit="Submit">
-            <h3>@pending.Label</h3>
-            @foreach (var input in pendingInputs)
-            {
-                <label>
-                    <span>@input.Name</span>
-                    @if (input.Type.IsEnum)
-                    {
-                        <select @bind="input.Texts[0]">
-                            @foreach (var name in Enum.GetNames(input.Type))
-                            {
-                                <option value="@name">@name</option>
-                            }
-                        </select>
-                    }
-                    else
-                    {
-                        @for (var i = 0; i < input.Texts.Length; i++)
-                        {
-                            var index = i;
-                            <input @bind="input.Texts[index]" inputmode="@(input.Type == typeof(string) ? "text" : "decimal")" />
-                        }
-                    }
-                </label>
-            }
-            @if (popupError is not null)
-            {
-                <div class="error">@popupError</div>
-            }
-            <div class="actions">
-                <button type="button" @onclick="Cancel">Cancel</button>
-                <button type="submit">Run</button>
-            </div>
-        </form>
-    </div>
-}
 
 @if (SDFPartialCommandNodeProgramOperator.TakesText(partialProgram.state.Mode))
 {
@@ -216,6 +190,30 @@
     </div>
 }
 
+@if (history.ChoosingRedo)
+{
+    var letters = KeyLetters;
+    var options = history.RedoOptions;
+    <div class="backdrop" @onclick="() => Act(new CancelRedoChoice())">
+        <div class="popup" @onclick:stopPropagation>
+            <h3>Redo which branch?</h3>
+            @for (var i = 0; i < options.Count; i++)
+            {
+                var index = i;
+                <button type="button" class="redo-option" @onclick="() => Act(new ChooseRedoBranch(index))">
+                    <kbd>@letters[SDFPartialKeyBindings.RedoChoiceKeys[index]].ToUpperInvariant()</kbd>
+                    @HistoryEntry(history.Entries[options[index]].Action)
+                    <span class="hint">@BranchSize(options[index]) action(s)</span>
+                </button>
+            }
+            <div class="hint">Press the key of a branch, Esc to cancel</div>
+            <div class="actions">
+                <button type="button" @onclick="() => Act(new CancelRedoChoice())">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private readonly YamlRender yamlRender = new();
     private readonly Webgl2CodeGenerator codeGenerator = new();
@@ -228,10 +226,6 @@
     private string shaderCode = "";
     private string? operationError;
 
-    private OperationDefinition? pending;
-    private OperationParameterInput[] pendingInputs = [];
-    private string? popupError;
-
     private ElementReference canvas;
     private IJSObjectReference? rendererModule;
     private IJSObjectReference? renderer;
@@ -240,7 +234,7 @@
     private bool quadView;
     private bool rotateView;
 
-    private enum Tab { Keyboard, Keys, History, Operations }
+    private enum Tab { Keyboard, Keys, History }
 
     private Tab shownTab = Tab.Keyboard;
 
@@ -249,40 +243,6 @@
     private IJSObjectReference? keyListener;
 
     protected override void OnInitialized() => shaderCode = codeGenerator.GenerateShaderCode(program.Program);
-
-    private void Start(OperationDefinition operation)
-    {
-        if (operation.Parameters.Length == 0)
-        {
-            Run(operation.Create([]));
-            return;
-        }
-
-        pending = operation;
-        pendingInputs = operation.Parameters.Select(p => new OperationParameterInput(p)).ToArray();
-        popupError = null;
-    }
-
-    private void Submit()
-    {
-        object[] arguments;
-        try
-        {
-            arguments = pendingInputs.Select(i => i.Parse()).ToArray();
-        }
-        catch (FormatException e)
-        {
-            popupError = e.Message;
-            return;
-        }
-
-        Run(pending!.Create(arguments));
-        pending = null;
-    }
-
-    private void Cancel() => pending = null;
-
-    private void Run(ISdfInteractiveNodeProgramOperation operation) => Act(new ApplyInteractiveOperation(operation));
 
     private static IEnumerable<InputKey[]> KeyboardRows() =>
     [
@@ -300,17 +260,25 @@
 
     private (SDFPartialActionLabel? Label, string Name, bool Available, string Style) KeyCap(InputKey key)
     {
-        if (!SDFPartialKeyBindings.Bindings.TryGetValue((partialProgram.state.Mode, key), out var action) || NotOnThisNode(action))
+        if (history.ActionFor(key) is not { } action || NotOnThisNode(action))
             return (null, "", false, "unbound");
 
-        var available = SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(partialProgram, key);
+        var available = history.IsAvailable(key);
         var style = ModeSwitchingActions.Contains(action) ? "mode" : "";
-        return (SDFPartialActionLabels.Label(action, partialProgram), Describe(action), available, available ? style : $"{style} unavailable");
+        return (Label(action), Describe(action), available, available ? style : $"{style} unavailable");
     }
+
+    private SDFPartialActionLabel Label(ISDFPartialAction action) => action is ChooseRedoBranch choose
+        ? new("⎇", SDFPartialActionLabels.Label(BranchAction(choose)).Text)
+        : SDFPartialActionLabels.Label(action, partialProgram);
+
+    private ISDFPartialAction BranchAction(ChooseRedoBranch choose) => history.Entries[history.RedoOptions[choose.index]].Action;
+
+    private int BranchSize(int entry) => 1 + history.Children(entry).Sum(BranchSize);
 
     private void Press(InputKey key)
     {
-        if (SDFPartialKeyBindings.Bindings.TryGetValue((partialProgram.state.Mode, key), out var action))
+        if (history.ActionFor(key) is { } action)
             Act(action);
     }
 
@@ -362,7 +330,8 @@
     };
 
     private string Describe(ISDFPartialAction action) =>
-        SDFPartialCommandNodeProgramOperator.ParameterToEdit(partialProgram, action) is { } picked ? $"Edit {picked.Name}"
+        action is ChooseRedoBranch choose ? $"Redo {HistoryEntry(BranchAction(choose))}"
+        : SDFPartialCommandNodeProgramOperator.ParameterToEdit(partialProgram, action) is { } picked ? $"Edit {picked.Name}"
         : action is ParameterXDown or ParameterXUp or ParameterYDown or ParameterYUp or ParameterZDown or ParameterZUp
               or TypeParameterValue
           && SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { } edited ? $"{SpelledOut(action)} ({edited.Name})"
@@ -379,17 +348,51 @@
         _ => SpelledOut(action),
     };
 
-    [JSInvokable]
-    public void OnKeyDown(string key)
-    {
-        if (pending is not null)
-            return;
+    private const int RowHeight = 24;
+    private const int LaneWidth = 16;
+    private static readonly string[] LaneColors = ["#e0a458", "#6cb4ee", "#9ad27f", "#d987c9", "#ef7b72", "#7fd6c8"];
 
-        if (SDFPartialCommandNodeProgramOperator.TakesText(partialProgram.state.Mode))
+    private ElementReference historyList;
+    private string? revealedHistory;
+
+    private static string LaneColor(int lane) => LaneColors[lane % LaneColors.Length];
+
+    private static int LaneX(int lane) => 4 + lane * LaneWidth + LaneWidth / 2;
+
+    private static int RowY(int rows, int row) => (rows - 1 - row) * RowHeight + RowHeight / 2;
+
+    private static string EdgePath(SDFPartialHistoryGraph graph, int rows, int parent, int child)
+    {
+        int px = LaneX(graph.Lanes[parent]), py = RowY(rows, parent), cx = LaneX(graph.Lanes[child]), cy = RowY(rows, child);
+        return px == cx
+            ? $"M {px} {py} L {cx} {cy}"
+            : $"M {px} {py} C {px} {py - RowHeight / 2} {cx} {py - RowHeight / 2} {cx} {py - RowHeight} L {cx} {cy}";
+    }
+
+    private void ShowTab(Tab tab)
+    {
+        shownTab = tab;
+        revealedHistory = null;
+    }
+
+    [JSInvokable]
+    public async Task OnKeyDown(string key)
+    {
+        if (history.ChoosingRedo && key == "Escape")
+        {
+            Act(new CancelRedoChoice());
+        }
+        else if (!history.ChoosingRedo && SDFPartialCommandNodeProgramOperator.TakesText(partialProgram.state.Mode))
         {
             if (TextAction(key) is not { } action)
                 return;
             Act(action);
+        }
+        else if (!history.ChoosingRedo && shownTab == Tab.History && key.ToLowerInvariant() is "i" or "k")
+        {
+            if (keyboardModule is not null)
+                await keyboardModule.InvokeVoidAsync("scrollBy", historyList, key.ToLowerInvariant() == "i" ? -3 * RowHeight : 3 * RowHeight);
+            return;
         }
         else if (Layout.TryGetValue(key, out var inputKey))
         {
@@ -417,13 +420,14 @@
         new ShowMoreReplaceNodeTypes(),
         new ShowFirstReplaceNodeTypes(),
         new CancelText(),
+        new CancelRedoChoice(),
     ];
 
     private IEnumerable<(string Key, string Action, bool SwitchesMode)> CurrentKeyBindings() =>
         Layout
-            .Where(pair => SDFPartialCommandNodeProgramEvaluator.IsActionAvailable(partialProgram, pair.Value))
+            .Where(pair => history.IsAvailable(pair.Value))
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)
-            .Select(pair => (pair.Key, Action: SDFPartialKeyBindings.Bindings[(partialProgram.state.Mode, pair.Value)]))
+            .Select(pair => (pair.Key, Action: history.ActionFor(pair.Value)!))
             .Select(pair => (pair.Key, Describe(pair.Action), ModeSwitchingActions.Contains(pair.Action)));
 
     private void Act(ISDFPartialAction action)
@@ -458,6 +462,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        var historyState = $"{history.Position}/{history.Entries.Count}";
+        if (shownTab == Tab.History && revealedHistory != historyState && keyboardModule is not null)
+        {
+            revealedHistory = historyState;
+            await keyboardModule.InvokeVoidAsync("revealCurrent", historyList);
+        }
+
         if (firstRender)
         {
             keyHandler = DotNetObjectReference.Create(this);

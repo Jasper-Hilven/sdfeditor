@@ -14,6 +14,8 @@ public class SDFPartialCommandNodeProgramEvaluator
             return action is InsertText or DeleteLastCharacter or ConfirmText or CancelText;
         if (action is InsertText or DeleteLastCharacter or ConfirmText or CancelText)
             return false;
+        if (action is Undo or Redo or ChooseRedoBranch or CancelRedoChoice or GoToHistoryEntry)
+            return true;
 
         if (action is AddNode &&
             !SDFInteractiveNodeProgramEvaluator.IsActionAvailable(program.interactiveProgram, new InteractiveAddNodeNextTo(SDFNodeType.Box)))

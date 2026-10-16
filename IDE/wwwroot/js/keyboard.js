@@ -14,3 +14,11 @@ export function listenToKeys(dotNetHandler) {
     return { dispose: () => document.removeEventListener("keydown", onKeyDown) };
 }
 
+
+export function scrollBy(element, pixels) {
+    element.scrollBy({ top: pixels, behavior: "smooth" });
+}
+
+export function revealCurrent(element) {
+    element.querySelector(".current")?.scrollIntoView({ block: "nearest" });
+}

@@ -133,3 +133,8 @@ public record ConfirmText() : ISDFPartialAction;
 public record CancelText() : ISDFPartialAction;
 
 public record ApplyInteractiveOperation(ISdfInteractiveNodeProgramOperation operation) : ISDFPartialAction;
+public record Undo() : ISDFPartialAction;
+public record Redo() : ISDFPartialAction;
+public record ChooseRedoBranch(int index) : ISDFPartialAction;
+public record CancelRedoChoice() : ISDFPartialAction;
+public record GoToHistoryEntry(int? entry) : ISDFPartialAction;

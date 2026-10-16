@@ -32,12 +32,12 @@ public static class SDFPartialKeyBindings
         new AddPyramid(),
         new AddTriangle(),
         new AddQuad(),
-        new AddEllipsoid(),
-        new AddTriPrism(),
     ];
 
     private static readonly ISDFPartialAction[] MoreNodeTypes =
     [
+        new AddEllipsoid(),
+        new AddTriPrism(),
         new AddArbitraryCappedCylinder(),
         new AddArbitraryCappedCone(),
         new AddArbitraryRoundCone(),
@@ -73,12 +73,12 @@ public static class SDFPartialKeyBindings
         new ReplaceWithPyramid(),
         new ReplaceWithTriangle(),
         new ReplaceWithQuad(),
-        new ReplaceWithEllipsoid(),
-        new ReplaceWithTriPrism(),
     ];
 
     private static readonly ISDFPartialAction[] MoreReplaceNodeTypes =
     [
+        new ReplaceWithEllipsoid(),
+        new ReplaceWithTriPrism(),
         new ReplaceWithArbitraryCappedCylinder(),
         new ReplaceWithArbitraryCappedCone(),
         new ReplaceWithArbitraryRoundCone(),
@@ -148,6 +148,12 @@ public static class SDFPartialKeyBindings
         foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>())
             bindings[(mode, InputKey.LPinkHome)] = new SwitchToHomeMode();
 
+        foreach (var mode in new[] { Home, Scale, Rotate, Translate, SDFPartialCommandNodeProgramMode.EditNode, EditParameter })
+            bindings[(mode, InputKey.LPinkDown)] = new Undo();
+
+        foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>().Where(m => !SDFPartialCommandNodeProgramOperator.TakesText(m)))
+            bindings[(mode, InputKey.LRingDown)] = new Redo();
+
         foreach (var mode in new[] { Scale, Rotate, Translate })
         {
             bindings[(mode, InputKey.LMiddleDown)] = new DecreaseZoomLevel();
@@ -164,20 +170,29 @@ public static class SDFPartialKeyBindings
 
         bindings[(SDFPartialCommandNodeProgramMode.AddNode, InputKey.LPinkHome)] = new CancelAddNode();
         bindings[(AddNodeMore, InputKey.LPinkHome)] = new CancelAddNode();
-        bindings[(SDFPartialCommandNodeProgramMode.AddNode, InputKey.LPinkDown)] = new ShowMoreNodeTypes();
-        bindings[(AddNodeMore, InputKey.LPinkDown)] = new ShowFirstNodeTypes();
+        bindings[(SDFPartialCommandNodeProgramMode.AddNode, InputKey.LPinkDown)] = new Undo();
+        bindings[(AddNodeMore, InputKey.LPinkDown)] = new Undo();
+        bindings[(SDFPartialCommandNodeProgramMode.AddNode, InputKey.RPinkDown)] = new ShowMoreNodeTypes();
+        bindings[(AddNodeMore, InputKey.RPinkDown)] = new ShowFirstNodeTypes();
         AddInFreeKeys(bindings, SDFPartialCommandNodeProgramMode.AddNode, FirstPageNodeTypes);
         AddInFreeKeys(bindings, AddNodeMore, MoreNodeTypes);
 
         bindings[(SDFPartialCommandNodeProgramMode.ReplaceNode, InputKey.LPinkHome)] = new CancelReplaceNode();
         bindings[(ReplaceNodeMore, InputKey.LPinkHome)] = new CancelReplaceNode();
-        bindings[(SDFPartialCommandNodeProgramMode.ReplaceNode, InputKey.LPinkDown)] = new ShowMoreReplaceNodeTypes();
-        bindings[(ReplaceNodeMore, InputKey.LPinkDown)] = new ShowFirstReplaceNodeTypes();
+        bindings[(SDFPartialCommandNodeProgramMode.ReplaceNode, InputKey.LPinkDown)] = new Undo();
+        bindings[(ReplaceNodeMore, InputKey.LPinkDown)] = new Undo();
+        bindings[(SDFPartialCommandNodeProgramMode.ReplaceNode, InputKey.RPinkDown)] = new ShowMoreReplaceNodeTypes();
+        bindings[(ReplaceNodeMore, InputKey.RPinkDown)] = new ShowFirstReplaceNodeTypes();
         AddInFreeKeys(bindings, SDFPartialCommandNodeProgramMode.ReplaceNode, FirstPageReplaceNodeTypes);
         AddInFreeKeys(bindings, ReplaceNodeMore, MoreReplaceNodeTypes);
 
         return bindings;
     }
+
+    public static readonly IReadOnlyList<InputKey> RedoChoiceKeys = FingerKeyLayouts.KeyColumns.Skip(1).Select(c => c.Home)
+        .Concat(FingerKeyLayouts.KeyColumns.Select(c => c.Up))
+        .Concat(FingerKeyLayouts.KeyColumns.Select(c => c.Down))
+        .ToArray();
 
     private static void AddInFreeKeys(Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), ISDFPartialAction> bindings,
         SDFPartialCommandNodeProgramMode mode, ISDFPartialAction[] actions)
