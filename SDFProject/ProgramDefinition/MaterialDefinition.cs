@@ -4,7 +4,8 @@ namespace SDFProject.ProgramDefinition;
 
 /// <summary>
 /// How a surface looks, in renderer-independent physical terms that map onto Unity HDRP's Lit material: a dielectric with a base colour,
-/// roughness and specular level, light scattering through it (subsurface), and procedural detail. Lengths are in metres.
+/// roughness and specular level, light scattering through it (subsurface), a wet coat, procedural detail in the shape's own coordinates,
+/// and a colour shift where the material is thin. Lengths are in metres.
 /// </summary>
 public sealed record MaterialDefinition(
     V3 baseColor,
@@ -16,6 +17,21 @@ public sealed record MaterialDefinition(
     float detailScale,
     float colorVariation)
 {
+    /// <summary>0 dry to 1 soaked: a sharp glossy coat over the surface (HDRP's coat mask), darkening it a little.</summary>
+    public float wetness { get; init; }
+
+    /// <summary>1 for round grain; higher stretches the detail into fibres that run out from <see cref="detailAxis"/> and along it.</summary>
+    public float detailStretch { get; init; } = 1;
+
+    /// <summary>The axis fibres run out from, in the shape's own coordinates: (0, 1, 0) for a cap or stem, (0, 0, 1) for an iris.</summary>
+    public V3 detailAxis { get; init; } = new(0, 1, 0);
+
+    /// <summary>The colour the surface takes on where the material is thinner than <see cref="edgeThickness"/>.</summary>
+    public V3 edgeColor { get; init; } = new(0, 0, 0);
+
+    /// <summary>How thin the material must be to show <see cref="edgeColor"/>; 0 turns the edge colour off.</summary>
+    public float edgeThickness { get; init; }
+
     /// <summary>What a shape without a colour or material looks like.</summary>
     public static readonly MaterialDefinition Default = new(new V3(0.85f, 0.62f, 0.42f), 0.5f, 0.5f, new V3(0, 0, 0), 0, 0, 0.05f, 0);
 
@@ -34,6 +50,11 @@ public sealed record MaterialDefinition(
         new(nameof(detailStrength), MaterialParameterKind.Number, m => [m.detailStrength], (m, v) => m with { detailStrength = v[0] }),
         new(nameof(detailScale), MaterialParameterKind.Number, m => [m.detailScale], (m, v) => m with { detailScale = v[0] }),
         new(nameof(colorVariation), MaterialParameterKind.Number, m => [m.colorVariation], (m, v) => m with { colorVariation = v[0] }),
+        new(nameof(wetness), MaterialParameterKind.Number, m => [m.wetness], (m, v) => m with { wetness = v[0] }),
+        new(nameof(detailStretch), MaterialParameterKind.Number, m => [m.detailStretch], (m, v) => m with { detailStretch = v[0] }),
+        new(nameof(detailAxis), MaterialParameterKind.Direction, m => Components(m.detailAxis), (m, v) => m with { detailAxis = Color(v) }),
+        new(nameof(edgeColor), MaterialParameterKind.Color, m => Components(m.edgeColor), (m, v) => m with { edgeColor = Color(v) }),
+        new(nameof(edgeThickness), MaterialParameterKind.Number, m => [m.edgeThickness], (m, v) => m with { edgeThickness = v[0] }),
     ];
 
     public static MaterialParameter? FindParameter(string name) => Parameters.FirstOrDefault(p => p.Name == name);
@@ -47,6 +68,7 @@ public enum MaterialParameterKind
 {
     Number,
     Color,
+    Direction,
 }
 
 public sealed record MaterialParameter(
@@ -55,7 +77,7 @@ public sealed record MaterialParameter(
     Func<MaterialDefinition, float[]> Get,
     Func<MaterialDefinition, float[], MaterialDefinition> Set)
 {
-    public int ComponentCount => Kind == MaterialParameterKind.Color ? 3 : 1;
+    public int ComponentCount => Kind == MaterialParameterKind.Number ? 1 : 3;
 
     public MaterialDefinition With(MaterialDefinition material, float[] components) =>
         components.Length == ComponentCount

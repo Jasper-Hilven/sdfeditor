@@ -13,7 +13,7 @@ namespace SDFPipeline.Rendering;
 
 public sealed record RenderOptions
 {
-    public const int DefaultSize = 1024;
+    public const int DefaultSize = 2048;
 
     /// <summary>Width and height of the image in pixels; each of the four views gets a quarter.</summary>
     public int Size { get; init; } = DefaultSize;
@@ -22,6 +22,9 @@ public sealed record RenderOptions
 
     /// <summary>The materials the program's Material nodes refer to; unknown names render magenta.</summary>
     public MaterialLibrary Materials { get; init; } = MaterialLibrary.Empty;
+
+    /// <summary>Direction towards the sun; null keeps the IDE's sun, up and to the front right.</summary>
+    public V3? LightDirection { get; init; }
 }
 
 public sealed record RenderResult(byte[] Png, RenderFraming Framing);
@@ -49,6 +52,7 @@ public static class SdfRenderer
                 orthoScale = framing.Camera.OrthoScale,
             },
             caption = framing.Bounds is { } bounds ? Caption(bounds.Size) : null,
+            light = options.LightDirection is { } light ? new[] { light.x, light.y, light.z } : null,
         });
 
         var port = FreePort();

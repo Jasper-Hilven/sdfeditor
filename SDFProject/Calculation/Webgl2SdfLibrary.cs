@@ -92,6 +92,14 @@ public static partial class Webgl2SdfLibrary
         }
         """;
 
+    public const string OpRadialWave = """
+        vec3 opRadialWave(vec3 p, float amount, float count)
+        {
+            float r = length(p.xz);
+            return r < 1e-5 ? p : vec3(p.x, p.y - amount * r * sin(count * atan(p.z, p.x)), p.z);
+        }
+        """;
+
     public const string OpCheapBend = """
         vec3 opCheapBend(vec3 p, float k)
         {
@@ -889,6 +897,7 @@ public static partial class Webgl2SdfLibrary
         OpRepeatLimited,
         OpTwist,
         OpCheapBend,
+        OpRadialWave,
         SdfHash,
         SdfValueNoise,
         OpDistort,

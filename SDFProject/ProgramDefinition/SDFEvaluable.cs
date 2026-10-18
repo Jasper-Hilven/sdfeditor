@@ -119,6 +119,8 @@ public sealed record LimitedRepetition(SDFEvaluable primitive, FloatEvaluable sp
 public sealed record Displace(SDFEvaluable primitive, SDFEvaluable displacement) : SDFEvaluable;
 public sealed record Twist(SDFEvaluable primitive, FloatEvaluable amount) : SDFEvaluable;
 public sealed record CheapBend(SDFEvaluable primitive, FloatEvaluable amount) : SDFEvaluable;
+/// <summary>Raises and lowers the shape below it <paramref name="count"/> times around the y axis, by <paramref name="amount"/> metres per metre from the axis: a wavy rim.</summary>
+public sealed record RadialWave(SDFEvaluable primitive, FloatEvaluable amount, FloatEvaluable count) : SDFEvaluable;
 
 public interface SDF2DEvaluable : Evaluable;
 public sealed record SDF2DEvaluablePointerable(string PointerId) : Pointerable, SDF2DEvaluable;

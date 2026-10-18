@@ -84,7 +84,12 @@ public static class MaterialFile
     private static float Parse(RawNumber number) => float.Parse(number.Text, CultureInfo.InvariantCulture);
 
     private static string Expected(MaterialParameter parameter) =>
-        parameter.Kind == MaterialParameterKind.Color ? "a colour like (0.9, 0.5, 0.1)" : "a number";
+        parameter.Kind switch
+        {
+            MaterialParameterKind.Color => "a colour like (0.9, 0.5, 0.1)",
+            MaterialParameterKind.Direction => "a direction like (0, 1, 0)",
+            _ => "a number",
+        };
 
     private static void ReadFormat(SourceLine line)
     {

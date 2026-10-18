@@ -18,7 +18,7 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
     public const string MaterialFunctionName = "sdf_material";
     public const string DefaultColor = "vec3(0.85, 0.62, 0.42)";
     public const string MaterialType = "SurfaceMaterial";
-    public static readonly string DefaultMaterial = $"colorMaterial({DefaultColor})";
+    public static readonly string DefaultMaterial = $"colorMaterial({DefaultColor}, p)";
 
     /// <summary>The material struct and its helpers; the renderer shades with the fields of what <see cref="MaterialFunctionName"/> returns.</summary>
     public static readonly string MaterialCode = $$"""
@@ -32,11 +32,17 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
             float detailStrength;
             float detailScale;
             float colorVariation;
+            float wetness;
+            float detailStretch;
+            vec3 detailAxis;
+            vec3 edgeColor;
+            float edgeThickness;
+            vec3 localPosition;
         };
 
-        {{MaterialType}} colorMaterial(vec3 color)
+        {{MaterialType}} colorMaterial(vec3 color, vec3 localPosition)
         {
-            return {{MaterialLiteral(MaterialDefinition.Default, "color")}};
+            return {{MaterialLiteral(MaterialDefinition.Default, "localPosition", "color")}};
         }
 
         {{MaterialType}} mixMaterial({{MaterialType}} a, {{MaterialType}} b, float t)
@@ -49,7 +55,13 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
                 mix(a.subsurfaceRadius, b.subsurfaceRadius, t),
                 mix(a.detailStrength, b.detailStrength, t),
                 mix(a.detailScale, b.detailScale, t),
-                mix(a.colorVariation, b.colorVariation, t));
+                mix(a.colorVariation, b.colorVariation, t),
+                mix(a.wetness, b.wetness, t),
+                mix(a.detailStretch, b.detailStretch, t),
+                mix(a.detailAxis, b.detailAxis, t),
+                mix(a.edgeColor, b.edgeColor, t),
+                mix(a.edgeThickness, b.edgeThickness, t),
+                mix(a.localPosition, b.localPosition, t));
         }
 
         {{MaterialType}} pickMaterial(bool first, {{MaterialType}} a, {{MaterialType}} b)
@@ -59,9 +71,11 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
         }
         """;
 
-    public static string MaterialLiteral(MaterialDefinition m, string? baseColor = null) =>
+    /// <summary>A material value; <paramref name="localPosition"/> is the position in the coordinates of the shape it is on.</summary>
+    public static string MaterialLiteral(MaterialDefinition m, string localPosition, string? baseColor = null) =>
         $"{MaterialType}({baseColor ?? Vec3Literal(m.baseColor)}, {Literal(m.roughness)}, {Literal(m.specular)}, {Vec3Literal(m.subsurfaceColor)}, " +
-        $"{Literal(m.subsurfaceRadius)}, {Literal(m.detailStrength)}, {Literal(m.detailScale)}, {Literal(m.colorVariation)})";
+        $"{Literal(m.subsurfaceRadius)}, {Literal(m.detailStrength)}, {Literal(m.detailScale)}, {Literal(m.colorVariation)}, " +
+        $"{Literal(m.wetness)}, {Literal(m.detailStretch)}, {Vec3Literal(m.detailAxis)}, {Vec3Literal(m.edgeColor)}, {Literal(m.edgeThickness)}, {localPosition})";
 
     private static string Vec3Literal(V3 v) => $"vec3({Literal(v.x)}, {Literal(v.y)}, {Literal(v.z)})";
 
@@ -324,6 +338,7 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
             LimitedRepetition e => (e.primitive, Position3($"opRepeatLimited({p}, {Float(e.spacing)}, {Vec3(e.limits)})")),
             Twist e => (e.primitive, Position3($"opTwist({p}, {Float(e.amount)})")),
             CheapBend e => (e.primitive, Position3($"opCheapBend({p}, {Float(e.amount)})")),
+            RadialWave e => (e.primitive, Position3($"opRadialWave({p}, {Float(e.amount)}, {Float(e.count)})")),
             _ => null,
         };
 
@@ -338,8 +353,8 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
             {
                 SDFEvaluablePointerable e => Surface(pointers.SDFEvaluablePointers[e.PointerId], p, material),
                 VariableReferenceSDF r => Inline(r.variableId, value => Surface((SDFEvaluable)value, p, material)),
-                Color e => Surface(e.primitive, p, MaterialValue($"colorMaterial({Vec3(e.color)})")),
-                Material e => Surface(e.primitive, p, MaterialValue(MaterialLiteral(context.Materials.Resolve(e.material)))),
+                Color e => Surface(e.primitive, p, MaterialValue($"colorMaterial({Vec3(e.color)}, {p})")),
+                Material e => Surface(e.primitive, p, MaterialValue(MaterialLiteral(context.Materials.Resolve(e.material), p))),
                 Round e => Modified(e.primitive, p, material, d => $"{d} - {Float(e.radius)}"),
                 Onion e => Modified(e.primitive, p, material, d => $"abs({d}) - {Float(e.thickness)}"),
                 Displace e => Modified(e.primitive, p, material, d => $"{d} + {Sdf(e.displacement, p)}"),

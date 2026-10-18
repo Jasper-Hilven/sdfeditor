@@ -11,6 +11,7 @@ const string usage = """
                                                               Materials come from the materials folder next to content
       sdf render <directory> [--size <pixels>]                Renders every .sdf in the directory and its subdirectories
       sdf render <model.sdf> [output.png] [--size <pixels>]   Renders side, top, front and perspective views to a PNG
+      Options: --light <x,y,z>   direction towards the sun, e.g. --light 0,1,-2 to light the model from behind
       sdf examples <directory>                                Writes the IDE's examples as .sdf files
     """;
 
@@ -40,9 +41,19 @@ int Examples(string directory)
 async Task<int> Render(string[] arguments)
 {
     var size = RenderOptions.DefaultSize;
+    V3? light = null;
     var paths = new List<string>();
     for (var i = 0; i < arguments.Length; i++)
     {
+        if (arguments[i] == "--light" && i + 1 < arguments.Length)
+        {
+            var components = arguments[++i].Split(',');
+            if (components.Length != 3 || !components.All(c => float.TryParse(c, NumberStyles.Float, CultureInfo.InvariantCulture, out _)))
+                return Usage($"--light takes a direction like 0,1,-2, not {arguments[i]}");
+            var xyz = components.Select(c => float.Parse(c, CultureInfo.InvariantCulture)).ToArray();
+            light = new V3(xyz[0], xyz[1], xyz[2]);
+            continue;
+        }
         if (arguments[i] == "--size" && i + 1 < arguments.Length
             && int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out size) && size is >= 64 and <= 4096)
             continue;
@@ -64,7 +75,7 @@ async Task<int> Render(string[] arguments)
         return 1;
     }
 
-    var options = new RenderOptions { Size = size, Materials = materials };
+    var options = new RenderOptions { Size = size, Materials = materials, LightDirection = light };
     switch (paths)
     {
         case []:

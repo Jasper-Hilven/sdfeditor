@@ -49,7 +49,7 @@ public class Webgl2CodeGeneratorFullProgramTests(ITestOutputHelper output)
             """ + "\n\n" + Webgl2CodeGenerator.MaterialCode + "\n\n" + """
             SurfaceMaterial sdf_material(vec3 p)
             {
-                return colorMaterial(vec3(0.85, 0.62, 0.42));
+                return colorMaterial(vec3(0.85, 0.62, 0.42), p);
             }
             """, code);
     }

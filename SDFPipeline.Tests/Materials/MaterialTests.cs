@@ -9,7 +9,14 @@ namespace SDFPipeline.Tests.Materials;
 
 public class MaterialTests
 {
-    private static readonly MaterialDefinition Cap = new(new V3(0.86f, 0.45f, 0.06f), 0.65f, 0.4f, new V3(1, 0.55f, 0.15f), 0.03f, 0.35f, 0.03f, 0.15f);
+    private static readonly MaterialDefinition Cap = new(new V3(0.86f, 0.45f, 0.06f), 0.65f, 0.4f, new V3(1, 0.55f, 0.15f), 0.03f, 0.35f, 0.03f, 0.15f)
+    {
+        wetness = 0.35f,
+        detailStretch = 6,
+        detailAxis = new V3(0, 0, 1),
+        edgeColor = new V3(0.78f, 0.32f, 0.02f),
+        edgeThickness = 0.1f,
+    };
 
     private static SDFProgram Read(string text) => SdfProgramFile.Read("format 1\n" + text);
 
@@ -27,6 +34,7 @@ public class MaterialTests
         Assert.Equal(Cap, MaterialFile.Read(text));
         Assert.Contains("baseColor = (0.86, 0.45, 0.06)", text);
         Assert.Contains("subsurfaceRadius = 0.03", text);
+        Assert.Contains("detailAxis = (0, 0, 1)", text);
     }
 
     [Fact]
@@ -49,6 +57,7 @@ public class MaterialTests
     [InlineData("format 1\nroughness = (1, 2, 3)", 2, "'roughness' needs a number")]
     [InlineData("format 1\nbaseColor = 0.5", 2, "'baseColor' needs a colour like (0.9, 0.5, 0.1)")]
     [InlineData("format 1\nroughness = 0.5\nroughness = 0.6", 3, "given twice")]
+    [InlineData("format 1\ndetailAxis = 1", 2, "'detailAxis' needs a direction like (0, 1, 0)")]
     [InlineData("roughness = 0.5", 1, "must start with 'format 1'")]
     public void MaterialFile_ExplainsWhatIsWrongAndWhere(string text, int line, string problem)
     {
@@ -117,8 +126,8 @@ public class MaterialTests
     {
         var library = MaterialLibrary.Empty.With("chanterelle_cap", Cap);
 
-        Assert.Contains(Webgl2CodeGenerator.MaterialLiteral(Cap), MaterialFunction(Read("Material material=chanterelle_cap\n    Sphere radius=1"), library));
-        Assert.Contains(Webgl2CodeGenerator.MaterialLiteral(MaterialDefinition.Missing), MaterialFunction(Read("Material material=nope\n    Sphere radius=1"), library));
+        Assert.Contains(Webgl2CodeGenerator.MaterialLiteral(Cap, "p"), MaterialFunction(Read("Material material=chanterelle_cap\n    Sphere radius=1"), library));
+        Assert.Contains(Webgl2CodeGenerator.MaterialLiteral(MaterialDefinition.Missing, "p"), MaterialFunction(Read("Material material=nope\n    Sphere radius=1"), library));
     }
 
     [Fact]
@@ -136,7 +145,23 @@ public class MaterialTests
         var material = MaterialFunction(program, MaterialLibrary.Empty.With("chanterelle_cap", Cap));
 
         Assert.Contains("mixMaterial(", material);
-        Assert.Contains("colorMaterial(vec3(1.0, 1.0, 1.0))", material);
+        Assert.Contains("colorMaterial(vec3(1.0, 1.0, 1.0), p)", material);
+    }
+
+    [Fact]
+    public void RadialWave_RoundTripsAndMovesTheSurface()
+    {
+        var program = Read(
+            """
+            RadialWave amount=0.1 count=4
+                Box size=(1, 0.1, 1)
+            """);
+
+        Assert.Contains("RadialWave amount=0.1 count=4", SdfProgramFile.Write(program));
+        // A quarter wave around from +x, the surface at radius 0.8 is 0.08 higher than the flat box's top at 0.1
+        var crest = new V3(0.8f * MathF.Cos(MathF.PI / 8), 0.18f, 0.8f * MathF.Sin(MathF.PI / 8));
+        Assert.InRange(new SdfCalculatorCpu().Calculate(crest, program), -0.01f, 0.01f);
+        Assert.Contains("opRadialWave(", new Webgl2CodeGenerator().GenerateShaderCode(program));
     }
 
     [Fact]

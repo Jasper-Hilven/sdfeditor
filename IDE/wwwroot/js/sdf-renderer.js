@@ -110,24 +110,58 @@ float shadeDetail(vec3 p)
     return 0.6 * shadeNoise(p) + 0.3 * shadeNoise(p * 2.07 + 13.1) + 0.1 * shadeNoise(p * 4.13 + 29.7);
 }
 
-// Bumps the normal with noise whose features are detailScale metres apart.
+// The detail pattern at a position in the shape's own coordinates: round grain, or with detailStretch above 1 fibres that run out
+// from detailAxis and along it (radial lines on a cap or iris, lengthwise lines on a stem).
+float detailPattern(vec3 local, SurfaceMaterial m)
+{
+    float scale = max(m.detailScale, 0.001);
+    if (m.detailStretch <= 1.0) return shadeDetail(local / scale);
+    vec3 axis = normalize(m.detailAxis);
+    float along = dot(local, axis);
+    vec3 radial = local - axis * along;
+    float r = length(radial);
+    vec3 around = r > 1e-5 ? radial / r : vec3(0.0);
+    return shadeDetail(around * (0.5 / scale) + axis * ((r + along) / (scale * m.detailStretch)));
+}
+
+// The pattern at a world position: the material function tells where that is in the shape's own coordinates.
+float detailPatternAt(vec3 p, SurfaceMaterial m)
+{
+    return detailPattern(sdf_material(p).localPosition, m);
+}
+
+// Bumps the normal with the detail pattern, differentiated in world space so it stays right on rotated shapes.
 vec3 detailNormal(vec3 p, vec3 n, SurfaceMaterial m)
 {
     if (m.detailStrength <= 0.0) return n;
-    vec3 q = p / max(m.detailScale, 0.001);
-    const float e = 0.05;
-    float base = shadeDetail(q);
-    vec3 gradient = vec3(shadeDetail(q + vec3(e, 0, 0)) - base, shadeDetail(q + vec3(0, e, 0)) - base, shadeDetail(q + vec3(0, 0, e)) - base) / e;
+    float scale = max(m.detailScale, 0.001);
+    float e = scale * 0.08;
+    float base = detailPattern(m.localPosition, m);
+    vec3 gradient = vec3(
+        detailPatternAt(p + vec3(e, 0, 0), m) - base,
+        detailPatternAt(p + vec3(0, e, 0), m) - base,
+        detailPatternAt(p + vec3(0, 0, e), m) - base) * (scale / e);
     gradient -= n * dot(gradient, n);
     return normalize(n - m.detailStrength * 0.5 * gradient);
 }
 
 // Blotches of lighter and darker colour, a few detail features wide.
-vec3 variedColor(vec3 p, SurfaceMaterial m)
+vec3 variedColor(SurfaceMaterial m)
 {
     if (m.colorVariation <= 0.0) return m.baseColor;
-    float variation = shadeDetail(p / max(m.detailScale * 5.0, 0.001) + 71.3) * 2.0 - 1.0;
+    float variation = shadeDetail(m.localPosition / max(m.detailScale * 5.0, 0.001) + 71.3) * 2.0 - 1.0;
     return clamp(m.baseColor * (1.0 + m.colorVariation * variation), 0.0, 1.0);
+}
+
+// 1 where the material is much thinner than edgeThickness, 0 where it is thicker: how far the colour shifts to edgeColor.
+// A mesh renderer bakes the same thickness per vertex.
+float thinness(vec3 p, vec3 n, SurfaceMaterial m)
+{
+    if (m.edgeThickness <= 0.0) return 0.0;
+    float inside = 0.0;
+    for (int i = 1; i <= 5; i++)
+        inside += map(p - n * m.edgeThickness * float(i) / 5.0) < 0.0 ? 1.0 : 0.0;
+    return 1.0 - inside / 5.0;
 }
 
 // Metres of material between p and the sun. Exact because the SDF is known everywhere; a mesh renderer bakes it per vertex instead.
@@ -144,13 +178,15 @@ float thicknessTowardsLight(vec3 p, vec3 n, vec3 l, float radius)
     return inside;
 }
 
-// Sunlight that went through the material: the thinner the material towards the sun, the more of it glows in subsurfaceColor.
-vec3 transmission(vec3 p, vec3 n, vec3 l, SurfaceMaterial m)
+// Sunlight that went through the material: the thinner the material towards the sun, the more of it glows in subsurfaceColor,
+// most of all when looking towards the sun.
+vec3 transmission(vec3 p, vec3 n, vec3 v, vec3 l, SurfaceMaterial m)
 {
     if (m.subsurfaceRadius <= 0.0) return vec3(0.0);
     float thickness = thicknessTowardsLight(p, n, l, m.subsurfaceRadius);
     float awayFromSun = clamp(0.4 - 0.6 * dot(n, l), 0.0, 1.0);
-    return m.subsurfaceColor * exp(-thickness / m.subsurfaceRadius) * awayFromSun;
+    float towardsSun = 0.6 + 1.4 * pow(max(dot(v, -l), 0.0), 3.0);
+    return m.subsurfaceColor * exp(-thickness / m.subsurfaceRadius) * awayFromSun * towardsSun;
 }
 
 // GGX microfacet specular with a height-correlated Smith visibility term, as in Unity HDRP.
@@ -209,7 +245,8 @@ void main()
     vec3 n = detailNormal(p, geometricNormal, m);
     vec3 v = -rd;
     vec3 l = normalize(uLightPosition);
-    vec3 albedo = variedColor(p, m);
+    vec3 albedo = mix(variedColor(m), m.edgeColor, thinness(p, geometricNormal, m));
+    albedo *= 1.0 - 0.2 * m.wetness;
     vec3 f0 = vec3(0.08 * m.specular);
 
     float shadow = softShadow(p + geometricNormal * 0.002, l, 30.0);
@@ -219,7 +256,7 @@ void main()
     float wrap = m.subsurfaceRadius > 0.0 ? 0.35 : 0.0;
     float nl = dot(n, l);
     float diffuse = clamp((nl + wrap) / (1.0 + wrap), 0.0, 1.0);
-    vec3 scatterTint = wrap > 0.0 ? mix(m.subsurfaceColor, vec3(1.0), clamp(nl * 2.0, 0.0, 1.0)) : vec3(1.0);
+    vec3 scatterTint = wrap > 0.0 ? mix(m.subsurfaceColor, vec3(1.0), smoothstep(0.0, 0.7, nl)) : vec3(1.0);
     vec3 sun = (albedo * diffuse * scatterTint + RENDER_PI * specularGGX(n, v, l, m.roughness, f0)) * SUN_COLOR * shadow;
 
     // Sky and ground bounce, with rough-aware Fresnel for the reflection
@@ -227,7 +264,16 @@ void main()
     vec3 ambientFresnel = f0 + (max(vec3(1.0 - m.roughness), f0) - f0) * pow(1.0 - nv, 5.0);
     vec3 ambient = albedo * skyLight(n) + ambientFresnel * skyLight(reflect(-v, n)) * (1.0 - 0.6 * m.roughness);
 
-    vec3 color = sun + ambient * occlusion + albedo * transmission(p, geometricNormal, l, m) * SUN_COLOR * 0.8;
+    vec3 color = sun + ambient * occlusion + albedo * transmission(p, geometricNormal, v, l, m) * SUN_COLOR * 1.5;
+
+    // Wet coat: a sharp, smooth layer that follows the shape, not the detail bumps under it
+    if (m.wetness > 0.0)
+    {
+        float coatFresnel = 0.04 + 0.96 * pow(1.0 - max(dot(geometricNormal, v), 0.0), 5.0);
+        vec3 coat = RENDER_PI * specularGGX(geometricNormal, v, l, 0.06, vec3(0.04)) * SUN_COLOR * shadow
+                  + coatFresnel * skyLight(reflect(-v, geometricNormal)) * occlusion;
+        color = color * (1.0 - m.wetness * coatFresnel) + m.wetness * coat;
+    }
 
     color = acesToneMap(color * EXPOSURE);
 
@@ -245,7 +291,7 @@ export function createRenderer(canvas) {
     if (!gl) throw new Error('This browser does not support WebGL2');
 
     const camera = { yaw: 0.7, pitch: 0.35, distance: 8, target: [0, 0, 0] };
-    const lightPosition = [4, 6, 3];
+    let lightPosition = [4, 6, 3];
     let program = null;
     let quadView = false;
     let rotateView = false;
@@ -410,6 +456,12 @@ export function createRenderer(canvas) {
         requestRender();
     }
 
+    // Points the sun: any vector towards it, its length does not matter.
+    function setLight(direction) {
+        lightPosition = direction;
+        requestRender();
+    }
+
     // Draws every view right away instead of on the next animation frame, for when the pixels are read back at once.
     function renderNow() {
         allChanged = true;
@@ -450,6 +502,7 @@ export function createRenderer(canvas) {
         setQuadView,
         setRotateView,
         setCamera,
+        setLight,
         renderNow,
         dispose: () => {
             rotateView = false;

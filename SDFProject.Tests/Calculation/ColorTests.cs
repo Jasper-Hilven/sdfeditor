@@ -41,7 +41,7 @@ public class ColorTests
     {
         var material = Material(Program(Painted(0.9f, 0.2f, 0.1f, Sphere(1))));
 
-        Assert.Contains("SurfaceMaterial m0 = colorMaterial(vec3(0.9, 0.2, 0.1));", material);
+        Assert.Contains("SurfaceMaterial m0 = colorMaterial(vec3(0.9, 0.2, 0.1), p);", material);
         Assert.Contains("return m0;", material);
     }
 
@@ -60,7 +60,7 @@ public class ColorTests
 
         var returned = material.Split('\n').Single(l => l.Contains("return")).Trim();
         Assert.Equal("return m1;", returned);
-        Assert.Contains("SurfaceMaterial m1 = colorMaterial(vec3(1.0, 0.0, 0.0));", material);
+        Assert.Contains("SurfaceMaterial m1 = colorMaterial(vec3(1.0, 0.0, 0.0), p);", material);
     }
 
     [Fact]

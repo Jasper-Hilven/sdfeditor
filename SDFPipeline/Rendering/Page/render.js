@@ -11,9 +11,12 @@ function metres(value) {
     return value >= 1 ? `${value} m` : `${Math.round(value * 100)} cm`;
 }
 
+// Sizes below are for a 1024 pixel image and scale with it.
+let unit = 1;
+
 function label(context, text, x, y) {
-    context.font = '600 15px -apple-system, "Segoe UI", sans-serif';
-    context.lineWidth = 4;
+    context.font = `600 ${15 * unit}px -apple-system, "Segoe UI", sans-serif`;
+    context.lineWidth = 4 * unit;
     context.strokeStyle = 'rgba(0, 0, 0, 0.75)';
     context.fillStyle = '#f0f0f4';
     context.strokeText(text, x, y);
@@ -25,19 +28,19 @@ function scaleBar(context, x, y, width, height, orthoScale) {
     const metresPerPixel = 2 * orthoScale / height;
     const length = SCALE_BAR_LENGTHS.filter(l => l / metresPerPixel <= width * 0.25).at(-1) ?? SCALE_BAR_LENGTHS[0];
     const pixels = length / metresPerPixel;
-    const left = x + 12;
-    const bottom = y + height - 14;
+    const left = x + 12 * unit;
+    const bottom = y + height - 14 * unit;
 
-    context.lineWidth = 6;
+    context.lineWidth = 6 * unit;
     context.strokeStyle = 'rgba(0, 0, 0, 0.75)';
     context.beginPath();
     context.moveTo(left, bottom);
     context.lineTo(left + pixels, bottom);
     context.stroke();
-    context.lineWidth = 2;
+    context.lineWidth = 2 * unit;
     context.strokeStyle = '#f0f0f4';
     context.stroke();
-    label(context, metres(length), left, bottom - 8);
+    label(context, metres(length), left, bottom - 8 * unit);
 }
 
 async function run() {
@@ -51,6 +54,7 @@ async function run() {
     const error = renderer.setCode(scene.code);
     if (error) throw new Error(`The shader does not compile:\n${error}`);
     renderer.setCamera(scene.camera);
+    if (scene.light) renderer.setLight(scene.light);
     renderer.setQuadView(true);
     renderer.renderNow();
 
@@ -58,19 +62,20 @@ async function run() {
     output.width = view.width;
     output.height = view.height;
     const context = output.getContext('2d');
+    unit = output.width / 1024;
     context.drawImage(view, 0, 0);
 
     const half = output.width / 2;
     VIEWS.forEach((name, i) => {
         const x = (i % 2) * half;
         const y = Math.floor(i / 2) * half;
-        label(context, name, x + 12, y + 24);
+        label(context, name, x + 12 * unit, y + 24 * unit);
         if (i < 3) scaleBar(context, x, y, half, half, scene.camera.orthoScale);
     });
-    if (scene.caption) label(context, scene.caption, half + 12, output.height - 14);
+    if (scene.caption) label(context, scene.caption, half + 12 * unit, output.height - 14 * unit);
 
     context.strokeStyle = '#000000';
-    context.lineWidth = 2;
+    context.lineWidth = 2 * unit;
     context.beginPath();
     context.moveTo(half, 0);
     context.lineTo(half, output.height);

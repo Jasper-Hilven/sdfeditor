@@ -153,6 +153,7 @@ public class SdfCalculatorCpu
             TriPrism e => SdfMath.TriPrism(p, Vec2(e.size)),
             Triangle e => SdfMath.Triangle(p, Vec3(e.a), Vec3(e.b), Vec3(e.c)),
             Twist e => Sdf(e.primitive, CalculateTwist(p, Float(e.amount))),
+            RadialWave e => Sdf(e.primitive, CalculateRadialWave(p, Float(e.amount), Float(e.count))),
             Union e => CalculateUnion(p, e, idToFunctions, context),
             VariableReferenceSDF r => CalculateVariable(p, r.variableId, idToFunctions, context),
             VerticalCapsule e => SdfMath.VerticalCapsule(p, Float(e.height), Float(e.radius)),
@@ -374,6 +375,12 @@ public class SdfCalculatorCpu
             MathF.Round(p.Y / s, MidpointRounding.AwayFromZero),
             MathF.Round(p.Z / s, MidpointRounding.AwayFromZero));
         return p - s * Vector3.Clamp(id, -l, l);
+    }
+
+    private static Vector3 CalculateRadialWave(Vector3 p, float amount, float count)
+    {
+        var r = Length(Xz(p));
+        return r < 1e-5f ? p : p with { Y = p.Y - amount * r * MathF.Sin(count * MathF.Atan2(p.Z, p.X)) };
     }
 
     private static Vector3 CalculateTwist(Vector3 p, float k)

@@ -1,45 +1,78 @@
-# Chanterelle scout: a slender golden mushroom with a wavy funnel cap, ridges running down under it, wide eyes and small hands.
+# Chanterelle scout: a slender golden mushroom with a thin, wavy funnel cap, ridges running down under it, eyes set under lids
+# and small hands.
 format 1
 
 Union
     # Body and cap grow into each other
     SmoothUnion smoothness=0.1
         Material material=chanterelle_flesh
-            SmoothUnion smoothness=0.12
-                Translate translation=(0, 0.62, 0)
-                    CappedCone height=0.62 bottomRadius=0.2 topRadius=0.15
-                Translate translation=(0, 0.1, 0)
-                    Ellipsoid radii=(0.26, 0.12, 0.26)
-        # Cap with its false gills: twelve ridges, three per quarter, only slightly blended so they stay underneath
-        SmoothUnion smoothness=0.015
-            Material material=chanterelle_cap
-                Distort amount=0.012 frequency=2.5
-                    Union
-                        # Funnel: a thick sloped line, spun around the y axis
-                        Revolution offset=0
-                            Round2D radius=0.045
-                                OrientedBox2D a=(0.12, 1.3) b=(0.68, 1.6) thickness=0.07
-                        Translate translation=(0, 1.31, 0)
-                            Ellipsoid radii=(0.2, 0.06, 0.2)
-            Material material=chanterelle_ridges
-                SymmetryXZ
-                    Union
-                        Capsule a=(0.164, 1.22, 0.044) b=(0.58, 1.48, 0.155) radius=0.022
-                        Capsule a=(0.12, 1.22, 0.12) b=(0.424, 1.48, 0.424) radius=0.022
-                        Capsule a=(0.044, 1.22, 0.164) b=(0.155, 1.48, 0.58) radius=0.022
+            SmoothUnion smoothness=0.03
+                SmoothUnion smoothness=0.12
+                    Translate translation=(0, 0.62, 0)
+                        CappedCone height=0.62 bottomRadius=0.2 topRadius=0.15
+                    Translate translation=(0, 0.1, 0)
+                        Ellipsoid radii=(0.26, 0.12, 0.26)
+                # Eyelids: shells around the top and bottom of each eyeball, grown into the body
+                SymmetryX
+                    Translate translation=(0.1, 0.86, 0.13)
+                        Union
+                            Round radius=0.006
+                                Intersection
+                                    Onion thickness=0.004
+                                        Sphere radius=0.13
+                                    Plane normal=(0, -1, 0) height=0.051
+                            Round radius=0.006
+                                Intersection
+                                    Onion thickness=0.004
+                                        Sphere radius=0.13
+                                    Plane normal=(0, 1, 0) height=0.081
+        # Cap and ridges wave up and down together, seven times around
+        RadialWave amount=0.08 count=7
+            # Cap with its false gills: twelve ridges, three per quarter, only slightly blended so they stay underneath
+            SmoothUnion smoothness=0.015
+                Material material=chanterelle_cap
+                    Distort amount=0.006 frequency=3
+                        Union
+                            # Funnel: a tapered profile, thick near the stem and thin at the rim, spun around the y axis
+                            Revolution offset=0
+                                Translate2D offset=(0.12, 1.3)
+                                    Rotate2D angle=-1.0667
+                                        UnevenCapsule2D bottomRadius=0.07 topRadius=0.018 height=0.66
+                            Translate translation=(0, 1.31, 0)
+                                Ellipsoid radii=(0.2, 0.06, 0.2)
+                Material material=chanterelle_ridges
+                    SymmetryXZ
+                        Union
+                            Capsule a=(0.164, 1.24, 0.044) b=(0.58, 1.52, 0.155) radius=0.02
+                            Capsule a=(0.12, 1.24, 0.12) b=(0.424, 1.52, 0.424) radius=0.02
+                            Capsule a=(0.044, 1.24, 0.164) b=(0.155, 1.52, 0.58) radius=0.02
 
-    # Wide eyes, mirrored
+    # Eyes, mirrored: a wet eyeball with the limbus, iris, amber ring and pupil as stacked discs on its front
     SymmetryX
         Translate translation=(0.1, 0.86, 0.13)
             Union
                 Material material=eye_white
                     Sphere radius=0.12
-                Translate translation=(0, 0, 0.09)
-                    Material material=eye_iris
-                        Ellipsoid radii=(0.065, 0.065, 0.035)
-                Translate translation=(0, 0, 0.117)
-                    Material material=eye_pupil
-                        Ellipsoid radii=(0.035, 0.035, 0.014)
+                Material material=eye_limbus
+                    Intersection
+                        Sphere radius=0.121
+                        Rotate rotation=(1.5707964, 0, 0)
+                            InfiniteCylinder center=(0, 0) radius=0.066
+                Material material=eye_iris
+                    Intersection
+                        Sphere radius=0.122
+                        Rotate rotation=(1.5707964, 0, 0)
+                            InfiniteCylinder center=(0, 0) radius=0.06
+                Material material=eye_iris_inner
+                    Intersection
+                        Sphere radius=0.123
+                        Rotate rotation=(1.5707964, 0, 0)
+                            InfiniteCylinder center=(0, 0) radius=0.034
+                Material material=eye_pupil
+                    Intersection
+                        Sphere radius=0.124
+                        Rotate rotation=(1.5707964, 0, 0)
+                            InfiniteCylinder center=(0, 0) radius=0.022
 
     # Floating hands, mirrored
     SymmetryX
