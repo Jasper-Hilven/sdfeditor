@@ -28,6 +28,7 @@ public record WrapInIntersection(string nodeId) : SDFProgramOperation;
 public record WrapInDistortion(string nodeId) : SDFProgramOperation;
 
 public record PaintNode(string nodeId, V3 color) : SDFProgramOperation;
+public record SetMaterial(string nodeId, string material) : SDFProgramOperation;
 
 public record DissolveNode(string nodeId) : SDFProgramOperation;
 

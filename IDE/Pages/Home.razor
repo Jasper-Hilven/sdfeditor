@@ -9,6 +9,8 @@
 @using SDFProject.SDFInteractiveNode
 @using SDFProject.SDFInteractiveNode.InteractiveCommands
 @using SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing
+@using SDFPipeline.Materials
+@using SDFPipeline.ProgramFiles
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -58,6 +60,14 @@
                      && SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { IsConstant: true } edited)
                 {
                     <text> · @edited.Name = @FormatComponents(edited)</text>
+                }
+                @if (SDFPartialCommandNodeProgramOperator.EditedMaterial(partialProgram) is { } material)
+                {
+                    <text> · @material.Name.@material.Parameter.Name = @FormatMaterialValue(material)</text>
+                }
+                else if (SDFPartialCommandNodeProgramOperator.SelectedMaterialName(partialProgram) is { } materialName)
+                {
+                    <text> · material @materialName@(partialProgram.Materials.Contains(materialName) ? "" : " (missing)")</text>
                 }
             </span>
         </header>
@@ -183,6 +193,25 @@
                     <button type="button" @onclick="Export">Download program</button>
                 </section>
                 <section>
+                    <h3>Model</h3>
+                    <p class="hint">Saves the current scene as a .sdf file, to put back into content/ (for example as @(loadedModel?.Path ?? "models/my-model.sdf")).</p>
+                    <button type="button" @onclick="DownloadModel">Download .sdf</button>
+                </section>
+                <section>
+                    <h3>Materials</h3>
+                    <p class="hint">Saves a material as a .sdfmat file, to put back into materials/. Changed materials are marked ●.</p>
+                    <div class="material-list">
+                        @foreach (var name in partialProgram.Materials.Names)
+                        {
+                            var changed = !Equals(partialProgram.Materials.Resolve(name), BundledContent.Materials.Resolve(name));
+                            <button type="button" @onclick="() => DownloadMaterial(name)">
+                                <span class="swatch" style="background: @CssColor(partialProgram.Materials.Resolve(name).baseColor)"></span>
+                                @name@(changed ? " ●" : "")
+                            </button>
+                        }
+                    </div>
+                </section>
+                <section>
                     <h3>Mesh</h3>
                     <p class="hint">Turns the current scene into triangles for 3D printing or other 3D tools. Infinite shapes are cut off at 50 units.</p>
                     <label class="mesh-resolution">
@@ -221,6 +250,22 @@
                 {
                     <p class="@(exampleFailed ? "error" : "hint")">@exampleMessage</p>
                 }
+                @foreach (var problem in BundledContent.Problems)
+                {
+                    <p class="error">@problem</p>
+                }
+                <h3>Models</h3>
+                <p class="hint">The .sdf files in content/. Opening one starts a fresh history with that model and the materials of materials/.</p>
+                <div class="example-list">
+                    @foreach (var model in BundledContent.Models)
+                    {
+                        <button type="button" class="example" @onclick="() => LoadModel(model)">
+                            <span class="example-name">@model.Name</span>
+                            <span class="example-description">content/@model.Path</span>
+                        </button>
+                    }
+                </div>
+                <h3>Examples</h3>
                 <div class="example-list">
                     @foreach (var example in SDFExamples.All)
                     {
@@ -299,11 +344,18 @@
 
 @code {
     private readonly YamlRender yamlRender = new();
-    private readonly Webgl2CodeGenerator codeGenerator = new();
-
     private static SDFPartialCommandNodeProgram InitialProgram() => new(
         SdfInteractiveNodeProgramConstants.GetInitialProgram(),
-        new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home));
+        new SDFPartialCommandNodeProgramState(SDFPartialCommandNodeProgramMode.Home))
+    {
+        Materials = BundledContent.Materials,
+    };
+
+    /// <summary>The shader of a program, with its materials.</summary>
+    private static string Shader(SDFPartialCommandNodeProgram partial) =>
+        new Webgl2CodeGenerator(partial.Materials).GenerateShaderCode(partial.interactiveProgram.Program);
+
+    private BundledContent.Model? loadedModel;
 
     private SDFPartialActionHistory history = SDFPartialActionHistory.Start(InitialProgram());
     private SDFPartialCommandNodeProgram partialProgram => history.Current;
@@ -327,7 +379,7 @@
     private IJSObjectReference? keyboardModule;
     private IJSObjectReference? keyListener;
 
-    protected override void OnInitialized() => shaderCode = codeGenerator.GenerateShaderCode(program.Program);
+    protected override void OnInitialized() => shaderCode = Shader(partialProgram);
 
     private static IEnumerable<InputKey[]> KeyboardRows() =>
     [
@@ -350,7 +402,12 @@
 
         var available = history.IsAvailable(key);
         var style = ModeSwitchingActions.Contains(action) ? "mode" : "";
-        var symbolStyle = action is PaintColor paint ? $"color: {CssColor(paint.color)}" : null;
+        var symbolStyle = action switch
+        {
+            PaintColor paint => $"color: {CssColor(paint.color)}",
+            AssignMaterial assign => $"color: {CssColor(partialProgram.Materials.Resolve(assign.name).baseColor)}",
+            _ => null,
+        };
         return (Label(action), Describe(action), available, available ? style : $"{style} unavailable", symbolStyle);
     }
 
@@ -383,6 +440,8 @@
     private string TextTitle() =>
         partialProgram.state.Mode == SDFPartialCommandNodeProgramMode.ExtractVariable
             ? "Extract variable"
+            : SDFPartialCommandNodeProgramOperator.EditedMaterial(partialProgram) is { } material
+                ? $"{material.Name}.{material.Parameter.Name}{(material.Parameter.ComponentCount > 1 ? ", numbers separated by commas" : "")}"
             : SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { } edited
                 ? $"{edited.Name}{(edited.Kind == NodeParameterKind.Angle ? " (degrees)" : "")}, numbers separated by commas"
                 : "Value";
@@ -390,6 +449,8 @@
     private string TextSuggestion() =>
         partialProgram.state.Mode == SDFPartialCommandNodeProgramMode.ExtractVariable
             ? SDFPartialCommandNodeProgramOperator.SuggestedVariableName(partialProgram)
+            : SDFPartialCommandNodeProgramOperator.EditedMaterial(partialProgram) is { } material
+                ? string.Join(", ", material.Parameter.Get(material.Material).Select(Format))
             : SDFPartialCommandNodeProgramOperator.EditedParameter(partialProgram) is { } edited
                 ? string.Join(", ", edited.Components().Select(Format))
                 : "";
@@ -407,8 +468,18 @@
         };
     }
 
+    private static string FormatMaterialValue(SDFPartialCommandNodeProgramOperator.EditedMaterialParameter edited)
+    {
+        var components = edited.Parameter.Get(edited.Material).Select(Format).ToArray();
+        return components.Length == 1 ? components[0] : $"({string.Join(", ", components)})";
+    }
+
     private bool NotOnThisNode(ISDFPartialAction action) => action switch
     {
+        ParameterYDown or ParameterYUp when SDFPartialCommandNodeProgramOperator.EditedMaterial(partialProgram) is { } material
+            => material.Parameter.ComponentCount < 2,
+        ParameterZDown or ParameterZUp when SDFPartialCommandNodeProgramOperator.EditedMaterial(partialProgram) is { } material
+            => material.Parameter.ComponentCount < 3,
         EditParameter1 or EditParameter2 or EditParameter3 or EditParameter4
             => SDFPartialCommandNodeProgramOperator.ParameterToEdit(partialProgram, action) is null,
         ParameterYDown or ParameterYUp
@@ -420,6 +491,11 @@
 
     private string Describe(ISDFPartialAction action) =>
         action is PaintColor paint ? $"Paint {paint.name}"
+        : action is AssignMaterial assign ? $"Material {assign.name}"
+        : action is PickMaterialParameter pick ? $"Edit {SDFPartialActionLabels.Label(pick).Text}"
+        : action is ParameterXDown or ParameterXUp or ParameterYDown or ParameterYUp or ParameterZDown or ParameterZUp or TypeParameterValue
+          && SDFPartialCommandNodeProgramOperator.EditedMaterial(partialProgram) is { } material
+            ? $"{SpelledOut(action)} ({material.Name}.{material.Parameter.Name})"
         : action is ChooseRedoBranch choose ? $"Redo {HistoryEntry(BranchAction(choose))}"
         : SDFPartialCommandNodeProgramOperator.ParameterToEdit(partialProgram, action) is { } picked ? $"Edit {picked.Name}"
         : action is ParameterXDown or ParameterXUp or ParameterYDown or ParameterYUp or ParameterZDown or ParameterZUp
@@ -435,6 +511,8 @@
     {
         InsertText insert => $"Insert Text \"{insert.text}\"",
         PaintColor paint => $"Paint {paint.name}",
+        AssignMaterial assign => $"Material {assign.name}",
+        PickMaterialParameter pick => $"Edit material {SDFPartialActionLabels.Label(pick).Text}",
         ApplyInteractiveOperation apply => $"Operation: {SpelledOut(apply.operation.GetType())}",
         _ => SpelledOut(action),
     };
@@ -490,7 +568,7 @@
         try
         {
             history = history.GoTo(null);
-            shaderCode = codeGenerator.GenerateShaderCode(program.Program);
+            shaderCode = Shader(partialProgram);
             operationError = null;
             StateHasChanged();
             var rendersPerSecond = Math.Min(playSpeed, MaxRendersPerSecond);
@@ -513,7 +591,7 @@
                 history = history.StepForward(last);
                 pressedKey = null;
                 playedCount += batch.Count;
-                shaderCode = codeGenerator.GenerateShaderCode(program.Program);
+                shaderCode = Shader(partialProgram);
                 StateHasChanged();
                 if (stopRequested)
                     break;
@@ -592,6 +670,10 @@
         new CancelText(),
         new CancelRedoChoice(),
         new SwitchToMaterialMode(),
+        new ShowMaterials(),
+        new CancelMaterials(),
+        new EditMaterial(),
+        new StopEditingMaterialParameter(),
     ];
 
     private IEnumerable<(string Key, string Action, bool SwitchesMode)> CurrentKeyBindings() =>
@@ -607,7 +689,7 @@
         try
         {
             var next = history.Do(action);
-            shaderCode = codeGenerator.GenerateShaderCode(next.Current.interactiveProgram.Program);
+            shaderCode = Shader(next.Current);
             history = next;
             operationError = null;
         }
@@ -695,8 +777,9 @@
         {
             using var reader = new StreamReader(e.File.OpenReadStream(maxAllowedSize: 50_000_000));
             var imported = SDFPartialHistorySerializer.Deserialize(await reader.ReadToEndAsync(), InitialProgram());
-            shaderCode = codeGenerator.GenerateShaderCode(imported.Current.interactiveProgram.Program);
+            shaderCode = Shader(imported.Current);
             history = imported;
+            loadedModel = null;
             operationError = null;
             fileMessage = $"Imported {e.File.Name} with {imported.Entries.Count} command(s)";
             fileFailed = false;
@@ -708,13 +791,59 @@
         }
     }
 
+    private void LoadModel(BundledContent.Model model)
+    {
+        try
+        {
+            var loaded = SdfProgramFile.Read(model.Text);
+            var interactive = new SdfInteractiveNodeProgram(loaded, PointerTables.PointerId(loaded.scene), 0);
+            var started = SDFPartialActionHistory.Start(InitialProgram() with { interactiveProgram = interactive });
+            shaderCode = Shader(started.Current);
+            history = started;
+            loadedModel = model;
+            operationError = null;
+            exampleMessage = $"Opened content/{model.Path}";
+            exampleFailed = false;
+        }
+        catch (Exception exception)
+        {
+            exampleMessage = $"Could not open content/{model.Path}: {exception.Message}";
+            exampleFailed = true;
+        }
+    }
+
+    private async Task DownloadModel()
+    {
+        try
+        {
+            var fileName = loadedModel is { } model ? $"{model.Name}{SdfProgramFile.Extension}" : $"model{SdfProgramFile.Extension}";
+            await DownloadText(fileName, SdfProgramFile.Write(program.Program), "text/plain");
+            fileMessage = $"Downloaded {fileName}";
+            fileFailed = false;
+        }
+        catch (Exception exception)
+        {
+            fileMessage = $"Could not write the model: {exception.Message}";
+            fileFailed = true;
+        }
+    }
+
+    private async Task DownloadMaterial(string name)
+    {
+        var fileName = $"{name}{MaterialFile.Extension}";
+        await DownloadText(fileName, MaterialFile.Write(partialProgram.Materials.Resolve(name)), "text/plain");
+        fileMessage = $"Downloaded {fileName}, put it in materials/";
+        fileFailed = false;
+    }
+
     private void LoadExample(SDFExample example)
     {
         try
         {
             var loaded = example.Load(InitialProgram());
-            shaderCode = codeGenerator.GenerateShaderCode(loaded.Current.interactiveProgram.Program);
+            shaderCode = Shader(loaded.Current);
             history = loaded;
+            loadedModel = null;
             operationError = null;
             exampleMessage = $"Loaded {example.Name} with {loaded.Entries.Count} command(s)";
             exampleFailed = false;

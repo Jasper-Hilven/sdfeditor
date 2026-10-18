@@ -105,6 +105,14 @@ public static class SDFPartialKeyBindings
         new("black", new V3(0.1f, 0.1f, 0.1f)),
     ];
 
+    // Declared before Bindings, which uses them while it is built
+    /// <summary>The keys of the material parameters, in the order of <see cref="ProgramDefinition.MaterialDefinition.Parameters"/>.</summary>
+    private static readonly InputKey[] MaterialParameterKeys =
+    [
+        InputKey.LRingHome, InputKey.LMiddleHome, InputKey.LIndexHome, InputKey.LIndex2Home, InputKey.RIndex2Home, InputKey.RIndexHome,
+        InputKey.RMiddleHome, InputKey.RRingHome, InputKey.RPinkHome, InputKey.LRingUp, InputKey.LMiddleUp, InputKey.LIndexUp, InputKey.LIndex2Up,
+    ];
+
     public static readonly Dictionary<(SDFPartialCommandNodeProgramMode Mode, InputKey Key), ISDFPartialAction> Bindings =
         BuildKeyBindings();
 
@@ -137,6 +145,17 @@ public static class SDFPartialKeyBindings
             [(SDFPartialCommandNodeProgramMode.Material, InputKey.RRingHome)] = new SelectFirstChild(),
             [(SDFPartialCommandNodeProgramMode.Material, InputKey.LIndexDown)] = new EditColor(),
             [(SDFPartialCommandNodeProgramMode.Material, InputKey.LIndex2Up)] = new RemoveColor(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.LIndex2Home)] = new ShowMaterials(),
+            [(SDFPartialCommandNodeProgramMode.Material, InputKey.LIndex2Down)] = new EditMaterial(),
+            [(EditMaterialParameter, InputKey.LMiddleHome)] = new ParameterXDown(),
+            [(EditMaterialParameter, InputKey.LIndexHome)] = new ParameterXUp(),
+            [(EditMaterialParameter, InputKey.RIndexHome)] = new ParameterYDown(),
+            [(EditMaterialParameter, InputKey.RMiddleHome)] = new ParameterYUp(),
+            [(EditMaterialParameter, InputKey.RRingHome)] = new ParameterZDown(),
+            [(EditMaterialParameter, InputKey.RPinkHome)] = new ParameterZUp(),
+            [(EditMaterialParameter, InputKey.LMiddleDown)] = new DecreaseZoomLevel(),
+            [(EditMaterialParameter, InputKey.LIndexDown)] = new IncreaseZoomLevel(),
+            [(EditMaterialParameter, InputKey.LRingHome)] = new TypeParameterValue(),
             [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LRingHome)] = new EditParameter1(),
             [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LMiddleHome)] = new EditParameter2(),
             [(SDFPartialCommandNodeProgramMode.EditNode, InputKey.LIndexHome)] = new EditParameter3(),
@@ -175,7 +194,8 @@ public static class SDFPartialKeyBindings
         foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>())
             bindings[(mode, InputKey.LPinkHome)] = new SwitchToHomeMode();
 
-        foreach (var mode in new[] { Home, Scale, Rotate, Translate, SDFPartialCommandNodeProgramMode.EditNode, EditParameter, SDFPartialCommandNodeProgramMode.Material })
+        foreach (var mode in new[] { Home, Scale, Rotate, Translate, SDFPartialCommandNodeProgramMode.EditNode, EditParameter, SDFPartialCommandNodeProgramMode.Material,
+                     Materials, SDFPartialCommandNodeProgramMode.EditMaterial, EditMaterialParameter })
             bindings[(mode, InputKey.LPinkDown)] = new Undo();
 
         foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>().Where(m => !SDFPartialCommandNodeProgramOperator.TakesText(m)))
@@ -188,6 +208,11 @@ public static class SDFPartialKeyBindings
         }
 
         bindings[(EditParameter, InputKey.LPinkHome)] = new StopEditingParameter();
+        bindings[(Materials, InputKey.LPinkHome)] = new CancelMaterials();
+        bindings[(SDFPartialCommandNodeProgramMode.EditMaterial, InputKey.LPinkHome)] = new SwitchToMaterialMode();
+        bindings[(EditMaterialParameter, InputKey.LPinkHome)] = new StopEditingMaterialParameter();
+        for (var i = 0; i < MaterialParameterKeys.Length; i++)
+            bindings[(SDFPartialCommandNodeProgramMode.EditMaterial, MaterialParameterKeys[i])] = new PickMaterialParameter(i);
 
         foreach (var mode in Enum.GetValues<SDFPartialCommandNodeProgramMode>().Where(SDFPartialCommandNodeProgramOperator.TakesText))
         {
@@ -216,6 +241,26 @@ public static class SDFPartialKeyBindings
         AddInFreeKeys(bindings, SDFPartialCommandNodeProgramMode.Material, Palette.ToArray<ISDFPartialAction>());
 
         return bindings;
+    }
+
+    /// <summary>The free keys of the materials page, which show the library's materials in name order.</summary>
+    private static readonly InputKey[] MaterialKeys = Enum.GetValues<InputKey>()
+        .Where(key => key != InputKey.Enter && !Bindings.ContainsKey((Materials, key)))
+        .ToArray();
+
+    /// <summary>
+    /// What a key does in the program's mode: a fixed binding, or on the materials page the material on that key, which depends on the
+    /// program's library.
+    /// </summary>
+    public static ISDFPartialAction? ActionFor(SDFPartialCommandNodeProgram program, InputKey key)
+    {
+        if (Bindings.TryGetValue((program.state.Mode, key), out var action))
+            return action;
+        if (program.state.Mode != Materials)
+            return null;
+
+        var index = Array.IndexOf(MaterialKeys, key);
+        return index >= 0 && program.Materials.Names.ElementAtOrDefault(index) is { } name ? new AssignMaterial(name) : null;
     }
 
     public static readonly IReadOnlyList<InputKey> RedoChoiceKeys = FingerKeyLayouts.KeyColumns.Skip(1).Select(c => c.Home)

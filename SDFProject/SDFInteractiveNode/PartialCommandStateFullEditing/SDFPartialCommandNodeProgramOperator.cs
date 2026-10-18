@@ -10,7 +10,7 @@ namespace SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing;
 public class SDFPartialCommandNodeProgramOperator
 {
     public static SDFPartialCommandNodeProgram Operate(SDFPartialCommandNodeProgram partialCommandProgram, InputKey inputKey) =>
-        SDFPartialKeyBindings.Bindings.TryGetValue((partialCommandProgram.state.Mode, inputKey), out var action)
+        SDFPartialKeyBindings.ActionFor(partialCommandProgram, inputKey) is { } action
             ? Operate(partialCommandProgram, action)
             : partialCommandProgram;
 
@@ -21,6 +21,8 @@ public class SDFPartialCommandNodeProgramOperator
         if (action is InsertText or DeleteLastCharacter or ConfirmText or CancelText or Undo or Redo or ChooseRedoBranch or CancelRedoChoice or GoToHistoryEntry)
             return partialCommandProgram;
 
+        if (MaterialTransition(partialCommandProgram, action) is { } material)
+            return material;
         if (EditingTransition(partialCommandProgram, action) is { } editing)
             return editing;
 
@@ -32,7 +34,7 @@ public class SDFPartialCommandNodeProgramOperator
     }
 
     public static bool TakesText(SDFPartialCommandNodeProgramMode mode) =>
-        mode is Mode.ExtractVariable or Mode.TypeParameterValue;
+        mode is Mode.ExtractVariable or Mode.TypeParameterValue or Mode.TypeMaterialValue;
 
     private static SDFPartialCommandNodeProgram OperateOnText(SDFPartialCommandNodeProgram program, ISDFPartialAction action)
     {
@@ -52,16 +54,20 @@ public class SDFPartialCommandNodeProgramOperator
         var text = program.state.Text.Trim();
         if (program.state.Mode == Mode.ExtractVariable)
             return Apply(program, new InteractiveExtractVariable(text.Length > 0 ? text : SuggestedVariableName(program)));
+        if (program.state.Mode == Mode.TypeMaterialValue)
+            return text.Length > 0 && EditedMaterial(program) is { } edited
+                ? WithMaterialParameter(program, edited, ParseComponents(text, edited.Parameter.Name, edited.Parameter.ComponentCount))
+                : program;
 
         return text.Length > 0 && EditedParameter(program) is { } parameter
-            ? Apply(program, new InteractiveSetNodeParameter(parameter.Name, ParseComponents(text, parameter)))
+            ? Apply(program, new InteractiveSetNodeParameter(parameter.Name, ParseComponents(text, parameter.Name, parameter.ComponentCount)))
             : program;
     }
 
     public static string SuggestedVariableName(SDFPartialCommandNodeProgram program) =>
         ApplyExtractVariable.UnusedVariableName(program.interactiveProgram.Program);
 
-    private static float[] ParseComponents(string text, NodeParameter parameter)
+    private static float[] ParseComponents(string text, string name, int componentCount)
     {
         var parts = text.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries);
         var components = new float[parts.Length];
@@ -70,13 +76,90 @@ public class SDFPartialCommandNodeProgramOperator
             if (!float.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out components[i]))
                 throw new FormatException($"'{parts[i]}' is not a number");
         }
-        if (components.Length != parameter.ComponentCount)
-            throw new FormatException($"{parameter.Name} takes {parameter.ComponentCount} number(s), but '{text}' has {components.Length}");
+        if (components.Length != componentCount)
+            throw new FormatException($"{name} takes {componentCount} number(s), but '{text}' has {components.Length}");
         return components;
     }
 
     private static SDFPartialCommandNodeProgram LeaveText(SDFPartialCommandNodeProgram program) =>
-        SwitchMode(program, program.state.Mode == Mode.TypeParameterValue ? Mode.EditParameter : Mode.Home);
+        SwitchMode(program, program.state.Mode switch
+        {
+            Mode.TypeParameterValue => Mode.EditParameter,
+            Mode.TypeMaterialValue => Mode.EditMaterialParameter,
+            _ => Mode.Home,
+        });
+
+    /// <summary>The material of the selected node being edited, with the parameter being edited.</summary>
+    public sealed record EditedMaterialParameter(string Name, MaterialDefinition Material, MaterialParameter Parameter);
+
+    private static SDFPartialCommandNodeProgram? MaterialTransition(SDFPartialCommandNodeProgram program, ISDFPartialAction action)
+    {
+        var editingValue = program.state.Mode == Mode.EditMaterialParameter;
+        return action switch
+        {
+            ShowMaterials => SwitchMode(program, Mode.Materials),
+            CancelMaterials => SwitchMode(program, Mode.Material),
+            AssignMaterial assign => SwitchMode(Apply(program, new InteractiveSetMaterial(assign.name)), Mode.Material),
+            EditMaterial => program with { state = new SDFPartialCommandNodeProgramState(Mode.EditMaterial) },
+            PickMaterialParameter pick => program with
+            {
+                state = new SDFPartialCommandNodeProgramState(Mode.EditMaterialParameter, MaterialDefinition.Parameters[pick.index].Name),
+            },
+            StopEditingMaterialParameter => SwitchMode(program, Mode.EditMaterial),
+            TypeParameterValue when editingValue => SwitchMode(program, Mode.TypeMaterialValue),
+            ParameterXDown when editingValue => AdjustMaterial(program, 0, -1),
+            ParameterXUp when editingValue => AdjustMaterial(program, 0, 1),
+            ParameterYDown when editingValue => AdjustMaterial(program, 1, -1),
+            ParameterYUp when editingValue => AdjustMaterial(program, 1, 1),
+            ParameterZDown when editingValue => AdjustMaterial(program, 2, -1),
+            ParameterZUp when editingValue => AdjustMaterial(program, 2, 1),
+            _ => null,
+        };
+    }
+
+    /// <summary>The material of the selected node: on a Material node, or on the node a Material node wraps.</summary>
+    public static string? SelectedMaterialName(SDFPartialCommandNodeProgram program)
+    {
+        var interactive = program.interactiveProgram;
+        if (interactive.SelectedNodeId is not { } id || !interactive.Program.pointers.ContainsPointer(id))
+            return null;
+        var tables = new PointerTables(interactive.Program.pointers);
+        return ApplySetMaterial.MaterialNodeOf(tables, id) is { } materialNodeId ? ((Material)tables.Get(materialNodeId)).material : null;
+    }
+
+    public static EditedMaterialParameter? EditedMaterial(SDFPartialCommandNodeProgram program) =>
+        program.state.Mode is Mode.EditMaterialParameter or Mode.TypeMaterialValue
+        && program.state.EditedParameter is { } parameterName
+        && MaterialDefinition.FindParameter(parameterName) is { } parameter
+        && SelectedMaterialName(program) is { } name
+        && program.Materials.Materials.TryGetValue(name, out var material)
+            ? new EditedMaterialParameter(name, material, parameter)
+            : null;
+
+    /// <summary>Steps one component of the edited material parameter by the zoom level's step, like a node parameter.</summary>
+    private static SDFPartialCommandNodeProgram AdjustMaterial(SDFPartialCommandNodeProgram program, int component, float sign)
+    {
+        var edited = EditedMaterial(program) ?? throw new InvalidOperationException("No material parameter is being edited");
+        if (component >= edited.Parameter.ComponentCount)
+            throw new InvalidOperationException($"{edited.Parameter.Name} has no component {component}");
+
+        var step = SdfInteractiveNodeProgramOperator.TranslateZoomScaleToTranslation(program.interactiveProgram.StrZoomLevel);
+        var components = edited.Parameter.Get(edited.Material);
+        components[component] += SdfInteractiveNodeProgramOperator.SnapDelta(components[component], step, sign);
+        return WithMaterialParameter(program, edited, components);
+    }
+
+    /// <summary>Colours stay between 0 and 1 and numbers stay positive; directions can point anywhere.</summary>
+    private static SDFPartialCommandNodeProgram WithMaterialParameter(SDFPartialCommandNodeProgram program, EditedMaterialParameter edited, float[] components)
+    {
+        var limited = edited.Parameter.Kind switch
+        {
+            MaterialParameterKind.Color => components.Select(c => Math.Clamp(c, 0, 1)).ToArray(),
+            MaterialParameterKind.Number => components.Select(c => Math.Max(c, 0)).ToArray(),
+            _ => components,
+        };
+        return program with { Materials = program.Materials.With(edited.Name, edited.Parameter.With(edited.Material, limited)) };
+    }
 
     private static SDFPartialCommandNodeProgram? EditingTransition(SDFPartialCommandNodeProgram program, ISDFPartialAction action)
     {
@@ -98,7 +181,7 @@ public class SDFPartialCommandNodeProgramOperator
     public static NodeParameter? ColorParameter(SDFPartialCommandNodeProgram program) =>
         SelectedNode(program) is Color ? Parameters(program).FirstOrDefault(p => p is { Name: "color", IsConstant: true }) : null;
 
-    public static bool SelectedIsColor(SDFPartialCommandNodeProgram program) => SelectedNode(program) is Color;
+    public static bool SelectedIsColor(SDFPartialCommandNodeProgram program) => SelectedNode(program) is Color or Material;
 
     private static Evaluable? SelectedNode(SDFPartialCommandNodeProgram program)
     {

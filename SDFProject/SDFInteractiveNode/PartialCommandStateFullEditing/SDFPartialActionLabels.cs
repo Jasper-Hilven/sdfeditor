@@ -82,6 +82,14 @@ public static class SDFPartialActionLabels
             PaintColor paint => new("■", paint.name),
             EditColor => new("✎", "color"),
             RemoveColor => new("◌", "unpaint"),
+            ShowMaterials => new("▦", "materials"),
+            CancelMaterials => new("«", "back"),
+            AssignMaterial assign => new("◆", assign.name),
+            EditMaterial => new("✎", "material"),
+            PickMaterialParameter pick => new("✎", pick.index >= 0 && pick.index < MaterialDefinition.Parameters.Count
+                ? MaterialDefinition.Parameters[pick.index].Name
+                : $"#{pick.index + 1}"),
+            StopEditingMaterialParameter => new("«", "back"),
             Redo => new("↷", "redo"),
             ChooseRedoBranch choose => new("⎇", $"#{choose.index + 1}"),
             CancelRedoChoice => new("✕", "cancel"),
@@ -93,6 +101,8 @@ public static class SDFPartialActionLabels
     public static SDFPartialActionLabel Label(ISDFPartialAction action, SDFPartialCommandNodeProgram program)
     {
         var label = Label(action);
+        if (SDFPartialCommandNodeProgramOperator.EditedMaterial(program) is { } material)
+            return MaterialValueLabel(label, action, material.Parameter);
         if (SDFPartialCommandNodeProgramOperator.ParameterToEdit(program, action) is { } picked)
             return label with { Text = picked.Name };
 
@@ -108,6 +118,17 @@ public static class SDFPartialActionLabels
             _ => label,
         };
     }
+
+    /// <summary>Colours step their red, green and blue; a single number shows its name.</summary>
+    private static SDFPartialActionLabel MaterialValueLabel(SDFPartialActionLabel label, ISDFPartialAction action, MaterialParameter parameter) =>
+        (parameter.Kind, action) switch
+        {
+            (MaterialParameterKind.Color, ParameterXDown or ParameterXUp) => label with { Text = "red" },
+            (MaterialParameterKind.Color, ParameterYDown or ParameterYUp) => label with { Text = "green" },
+            (MaterialParameterKind.Color, ParameterZDown or ParameterZUp) => label with { Text = "blue" },
+            (MaterialParameterKind.Number, ParameterXDown or ParameterXUp) => label with { Text = parameter.Name },
+            _ => label,
+        };
 
     private static string NodeTypeLabel(SDFNodeType type) => type switch
     {

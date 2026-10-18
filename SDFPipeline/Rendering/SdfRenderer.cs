@@ -7,7 +7,6 @@ using System.Text;
 using System.Text.Json;
 using SDFProject.Calculation;
 using SDFProject.ProgramDefinition;
-using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.Rendering;
 

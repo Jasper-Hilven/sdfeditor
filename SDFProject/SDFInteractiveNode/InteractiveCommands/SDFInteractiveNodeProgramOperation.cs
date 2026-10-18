@@ -63,6 +63,7 @@ public record InteractiveWrapInIntersection() : ISdfInteractiveNodeProgramOperat
 public record InteractiveWrapInDistortion() : ISdfInteractiveNodeProgramOperation;
 
 public record InteractivePaint(V3 Color) : ISdfInteractiveNodeProgramOperation;
+public record InteractiveSetMaterial(string Material) : ISdfInteractiveNodeProgramOperation;
 
 public record InteractiveDissolveNode() : ISdfInteractiveNodeProgramOperation;
 

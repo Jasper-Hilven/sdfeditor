@@ -21,6 +21,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SDFProject\SDFProject.csproj" />
+    <ProjectReference Include="..\SDFPipeline\SDFPipeline.csproj" />
+  </ItemGroup>
+
+  <!-- The materials and models, which the browser cannot read from disk; see BundledContent -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\materials\**\*.sdfmat" LogicalName="IDE.materials.%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\content\**\*.sdf" LogicalName="IDE.content.%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

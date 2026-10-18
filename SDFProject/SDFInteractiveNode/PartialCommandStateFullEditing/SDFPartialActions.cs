@@ -140,6 +140,14 @@ public record SwitchToMaterialMode() : ISDFPartialAction;
 public record PaintColor(string name, V3 color) : ISDFPartialAction;
 public record EditColor() : ISDFPartialAction;
 public record RemoveColor() : ISDFPartialAction;
+public record ShowMaterials() : ISDFPartialAction;
+public record CancelMaterials() : ISDFPartialAction;
+/// <summary>Gives the selected node the material with this name; recorded by name, so replay does not depend on which key it was on.</summary>
+public record AssignMaterial(string name) : ISDFPartialAction;
+public record EditMaterial() : ISDFPartialAction;
+/// <summary>Starts editing <see cref="MaterialDefinition.Parameters"/>[index] of the selected node's material.</summary>
+public record PickMaterialParameter(int index) : ISDFPartialAction;
+public record StopEditingMaterialParameter() : ISDFPartialAction;
 public record Undo() : ISDFPartialAction;
 public record Redo() : ISDFPartialAction;
 public record ChooseRedoBranch(int index) : ISDFPartialAction;

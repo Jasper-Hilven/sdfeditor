@@ -89,6 +89,7 @@ public class SdfInteractiveNodeProgramOperator
             InteractiveWrapInIntersection => new WrapInIntersection(Selected()),
             InteractiveWrapInDistortion => new WrapInDistortion(Selected()),
             InteractivePaint o => new PaintNode(Selected(), o.Color),
+            InteractiveSetMaterial o => new SetMaterial(Selected(), o.Material),
             InteractiveDissolveNode => new DissolveNode(Selected()),
             InteractiveSetNodeParameter o => new SetNodeParameter(Selected(), o.Parameter, o.Components),
             AdjustNodeParameterAtCurrentZoomLevel o => AdjustParameter(o),
@@ -131,6 +132,7 @@ public class SdfInteractiveNodeProgramOperator
             WrapInIntersection o => IntersectedNodeId(result, o.nodeId) ?? SurvivingSelection(program, result),
             WrapInDistortion o => new PointerTables(result.pointers).ParentOf(o.nodeId) ?? SurvivingSelection(program, result),
             PaintNode o => ApplyPaintNode.ColorNodeOf(new PointerTables(result.pointers), o.nodeId) ?? SurvivingSelection(program, result),
+            SetMaterial o => ApplySetMaterial.MaterialNodeOf(new PointerTables(result.pointers), o.nodeId) ?? SurvivingSelection(program, result),
             DissolveNode when dissolvedInto is not null && new PointerTables(result.pointers).Contains(dissolvedInto) => dissolvedInto,
             InlineVariable when inlinedInto is not null && new PointerTables(result.pointers).Contains(inlinedInto) => inlinedInto,
             AdjustTransform => SurvivingPrimitive(program, result) ?? SurvivingSelection(program, result),
@@ -144,7 +146,7 @@ public class SdfInteractiveNodeProgramOperator
 
     private static float Dot(V3 a, V3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
 
-    private static float SnapDelta(float value, float step, float sign)
+    internal static float SnapDelta(float value, float step, float sign)
     {
         const float tolerance = 1e-3f;
         var steps = value / step;

@@ -74,7 +74,7 @@ public sealed record SDFPartialActionHistory(
     public ISDFPartialAction? ActionFor(InputKey key)
     {
         if (!ChoosingRedo)
-            return SDFPartialKeyBindings.Bindings.GetValueOrDefault((Current.state.Mode, key));
+            return SDFPartialKeyBindings.ActionFor(Current, key);
         if (key == InputKey.LPinkHome)
             return new CancelRedoChoice();
 
