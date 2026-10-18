@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SDFProject\SDFProject.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- The render page, and the IDE's renderer it draws with, so renders match what the IDE shows -->
+  <ItemGroup>
+    <EmbeddedResource Include="Rendering\Page\render.html" LogicalName="SDFPipeline.Rendering.render.html" />
+    <EmbeddedResource Include="Rendering\Page\render.js" LogicalName="SDFPipeline.Rendering.render.js" />
+    <EmbeddedResource Include="..\IDE\wwwroot\js\sdf-renderer.js" Link="Rendering\Page\sdf-renderer.js" LogicalName="SDFPipeline.Rendering.sdf-renderer.js" />
+  </ItemGroup>
+
+</Project>

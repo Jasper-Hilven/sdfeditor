@@ -1,0 +1,346 @@
+using System.Globalization;
+using SDFProject.ProgramDefinition;
+using SDFProject.SDFProgramOperator.Helpers;
+using static SDFPipeline.ProgramFiles.FileSyntax;
+
+namespace SDFPipeline.ProgramFiles;
+
+/// <summary>
+/// Reads the text <see cref="SdfProgramFileWriter"/> writes, and the hand- or AI-written variations of it: comments after '#',
+/// blank lines, whole numbers where a number is needed. Every node gets a fresh pointer id.
+/// </summary>
+internal sealed class SdfProgramFileReader
+{
+    private sealed record Variable(string Id, ValueKind Kind);
+
+    private sealed record FunctionHeader(string Name, SourceLine Line, string[] ArgumentNames, ValueKind?[] ArgumentKinds);
+
+    private sealed class Scope(FunctionHeader? function, string description)
+    {
+        public FunctionHeader? Function { get; } = function;
+        public string Description { get; } = description;
+        public Dictionary<string, Variable> Variables { get; } = [];
+    }
+
+    private readonly List<SourceLine> lines;
+    private readonly Dictionary<string, FunctionHeader> functions = [];
+    private readonly List<FunctionHeader> functionOrder = [];
+    private long nextVariableId;
+
+    private SdfProgramFileReader(string text) => lines = SourceLine.Parse(text);
+
+    public static SDFProgram Read(string text) => new SdfProgramFileReader(text).Read();
+
+    private SDFProgram Read()
+    {
+        if (lines.Count == 0)
+            throw new SdfProgramFileException(1, $"The file is empty, it must start with '{FormatKeyword} {SdfProgramFile.FormatVersion}'");
+        ReadFormat(lines[0]);
+
+        var rest = lines.Skip(1).ToList();
+        foreach (var line in rest.Where(IsFunction))
+        {
+            var header = ReadHeader(line);
+            if (!functions.TryAdd(header.Name, header))
+                throw new SdfProgramFileException(line.Number, $"Function '{header.Name}' is declared twice");
+            functionOrder.Add(header);
+        }
+
+        var definitions = functionOrder.Select(ReadFunction).ToArray<SDFFunctionDefinition>();
+        var (variables, scene) = ReadScope(rest.Where(l => !IsFunction(l)).ToList(), new Scope(null, "the file"), rest.LastOrDefault() ?? lines[0]);
+
+        var pointers = new SDFPointers(new(), new(), new(), new(), nextVariableId);
+        return SDFProgramNormalizePointers.Pointerify(new SDFProgram(definitions, pointers, variables, scene));
+    }
+
+    private static void ReadFormat(SourceLine line)
+    {
+        var cursor = new Cursor(line);
+        if (cursor.TryReadName() != FormatKeyword || cursor.ReadValue() is not RawNumber { IsWhole: true } number)
+            throw cursor.Error($"The file must start with '{FormatKeyword} {SdfProgramFile.FormatVersion}'");
+        cursor.ExpectEnd();
+
+        var version = int.Parse(number.Text, CultureInfo.InvariantCulture);
+        if (version != SdfProgramFile.FormatVersion)
+            throw cursor.Error($"This file has format {version}, but only format {SdfProgramFile.FormatVersion} can be read");
+        if (line.Children.Count > 0)
+            throw new SdfProgramFileException(line.Children[0].Number, "Nothing can be indented below the format line");
+    }
+
+    private static bool IsFunction(SourceLine line)
+    {
+        var cursor = new Cursor(line);
+        return cursor.TryReadName() == FunctionKeyword && cursor.Peek() is not ('=' or ':' or null);
+    }
+
+    private static FunctionHeader ReadHeader(SourceLine line)
+    {
+        var cursor = new Cursor(line);
+        cursor.ReadName("'function'");
+        var name = cursor.ReadName("a function name");
+        cursor.Expect('(');
+
+        var names = new List<string>();
+        var kinds = new List<ValueKind?>();
+        if (!cursor.TryConsume(')'))
+        {
+            do
+            {
+                var argument = cursor.ReadName("an argument name");
+                if (names.Contains(argument))
+                    throw cursor.Error($"Function '{name}' has two arguments named '{argument}'");
+                names.Add(argument);
+                kinds.Add(cursor.TryConsume(':') ? ReadType(cursor) : null);
+            }
+            while (cursor.TryConsume(','));
+            cursor.Expect(')');
+        }
+        cursor.ExpectEnd();
+
+        return new FunctionHeader(name, line, names.ToArray(), kinds.ToArray());
+    }
+
+    private static ValueKind ReadType(Cursor cursor)
+    {
+        var keyword = cursor.ReadName("a type");
+        return ValueKinds.FromKeyword(keyword) ?? throw cursor.Error($"Unknown type '{keyword}', use float, int, v2 or v3");
+    }
+
+    private SDFFunction ReadFunction(FunctionHeader header)
+    {
+        var (variables, body) = ReadScope(header.Line.Children, new Scope(header, $"function '{header.Name}'"), header.Line);
+        return new SDFFunction(header.Name, header.Name, header.ArgumentNames, variables, body);
+    }
+
+    private (VariableDeclaration[] variables, SDFEvaluable body) ReadScope(List<SourceLine> scopeLines, Scope scope, SourceLine owner)
+    {
+        var variables = new List<VariableDeclaration>();
+        (SDFEvaluable node, SourceLine line)? body = null;
+        foreach (var line in scopeLines)
+        {
+            if (IsFunction(line))
+                throw new SdfProgramFileException(line.Number, "Functions can only be declared at the top level, without indentation");
+
+            if (IsDeclaration(line))
+            {
+                if (body is { } shape)
+                    throw new SdfProgramFileException(line.Number, $"Declare variables before the shape, which starts on line {shape.line.Number}");
+                variables.Add(ReadDeclaration(line, scope));
+            }
+            else
+            {
+                if (body is { } shape)
+                    throw new SdfProgramFileException(line.Number,
+                        $"{Capitalized(scope.Description)} already has its shape on line {shape.line.Number}; combine shapes with a Union");
+                body = ((SDFEvaluable)ReadNode(line, ValueKind.Sdf, scope), line);
+            }
+        }
+
+        return body is { } result
+            ? (variables.ToArray(), result.node)
+            : throw new SdfProgramFileException(owner.Number, $"{Capitalized(scope.Description)} has no shape");
+    }
+
+    private static bool IsDeclaration(SourceLine line)
+    {
+        var cursor = new Cursor(line);
+        return cursor.TryReadName() is not null && cursor.Peek() is '=' or ':';
+    }
+
+    private VariableDeclaration ReadDeclaration(SourceLine line, Scope scope)
+    {
+        var cursor = new Cursor(line);
+        var name = cursor.ReadName("a variable name");
+        ValueKind? type = cursor.TryConsume(':') ? ReadType(cursor) : null;
+        cursor.Expect('=');
+        if (scope.Variables.ContainsKey(name))
+            throw cursor.Error($"Variable '{name}' is declared twice");
+
+        Evaluable value;
+        if (cursor.AtEnd)
+        {
+            if (type is not null)
+                throw cursor.Error($"Variable '{name}' has type {ValueKinds.Keyword(type.Value)}, so it needs a value after '='");
+            if (line.Children.Count != 1)
+                throw cursor.Error($"Variable '{name}' needs a value after '=' or exactly one shape indented below it");
+            value = ReadNode(line.Children[0], null, scope);
+        }
+        else
+        {
+            if (line.Children.Count > 0)
+                throw new SdfProgramFileException(line.Children[0].Number, $"Variable '{name}' already has a value, so nothing can be indented below it");
+            value = Convert(cursor.ReadValue(), type, scope, cursor);
+            cursor.ExpectEnd();
+        }
+
+        var id = (nextVariableId++).ToString(CultureInfo.InvariantCulture);
+        scope.Variables[name] = new Variable(id, ValueKinds.Of(value));
+        return new VariableDeclaration(name, id, value);
+    }
+
+    private Evaluable ReadNode(SourceLine line, ValueKind? expected, Scope scope)
+    {
+        var cursor = new Cursor(line);
+        if (cursor.TryConsume('$'))
+        {
+            var name = cursor.ReadName("a variable name after '$'");
+            cursor.ExpectEnd();
+            if (line.Children.Count > 0)
+                throw new SdfProgramFileException(line.Children[0].Number, "Nothing can be indented below a variable");
+
+            var variable = Lookup(name, scope, cursor);
+            if (variable.Kind is not (ValueKind.Sdf or ValueKind.Sdf2D))
+                throw cursor.Error($"Variable '{name}' is {ValueKinds.Describe(variable.Kind)}, not a shape");
+            RequireKind(expected, variable.Kind, $"variable '{name}'", cursor);
+            return ValueKinds.VariableReference(variable.Kind, variable.Id);
+        }
+
+        var typeName = cursor.ReadName("a node type");
+        var shape = NodeTypes.Find(typeName) ?? throw cursor.Error(UnknownNode(typeName));
+        RequireKind(expected, shape.Kind, typeName, cursor);
+
+        var values = new Dictionary<string, RawValue>();
+        while (!cursor.AtEnd)
+        {
+            var key = cursor.ReadName("a parameter like name=value");
+            cursor.Expect('=');
+            if (!values.TryAdd(key, cursor.ReadValue()))
+                throw cursor.Error($"Parameter '{key}' is given twice");
+        }
+
+        var arguments = new object?[shape.Slots.Length];
+        var children = line.Children;
+        var nextChild = 0;
+        FunctionHeader? called = null;
+        foreach (var (slot, i) in shape.Slots.Select((s, i) => (s, i)))
+        {
+            switch (slot.Category)
+            {
+                case SlotCategory.Value:
+                    arguments[i] = Convert(Take(slot), ValueKinds.OfSite(slot.Type), scope, cursor);
+                    break;
+                case SlotCategory.FunctionName:
+                    var function = Take(slot) is RawName { Name: var functionName }
+                        ? functionName
+                        : throw cursor.Error($"Parameter '{slot.Name}' needs a function name");
+                    called = functions.GetValueOrDefault(function) ?? throw cursor.Error($"There is no function '{function}'");
+                    arguments[i] = called.Name;
+                    break;
+                case SlotCategory.MaterialName:
+                    arguments[i] = Take(slot) is RawName { Name: var materialName }
+                        ? materialName
+                        : throw cursor.Error($"Parameter '{slot.Name}' needs a material name, like {slot.Name}=chanterelle_cap");
+                    break;
+                case SlotCategory.Arguments:
+                    arguments[i] = ReadArguments(values.Remove(slot.Name, out var list) ? list : new RawList([]), called, scope, cursor);
+                    break;
+                case SlotCategory.Node:
+                    if (nextChild >= children.Count)
+                        throw cursor.Error($"{typeName} needs a shape indented below it for '{slot.Name}'");
+                    arguments[i] = ReadNode(children[nextChild++], ValueKinds.OfSite(slot.Type), scope);
+                    break;
+                case SlotCategory.Nodes:
+                    var elementType = slot.Type.GetElementType()!;
+                    var nodes = Array.CreateInstance(elementType, children.Count - nextChild);
+                    for (var n = 0; nextChild < children.Count; n++)
+                        nodes.SetValue(ReadNode(children[nextChild++], ValueKinds.OfSite(elementType), scope), n);
+                    arguments[i] = nodes;
+                    break;
+            }
+        }
+
+        if (values.Keys.FirstOrDefault() is { } unknown)
+            throw cursor.Error($"{typeName} has no parameter '{unknown}'; its parameters are {Parameters(shape)}");
+        if (nextChild < children.Count)
+            throw new SdfProgramFileException(children[nextChild].Number, $"{typeName} on line {line.Number} has no room for another shape");
+
+        return (Evaluable)shape.Constructor.Invoke(arguments);
+
+        RawValue Take(NodeSlot slot) =>
+            values.Remove(slot.Name, out var value) ? value : throw cursor.Error($"{typeName} is missing parameter '{slot.Name}'");
+    }
+
+    private Evaluable[] ReadArguments(RawValue raw, FunctionHeader? function, Scope scope, Cursor cursor)
+    {
+        if (raw is not RawList list)
+            throw cursor.Error("Function arguments are written as a list like [0.5, (1, 2, 3)]");
+        if (function is null)
+            throw cursor.Error("Name the function before its arguments");
+        if (list.Items.Length != function.ArgumentNames.Length)
+            throw cursor.Error($"Function '{function.Name}' takes {function.ArgumentNames.Length} argument(s), but {list.Items.Length} are given");
+
+        return list.Items.Select((item, i) => Convert(item, function.ArgumentKinds[i], scope, cursor)).ToArray();
+    }
+
+    /// <summary>Turns a raw value into the evaluable a parameter needs; without an expected kind, a plain number is a float.</summary>
+    private Evaluable Convert(RawValue raw, ValueKind? expected, Scope scope, Cursor cursor)
+    {
+        switch (raw)
+        {
+            case RawNumber number when expected == ValueKind.Int:
+                return number.IsWhole
+                    ? new ConstValueInt(int.Parse(number.Text, CultureInfo.InvariantCulture))
+                    : throw cursor.Error($"Expected a whole number, found {number.Text}");
+            case RawNumber number:
+                RequireKind(expected, ValueKind.Float, $"the number {number.Text}", cursor);
+                return new ConstValueFloat(float.Parse(number.Text, CultureInfo.InvariantCulture));
+            case RawVector vector:
+                var components = vector.Components.Select(c => float.Parse(c.Text, CultureInfo.InvariantCulture)).ToArray();
+                return components.Length switch
+                {
+                    2 => RequireKind(expected, ValueKind.V2, "a 2D vector", cursor, new ConstValueV2(new V2(components[0], components[1]))),
+                    3 => RequireKind(expected, ValueKind.V3, "a 3D vector", cursor, new ConstValueV3(new V3(components[0], components[1], components[2]))),
+                    _ => throw cursor.Error($"A vector has 2 or 3 numbers, not {components.Length}"),
+                };
+            case RawVariable { Name: var name }:
+                var variable = Lookup(name, scope, cursor);
+                if (variable.Kind is ValueKind.Sdf or ValueKind.Sdf2D)
+                    throw cursor.Error($"Variable '{name}' is a shape, put it on its own line as ${Name(name)}");
+                RequireKind(expected, variable.Kind, $"variable '{name}'", cursor);
+                return ValueKinds.VariableReference(variable.Kind, variable.Id);
+            case RawArgument { Name: var name }:
+                var function = scope.Function ?? throw cursor.Error($"@{name} is a function argument, which only exists inside a function");
+                var index = Array.IndexOf(function.ArgumentNames, name);
+                if (index < 0)
+                    throw cursor.Error($"Function '{function.Name}' has no argument '{name}'");
+                var kind = function.ArgumentKinds[index] ?? expected
+                    ?? throw cursor.Error($"Give argument '{name}' a type in the function header, like {name}: float");
+                RequireKind(expected, kind, $"argument '{name}'", cursor);
+                function.ArgumentKinds[index] = kind;
+                return ValueKinds.ArgumentReference(kind, index);
+            case RawName { Name: var name }:
+                throw cursor.Error($"Expected a value, found '{name}'; variables are written as ${name}");
+            default:
+                throw cursor.Error("A list can only hold function arguments");
+        }
+    }
+
+    private static Variable Lookup(string name, Scope scope, Cursor cursor) =>
+        scope.Variables.GetValueOrDefault(name)
+        ?? throw cursor.Error($"Variable '{name}' is not declared before this line in {scope.Description}");
+
+    private static string Capitalized(string text) => char.ToUpperInvariant(text[0]) + text[1..];
+
+    private static void RequireKind(ValueKind? expected, ValueKind actual, string what, Cursor cursor)
+    {
+        if (expected is { } kind && kind != actual)
+            throw cursor.Error($"Expected {ValueKinds.Describe(kind)}, but {what} is {ValueKinds.Describe(actual)}");
+    }
+
+    private static Evaluable RequireKind(ValueKind? expected, ValueKind actual, string what, Cursor cursor, Evaluable value)
+    {
+        RequireKind(expected, actual, what, cursor);
+        return value;
+    }
+
+    private static string UnknownNode(string typeName)
+    {
+        var similar = NodeTypes.NamesLike(typeName).Take(5).ToArray();
+        return similar.Length > 0
+            ? $"Unknown node type '{typeName}', did you mean {string.Join(" or ", similar)}?"
+            : $"Unknown node type '{typeName}'";
+    }
+
+    private static string Parameters(NodeShape shape) =>
+        string.Join(", ", shape.Slots.Where(s => s.Category is SlotCategory.Value or SlotCategory.FunctionName or SlotCategory.MaterialName or SlotCategory.Arguments).Select(s => s.Name));
+}

@@ -95,6 +95,8 @@ public sealed record ElongateExactInterior(SDFEvaluable primitive, V3Evaluable a
 public sealed record Round(SDFEvaluable primitive, FloatEvaluable radius) : SDFEvaluable;
 public sealed record Onion(SDFEvaluable primitive, FloatEvaluable thickness) : SDFEvaluable;
 public sealed record Color(SDFEvaluable primitive, V3Evaluable color) : SDFEvaluable;
+/// <summary>Gives the shape below it a named material from the <see cref="MaterialLibrary"/>.</summary>
+public sealed record Material(SDFEvaluable primitive, string material) : SDFEvaluable;
 public sealed record Distort(SDFEvaluable primitive, FloatEvaluable amount, FloatEvaluable frequency) : SDFEvaluable;
 
 public sealed record Union(params SDFEvaluable[] primitives) : SDFEvaluable;

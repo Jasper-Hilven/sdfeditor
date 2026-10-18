@@ -1,0 +1,21 @@
+# Coffee mug: A mug hollowed out by subtraction, with a smoothly attached handle, coffee in a custom colour, a spoon and a saucer.
+format 1
+
+Union
+    Color color=(0.92, 0.92, 0.92)
+        Subtraction
+            SmoothUnion smoothness=0.05
+                CappedCylinder radius=0.5 height=0.6
+                Translate translation=(0.5, 0.049999997, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        Torus innerRadius=0.2 outerRadius=0.34
+            Translate translation=(0, 0.1, 0)
+                CappedCylinder radius=0.43 height=0.6
+    Translate translation=(0, 0.35, 0)
+        Color color=(0.3, 0.17, 0.08)
+            CappedCylinder radius=0.43 height=0.01
+    Color color=(0.5, 0.5, 0.5)
+        Capsule a=(0.1, 0.2, 0.15) b=(0.45, 1, 0.35) radius=0.025
+    Translate translation=(0, -0.65, 0)
+        Color color=(0.92, 0.92, 0.92)
+            RoundedCylinder radius=0.8 roundness=0.03 height=0.02

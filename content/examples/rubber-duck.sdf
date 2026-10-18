@@ -1,0 +1,30 @@
+# Rubber duck: A yellow duck made of smoothly blended ellipsoids for body, wings and tail, a sphere head, an orange beak and black eyes, floating on water.
+format 1
+
+Union
+    Color color=(0.95, 0.85, 0.25)
+        SmoothUnion smoothness=0.15
+            Translate translation=(0, 0.4, 0)
+                Ellipsoid radii=(0.6, 0.38, 0.45)
+            Translate translation=(0.32, 0.95, 0)
+                Sphere radius=0.28
+            Translate translation=(-0.55, 0.6, 0)
+                Rotate rotation=(0, 0, -0.6108653)
+                    Ellipsoid radii=(0.22, 0.1, 0.16)
+            Translate translation=(-0.049999997, 0.5, 0.42)
+                Rotate rotation=(0, 0, -0.17453294)
+                    Ellipsoid radii=(0.3, 0.14, 0.08)
+            Translate translation=(-0.049999997, 0.5, -0.42)
+                Rotate rotation=(0, 0, -0.17453294)
+                    Ellipsoid radii=(0.3, 0.14, 0.08)
+    Translate translation=(0.6, 0.90000004, 0)
+        Color color=(0.95, 0.55, 0.15)
+            Ellipsoid radii=(0.16, 0.05, 0.13)
+    Translate translation=(0.52, 1.05, 0.16)
+        Color color=(0.1, 0.1, 0.1)
+            Sphere radius=0.045
+    Translate translation=(0.52, 1.05, -0.16)
+        Color color=(0.1, 0.1, 0.1)
+            Sphere radius=0.045
+    Color color=(0.2, 0.65, 0.65)
+        Plane normal=(0, 1, 0) height=-0.15

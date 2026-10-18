@@ -6,26 +6,76 @@ using SDFProject.SDFProgramOperator.Helpers;
 
 namespace SDFProject.Calculation;
 
-public partial class Webgl2CodeGenerator
+/// <summary>Generates WebGL2 GLSL: the distance function, and a material function that resolves named materials in <paramref name="materials"/>.</summary>
+public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
 {
+    private readonly MaterialLibrary materials = materials ?? MaterialLibrary.Empty;
+
     public const string SceneFunctionName = "sdf_scene";
 
-    public string[] generateSdfCode(SDFProgram program) => Generate(program).functions;
+    public string[] generateSdfCode(SDFProgram program) => Generate(program, materials).functions;
 
     public const string MaterialFunctionName = "sdf_material";
     public const string DefaultColor = "vec3(0.85, 0.62, 0.42)";
+    public const string MaterialType = "SurfaceMaterial";
+    public static readonly string DefaultMaterial = $"colorMaterial({DefaultColor})";
+
+    /// <summary>The material struct and its helpers; the renderer shades with the fields of what <see cref="MaterialFunctionName"/> returns.</summary>
+    public static readonly string MaterialCode = $$"""
+        struct {{MaterialType}}
+        {
+            vec3 baseColor;
+            float roughness;
+            float specular;
+            vec3 subsurfaceColor;
+            float subsurfaceRadius;
+            float detailStrength;
+            float detailScale;
+            float colorVariation;
+        };
+
+        {{MaterialType}} colorMaterial(vec3 color)
+        {
+            return {{MaterialLiteral(MaterialDefinition.Default, "color")}};
+        }
+
+        {{MaterialType}} mixMaterial({{MaterialType}} a, {{MaterialType}} b, float t)
+        {
+            return {{MaterialType}}(
+                mix(a.baseColor, b.baseColor, t),
+                mix(a.roughness, b.roughness, t),
+                mix(a.specular, b.specular, t),
+                mix(a.subsurfaceColor, b.subsurfaceColor, t),
+                mix(a.subsurfaceRadius, b.subsurfaceRadius, t),
+                mix(a.detailStrength, b.detailStrength, t),
+                mix(a.detailScale, b.detailScale, t),
+                mix(a.colorVariation, b.colorVariation, t));
+        }
+
+        {{MaterialType}} pickMaterial(bool first, {{MaterialType}} a, {{MaterialType}} b)
+        {
+            if (first) return a;
+            return b;
+        }
+        """;
+
+    public static string MaterialLiteral(MaterialDefinition m, string? baseColor = null) =>
+        $"{MaterialType}({baseColor ?? Vec3Literal(m.baseColor)}, {Literal(m.roughness)}, {Literal(m.specular)}, {Vec3Literal(m.subsurfaceColor)}, " +
+        $"{Literal(m.subsurfaceRadius)}, {Literal(m.detailStrength)}, {Literal(m.detailScale)}, {Literal(m.colorVariation)})";
+
+    private static string Vec3Literal(V3 v) => $"vec3({Literal(v.x)}, {Literal(v.y)}, {Literal(v.z)})";
 
     public string GenerateShaderCode(SDFProgram program)
     {
-        var (functions, material, context) = Generate(program);
+        var (functions, material, context) = Generate(program, materials);
         return string.Join("\n\n", functions.Append(material).Prepend(Webgl2SdfLibrary.CodeFor(context.UsedLibraryMethods.Keys)));
     }
 
-    public IReadOnlyDictionary<string, int> CountLibraryMethodUses(SDFProgram program) => Generate(program).context.UsedLibraryMethods;
+    public IReadOnlyDictionary<string, int> CountLibraryMethodUses(SDFProgram program) => Generate(program, materials).context.UsedLibraryMethods;
 
-    private static (string[] functions, string material, GeneratorContext context) Generate(SDFProgram program)
+    private static (string[] functions, string material, GeneratorContext context) Generate(SDFProgram program, MaterialLibrary materials)
     {
-        var context = new GeneratorContext(program, FunctionNames(program), ParameterTypes(program), []);
+        var context = new GeneratorContext(program, FunctionNames(program), ParameterTypes(program), [], materials);
 
         var code = OrderCalleesFirst(program).Select(f => GenerateFunction(context, f)).ToList();
         code.Add(GenerateScene(context, program));
@@ -36,19 +86,21 @@ public partial class Webgl2CodeGenerator
     {
         var writer = new FunctionWriter(context, []);
         DeclareVariables(writer, program.sceneVariables);
+        var signature = $"{MaterialType} {MaterialFunctionName}(vec3 p)";
         if (!writer.ContainsColor(program.scene))
-            return $"vec3 {MaterialFunctionName}(vec3 p)\n{{\n    return {DefaultColor};\n}}";
+            return $"{MaterialCode}\n\n{signature}\n{{\n    return {DefaultMaterial};\n}}";
 
-        var (_, color) = writer.Material(program.scene, "p", DefaultColor);
-        writer.Line($"return {color};");
-        return writer.ToFunction($"vec3 {MaterialFunctionName}(vec3 p)");
+        var (_, material) = writer.Surface(program.scene, "p", DefaultMaterial);
+        writer.Line($"return {material};");
+        return $"{MaterialCode}\n\n{writer.ToFunction(signature)}";
     }
 
     private sealed record GeneratorContext(
         SDFProgram Program,
         Dictionary<string, string> FunctionNames,
         Dictionary<string, string[]> ParameterTypes,
-        Dictionary<string, int> UsedLibraryMethods)
+        Dictionary<string, int> UsedLibraryMethods,
+        MaterialLibrary Materials)
     {
         public void CountLibraryMethodUses(string line)
         {
@@ -186,6 +238,7 @@ public partial class Webgl2CodeGenerator
                 Round e => Distance($"{Sdf(e.primitive, p)} - {F(e.radius)}"),
                 Onion e => Distance($"abs({Sdf(e.primitive, p)}) - {F(e.thickness)}"),
                 Color e => Sdf(e.primitive, p),
+                Material e => Sdf(e.primitive, p),
                 Distort e => Distance($"{Sdf(e.primitive, p)} + opDistort({p}, {F(e.amount)}, {F(e.frequency)})"),
 
                 Union e => Combine(e.primitives, p, (a, b) => $"min({a}, {b})", "SDF_INFINITY"),
@@ -274,70 +327,71 @@ public partial class Webgl2CodeGenerator
             _ => null,
         };
 
-        public (string distance, string color) Material(SDFEvaluable evaluable, string p, string color)
+        public (string distance, string material) Surface(SDFEvaluable evaluable, string p, string material)
         {
             if (!ContainsColor(evaluable))
-                return (Sdf(evaluable, p), color);
+                return (Sdf(evaluable, p), material);
             if (Transformed(evaluable, p) is { } transformed)
-                return Material(transformed.child, transformed.p, color);
+                return Surface(transformed.child, transformed.p, material);
 
             return evaluable switch
             {
-                SDFEvaluablePointerable e => Material(pointers.SDFEvaluablePointers[e.PointerId], p, color),
-                VariableReferenceSDF r => Inline(r.variableId, value => Material((SDFEvaluable)value, p, color)),
-                Color e => Material(e.primitive, p, ColorValue(Vec3(e.color))),
-                Round e => Modified(e.primitive, p, color, d => $"{d} - {Float(e.radius)}"),
-                Onion e => Modified(e.primitive, p, color, d => $"abs({d}) - {Float(e.thickness)}"),
-                Displace e => Modified(e.primitive, p, color, d => $"{d} + {Sdf(e.displacement, p)}"),
-                Distort e => Modified(e.primitive, p, color, d => $"{d} + opDistort({p}, {Float(e.amount)}, {Float(e.frequency)})"),
-                Union e => CombineMaterials(e.primitives, p, color, (a, b) => Pick($"{a.distance} < {b.distance}", a, b, $"min({a.distance}, {b.distance})"), "SDF_INFINITY"),
-                Intersection e => CombineMaterials(e.primitives, p, color, (a, b) => Pick($"{a.distance} > {b.distance}", a, b, $"max({a.distance}, {b.distance})"), "-SDF_INFINITY"),
-                SmoothUnion e => CombineMaterials(e.primitives, p, color, (a, b) => Blend(a, b, e.smoothness, 1, $"opSmoothMin({a.distance}, {b.distance}, {Float(e.smoothness)})"), "SDF_INFINITY"),
-                SmoothIntersection e => CombineMaterials(e.primitives, p, color, (a, b) => Blend(a, b, e.smoothness, -1, $"-opSmoothMin(-{a.distance}, -{b.distance}, {Float(e.smoothness)})"), "-SDF_INFINITY"),
-                Subtraction e => Modified(e.a, p, color, d => $"max({d}, -{Sdf(e.b, p)})"),
-                SmoothSubtraction e => Modified(e.a, p, color, d => $"-opSmoothMin(-{d}, {Sdf(e.b, p)}, {Float(e.smoothness)})"),
-                Xor e => CombineMaterials([e.a, e.b], p, color, (a, b) => Pick($"abs({a.distance}) < abs({b.distance})", a, b, $"opXor({a.distance}, {b.distance})"), "SDF_INFINITY"),
-                Scale e => ScaleMaterial(e, p, color),
-                ElongateExactInterior e => ElongateExactInteriorMaterial(e, p, color),
-                _ => (Sdf(evaluable, p), color),
+                SDFEvaluablePointerable e => Surface(pointers.SDFEvaluablePointers[e.PointerId], p, material),
+                VariableReferenceSDF r => Inline(r.variableId, value => Surface((SDFEvaluable)value, p, material)),
+                Color e => Surface(e.primitive, p, MaterialValue($"colorMaterial({Vec3(e.color)})")),
+                Material e => Surface(e.primitive, p, MaterialValue(MaterialLiteral(context.Materials.Resolve(e.material)))),
+                Round e => Modified(e.primitive, p, material, d => $"{d} - {Float(e.radius)}"),
+                Onion e => Modified(e.primitive, p, material, d => $"abs({d}) - {Float(e.thickness)}"),
+                Displace e => Modified(e.primitive, p, material, d => $"{d} + {Sdf(e.displacement, p)}"),
+                Distort e => Modified(e.primitive, p, material, d => $"{d} + opDistort({p}, {Float(e.amount)}, {Float(e.frequency)})"),
+                Union e => CombineMaterials(e.primitives, p, material, (a, b) => Pick($"{a.distance} < {b.distance}", a, b, $"min({a.distance}, {b.distance})"), "SDF_INFINITY"),
+                Intersection e => CombineMaterials(e.primitives, p, material, (a, b) => Pick($"{a.distance} > {b.distance}", a, b, $"max({a.distance}, {b.distance})"), "-SDF_INFINITY"),
+                SmoothUnion e => CombineMaterials(e.primitives, p, material, (a, b) => Blend(a, b, e.smoothness, 1, $"opSmoothMin({a.distance}, {b.distance}, {Float(e.smoothness)})"), "SDF_INFINITY"),
+                SmoothIntersection e => CombineMaterials(e.primitives, p, material, (a, b) => Blend(a, b, e.smoothness, -1, $"-opSmoothMin(-{a.distance}, -{b.distance}, {Float(e.smoothness)})"), "-SDF_INFINITY"),
+                Subtraction e => Modified(e.a, p, material, d => $"max({d}, -{Sdf(e.b, p)})"),
+                SmoothSubtraction e => Modified(e.a, p, material, d => $"-opSmoothMin(-{d}, {Sdf(e.b, p)}, {Float(e.smoothness)})"),
+                Xor e => CombineMaterials([e.a, e.b], p, material, (a, b) => Pick($"abs({a.distance}) < abs({b.distance})", a, b, $"opXor({a.distance}, {b.distance})"), "SDF_INFINITY"),
+                Scale e => ScaleSurface(e, p, material),
+                ElongateExactInterior e => ElongateExactInteriorSurface(e, p, material),
+                _ => (Sdf(evaluable, p), material),
             };
         }
 
-        private string ColorValue(string expression) => Temporary("vec3", "c", expression);
+        private string MaterialValue(string expression) => Temporary(MaterialType, "m", expression);
 
-        private (string distance, string color) Modified(SDFEvaluable child, string p, string color, Func<string, string> distance)
+        private (string distance, string material) Modified(SDFEvaluable child, string p, string material, Func<string, string> distance)
         {
-            var (d, c) = Material(child, p, color);
-            return (Distance(distance(d)), c);
+            var (d, m) = Surface(child, p, material);
+            return (Distance(distance(d)), m);
         }
 
-        private (string distance, string color) Pick(string firstWins, (string distance, string color) a, (string distance, string color) b, string distance) =>
-            (Distance(distance), ColorValue($"({firstWins}) ? {a.color} : {b.color}"));
+        private (string distance, string material) Pick(string firstWins, (string distance, string material) a, (string distance, string material) b, string distance) =>
+            (Distance(distance), MaterialValue($"pickMaterial({firstWins}, {a.material}, {b.material})"));
 
-        private (string distance, string color) Blend((string distance, string color) a, (string distance, string color) b, FloatEvaluable smoothness, int sign, string distance)
+        private (string distance, string material) Blend((string distance, string material) a, (string distance, string material) b, FloatEvaluable smoothness, int sign, string distance)
         {
             var weight = $"clamp(0.5 + {Literal(0.125f * sign)} * ({b.distance} - {a.distance}) / max({Float(smoothness)}, 1e-6), 0.0, 1.0)";
-            return (Distance(distance), ColorValue($"mix({b.color}, {a.color}, {weight})"));
+            return (Distance(distance), MaterialValue($"mixMaterial({b.material}, {a.material}, {weight})"));
         }
 
-        private (string distance, string color) CombineMaterials(SDFEvaluable[] primitives, string p, string color,
-            Func<(string distance, string color), (string distance, string color), (string distance, string color)> combine, string empty) =>
+        private (string distance, string material) CombineMaterials(SDFEvaluable[] primitives, string p, string material,
+            Func<(string distance, string material), (string distance, string material), (string distance, string material)> combine, string empty) =>
             primitives.Length == 0
-                ? (Distance(empty), color)
-                : primitives.Skip(1).Aggregate(Material(primitives[0], p, color), (result, primitive) => combine(result, Material(primitive, p, color)));
+                ? (Distance(empty), material)
+                : primitives.Skip(1).Aggregate(Surface(primitives[0], p, material), (result, primitive) => combine(result, Surface(primitive, p, material)));
 
-        private (string distance, string color) ScaleMaterial(Scale e, string p, string color)
+        private (string distance, string material) ScaleSurface(Scale e, string p, string material)
         {
             var scale = Vec3(e.scale);
-            var (d, c) = Material(e.primitive, Position3($"{p} / {scale}"), color);
-            return (Distance($"{d} * minComponent({scale})"), c);
+            var (d, m) = Surface(e.primitive, Position3($"{p} / {scale}"), material);
+            return (Distance($"{d} * minComponent({scale})"), m);
         }
 
-        private (string distance, string color) ElongateExactInteriorMaterial(ElongateExactInterior e, string p, string color)
+        private (string distance, string material) ElongateExactInteriorSurface(ElongateExactInterior e, string p, string material)
         {
             var q = Position3($"abs({p}) - {Vec3(e.amount)}");
-            var (d, c) = Material(e.primitive, Position3($"max({q}, 0.0)"), color);
-            return (Distance($"{d} + min(maxComponent({q}), 0.0)"), c);
+            var (d, m) = Surface(e.primitive, Position3($"max({q}, 0.0)"), material);
+            return (Distance($"{d} + min(maxComponent({q}), 0.0)"), m);
         }
 
         public bool ContainsColor(Evaluable evaluable) => ContainsColor(evaluable, []);
@@ -347,7 +401,7 @@ public partial class Webgl2CodeGenerator
             var node = PointerTables.PointerId(evaluable) is { } id ? new PointerTables(pointers).Get(id) : evaluable;
             return node switch
             {
-                Color => true,
+                Color or Material => true,
                 SDFFunctionCall => false,
                 VariableReferenceSDF r => visitedVariables.Add(r.variableId)
                                           && variables.TryGetValue(r.variableId, out var variable)

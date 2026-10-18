@@ -20,7 +20,7 @@ public class ColorTests
     private static string Material(SDFProgram program)
     {
         var code = Generator.GenerateShaderCode(program);
-        return code[code.IndexOf("vec3 sdf_material(vec3 p)", StringComparison.Ordinal)..];
+        return code[code.IndexOf("SurfaceMaterial sdf_material(vec3 p)", StringComparison.Ordinal)..];
     }
 
     private static string ColorNodeId(SDFProgram program) => program.pointers.SDFEvaluablePointers.Single(e => e.Value is Color).Key;
@@ -41,8 +41,8 @@ public class ColorTests
     {
         var material = Material(Program(Painted(0.9f, 0.2f, 0.1f, Sphere(1))));
 
-        Assert.Contains("vec3 c0 = vec3(0.9, 0.2, 0.1);", material);
-        Assert.Contains("return c0;", material);
+        Assert.Contains("SurfaceMaterial m0 = colorMaterial(vec3(0.9, 0.2, 0.1));", material);
+        Assert.Contains("return m0;", material);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class ColorTests
     {
         var material = Material(Program(new Union(Painted(0.9f, 0.2f, 0.1f, Sphere(1)), Sphere(2))));
 
-        Assert.Contains($"? c0 : {Webgl2CodeGenerator.DefaultColor}", material);
+        Assert.Contains($", m0, {Webgl2CodeGenerator.DefaultMaterial})", material);
     }
 
     [Fact]
@@ -59,8 +59,8 @@ public class ColorTests
         var material = Material(Program(Painted(0, 0, 1, Painted(1, 0, 0, Sphere(1)))));
 
         var returned = material.Split('\n').Single(l => l.Contains("return")).Trim();
-        Assert.Equal("return c1;", returned);
-        Assert.Contains("vec3 c1 = vec3(1.0, 0.0, 0.0);", material);
+        Assert.Equal("return m1;", returned);
+        Assert.Contains("SurfaceMaterial m1 = colorMaterial(vec3(1.0, 0.0, 0.0));", material);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class ColorTests
         var material = Material(Program(new Subtraction(Painted(1, 0, 0, Sphere(1)), Painted(0, 0, 1, Sphere(0.5f)))));
 
         Assert.DoesNotContain("vec3(0.0, 0.0, 1.0)", material);
-        Assert.Contains("return c0;", material);
+        Assert.Contains("return m0;", material);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class ColorTests
     {
         var material = Material(Program(new SmoothUnion(new ConstValueFloat(0.25f), Painted(1, 0, 0, Sphere(1)), Painted(0, 0, 1, Sphere(1)))));
 
-        Assert.Contains("mix(", material);
+        Assert.Contains("mixMaterial(", material);
     }
 
     [Fact]

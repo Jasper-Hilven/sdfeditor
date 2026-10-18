@@ -1,0 +1,35 @@
+# Rocket: A white rocket with a red nose cone, four fins, a framed porthole and an orange exhaust flame.
+format 1
+
+Union
+    SmoothUnion smoothness=0.05
+        Translate translation=(0, 0.6, 0)
+            Color color=(0.92, 0.92, 0.92)
+                CappedCylinder radius=0.3 height=0.6
+        Translate translation=(0, 1.5, 0)
+            Color color=(0.85, 0.2, 0.2)
+                CappedCone height=0.3 bottomRadius=0.3 topRadius=0.02
+    Translate translation=(0.38, 0.1, 0)
+        Color color=(0.85, 0.2, 0.2)
+            TriPrism size=(0.4, 0.02)
+    Translate translation=(-0.38, 0.1, 0)
+        Color color=(0.85, 0.2, 0.2)
+            TriPrism size=(0.4, 0.02)
+    Translate translation=(0, 0.1, 0.38)
+        Rotate rotation=(0, 1.5707964, 0)
+            Color color=(0.85, 0.2, 0.2)
+                TriPrism size=(0.4, 0.02)
+    Translate translation=(0, 0.1, -0.38)
+        Rotate rotation=(0, 1.5707964, 0)
+            Color color=(0.85, 0.2, 0.2)
+                TriPrism size=(0.4, 0.02)
+    Translate translation=(0, 0.84999996, 0.22)
+        Color color=(0.25, 0.45, 0.85)
+            Sphere radius=0.12
+    Translate translation=(0, 0.84999996, 0.29)
+        Rotate rotation=(1.5707964, 0, 0)
+            Color color=(0.5, 0.5, 0.5)
+                Torus innerRadius=0.1 outerRadius=0.16
+    Translate translation=(0, -0.2, 0)
+        Color color=(0.95, 0.55, 0.15)
+            CappedCone height=0.2 bottomRadius=0.03 topRadius=0.2

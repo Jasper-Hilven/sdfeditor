@@ -1,0 +1,22 @@
+# Ringed planet: A blue planet with a tilted ring (a disc minus a disc, stored as a variable) and two moons, one of them cratered.
+format 1
+
+ring =
+    Rotate rotation=(0.34906584, 0, 0.2617994)
+        Color color=(0.85, 0.62, 0.42)
+            Subtraction
+                CappedCylinder radius=1.3 height=0.015
+                CappedCylinder radius=0.95 height=0.1
+Union
+    $ring
+    Color color=(0.25, 0.45, 0.85)
+        Sphere radius=0.7
+    Translate translation=(1.6, 0.5, 0.3)
+        Color color=(0.5, 0.5, 0.5)
+            Subtraction
+                Sphere radius=0.18
+                Translate translation=(0.12, 0.1, 0.12)
+                    Sphere radius=0.08
+    Translate translation=(-1.3000001, -0.55, 0.8)
+        Color color=(0.92, 0.92, 0.92)
+            Sphere radius=0.09

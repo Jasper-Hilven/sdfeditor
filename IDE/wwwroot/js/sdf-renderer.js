@@ -22,20 +22,30 @@ ${sdfCode}
 const int MAX_STEPS = 200;
 const float MAX_DISTANCE = 100.0;
 const float SURFACE_DISTANCE = 0.001;
+const float RENDER_PI = 3.14159265;
+
+// Soft daylight: a warm sun (uLightPosition is the direction towards it), a blue sky above and dim bounce light from the ground below.
+const vec3 SUN_COLOR = vec3(1.0, 0.9, 0.78) * 2.4;
+const vec3 SKY_COLOR = vec3(0.45, 0.6, 0.9) * 0.55;
+const vec3 GROUND_COLOR = vec3(0.34, 0.28, 0.22) * 0.3;
+const float EXPOSURE = 0.6;
 
 float map(vec3 p) { return sdf_scene(p); }
 
+// Returns MAX_DISTANCE + 1 for a miss. A ray that runs out of steps only hits when it ended close to a surface; otherwise rays
+// grazing along a plane would show as a band of surface above it.
 float raymarch(vec3 ro, vec3 rd)
 {
     float t = 0.0;
+    float d = MAX_DISTANCE;
     for (int i = 0; i < MAX_STEPS; i++)
     {
-        vec3 p = ro + rd * t;
-        float d = map(p);
-        if (d < SURFACE_DISTANCE || t > MAX_DISTANCE) break;
+        d = map(ro + rd * t);
+        if (d < SURFACE_DISTANCE) return t;
         t += d;
+        if (t > MAX_DISTANCE) return MAX_DISTANCE + 1.0;
     }
-    return t;
+    return d < 0.01 ? t : MAX_DISTANCE + 1.0;
 }
 
 vec3 calcNormal(vec3 p)
@@ -76,6 +86,100 @@ float ambientOcclusion(vec3 p, vec3 n)
     return clamp(1.0 - 4.0 * occlusion, 0.0, 1.0);
 }
 
+// Value noise for procedural surface detail: plain arithmetic, so a Unity shader can evaluate the same function in object space.
+float shadeHash(vec3 p)
+{
+    p = fract(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+float shadeNoise(vec3 p)
+{
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+    return mix(
+        mix(mix(shadeHash(i), shadeHash(i + vec3(1, 0, 0)), u.x), mix(shadeHash(i + vec3(0, 1, 0)), shadeHash(i + vec3(1, 1, 0)), u.x), u.y),
+        mix(mix(shadeHash(i + vec3(0, 0, 1)), shadeHash(i + vec3(1, 0, 1)), u.x), mix(shadeHash(i + vec3(0, 1, 1)), shadeHash(i + vec3(1, 1, 1)), u.x), u.y),
+        u.z);
+}
+
+float shadeDetail(vec3 p)
+{
+    return 0.6 * shadeNoise(p) + 0.3 * shadeNoise(p * 2.07 + 13.1) + 0.1 * shadeNoise(p * 4.13 + 29.7);
+}
+
+// Bumps the normal with noise whose features are detailScale metres apart.
+vec3 detailNormal(vec3 p, vec3 n, SurfaceMaterial m)
+{
+    if (m.detailStrength <= 0.0) return n;
+    vec3 q = p / max(m.detailScale, 0.001);
+    const float e = 0.05;
+    float base = shadeDetail(q);
+    vec3 gradient = vec3(shadeDetail(q + vec3(e, 0, 0)) - base, shadeDetail(q + vec3(0, e, 0)) - base, shadeDetail(q + vec3(0, 0, e)) - base) / e;
+    gradient -= n * dot(gradient, n);
+    return normalize(n - m.detailStrength * 0.5 * gradient);
+}
+
+// Blotches of lighter and darker colour, a few detail features wide.
+vec3 variedColor(vec3 p, SurfaceMaterial m)
+{
+    if (m.colorVariation <= 0.0) return m.baseColor;
+    float variation = shadeDetail(p / max(m.detailScale * 5.0, 0.001) + 71.3) * 2.0 - 1.0;
+    return clamp(m.baseColor * (1.0 + m.colorVariation * variation), 0.0, 1.0);
+}
+
+// Metres of material between p and the sun. Exact because the SDF is known everywhere; a mesh renderer bakes it per vertex instead.
+float thicknessTowardsLight(vec3 p, vec3 n, vec3 l, float radius)
+{
+    float stepLength = max(radius, 0.005) * 0.75;
+    float inside = 0.0;
+    vec3 start = p - n * 0.003;
+    for (int i = 1; i <= 8; i++)
+    {
+        float d = map(start + l * stepLength * float(i));
+        inside += stepLength * clamp(0.5 - d / stepLength, 0.0, 1.0);
+    }
+    return inside;
+}
+
+// Sunlight that went through the material: the thinner the material towards the sun, the more of it glows in subsurfaceColor.
+vec3 transmission(vec3 p, vec3 n, vec3 l, SurfaceMaterial m)
+{
+    if (m.subsurfaceRadius <= 0.0) return vec3(0.0);
+    float thickness = thicknessTowardsLight(p, n, l, m.subsurfaceRadius);
+    float awayFromSun = clamp(0.4 - 0.6 * dot(n, l), 0.0, 1.0);
+    return m.subsurfaceColor * exp(-thickness / m.subsurfaceRadius) * awayFromSun;
+}
+
+// GGX microfacet specular with a height-correlated Smith visibility term, as in Unity HDRP.
+vec3 specularGGX(vec3 n, vec3 v, vec3 l, float roughness, vec3 f0)
+{
+    vec3 h = normalize(v + l);
+    float nl = max(dot(n, l), 0.0);
+    float nv = max(dot(n, v), 1e-4);
+    float nh = max(dot(n, h), 0.0);
+    float vh = max(dot(v, h), 0.0);
+    float a = max(roughness * roughness, 0.002);
+    float a2 = a * a;
+    float dd = nh * nh * (a2 - 1.0) + 1.0;
+    float distribution = a2 / (RENDER_PI * dd * dd);
+    float visibility = 0.5 / max(nl * sqrt(nv * nv * (1.0 - a2) + a2) + nv * sqrt(nl * nl * (1.0 - a2) + a2), 1e-5);
+    vec3 fresnel = f0 + (1.0 - f0) * pow(1.0 - vh, 5.0);
+    return distribution * visibility * fresnel * nl;
+}
+
+vec3 skyLight(vec3 direction)
+{
+    return mix(GROUND_COLOR, SKY_COLOR, smoothstep(-0.3, 0.4, direction.y));
+}
+
+vec3 acesToneMap(vec3 x)
+{
+    return clamp(x * (2.51 * x + 0.03) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}
+
 vec3 background(vec3 rd)
 {
     return mix(vec3(0.09, 0.09, 0.11), vec3(0.22, 0.24, 0.3), clamp(rd.y * 0.5 + 0.5, 0.0, 1.0));
@@ -100,25 +204,32 @@ void main()
     }
 
     vec3 p = ro + rd * t;
-    vec3 n = calcNormal(p);
+    vec3 geometricNormal = calcNormal(p);
+    SurfaceMaterial m = sdf_material(p);
+    vec3 n = detailNormal(p, geometricNormal, m);
+    vec3 v = -rd;
+    vec3 l = normalize(uLightPosition);
+    vec3 albedo = variedColor(p, m);
+    vec3 f0 = vec3(0.08 * m.specular);
 
-    vec3 toLight = uLightPosition - p;
-    float lightDistance = length(toLight);
-    vec3 l = toLight / lightDistance;
-    vec3 h = normalize(l - rd);
+    float shadow = softShadow(p + geometricNormal * 0.002, l, 30.0);
+    float occlusion = ambientOcclusion(p, geometricNormal);
 
-    float attenuation = 1.0 / (1.0 + 0.02 * lightDistance * lightDistance);
-    float shadow = softShadow(p + n * 0.002, l, lightDistance);
-    float diffuse = max(dot(n, l), 0.0);
-    float specular = pow(max(dot(n, h), 0.0), 48.0) * diffuse;
-    float occlusion = ambientOcclusion(p, n);
+    // Direct sun: wrapped diffuse for scattering materials, tinted where light wraps past the terminator
+    float wrap = m.subsurfaceRadius > 0.0 ? 0.35 : 0.0;
+    float nl = dot(n, l);
+    float diffuse = clamp((nl + wrap) / (1.0 + wrap), 0.0, 1.0);
+    vec3 scatterTint = wrap > 0.0 ? mix(m.subsurfaceColor, vec3(1.0), clamp(nl * 2.0, 0.0, 1.0)) : vec3(1.0);
+    vec3 sun = (albedo * diffuse * scatterTint + RENDER_PI * specularGGX(n, v, l, m.roughness, f0)) * SUN_COLOR * shadow;
 
-    vec3 albedo = sdf_material(p);
-    vec3 lightColor = vec3(1.0, 0.95, 0.88) * 3.5;
-    vec3 color = albedo * vec3(0.12, 0.13, 0.17) * occlusion
-               + (albedo * diffuse + 0.5 * specular) * lightColor * attenuation * shadow;
+    // Sky and ground bounce, with rough-aware Fresnel for the reflection
+    float nv = max(dot(n, v), 0.0);
+    vec3 ambientFresnel = f0 + (max(vec3(1.0 - m.roughness), f0) - f0) * pow(1.0 - nv, 5.0);
+    vec3 ambient = albedo * skyLight(n) + ambientFresnel * skyLight(reflect(-v, n)) * (1.0 - 0.6 * m.roughness);
 
-    color = 1.0 - exp(-1.4 * color);
+    vec3 color = sun + ambient * occlusion + albedo * transmission(p, geometricNormal, l, m) * SUN_COLOR * 0.8;
+
+    color = acesToneMap(color * EXPOSURE);
 
     if (!orthographic)
     {
@@ -198,7 +309,7 @@ export function createRenderer(canvas) {
         return {
             position: camera.target.map((value, i) => value + direction[i] * far),
             up,
-            orthoScale: camera.distance * 0.5 / 1.6,
+            orthoScale: camera.orthoScale ?? camera.distance * 0.5 / 1.6,
         };
     }
 
@@ -293,6 +404,18 @@ export function createRenderer(canvas) {
         requestRender(false);
     }
 
+    // Frames the views on a model: any of target, distance, yaw, pitch and orthoScale (half the height an axis view shows).
+    function setCamera(settings) {
+        Object.assign(camera, settings);
+        requestRender();
+    }
+
+    // Draws every view right away instead of on the next animation frame, for when the pixels are read back at once.
+    function renderNow() {
+        allChanged = true;
+        render(performance.now());
+    }
+
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
@@ -326,6 +449,8 @@ export function createRenderer(canvas) {
         setCode,
         setQuadView,
         setRotateView,
+        setCamera,
+        renderNow,
         dispose: () => {
             rotateView = false;
             resizeObserver.disconnect();

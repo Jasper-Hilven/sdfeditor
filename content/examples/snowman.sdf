@@ -1,0 +1,45 @@
+# Snowman: Three smoothly melted snowballs with a carrot nose, coal eyes and buttons, stick arms, a scarf and a top hat.
+format 1
+
+Union
+    SmoothUnion smoothness=0.12
+        Color color=(0.92, 0.92, 0.92)
+            Sphere radius=0.6
+        Translate translation=(0, 0.84999996, 0)
+            Color color=(0.92, 0.92, 0.92)
+                Sphere radius=0.42
+        Translate translation=(0, 1.5, 0)
+            Color color=(0.92, 0.92, 0.92)
+                Sphere radius=0.3
+    Color color=(0.95, 0.55, 0.15)
+        ArbitraryRoundCone a=(0, 1.5, 0.2) b=(0, 1.48, 0.62) radiusA=0.07 radiusB=0.012
+    Translate translation=(-0.11, 1.6, 0.26)
+        Color color=(0.1, 0.1, 0.1)
+            Sphere radius=0.045
+    Translate translation=(0.11, 1.6, 0.26)
+        Color color=(0.1, 0.1, 0.1)
+            Sphere radius=0.045
+    Translate translation=(0, 1, 0.39)
+        Color color=(0.1, 0.1, 0.1)
+            Sphere radius=0.04
+    Translate translation=(0, 0.84999996, 0.42)
+        Color color=(0.1, 0.1, 0.1)
+            Sphere radius=0.04
+    Translate translation=(0, 0.7, 0.39)
+        Color color=(0.1, 0.1, 0.1)
+            Sphere radius=0.04
+    Color color=(0.5, 0.33, 0.2)
+        Capsule a=(0.32, 0.95, 0) b=(0.85, 1.3, 0) radius=0.03
+    Color color=(0.5, 0.33, 0.2)
+        Capsule a=(-0.32, 0.95, 0) b=(-0.8, 1.25, 0.1) radius=0.03
+    Translate translation=(0, 1.24, 0)
+        Color color=(0.85, 0.2, 0.2)
+            Torus innerRadius=0.21 outerRadius=0.33
+    Translate translation=(0, 1.76, 0)
+        Color color=(0.1, 0.1, 0.1)
+            CappedCylinder radius=0.33 height=0.015
+    Translate translation=(0, 1.93, 0)
+        Color color=(0.1, 0.1, 0.1)
+            CappedCylinder radius=0.21 height=0.16
+    Color color=(0.5, 0.5, 0.5)
+        Plane normal=(0, 1, 0) height=0.6

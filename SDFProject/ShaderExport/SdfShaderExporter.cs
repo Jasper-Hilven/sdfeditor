@@ -121,7 +121,7 @@ public static class SdfShaderExporter
             float specular = pow(max(dot(n, h), 0.0), 48.0) * diffuse;
             float occlusion = renderAmbientOcclusion(p, n);
 
-            vec3 albedo = sdf_material(p);
+            vec3 albedo = sdf_material(p).baseColor;
             vec3 lightColor = vec3(1.0, 0.95, 0.88) * 3.5;
             vec3 color = albedo * vec3(0.12, 0.13, 0.17) * occlusion
                        + (albedo * diffuse + 0.5 * specular) * lightColor * attenuation * shadow;

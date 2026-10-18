@@ -1,0 +1,21 @@
+# Chess pawn: A black pawn turned from a rounded base, a ring, a tapered body, a collar and a head, all smoothly merged and stored as a variable, on a white board.
+format 1
+
+pawn =
+    Color color=(0.1, 0.1, 0.1)
+        SmoothUnion smoothness=0.06
+            Translate translation=(0, 0.1, 0)
+                RoundedCylinder radius=0.42 roundness=0.04 height=0.06
+            Translate translation=(0, 0.2, 0)
+                Torus innerRadius=0.22 outerRadius=0.38
+            Translate translation=(0, 0.55, 0)
+                CappedCone height=0.35 bottomRadius=0.28 topRadius=0.1
+            Translate translation=(0, 0.91999996, 0)
+                RoundedCylinder radius=0.2 roundness=0.03 height=0.02
+            Translate translation=(0, 1.12, 0)
+                Sphere radius=0.22
+Union
+    $pawn
+    Translate translation=(0, -0.049999997, 0)
+        Color color=(0.92, 0.92, 0.92)
+            Box size=(0.7, 0.05, 0.7)
