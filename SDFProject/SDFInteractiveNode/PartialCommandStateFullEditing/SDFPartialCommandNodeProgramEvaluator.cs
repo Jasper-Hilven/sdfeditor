@@ -16,6 +16,8 @@ public class SDFPartialCommandNodeProgramEvaluator
             return false;
         if (action is Undo or Redo or ChooseRedoBranch or CancelRedoChoice or GoToHistoryEntry)
             return true;
+        if (SDFPartialCommandNodeProgramOperator.LockingPart(program, action) is not null)
+            return false;
 
         if (action is AddNode &&
             !SDFInteractiveNodeProgramEvaluator.IsActionAvailable(program.interactiveProgram, new InteractiveAddNodeNextTo(SDFNodeType.Box)))

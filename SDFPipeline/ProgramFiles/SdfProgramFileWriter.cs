@@ -69,7 +69,7 @@ internal sealed class SdfProgramFileWriter
 
     private void WriteScope(VariableScope scope, int depth)
     {
-        foreach (var variable in scope.variables)
+        foreach (var variable in scope.variables.Where(v => !Parts.IsPartVariable(v.name)))
         {
             var value = tables.Expand(variable.value);
             if (value is SDFEvaluable or SDF2DEvaluable)
@@ -91,7 +91,9 @@ internal sealed class SdfProgramFileWriter
     {
         if (node is VariableReference reference)
         {
-            Line(depth, Reference(reference));
+            Line(depth, variableNames.GetValueOrDefault(reference.variableId) is { } name && Parts.IsPartItself(name)
+                ? $"{PartKeyword} {PartParameter}={Name(Parts.PartOf(name)!)}"
+                : Reference(reference));
             return;
         }
 

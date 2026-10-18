@@ -24,6 +24,14 @@ public static class ModelFiles
         return null;
     }
 
+    public const string PartsFolderName = "parts";
+
+    /// <summary>Parts are the program files in content/parts/, named after their files.</summary>
+    public static PartSource PartsIn(string contentFolder) => name =>
+        FileSyntax.IsIdentifier(name) && Path.Combine(contentFolder, PartsFolderName, name + SdfProgramFile.Extension) is var path && File.Exists(path)
+            ? File.ReadAllText(path)
+            : null;
+
     public static IReadOnlyList<string> All(string directory) =>
         Directory.EnumerateFiles(directory, "*" + SdfProgramFile.Extension, SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)

@@ -20,6 +20,8 @@ public class SDFPartialCommandNodeProgramOperator
             return OperateOnText(partialCommandProgram, action);
         if (action is InsertText or DeleteLastCharacter or ConfirmText or CancelText or Undo or Redo or ChooseRedoBranch or CancelRedoChoice or GoToHistoryEntry)
             return partialCommandProgram;
+        if (LockingPart(partialCommandProgram, action) is { } part)
+            throw new InvalidOperationException($"This node belongs to part '{part}'; edit it by opening content/parts/{part}.sdf");
 
         if (MaterialTransition(partialCommandProgram, action) is { } material)
             return material;
@@ -31,6 +33,19 @@ public class SDFPartialCommandNodeProgramOperator
             : Apply(partialCommandProgram, InteractiveOperation(action, partialCommandProgram));
 
         return NodeTypeToAdd(action) is not null || NodeTypeToReplaceWith(action) is not null ? SwitchMode(result, Mode.Home) : result;
+    }
+
+    /// <summary>
+    /// The part whose node is selected, when the action would change it: inside a model a part can be looked at but not edited, so an
+    /// edit can never get lost when the model is saved.
+    /// </summary>
+    public static string? LockingPart(SDFPartialCommandNodeProgram program, ISDFPartialAction action)
+    {
+        if (action is SelectNext or SelectPrevious or SelectParent or SelectFirstChild or DecreaseZoomLevel or IncreaseZoomLevel
+            or CancelMaterials or StopEditingParameter or StopEditingMaterialParameter || TargetMode(action) is not null)
+            return null;
+        var interactive = program.interactiveProgram;
+        return interactive.SelectedNodeId is { } id ? Parts.PartContaining(interactive.Program, id) : null;
     }
 
     public static bool TakesText(SDFPartialCommandNodeProgramMode mode) =>

@@ -2,6 +2,9 @@ using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.ProgramFiles;
 
+/// <summary>The text of the part with this name, or null when there is no such part.</summary>
+public delegate string? PartSource(string name);
+
 /// <summary>
 /// The text format models are saved in, on disk and in git: the start of the graphics pipeline.
 /// <code>
@@ -23,10 +26,15 @@ public static class SdfProgramFile
 
     public static string Write(SDFProgram program) => SdfProgramFileWriter.Write(program);
 
+    /// <param name="parts">Finds the text of a part by name; without it, a file that uses parts cannot be read.</param>
     /// <exception cref="SdfProgramFileException">The text is not a valid program; the exception names the line.</exception>
-    public static SDFProgram Read(string text) => SdfProgramFileReader.Read(text);
+    public static SDFProgram Read(string text, PartSource? parts = null) => SdfProgramFileReader.Read(text, parts);
 
-    public static SDFProgram Load(string path) => Read(File.ReadAllText(path));
+    /// <summary>Loads a model, finding its parts in content/parts/ of the content folder the file is in.</summary>
+    public static SDFProgram Load(string path) =>
+        Read(File.ReadAllText(path), ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(path))!) is { } content
+            ? ModelFiles.PartsIn(content)
+            : null);
 
     public static void Save(string path, SDFProgram program) => File.WriteAllText(path, Write(program));
 }

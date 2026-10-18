@@ -24,6 +24,9 @@ public static class BundledContent
         .Select(r => new Model(System.IO.Path.GetFileNameWithoutExtension(r.path), r.path, r.text))
         .ToArray();
 
+    /// <summary>The text of a part, content/parts/{name}.sdf, for models that use it.</summary>
+    public static string? Part(string name) => Models.FirstOrDefault(m => m.Path == $"parts/{name}.sdf")?.Text;
+
     /// <summary>Material files that could not be read, so the IDE can say so instead of failing to start.</summary>
     public static IReadOnlyList<string> Problems => problems;
 

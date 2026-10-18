@@ -7,6 +7,8 @@ internal static class FileSyntax
 {
     public const string FormatKeyword = "format";
     public const string FunctionKeyword = "function";
+    public const string PartKeyword = "Part";
+    public const string PartParameter = "part";
 
     public static bool IsIdentifier(string text) =>
         text.Length > 0 && (char.IsAsciiLetter(text[0]) || text[0] == '_') && text.All(c => char.IsAsciiLetterOrDigit(c) || c == '_');

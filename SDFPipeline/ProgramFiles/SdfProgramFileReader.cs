@@ -22,16 +22,39 @@ internal sealed class SdfProgramFileReader
         public Dictionary<string, Variable> Variables { get; } = [];
     }
 
+    /// <summary>What the file and the parts it uses share while being read: variable ids, and every part loaded so far.</summary>
+    private sealed class PartLoading(PartSource? source)
+    {
+        public PartSource? Source { get; } = source;
+        public long NextVariableId;
+        public Dictionary<string, string> LoadedIds { get; } = [];
+        public List<string> Loading { get; } = [];
+        /// <summary>The variables of all loaded parts, each after the parts it uses, so they can go first in the scene.</summary>
+        public List<VariableDeclaration> Declarations { get; } = [];
+    }
+
     private readonly List<SourceLine> lines;
     private readonly Dictionary<string, FunctionHeader> functions = [];
     private readonly List<FunctionHeader> functionOrder = [];
-    private long nextVariableId;
+    private readonly PartLoading parts;
 
-    private SdfProgramFileReader(string text) => lines = SourceLine.Parse(text);
+    private SdfProgramFileReader(string text, PartLoading parts)
+    {
+        lines = SourceLine.Parse(text);
+        this.parts = parts;
+    }
 
-    public static SDFProgram Read(string text) => new SdfProgramFileReader(text).Read();
+    public static SDFProgram Read(string text, PartSource? parts) => new SdfProgramFileReader(text, new PartLoading(parts)).Read();
 
     private SDFProgram Read()
+    {
+        var (definitions, variables, scene) = ReadFile();
+        var pointers = new SDFPointers(new(), new(), new(), new(), parts.NextVariableId);
+        var sceneVariables = parts.Declarations.Concat(variables).ToArray();
+        return SDFProgramNormalizePointers.Pointerify(new SDFProgram(definitions, pointers, sceneVariables, scene));
+    }
+
+    private (SDFFunctionDefinition[] functions, VariableDeclaration[] variables, SDFEvaluable scene) ReadFile()
     {
         if (lines.Count == 0)
             throw new SdfProgramFileException(1, $"The file is empty, it must start with '{FormatKeyword} {SdfProgramFile.FormatVersion}'");
@@ -48,9 +71,56 @@ internal sealed class SdfProgramFileReader
 
         var definitions = functionOrder.Select(ReadFunction).ToArray<SDFFunctionDefinition>();
         var (variables, scene) = ReadScope(rest.Where(l => !IsFunction(l)).ToList(), new Scope(null, "the file"), rest.LastOrDefault() ?? lines[0]);
+        return (definitions, variables, scene);
+    }
 
-        var pointers = new SDFPointers(new(), new(), new(), new(), nextVariableId);
-        return SDFProgramNormalizePointers.Pointerify(new SDFProgram(definitions, pointers, variables, scene));
+    private Evaluable ReadPart(SourceLine line, Cursor cursor, ValueKind? expected, Scope scope)
+    {
+        if (cursor.ReadName("'part='") != PartParameter)
+            throw cursor.Error($"Write a part as {PartKeyword} {PartParameter}=eye");
+        cursor.Expect('=');
+        var name = cursor.ReadValue() is RawName { Name: var partName } ? partName : throw cursor.Error("Name the part, like part=eye");
+        cursor.ExpectEnd();
+        if (line.Children.Count > 0)
+            throw new SdfProgramFileException(line.Children[0].Number, "Nothing can be indented below a part");
+        if (scope.Function is not null)
+            throw cursor.Error("Parts cannot be used inside functions yet");
+        RequireKind(expected, ValueKind.Sdf, $"part '{name}'", cursor);
+        return new VariableReferenceSDF(LoadPart(name, cursor));
+    }
+
+    /// <summary>Reads a part's file once, however often it is used, and returns the id of the variable that is the part.</summary>
+    private string LoadPart(string name, Cursor cursor)
+    {
+        if (parts.LoadedIds.TryGetValue(name, out var loaded))
+            return loaded;
+        if (parts.Loading.Contains(name))
+            throw cursor.Error($"Part '{name}' uses itself: {string.Join(" → ", parts.Loading.Append(name))}");
+        if (parts.Source is null)
+            throw cursor.Error($"Part '{name}' cannot be found, because this file is not read from a content folder");
+        var text = parts.Source(name) ?? throw cursor.Error($"There is no part '{name}'; parts are the files in content/parts/, like {name}.sdf");
+
+        parts.Loading.Add(name);
+        try
+        {
+            var (functionsOfPart, variables, scene) = new SdfProgramFileReader(text, parts).ReadFile();
+            if (functionsOfPart.Length > 0)
+                throw new SdfProgramFileException(1, "Parts cannot declare functions yet");
+
+            parts.Declarations.AddRange(variables.Select(v => v with { name = Parts.InnerVariableName(name, v.name) }));
+            var id = (parts.NextVariableId++).ToString(CultureInfo.InvariantCulture);
+            parts.Declarations.Add(new VariableDeclaration(Parts.VariableName(name), id, scene));
+            parts.LoadedIds[name] = id;
+            return id;
+        }
+        catch (SdfProgramFileException exception)
+        {
+            throw cursor.Error($"In part '{name}', line {exception.Line}: {exception.Problem}");
+        }
+        finally
+        {
+            parts.Loading.Remove(name);
+        }
     }
 
     private static void ReadFormat(SourceLine line)
@@ -173,7 +243,7 @@ internal sealed class SdfProgramFileReader
             cursor.ExpectEnd();
         }
 
-        var id = (nextVariableId++).ToString(CultureInfo.InvariantCulture);
+        var id = (parts.NextVariableId++).ToString(CultureInfo.InvariantCulture);
         scope.Variables[name] = new Variable(id, ValueKinds.Of(value));
         return new VariableDeclaration(name, id, value);
     }
@@ -196,6 +266,8 @@ internal sealed class SdfProgramFileReader
         }
 
         var typeName = cursor.ReadName("a node type");
+        if (typeName == PartKeyword)
+            return ReadPart(line, cursor, expected, scope);
         var shape = NodeTypes.Find(typeName) ?? throw cursor.Error(UnknownNode(typeName));
         RequireKind(expected, shape.Kind, typeName, cursor);
 

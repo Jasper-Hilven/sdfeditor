@@ -47,40 +47,12 @@ Union
                             Capsule a=(0.12, 1.24, 0.12) b=(0.424, 1.52, 0.424) radius=0.02
                             Capsule a=(0.044, 1.24, 0.164) b=(0.155, 1.52, 0.58) radius=0.02
 
-    # Eyes, mirrored: a wet eyeball with the limbus, iris, amber ring and pupil as stacked discs on its front
+    # Eyes, mirrored
     SymmetryX
         Translate translation=(0.1, 0.86, 0.13)
-            Union
-                Material material=eye_white
-                    Sphere radius=0.12
-                Material material=eye_limbus
-                    Intersection
-                        Sphere radius=0.121
-                        Rotate rotation=(1.5707964, 0, 0)
-                            InfiniteCylinder center=(0, 0) radius=0.066
-                Material material=eye_iris
-                    Intersection
-                        Sphere radius=0.122
-                        Rotate rotation=(1.5707964, 0, 0)
-                            InfiniteCylinder center=(0, 0) radius=0.06
-                Material material=eye_iris_inner
-                    Intersection
-                        Sphere radius=0.123
-                        Rotate rotation=(1.5707964, 0, 0)
-                            InfiniteCylinder center=(0, 0) radius=0.034
-                Material material=eye_pupil
-                    Intersection
-                        Sphere radius=0.124
-                        Rotate rotation=(1.5707964, 0, 0)
-                            InfiniteCylinder center=(0, 0) radius=0.022
+            Part part=eye
 
     # Floating hands, mirrored
     SymmetryX
         Translate translation=(0.29, 0.55, 0.1)
-            Material material=chanterelle_flesh
-                Union
-                    Ellipsoid radii=(0.07, 0.11, 0.09)
-                    Capsule a=(0, -0.07, 0.06) b=(0, -0.07, 0.18) radius=0.034
-                    Capsule a=(0, 0, 0.06) b=(0, 0, 0.19) radius=0.034
-                    Capsule a=(0, 0.07, 0.06) b=(0, 0.07, 0.18) radius=0.034
-                    Capsule a=(-0.04, 0.05, 0.02) b=(-0.015, 0.085, -0.06) radius=0.035
+            Part part=hand

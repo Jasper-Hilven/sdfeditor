@@ -1,0 +1,27 @@
+# Eye: a wet eyeball 12 cm in radius, centred on the origin and looking along +z. The limbus, iris, amber ring and pupil are
+# stacked discs on its front. Lids belong to the body that uses the eye, so they can blend into it and blink with it.
+format 1
+
+Union
+    Material material=eye_white
+        Sphere radius=0.12
+    Material material=eye_limbus
+        Intersection
+            Sphere radius=0.121
+            Rotate rotation=(1.5707964, 0, 0)
+                InfiniteCylinder center=(0, 0) radius=0.066
+    Material material=eye_iris
+        Intersection
+            Sphere radius=0.122
+            Rotate rotation=(1.5707964, 0, 0)
+                InfiniteCylinder center=(0, 0) radius=0.06
+    Material material=eye_iris_inner
+        Intersection
+            Sphere radius=0.123
+            Rotate rotation=(1.5707964, 0, 0)
+                InfiniteCylinder center=(0, 0) radius=0.034
+    Material material=eye_pupil
+        Intersection
+            Sphere radius=0.124
+            Rotate rotation=(1.5707964, 0, 0)
+                InfiniteCylinder center=(0, 0) radius=0.022

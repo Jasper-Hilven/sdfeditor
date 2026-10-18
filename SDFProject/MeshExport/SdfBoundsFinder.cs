@@ -40,6 +40,7 @@ public static class SdfBoundsFinder
         }
     }
 
+    // NaN, as at the exact centre of an ellipsoid, says nothing about the surface, so the cell is looked at more closely; infinity is empty space.
     private static bool IsNearSurface(float distance, float halfSize) =>
-        float.IsFinite(distance) && MathF.Abs(distance) <= halfSize * MathF.Sqrt(3f) * Slack;
+        float.IsNaN(distance) || float.IsFinite(distance) && MathF.Abs(distance) <= halfSize * MathF.Sqrt(3f) * Slack;
 }

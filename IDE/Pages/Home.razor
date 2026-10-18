@@ -795,7 +795,7 @@
     {
         try
         {
-            var loaded = SdfProgramFile.Read(model.Text);
+            var loaded = SdfProgramFile.Read(model.Text, BundledContent.Part);
             var interactive = new SdfInteractiveNodeProgram(loaded, PointerTables.PointerId(loaded.scene), 0);
             var started = SDFPartialActionHistory.Start(InitialProgram() with { interactiveProgram = interactive });
             shaderCode = Shader(started.Current);

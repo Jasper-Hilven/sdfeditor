@@ -42,6 +42,17 @@ public class SdfMeshExporterTests(ITestOutputHelper output)
         (mesh.Vertices.Aggregate(Vector3.Min), mesh.Vertices.Aggregate(Vector3.Max));
 
     [Fact]
+    public void EllipsoidAtTheOrigin_HasBounds_EvenThoughItsCentreIsNaN()
+    {
+        var ellipsoid = Program(new Ellipsoid(new ConstValueV3(new V3(0.07f, 0.11f, 0.09f))));
+
+        var bounds = SdfMeshExporter.FindBounds(ellipsoid);
+
+        Assert.NotNull(bounds);
+        Assert.InRange(bounds.Size.Y, 0.2f, 0.3f);
+    }
+
+    [Fact]
     public void SphereVerticesLieOnTheSurface()
     {
         var mesh = SdfMeshExporter.ToMesh(UnitSphere, 48);
