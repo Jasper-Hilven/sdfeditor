@@ -17,7 +17,7 @@ ticket's Status says.
 | 08 | [Special effects](done/08-special-effects.md) | `SpecialEffects` scene: lightning, tracers, goop, exploding mushroom from SDF-intersection pieces |
 | 09 | [Castle fixes](done/09-castle-fixes.md) | Cap red no longer bleeds into stems at coarse LODs; walk-level floors of neighbouring parts 15 cm apart, no z-fighting. After 06; alongside 04 or 07 |
 | 10 | [Sky: remaining](done/10-sky-remaining.md) | What is left of 07: web frame time and Safari, the sky's motion checked in Play mode, the tower snapshot on the new castle, the showcase snapshot's stray object. After 07 |
-| 11 | [Chessboard](11-chessboard.md) | Second level: a 160 m chessboard in anarchy chess, 19 mushroom chess pieces placed, `Chessboard.unity` built. Left: sky, web draw calls and budget, straight square edges, Play-mode check. After 03 and 07 |
+| 11 | [Chessboard](done/11-chessboard.md) | Second level: a 160 m chessboard in anarchy chess, mushroom chess pieces and game pieces placed, dusk sky, straight square edges (per-region `wobble`), `Chessboard.unity` built. Left: web draw calls, triangle budget and web build (will not yet do this), a Play-mode walk |
 | 12 | [Game pieces](done/12-game-pieces.md) | Mushroom dice, Monopoly houses, dominoes, meeples, chips and cards for the chessboard level: modelled, meshed, placed, `Chessboard.unity` rebuilt (subtickets 12.1-12.7). Left: the triangle budget with the 37 pieces (will not yet do this) and a Play-mode look. After 11 |
 | 13 | [Chess without eyes](done/13-chess-no-eyes.md) | The 19 chess pieces lose their floating eyes and hands; re-meshed, prefabs and scenes rebuilt. After 11 |
 

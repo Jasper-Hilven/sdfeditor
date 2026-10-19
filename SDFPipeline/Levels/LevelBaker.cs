@@ -255,6 +255,7 @@ public static class LevelBaker
                     pattern = r.Pattern == GroundPattern.Stones ? "stones" : "plain",
                     stoneSize = r.Pattern == GroundPattern.Stones ? r.StoneSize : (float?)null,
                     groutWidth = r.Pattern == GroundPattern.Stones ? r.GroutWidth : (float?)null,
+                    wobble = r.Wobble,
                     shapes = r.Shapes.Count,
                 }).ToArray(),
             },

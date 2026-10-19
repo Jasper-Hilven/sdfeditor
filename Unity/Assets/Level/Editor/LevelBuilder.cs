@@ -68,7 +68,7 @@ namespace SdfLevel.Editor
         /// Version 4: the placed models' repeated parts (a castle's) through the instanced renderer, in the draw group <see cref="PartsGroup"/>.
         /// Version 5: the sky. Version 6: the island's underside, and collider-only objects for scattered models with colliders (trees).
         /// </summary>
-        public const int BuilderVersion = 6;
+        public const int BuilderVersion = 7;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -94,10 +94,11 @@ namespace SdfLevel.Editor
         public const string RegionMapFile = "regions.png";
 
         /// <summary>
-        /// The width of a region's edge, in metres either side of it, and how far the shader's noise moves it: crisp, but not ruled.
+        /// The width of a region's edge, in metres either side of it. How far the shader's noise moves it is per region (the level
+        /// file's wobble, 0.06 m unless given: crisp, but not ruled; 0 for straight squares).
         /// </summary>
         private const float RegionEdgeWidth = 0.05f;
-        private const float RegionEdgeNoise = 0.06f;
+        private const float DefaultRegionWobble = 0.06f;
 
         /// <summary>A convex collider round a placed model larger than this, in metres, would block walkable ground: it is made concave.</summary>
         private const float LargestConvexSize = 3;
@@ -447,6 +448,10 @@ namespace SdfLevel.Editor
             // The regions, in the region map's channel order; a level from before regions has none, and a white map: all far outside
             var regions = data["regions"] as JObject;
             var channels = regions?["channels"] as JArray ?? new JArray();
+            var wobble = new Vector4(DefaultRegionWobble, DefaultRegionWobble, DefaultRegionWobble, DefaultRegionWobble);
+            for (var i = 0; i < 4 && i < channels.Count; i++)
+                wobble[i] = ((JObject)channels[i]).Value<float?>("wobble") ?? DefaultRegionWobble;
+            material.SetVector("_GroundRegionWobble", wobble);
             for (var i = 0; i < 4; i++)
             {
                 var channel = i < channels.Count ? (JObject)channels[i] : null;
@@ -480,11 +485,11 @@ namespace SdfLevel.Editor
                 var max = regions["max"].ToObject<float[]>();
                 var (width, length) = (max[0] - min[0], max[1] - min[1]);
                 material.SetVector("_GroundRegionMapping", new Vector4(-1 / width, 1 / length, -min[0] / width, -min[1] / length));
-                material.SetVector("_GroundRegionShape", new Vector4(regions.Value<float?>("range") ?? 2, channels.Count, RegionEdgeWidth, RegionEdgeNoise));
+                material.SetVector("_GroundRegionShape", new Vector4(regions.Value<float?>("range") ?? 2, channels.Count, RegionEdgeWidth, 0));
             }
             else
             {
-                material.SetVector("_GroundRegionShape", new Vector4(2, 0, RegionEdgeWidth, RegionEdgeNoise));
+                material.SetVector("_GroundRegionShape", new Vector4(2, 0, RegionEdgeWidth, 0));
             }
             material.SetTexture("_GroundRegions", map);
             material.enableInstancing = true;

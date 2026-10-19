@@ -159,6 +159,9 @@ namespace SdfLevel.Editor
                 var play = PlayHalfSize(scene);
                 var corner = OnGround(new Vector3(play.x - 4, 0, play.y - 4)) + Vector3.up * LevelBuilder.EyeHeight;
                 EyeShot("eye_corner", corner, Quaternion.LookRotation(new Vector3(1, 0, 1)));
+                // On the chessboard the hills hold no pieces: look in across the board from the corner too
+                if (scene.name == "Chessboard")
+                    EyeShot("eye_corner_in", corner, Quaternion.LookRotation(new Vector3(-1, 0, -1)));
                 // Up on a crest is beyond the walls; from there the island's edge and the chunk borders across the hills show
                 Shot("above", new Vector3(0, 90, -160), Quaternion.Euler(28, 0, 0));
                 Shot("top", new Vector3(0, 260, 0), Quaternion.Euler(90, 0, 0), 1600, 1200);
@@ -409,11 +412,15 @@ namespace SdfLevel.Editor
             Action<string, Vector3, Quaternion> eyeShot)
         {
             var up = Vector3.up * LevelBuilder.EyeHeight;
-            var field = OnGround(new Vector3(-24, 0, 26)) + up;
-            eyeShot("foliage_close" + suffix, field, Quaternion.Euler(28, 200, 0));
-            eyeShot("foliage_rings" + suffix, field, Quaternion.Euler(4, 160, 0));
-            var other = OnGround(new Vector3(30, 0, -20)) + up;
-            eyeShot("foliage_field" + suffix, other, Quaternion.Euler(6, 20, 0));
+            // The meadow has foliage across the field; the chessboard only on its hills, so its shots stand at the board's edge, looking out
+            var hillsOnly = scene.name == "Chessboard";
+            var half = PlayHalfSize(scene);
+            var field = OnGround(hillsOnly ? new Vector3(half.x - 3, 0, 20) : new Vector3(-24, 0, 26)) + up;
+            var closeLook = hillsOnly ? Quaternion.Euler(14, 90, 0) : Quaternion.Euler(28, 200, 0);
+            eyeShot("foliage_close" + suffix, field, closeLook);
+            eyeShot("foliage_rings" + suffix, field, hillsOnly ? Quaternion.Euler(4, 70, 0) : Quaternion.Euler(4, 160, 0));
+            var other = OnGround(hillsOnly ? new Vector3(-half.x + 3, 0, -20) : new Vector3(30, 0, -20)) + up;
+            eyeShot("foliage_field" + suffix, other, hillsOnly ? Quaternion.Euler(6, -80, 0) : Quaternion.Euler(6, 20, 0));
 
             var wind = scene.GetRootGameObjects().Select(g => g.GetComponent<Wind>()).FirstOrDefault(w => w != null);
             if (wind == null)
@@ -426,7 +433,7 @@ namespace SdfLevel.Editor
                 {
                     wind.phase = at;
                     wind.Apply();
-                    shot(name + suffix, field, Quaternion.Euler(28, 200, 0), 1920, 1080);
+                    shot(name + suffix, field, closeLook, 1920, 1080);
                     paths.Add(Path.Combine(directory, name + suffix + ".png"));
                 }
                 var a = new Texture2D(2, 2);

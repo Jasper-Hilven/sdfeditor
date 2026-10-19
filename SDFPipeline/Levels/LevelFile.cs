@@ -56,7 +56,8 @@ namespace SDFPipeline.Levels;
 /// <para>
 /// A region's shapes are <c>Circle</c> (center, radius), <c>Box2D</c> (center, size, angle), <c>RoundedBox2D</c> (the same and radius)
 /// and <c>Polyline</c> (points, width), each with optional <c>noise</c> (metres the edge wobbles) and <c>noiseScale</c>. Sizes are full
-/// widths, angles degrees. A region's material is materials/ground/ground_&lt;region&gt;.sdfmat; there are at most four regions.
+/// widths, angles degrees. A region's own line may give <c>wobble</c>, metres the ground shader moves its edge with fine noise (0.06 by
+/// default; 0 keeps the edge ruled straight). A region's material is materials/ground/ground_&lt;region&gt;.sdfmat; there are at most four regions.
 /// </para>
 /// <para>
 /// A placement names a model as its file is named, hyphens and all (amanita-scout), then <c>at</c> (x, z), and optionally <c>yaw</c>
@@ -330,10 +331,11 @@ public static class LevelFile
                 : GroundPattern.Plain;
             var stone = parameters.Number("stone", GroundRegion.DefaultStoneSize, 0.1f, 10, "the stones' length in metres, 0.1 to 10");
             var grout = parameters.Number("grout", GroundRegion.DefaultGroutWidth, 0, 0.5f, "the grout's width in metres, 0 to 0.5");
-            parameters.Done("pattern", "stone", "grout");
+            var wobble = parameters.Number("wobble", GroundRegion.DefaultWobble, 0, 0.5f, "metres the shader wobbles the edge, 0 (straight) to 0.5");
+            parameters.Done("pattern", "stone", "grout", "wobble");
             if (child.Children.Count == 0)
                 throw childCursor.Error($"Region '{name}' needs shapes indented below it, like 'Circle center=(0, 0) radius=10'");
-            regions.Add(new GroundRegion(name, child.Children.Select(ReadShape).ToArray(), pattern, stone, grout));
+            regions.Add(new GroundRegion(name, child.Children.Select(ReadShape).ToArray(), pattern, stone, grout, wobble));
         }
         return regions.Count > 0 ? regions : throw cursor.Error("The regions need a region indented below them, like 'dirt'");
     }

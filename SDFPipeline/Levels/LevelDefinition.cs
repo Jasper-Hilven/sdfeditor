@@ -96,13 +96,15 @@ public sealed record IslandUnderside(string Model, int Line);
 /// <param name="Pattern">How the material is drawn: plainly, or as stones with grout lines between them.</param>
 /// <param name="StoneSize">The stones' length in metres, for <see cref="GroundPattern.Stones"/>.</param>
 /// <param name="GroutWidth">The width of the grout lines between stones in metres, for <see cref="GroundPattern.Stones"/>.</param>
-public sealed record GroundRegion(string Name, IReadOnlyList<RegionShape> Shapes, GroundPattern Pattern, float StoneSize, float GroutWidth)
+/// <param name="Wobble">Metres the ground shader wobbles the region's edge with fine noise, so that it is not ruled; 0 keeps it straight.</param>
+public sealed record GroundRegion(string Name, IReadOnlyList<RegionShape> Shapes, GroundPattern Pattern, float StoneSize, float GroutWidth, float Wobble = GroundRegion.DefaultWobble)
 {
     /// <summary>The region that is drawn as stones unless its line says otherwise.</summary>
     public const string Tiles = "tiles";
 
     public const float DefaultStoneSize = 0.6f;
     public const float DefaultGroutWidth = 0.05f;
+    public const float DefaultWobble = 0.06f;
 
     /// <summary>The prefix of a region's material: the region dirt is drawn in ground_dirt.</summary>
     public const string MaterialPrefix = "ground_";

@@ -34,10 +34,11 @@ Shader "SdfMushrooms/Ground"
 
         // The region map: per channel the signed distance to a region's edge, (d / range + 1) / 2. Its mapping takes world x and z to
         // its uv (scale x, scale z, offset x, offset z); _GroundRegionShape is (range in metres, number of regions, edge width in
-        // metres, edge noise in metres)
+        // metres, unused); _GroundRegionWobble is per channel how far in metres the shader's noise moves the region's edge
         [NoScaleOffset] _GroundRegions("Region map", 2D) = "white" {}
         _GroundRegionMapping("Region map mapping", Vector) = (0, 0, 0, 0)
-        _GroundRegionShape("Region range, count, edge width, edge noise", Vector) = (2, 0, 0.05, 0.05)
+        _GroundRegionShape("Region range, count, edge width, unused", Vector) = (2, 0, 0.05, 0)
+        _GroundRegionWobble("Region edge wobble per channel (m)", Vector) = (0.06, 0.06, 0.06, 0.06)
 
         // Each region's material as the grass's above, plus its pattern: x = speckle density, y = speckle size, z = 1 for stones,
         // w = stone size (m); and the grout: rgb = colour (linear), a = width (m)
@@ -99,6 +100,7 @@ Shader "SdfMushrooms/Ground"
         float4 _GroundSpeckleShape;
         float4 _GroundRegionMapping;
         float4 _GroundRegionShape;
+        float4 _GroundRegionWobble;
         float4 _Region0Base, _Region0Variation, _Region0Surface, _Region0Speckle, _Region0Pattern, _Region0Grout;
         float4 _Region1Base, _Region1Variation, _Region1Surface, _Region1Speckle, _Region1Pattern, _Region1Grout;
         float4 _Region2Base, _Region2Variation, _Region2Surface, _Region2Speckle, _Region2Pattern, _Region2Grout;
@@ -295,14 +297,14 @@ Shader "SdfMushrooms/Ground"
                 // Grass, with each region drawn over it as far as the point is in it, later ones over earlier ones
                 float3 positionWS = input.positionWS;
                 float4 encoded = SAMPLE_TEXTURE2D(_GroundRegions, sampler_GroundRegions, positionWS.xz * _GroundRegionMapping.xy + _GroundRegionMapping.zw);
-                float wobble = (SdfNoise(positionWS * 1.7 + 11.3) - 0.5) * 2.0 * _GroundRegionShape.w;
+                float wobble = (SdfNoise(positionWS * 1.7 + 11.3) - 0.5) * 2.0;
                 float count = _GroundRegionShape.y;
                 float pixel = length(fwidth(positionWS.xz)) * 0.7;
                 float4 weights = float4(
-                    count > 0.5 ? RegionWeight(encoded.r, wobble) : 0.0,
-                    count > 1.5 ? RegionWeight(encoded.g, wobble) : 0.0,
-                    count > 2.5 ? RegionWeight(encoded.b, wobble) : 0.0,
-                    count > 3.5 ? RegionWeight(encoded.a, wobble) : 0.0);
+                    count > 0.5 ? RegionWeight(encoded.r, wobble * _GroundRegionWobble.x) : 0.0,
+                    count > 1.5 ? RegionWeight(encoded.g, wobble * _GroundRegionWobble.y) : 0.0,
+                    count > 2.5 ? RegionWeight(encoded.b, wobble * _GroundRegionWobble.z) : 0.0,
+                    count > 3.5 ? RegionWeight(encoded.a, wobble * _GroundRegionWobble.w) : 0.0);
                 // How much of each layer shows: a region covers the ones before it
                 float4 shown = weights;
                 shown.z *= 1.0 - weights.w;

@@ -158,6 +158,46 @@ public class LevelFileTests
     }
 
     [Fact]
+    public void ContentChessboard_SquareEdges_AreStraightInTheRegionMapAndNotWobbledByTheShader()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "chessboard" + LevelFile.Extension));
+        Assert.All(level.Regions, r => Assert.Equal(0f, r.Wobble));
+
+        var regions = new GroundRegions(level, _ => throw new InvalidOperationException("No placement paints the ground"));
+        var dark = level.Regions.ToList().FindIndex(r => r.Name == "dark");
+        var map = RegionMap.Bake(regions, new Vector2(-24, -24), new Vector2(24, 24));
+
+        // Bilinear, as the shader's sampler filters it: the stored distance is the true one at the texel centres
+        float Sample(Vector2 p)
+        {
+            var u = (p.X - map.Min.X) / RegionMap.TexelSize - 0.5f;
+            var v = (p.Y - map.Min.Y) / RegionMap.TexelSize - 0.5f;
+            var (i, j) = ((int)MathF.Floor(u), (int)MathF.Floor(v));
+            var (fx, fy) = (u - i, v - j);
+            float At(int a, int b) => map.At(dark, a, b);
+            return (At(i, j) * (1 - fx) + At(i + 1, j) * fx) * (1 - fy) + (At(i, j + 1) * (1 - fx) + At(i + 1, j + 1) * fx) * fy;
+        }
+
+        // Along each square edge x = 8k and z = 8k (away from the corners, where the edges meet), the filtered distance crosses 0 within
+        // 1 cm of the edge: the edge is straight, whichever side is dark
+        foreach (var edge in new[] { -16f, -8f, 0f, 8f, 16f })
+        foreach (var along in new[] { -20f, -12f, -4f, 4f, 12f, 20f })
+        {
+            foreach (var (a, b) in new[] { (new Vector2(edge, along), Vector2.UnitX), (new Vector2(along, edge), Vector2.UnitY) })
+            {
+                var left = Sample(a - b * 0.3f);
+                var right = Sample(a + b * 0.3f);
+                Assert.True(left * right < 0, $"the edge at {a} should lie between its two sides");
+                // Linear between the two samples: where it crosses 0
+                var crossing = -0.3f + 0.6f * left / (left - right);
+                Assert.InRange(MathF.Abs(crossing), 0, 0.01f);
+            }
+        }
+    }
+
+    [Fact]
     public void ContentChessboard_GamePieces_UseAllTwentyModelsOnTheBoard()
     {
         var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
