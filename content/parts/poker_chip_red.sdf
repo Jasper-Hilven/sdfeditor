@@ -1,15 +1,15 @@
-# Poker chip, red: a giant clay poker chip 2.4 m across and 0.32 m thick, centred on the origin and lying flat, in a fly agaric's
-# lacquered scarlet, its edge rounded. Painted flush on it in white, as the colours of a real chip are inlaid rather than raised:
-# eight blocks round the edge that wrap over the rim onto both faces, a thin ring inside them, and in the middle of each face a
-# mushroom, its cap flecked with spots of the chip's red. Each painted piece is the chip itself cut to the space of its pattern,
-# so the surface stays one smooth disc; where two pieces of a union lie on the same surface, the later one shows.
+# Poker chip, red: a giant clay poker chip 2.4 m across and 0.32 m thick, centred on the origin and lying flat, in lacquered scarlet, its
+# edge rounded. Painted flush on it in white, as the colours of a real chip are inlaid rather than raised: eight blocks round the
+# edge that wrap over the rim onto both faces, a thin ring inside them, and an eight-pointed star in the middle of each face. Each painted
+# piece is the chip itself cut to the space of its pattern, so the surface stays one smooth disc; where two pieces of a union lie
+# on the same surface, the later one shows.
 format 1
 
 Union
     # The chip
-    Material material=game_cap_red
+    Material material=game_die_red
         RoundedCylinder radius=1.2 roundness=0.06 height=0.16
-    Material material=game_wart_white
+    Material material=game_pip_white
         Intersection
             RoundedCylinder radius=1.2 roundness=0.06 height=0.16
             Union
@@ -27,31 +27,10 @@ Union
                 Subtraction
                     CappedCylinder radius=0.86 height=1
                     CappedCylinder radius=0.81 height=1
-                # The mushroom, through the chip so it shows on both faces, its cap towards -z: a domed cap on a stout stem
+                # The inlay, through the chip so it shows on both faces: an eight-pointed star of two squares
                 Rotate rotation=(-1.5707964, 0, 0)
                     Extrusion height=1
                         Union2D
-                            Intersection2D
-                                Translate2D offset=(0, 0.02)
-                                    Ellipse2D radii=(0.56, 0.42)
-                                Translate2D offset=(0, 0.5)
-                                    Box2D size=(0.6, 0.48)
-                            Translate2D offset=(0, -0.2)
-                                RoundedBox2D size=(0.17, 0.26) radiusTopRight=0.04 radiusBottomRight=0.12 radiusTopLeft=0.04 radiusBottomLeft=0.12
-    # The spots on the cap, in the chip's own colour
-    Material material=game_cap_red
-        Intersection
-            RoundedCylinder radius=1.2 roundness=0.06 height=0.16
-            Rotate rotation=(-1.5707964, 0, 0)
-                Extrusion height=1
-                    Union2D
-                        Translate2D offset=(0, 0.3)
-                            Circle radius=0.09
-                        Translate2D offset=(-0.3, 0.17)
-                            Circle radius=0.07
-                        Translate2D offset=(0.28, 0.2)
-                            Circle radius=0.08
-                        Translate2D offset=(-0.12, 0.13)
-                            Circle radius=0.05
-                        Translate2D offset=(0.12, 0.38)
-                            Circle radius=0.04
+                            Box2D size=(0.4, 0.4)
+                            Rotate2D angle=0.7853982
+                                Box2D size=(0.4, 0.4)

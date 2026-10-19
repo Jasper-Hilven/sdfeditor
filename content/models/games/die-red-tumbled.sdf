@@ -1,0 +1,19 @@
+# Red die, tumbled: the red die of die-red caught mid-roll and slammed into the board, balanced on one edge and tipped over in two
+# directions, its lowest edge sunk a little into the ground so it stays put. Three faces show from above.
+format 1
+collider convex
+
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Translate translation=(0, 1.25, 0)
+        Rotate rotation=(0.42, 0.3, 0.55)
+            Union
+                Material material=game_die_red
+                    Subtraction
+                        RoundBox size=(1.1, 1.1, 1.1) roundness=0.22
+                        Part part=die_pips
+                Material material=game_pip_white
+                    Intersection
+                        RoundBox size=(1.06, 1.06, 1.06) roundness=0.22
+                        Part part=die_pips

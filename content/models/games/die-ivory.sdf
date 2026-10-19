@@ -1,0 +1,20 @@
+# Ivory die: a giant six-sided die 2.2 m on a side in plain ivory with black pips sunk into the faces, turned to show the six on
+# top.
+format 1
+collider convex
+
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Translate translation=(0, 1.1, 0)
+        # Upside down, so the six is on top
+        Rotate rotation=(3.1415927, 0, 0)
+            Union
+                Material material=game_ivory
+                    Subtraction
+                        RoundBox size=(1.1, 1.1, 1.1) roundness=0.22
+                        Part part=die_pips
+                Material material=game_pip_black
+                    Intersection
+                        RoundBox size=(1.06, 1.06, 1.06) roundness=0.22
+                        Part part=die_pips
