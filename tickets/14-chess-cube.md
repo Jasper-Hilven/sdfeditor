@@ -93,16 +93,16 @@ ceiling, a crowd of pieces close up) and check them by eye. Update the level fil
 
 ## Subtickets
 
-To be split by whoever takes this ticket, one agent per subticket. A likely split:
-
-- 14.1 The level without hills, island, foliage and outdoor sky; how the room is built, lit and
-  given colliders (the choice in 1 above), with a test that walls and ceiling meet the floor's squares in one checker pattern.
-- 14.2 Chess pieces, light (standing and fallen) and their materials.
-- 14.3 Chess pieces, dark (standing and fallen).
-- 14.4 Cards (and `card-ace-held`'s new way to stand).
-- 14.5 Monopoly houses and hotel; meeples.
-- 14.6 Dice, dominoes, poker chips; renames carried through the level and tests.
-- 14.7 Re-mesh at 256, rebake, rebuild `Chessboard.unity`, snapshots, ticket Status.
+| # | Subticket | Depends on |
+|---|---|---|
+| 14.1 | [Level format and bake for the room](14.1-chess-cube-level-format.md) | - |
+| 14.2 | [The room in Unity: walls, ceiling, light, camera, no sky](14.2-chess-cube-unity-room.md) | 14.1 |
+| 14.3 | [Chess pieces, light, plain materials](14.3-chess-pieces-light.md) | - |
+| 14.4 | [Chess pieces, dark](14.4-chess-pieces-dark.md) | 14.3 |
+| 14.5 | [Cards](14.5-cards.md) | - |
+| 14.6 | [Monopoly houses, hotel, meeples](14.6-monopoly-and-meeples.md) | - |
+| 14.7 | [Dice, dominoes, poker chips](14.7-dice-dominoes-chips.md) | - |
+| 14.8 | [Re-mesh, rebake, rebuild, snapshots](14.8-chess-cube-rebuild.md) | 14.1-14.7 |
 
 ## Acceptance
 
