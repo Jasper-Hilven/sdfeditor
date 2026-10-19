@@ -213,6 +213,56 @@ public class GroundRegionTests
     }
 
     [Fact]
+    public void Bake_BaseGround_IsNamedUnderTheRoleGrass_AndLeavingItOutBakesTheSameBytes()
+    {
+        var root = Directory.CreateTempSubdirectory("sdf-level-");
+        try
+        {
+            var dirt = new GroundRegion("dirt", [new CircleRegion(Vector2.Zero, 6, 1, 5)], GroundPattern.Plain, 0.6f, 0.05f);
+            var plain = Small with { Regions = [dirt] };
+            var grass = plain with { Base = "grass" };
+            var moss = plain with { Base = "moss" };
+            var materials = MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default).With("ground_dirt", MaterialDefinition.Default);
+            // Test fixture: the content has no ground_moss until the fungal level's materials are made
+            var mossy = MaterialLibrary.Empty.With("ground_moss", MaterialDefinition.Default).With("ground_dirt", MaterialDefinition.Default);
+
+            var first = LevelBaker.Bake(plain, "small", materials, Path.Combine(root.FullName, "a"));
+            LevelBaker.Bake(grass, "small", materials, Path.Combine(root.FullName, "b"));
+            LevelBaker.Bake(moss, "small", mossy, Path.Combine(root.FullName, "c"));
+
+            foreach (var file in first.ChunkFiles.Append(LevelBaker.LevelJson).Append(RegionMap.FileName))
+                Assert.Equal(File.ReadAllBytes(Path.Combine(root.FullName, "a", file)), File.ReadAllBytes(Path.Combine(root.FullName, "b", file)));
+
+            string[] Roles(string folder, out string grassName)
+            {
+                using var json = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root.FullName, folder, LevelBaker.LevelJson)));
+                var materialsElement = json.RootElement.GetProperty("materials");
+                grassName = materialsElement.GetProperty("grass").GetProperty("name").GetString()!;
+                return materialsElement.EnumerateObject().Select(p => p.Name).ToArray();
+            }
+            Assert.Equal(["grass", "dirt"], Roles("a", out var defaultName));
+            Assert.Equal("ground_grass", defaultName);
+            Assert.Equal(["grass", "dirt"], Roles("c", out var mossName));
+            Assert.Equal("ground_moss", mossName);
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Bake_BaseGroundWithoutItsMaterial_SaysWhichFileIsMissing()
+    {
+        var level = Small with { Base = "moss" };
+        var materials = MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => LevelBaker.Bake(level, "small", materials, Path.GetTempPath()));
+
+        Assert.Contains("materials/ground/ground_moss.sdfmat", exception.Message);
+    }
+
+    [Fact]
     public void Bake_NamesTheLineOfAModelThatIsNotThere()
     {
         var level = Small with { Placements = [new Placement("tower9", Vector2.Zero, 0, 1, 0, 3, null, 1, 12)] };

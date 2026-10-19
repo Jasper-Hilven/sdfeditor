@@ -105,6 +105,46 @@ public class LevelFileTests
     }
 
     [Fact]
+    public void Read_RegionsBase_NamesTheGroundOutsideTheRegions()
+    {
+        var level = LevelFile.Read("format 1\nplay size=(40, 30)\nregions base=moss\n    litter\n        Circle center=(0, 0) radius=5");
+
+        Assert.Equal("moss", level.Base);
+        Assert.Equal("ground_moss", level.BaseMaterial);
+        Assert.Equal(["litter"], level.Regions.Select(r => r.Name));
+    }
+
+    [Fact]
+    public void Read_WithoutBase_TheGroundIsGrass()
+    {
+        var level = LevelFile.Read("format 1\nplay size=(40, 30)\nregions\n    dirt\n        Circle center=(0, 0) radius=5");
+
+        Assert.Equal(("grass", "ground_grass"), (level.Base, level.BaseMaterial));
+        Assert.Equal("grass", LevelFile.Read("format 1\nplay size=(40, 30)").Base);
+    }
+
+    [Fact]
+    public void Read_RegionsLine_RejectsUnknownParametersAndANumberAsBase()
+    {
+        var unknown = Assert.Throws<SdfProgramFileException>(() =>
+            LevelFile.Read("format 1\nplay size=(40, 30)\nregions ground=moss\n    dirt\n        Circle center=(0, 0) radius=5"));
+        Assert.Equal(3, unknown.Line);
+        var number = Assert.Throws<SdfProgramFileException>(() =>
+            LevelFile.Read("format 1\nplay size=(40, 30)\nregions base=3\n    dirt\n        Circle center=(0, 0) radius=5"));
+        Assert.Equal(3, number.Line);
+    }
+
+    [Fact]
+    public void ContentMeadowAndChessboard_KeepGrassAsTheirBaseGround()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        foreach (var name in new[] { "meadow", "chessboard" })
+            Assert.Equal("grass", LevelFile.Load(Path.Combine(content, LevelFile.FolderName, name + LevelFile.Extension)).Base);
+    }
+
+    [Fact]
     public void ContentMeadow_IsAValidLevel()
     {
         var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);

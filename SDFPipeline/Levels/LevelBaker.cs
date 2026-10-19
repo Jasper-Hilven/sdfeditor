@@ -84,7 +84,7 @@ public static class LevelBaker
     {
         var terrain = new LevelTerrain(level);
         var layout = GroundLayout.Around(terrain, ChunkSize);
-        foreach (var material in level.Regions.Select(r => r.Material).Prepend(GrassMaterial))
+        foreach (var material in level.Regions.Select(r => r.Material).Prepend(level.BaseMaterial))
             if (!materials.Contains(material))
                 throw new InvalidOperationException($"There is no material file for {material}; the ground needs materials/ground/{material}.sdfmat");
 
@@ -116,7 +116,7 @@ public static class LevelBaker
         foreach (var entry in level.Scatters.Concat(level.Trees).SelectMany(s => s.Entries))
             if (!(modelExists ?? (name => models?.Invoke(name) is not null))(entry.Model))
                 throw new ProgramFiles.SdfProgramFileException(entry.Line, $"There is no model '{entry.Model}' in content/models/");
-        var groundColors = regions.Regions.Select(r => r.Material).Prepend(GrassMaterial)
+        var groundColors = regions.Regions.Select(r => r.Material).Prepend(level.BaseMaterial)
             .Select(m => AverageColor(materials.Resolve(m))).ToArray();
         var scattered = LevelScatter.Scatter(level, terrain, regions, model => footprints[model], p =>
         {
@@ -232,8 +232,8 @@ public static class LevelBaker
                 skirtDepth = GroundMesher.SkirtDepth,
                 chunks = chunkEntries,
             },
-            // The ground's material by region: grass, then each region's
-            materials = regions.Regions.Select(r => (Role: r.Name, Material: r.Material)).Prepend((Role: "grass", Material: GrassMaterial))
+            // The ground's material by region: the base ground under the role "grass" (whatever its material), then each region's
+            materials = regions.Regions.Select(r => (Role: r.Name, Material: r.Material)).Prepend((Role: "grass", Material: level.BaseMaterial))
                 .ToDictionary(r => r.Role, r => (object)new { name = r.Material, parameters = Parameters(materials.Resolve(r.Material)) }),
             regions = new
             {
