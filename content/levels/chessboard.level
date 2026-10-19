@@ -1,0 +1,377 @@
+# The chessboard: one huge board of 20 × 20 squares of 8 m, 160 m × 160 m, flat as a table, in a state of complete anarchy. Chess
+# pieces grown from mushrooms, of both colours and every kind, stand and lie all over it: off their squares, in heaps and scrums,
+# with far too many queens, some knocked flat, and open squares between. Round the board the island rises into grassy hills like
+# the meadow's, whose crests hide everything behind them from eye height; beyond them the island ends and there is only sky.
+format 1
+
+play size=(160, 160) noise=0              # the board, centred on the origin: x across, z along; no unevenness, a board is flat
+seed 2
+
+hills
+    ring width=28 height=10               # rise outside the board, crest about 8-12 m
+    noise amplitude=2.5 scale=18          # unevenness along the crest and on the slopes
+
+edge                                      # where the island ends, behind the hill crests
+    margin=6
+
+# The board, from 2D shapes; where regions overlap, the later one wins. Each is drawn in its material,
+# materials/ground/ground_<region>.sdfmat. No noise: the squares' edges are ruled straight
+regions
+    rim                                   # a dark frame 3 m wide round the board, where the hills begin
+        Box2D center=(0, 0) size=(166, 166)
+    light                                 # the whole board in the light squares' cream...
+        Box2D center=(0, 0) size=(160, 160)
+    dark                                  # ...and the dark squares over it, the corner squares dark: (i + j) even, from the -x, -z corner
+        # Rank 1, z = -76
+        Box2D center=(-76, -76) size=(8, 8)
+        Box2D center=(-60, -76) size=(8, 8)
+        Box2D center=(-44, -76) size=(8, 8)
+        Box2D center=(-28, -76) size=(8, 8)
+        Box2D center=(-12, -76) size=(8, 8)
+        Box2D center=(4, -76) size=(8, 8)
+        Box2D center=(20, -76) size=(8, 8)
+        Box2D center=(36, -76) size=(8, 8)
+        Box2D center=(52, -76) size=(8, 8)
+        Box2D center=(68, -76) size=(8, 8)
+        # Rank 2, z = -68
+        Box2D center=(-68, -68) size=(8, 8)
+        Box2D center=(-52, -68) size=(8, 8)
+        Box2D center=(-36, -68) size=(8, 8)
+        Box2D center=(-20, -68) size=(8, 8)
+        Box2D center=(-4, -68) size=(8, 8)
+        Box2D center=(12, -68) size=(8, 8)
+        Box2D center=(28, -68) size=(8, 8)
+        Box2D center=(44, -68) size=(8, 8)
+        Box2D center=(60, -68) size=(8, 8)
+        Box2D center=(76, -68) size=(8, 8)
+        # Rank 3, z = -60
+        Box2D center=(-76, -60) size=(8, 8)
+        Box2D center=(-60, -60) size=(8, 8)
+        Box2D center=(-44, -60) size=(8, 8)
+        Box2D center=(-28, -60) size=(8, 8)
+        Box2D center=(-12, -60) size=(8, 8)
+        Box2D center=(4, -60) size=(8, 8)
+        Box2D center=(20, -60) size=(8, 8)
+        Box2D center=(36, -60) size=(8, 8)
+        Box2D center=(52, -60) size=(8, 8)
+        Box2D center=(68, -60) size=(8, 8)
+        # Rank 4, z = -52
+        Box2D center=(-68, -52) size=(8, 8)
+        Box2D center=(-52, -52) size=(8, 8)
+        Box2D center=(-36, -52) size=(8, 8)
+        Box2D center=(-20, -52) size=(8, 8)
+        Box2D center=(-4, -52) size=(8, 8)
+        Box2D center=(12, -52) size=(8, 8)
+        Box2D center=(28, -52) size=(8, 8)
+        Box2D center=(44, -52) size=(8, 8)
+        Box2D center=(60, -52) size=(8, 8)
+        Box2D center=(76, -52) size=(8, 8)
+        # Rank 5, z = -44
+        Box2D center=(-76, -44) size=(8, 8)
+        Box2D center=(-60, -44) size=(8, 8)
+        Box2D center=(-44, -44) size=(8, 8)
+        Box2D center=(-28, -44) size=(8, 8)
+        Box2D center=(-12, -44) size=(8, 8)
+        Box2D center=(4, -44) size=(8, 8)
+        Box2D center=(20, -44) size=(8, 8)
+        Box2D center=(36, -44) size=(8, 8)
+        Box2D center=(52, -44) size=(8, 8)
+        Box2D center=(68, -44) size=(8, 8)
+        # Rank 6, z = -36
+        Box2D center=(-68, -36) size=(8, 8)
+        Box2D center=(-52, -36) size=(8, 8)
+        Box2D center=(-36, -36) size=(8, 8)
+        Box2D center=(-20, -36) size=(8, 8)
+        Box2D center=(-4, -36) size=(8, 8)
+        Box2D center=(12, -36) size=(8, 8)
+        Box2D center=(28, -36) size=(8, 8)
+        Box2D center=(44, -36) size=(8, 8)
+        Box2D center=(60, -36) size=(8, 8)
+        Box2D center=(76, -36) size=(8, 8)
+        # Rank 7, z = -28
+        Box2D center=(-76, -28) size=(8, 8)
+        Box2D center=(-60, -28) size=(8, 8)
+        Box2D center=(-44, -28) size=(8, 8)
+        Box2D center=(-28, -28) size=(8, 8)
+        Box2D center=(-12, -28) size=(8, 8)
+        Box2D center=(4, -28) size=(8, 8)
+        Box2D center=(20, -28) size=(8, 8)
+        Box2D center=(36, -28) size=(8, 8)
+        Box2D center=(52, -28) size=(8, 8)
+        Box2D center=(68, -28) size=(8, 8)
+        # Rank 8, z = -20
+        Box2D center=(-68, -20) size=(8, 8)
+        Box2D center=(-52, -20) size=(8, 8)
+        Box2D center=(-36, -20) size=(8, 8)
+        Box2D center=(-20, -20) size=(8, 8)
+        Box2D center=(-4, -20) size=(8, 8)
+        Box2D center=(12, -20) size=(8, 8)
+        Box2D center=(28, -20) size=(8, 8)
+        Box2D center=(44, -20) size=(8, 8)
+        Box2D center=(60, -20) size=(8, 8)
+        Box2D center=(76, -20) size=(8, 8)
+        # Rank 9, z = -12
+        Box2D center=(-76, -12) size=(8, 8)
+        Box2D center=(-60, -12) size=(8, 8)
+        Box2D center=(-44, -12) size=(8, 8)
+        Box2D center=(-28, -12) size=(8, 8)
+        Box2D center=(-12, -12) size=(8, 8)
+        Box2D center=(4, -12) size=(8, 8)
+        Box2D center=(20, -12) size=(8, 8)
+        Box2D center=(36, -12) size=(8, 8)
+        Box2D center=(52, -12) size=(8, 8)
+        Box2D center=(68, -12) size=(8, 8)
+        # Rank 10, z = -4
+        Box2D center=(-68, -4) size=(8, 8)
+        Box2D center=(-52, -4) size=(8, 8)
+        Box2D center=(-36, -4) size=(8, 8)
+        Box2D center=(-20, -4) size=(8, 8)
+        Box2D center=(-4, -4) size=(8, 8)
+        Box2D center=(12, -4) size=(8, 8)
+        Box2D center=(28, -4) size=(8, 8)
+        Box2D center=(44, -4) size=(8, 8)
+        Box2D center=(60, -4) size=(8, 8)
+        Box2D center=(76, -4) size=(8, 8)
+        # Rank 11, z = 4
+        Box2D center=(-76, 4) size=(8, 8)
+        Box2D center=(-60, 4) size=(8, 8)
+        Box2D center=(-44, 4) size=(8, 8)
+        Box2D center=(-28, 4) size=(8, 8)
+        Box2D center=(-12, 4) size=(8, 8)
+        Box2D center=(4, 4) size=(8, 8)
+        Box2D center=(20, 4) size=(8, 8)
+        Box2D center=(36, 4) size=(8, 8)
+        Box2D center=(52, 4) size=(8, 8)
+        Box2D center=(68, 4) size=(8, 8)
+        # Rank 12, z = 12
+        Box2D center=(-68, 12) size=(8, 8)
+        Box2D center=(-52, 12) size=(8, 8)
+        Box2D center=(-36, 12) size=(8, 8)
+        Box2D center=(-20, 12) size=(8, 8)
+        Box2D center=(-4, 12) size=(8, 8)
+        Box2D center=(12, 12) size=(8, 8)
+        Box2D center=(28, 12) size=(8, 8)
+        Box2D center=(44, 12) size=(8, 8)
+        Box2D center=(60, 12) size=(8, 8)
+        Box2D center=(76, 12) size=(8, 8)
+        # Rank 13, z = 20
+        Box2D center=(-76, 20) size=(8, 8)
+        Box2D center=(-60, 20) size=(8, 8)
+        Box2D center=(-44, 20) size=(8, 8)
+        Box2D center=(-28, 20) size=(8, 8)
+        Box2D center=(-12, 20) size=(8, 8)
+        Box2D center=(4, 20) size=(8, 8)
+        Box2D center=(20, 20) size=(8, 8)
+        Box2D center=(36, 20) size=(8, 8)
+        Box2D center=(52, 20) size=(8, 8)
+        Box2D center=(68, 20) size=(8, 8)
+        # Rank 14, z = 28
+        Box2D center=(-68, 28) size=(8, 8)
+        Box2D center=(-52, 28) size=(8, 8)
+        Box2D center=(-36, 28) size=(8, 8)
+        Box2D center=(-20, 28) size=(8, 8)
+        Box2D center=(-4, 28) size=(8, 8)
+        Box2D center=(12, 28) size=(8, 8)
+        Box2D center=(28, 28) size=(8, 8)
+        Box2D center=(44, 28) size=(8, 8)
+        Box2D center=(60, 28) size=(8, 8)
+        Box2D center=(76, 28) size=(8, 8)
+        # Rank 15, z = 36
+        Box2D center=(-76, 36) size=(8, 8)
+        Box2D center=(-60, 36) size=(8, 8)
+        Box2D center=(-44, 36) size=(8, 8)
+        Box2D center=(-28, 36) size=(8, 8)
+        Box2D center=(-12, 36) size=(8, 8)
+        Box2D center=(4, 36) size=(8, 8)
+        Box2D center=(20, 36) size=(8, 8)
+        Box2D center=(36, 36) size=(8, 8)
+        Box2D center=(52, 36) size=(8, 8)
+        Box2D center=(68, 36) size=(8, 8)
+        # Rank 16, z = 44
+        Box2D center=(-68, 44) size=(8, 8)
+        Box2D center=(-52, 44) size=(8, 8)
+        Box2D center=(-36, 44) size=(8, 8)
+        Box2D center=(-20, 44) size=(8, 8)
+        Box2D center=(-4, 44) size=(8, 8)
+        Box2D center=(12, 44) size=(8, 8)
+        Box2D center=(28, 44) size=(8, 8)
+        Box2D center=(44, 44) size=(8, 8)
+        Box2D center=(60, 44) size=(8, 8)
+        Box2D center=(76, 44) size=(8, 8)
+        # Rank 17, z = 52
+        Box2D center=(-76, 52) size=(8, 8)
+        Box2D center=(-60, 52) size=(8, 8)
+        Box2D center=(-44, 52) size=(8, 8)
+        Box2D center=(-28, 52) size=(8, 8)
+        Box2D center=(-12, 52) size=(8, 8)
+        Box2D center=(4, 52) size=(8, 8)
+        Box2D center=(20, 52) size=(8, 8)
+        Box2D center=(36, 52) size=(8, 8)
+        Box2D center=(52, 52) size=(8, 8)
+        Box2D center=(68, 52) size=(8, 8)
+        # Rank 18, z = 60
+        Box2D center=(-68, 60) size=(8, 8)
+        Box2D center=(-52, 60) size=(8, 8)
+        Box2D center=(-36, 60) size=(8, 8)
+        Box2D center=(-20, 60) size=(8, 8)
+        Box2D center=(-4, 60) size=(8, 8)
+        Box2D center=(12, 60) size=(8, 8)
+        Box2D center=(28, 60) size=(8, 8)
+        Box2D center=(44, 60) size=(8, 8)
+        Box2D center=(60, 60) size=(8, 8)
+        Box2D center=(76, 60) size=(8, 8)
+        # Rank 19, z = 68
+        Box2D center=(-76, 68) size=(8, 8)
+        Box2D center=(-60, 68) size=(8, 8)
+        Box2D center=(-44, 68) size=(8, 8)
+        Box2D center=(-28, 68) size=(8, 8)
+        Box2D center=(-12, 68) size=(8, 8)
+        Box2D center=(4, 68) size=(8, 8)
+        Box2D center=(20, 68) size=(8, 8)
+        Box2D center=(36, 68) size=(8, 8)
+        Box2D center=(52, 68) size=(8, 8)
+        Box2D center=(68, 68) size=(8, 8)
+        # Rank 20, z = 76
+        Box2D center=(-68, 76) size=(8, 8)
+        Box2D center=(-52, 76) size=(8, 8)
+        Box2D center=(-36, 76) size=(8, 8)
+        Box2D center=(-20, 76) size=(8, 8)
+        Box2D center=(-4, 76) size=(8, 8)
+        Box2D center=(12, 76) size=(8, 8)
+        Box2D center=(28, 76) size=(8, 8)
+        Box2D center=(44, 76) size=(8, 8)
+        Box2D center=(60, 76) size=(8, 8)
+        Box2D center=(76, 76) size=(8, 8)
+
+# The unique models, each from content/models/ by name, its base on the ground at (x, z), turned yaw degrees (counter-clockwise
+# from above). Squares are 8 m, their centres at -76, -68, ..., 76 on both axes; the pieces keep to none of them
+place
+    # The game elements (dice, Monopoly houses and hotels, dominoes, playing cards; content/models/games/) are made separately and
+    # go here, strewn among the pieces in the same chaos. Placeholder: none placed yet
+    #
+    # The chess pieces, in no order at all: clusters and pile-ups, a ragged pawn line, strays, and open squares between.
+    # Light and dark mixed everywhere and in mismatched numbers; the -fallen models lie toppled
+    # A scrum in the middle of the board's left half: every kind of piece of both colours piled together, a few knocked flat
+    rook-light at=(-24.5, 22.9) yaw=-51 scale=1.04
+    pawn-dark-fallen at=(-29.2, 18.8) yaw=103 scale=0.93
+    pawn-light at=(-25.6, 17.2) yaw=-86 scale=1.15
+    pawn-light-fallen at=(-22.6, 21.8) yaw=-180 scale=1.05
+    king-light at=(-35.9, 27.7) yaw=70 scale=1.12
+    queen-dark at=(-30.6, 25.5) yaw=-52 scale=1.05
+    knight-dark at=(-32.0, 16.9) yaw=60 scale=1.06
+    pawn-light at=(-30.2, 13.9) yaw=-2 scale=0.87
+    pawn-dark at=(-20.3, 19.7) yaw=-159 scale=0.96
+    pawn-light at=(-32.3, 10.5) yaw=18 scale=1.06
+    bishop-dark at=(-25.4, 27.7) yaw=113 scale=1.15
+    pawn-dark at=(-31.2, 29.3) yaw=76 scale=1.18
+    knight-light at=(-23.4, 17.7) yaw=-130 scale=0.95
+    rook-dark at=(-25.8, 13.6) yaw=-80 scale=0.96
+    knight-light-fallen at=(-38.6, 16.5) yaw=107 scale=0.94
+    pawn-dark at=(-36.5, 19.1) yaw=-25 scale=1.1
+    bishop-light at=(-27.4, 29.2) yaw=-53 scale=1.01
+    # The queens' party: far too many queens, of both colours, crowding round two kings, one of them toppled
+    queen-dark at=(47.8, 43.9) yaw=-67 scale=1.13
+    king-light at=(36.6, 40.8) yaw=101 scale=0.9
+    king-dark-fallen at=(42.0, 49.0) yaw=80 scale=1.2
+    queen-light at=(41.0, 41.7) yaw=-89 scale=1.14
+    queen-light at=(44.5, 45.5) yaw=133 scale=1.07
+    queen-light-fallen at=(45.0, 40.8) yaw=129 scale=0.89
+    queen-light at=(32.8, 46.5) yaw=-96 scale=1.12
+    queen-dark at=(36.5, 48.1) yaw=-87
+    queen-dark at=(37.6, 36.7) yaw=127 scale=0.97
+    # A rout in the near left corner: the light side fled, its pieces lying where they fell, dark pawns among them
+    pawn-dark at=(-47.2, -36.6) yaw=-59 scale=0.97
+    rook-light-fallen at=(-59.2, -48.1) yaw=21 scale=1.19
+    pawn-dark at=(-52.4, -40.3) yaw=-122 scale=1.02
+    bishop-dark-fallen at=(-48.5, -44.2) yaw=-28
+    pawn-dark at=(-54.0, -41.9) yaw=156 scale=1.17
+    bishop-light at=(-55.6, -44.8) yaw=139 scale=1.17
+    pawn-light-fallen at=(-56.9, -36.8) yaw=-25 scale=1.09
+    pawn-light-fallen at=(-49.7, -49.7) yaw=-23 scale=1.06
+    knight-dark at=(-44.8, -39.8) yaw=-93 scale=1.01
+    pawn-light-fallen at=(-43.1, -43.1) yaw=-3 scale=1.1
+    rook-dark at=(-46.9, -48.6) yaw=-7 scale=1.01
+    # A knights' brawl on the right: knights of both sides in a heap, two pawns caught in it
+    knight-dark at=(56.4, -46.0) yaw=163 scale=1.01
+    knight-dark at=(56.2, -42.5) yaw=43 scale=1.17
+    knight-light-fallen at=(62.9, -50.8) yaw=142 scale=0.88
+    pawn-dark-fallen at=(55.9, -52.6) yaw=-164
+    pawn-light at=(58.9, -51.1) yaw=-142 scale=1.04
+    knight-light at=(57.5, -55.5) yaw=138 scale=0.95
+    knight-light at=(57.4, -48.3) yaw=-8 scale=1.08
+    knight-dark at=(53.3, -42.0) yaw=-165 scale=0.95
+    # A standoff in the far left corner: dark rooks and a king against light bishops and a queen
+    bishop-light at=(-61.1, 48.0) yaw=173 scale=1.09
+    rook-dark at=(-58.4, 51.5) yaw=31 scale=0.87
+    bishop-light at=(-54.5, 57.6) yaw=-9 scale=0.99
+    pawn-dark at=(-63.4, 51.8) yaw=139 scale=1.08
+    rook-dark at=(-61.2, 63.1) yaw=-75 scale=1.04
+    pawn-dark at=(-62.7, 57.4) yaw=-46 scale=1.04
+    king-dark at=(-55.0, 53.2) yaw=-138 scale=1.1
+    queen-light at=(-66.0, 59.3) yaw=-160 scale=0.85
+    bishop-light at=(-56.0, 48.6) yaw=-69 scale=1.14
+    # A huddle at the far side, near the middle: a few pieces of each side that ended up together
+    bishop-dark at=(-1.9, 51.1) yaw=-81 scale=1.2
+    pawn-light at=(-5.3, 45.1) yaw=-40 scale=1.03
+    rook-light at=(-14.5, 49.1) yaw=67 scale=0.93
+    queen-dark at=(-13.0, 46.4) yaw=-1 scale=1.17
+    pawn-light at=(-7.3, 54.8) yaw=161 scale=1.1
+    pawn-dark at=(-6.4, 56.4) yaw=4 scale=0.87
+    # What is left of a pawn line across the near right of the board: crooked, gaps in it, the colours mixed
+    pawn-light at=(10.7, -21.5) yaw=-145 scale=1.12
+    pawn-dark at=(15.4, -24.3) yaw=1 scale=0.89
+    pawn-light at=(22.9, -22.2) yaw=-94 scale=1.15
+    pawn-dark at=(32.0, -22.2) yaw=28 scale=1.11
+    pawn-light at=(34.3, -21.1) yaw=77 scale=1.05
+    pawn-dark at=(44.4, -21.8) yaw=55 scale=1.11
+    pawn-light-fallen at=(51.1, -24.1) yaw=35 scale=1.18
+    pawn-light at=(54.8, -23.8) yaw=154 scale=0.86
+    pawn-dark at=(60.6, -23.1) yaw=-123 scale=1.09
+    # Strays everywhere else, alone or in twos
+    bishop-light at=(-7.1, 28.7) yaw=-52 scale=0.96
+    knight-dark at=(61.1, 24.1) yaw=-148 scale=1.12
+    pawn-light at=(31.0, -43.0) yaw=-131 scale=1.06
+    knight-light at=(33.5, -52.9) yaw=41 scale=1.01
+    pawn-dark-fallen at=(-12.2, -46.0) yaw=21 scale=0.97
+    rook-light at=(44.9, -54.4) yaw=145 scale=1.16
+    queen-light-fallen at=(-65.8, 25.5) yaw=79 scale=1.09
+    bishop-dark at=(-47.7, -67.1) yaw=-5 scale=1.06
+    king-dark at=(65.0, 39.7) yaw=-171 scale=0.89
+    rook-light at=(-55.1, -65.4) yaw=-125 scale=0.98
+    pawn-light at=(-13.2, 4.1) yaw=-29 scale=1.18
+    knight-dark at=(-1.5, 37.4) yaw=-175 scale=0.98
+    pawn-dark at=(74.6, 52.7) yaw=-93 scale=0.86
+    bishop-dark at=(23.5, 3.3) yaw=-154 scale=0.89
+    pawn-dark at=(8.4, 40.9) yaw=171 scale=0.94
+    pawn-dark at=(13.1, 70.9) yaw=-63 scale=1.07
+    rook-dark at=(19.8, -5.1) yaw=-133 scale=0.98
+    bishop-dark-fallen at=(56.7, -3.1) yaw=-149 scale=1.19
+    king-light at=(43.6, -64.8) yaw=34 scale=0.99
+    pawn-dark at=(53.2, 44.4) yaw=101 scale=0.93
+    pawn-light at=(72.6, -60.6) yaw=129 scale=1.05
+    queen-light at=(-66.5, -71.8) yaw=-27 scale=0.88
+    pawn-dark at=(-4.0, 68.8) yaw=103 scale=0.89
+    queen-dark at=(-51.7, -53.9) yaw=-12 scale=1.01
+
+# Grass clumps and flowers at the foot of the hills round the board, up to 12 m out from it, nothing on the board itself or its
+# rim; otherwise as the meadow's
+scatter
+    grass-turf0 weight=3
+    grass-turf1 weight=1
+    grass-turf2 weight=1.5
+    grass-turf3 weight=1
+    grass-turf4 weight=1
+    density=0.6 cluster=2 clusterScale=6 spacing=0.45 avoid=rim,light,dark margin=0.5 maxSlope=25 reach=12
+scatter
+    flower0 weight=2
+    flower1 weight=1
+    flower2 weight=0.4
+    flower3 weight=1
+    flower4 weight=1
+    density=0.12 cluster=3 clusterScale=10 spacing=0.6 avoid=rim,light,dark margin=0.8 maxSlope=20 reach=12
+
+# How the foliage is drawn round the first-person camera, as in the meadow
+draw foliage
+    rings=[6, 15, 35] outline=1 shadows=1 blend=1 fade=5
+    wind=0.04 windHeight=0.5 tintHeight=0.08
+    lowDensity=0.5 lowDistance=0.7

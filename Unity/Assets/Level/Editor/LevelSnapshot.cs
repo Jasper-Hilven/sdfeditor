@@ -13,9 +13,10 @@ namespace SdfLevel.Editor
     /// <summary>
     /// Renders a level scene to PNGs for checking a change, through its player's camera: at eye height from the spawn point in four
     /// directions, from the playable area's corner towards the hills, from above, next to a tree and a mushroom (placed for the shot
-    /// only), and the first view again on the integrated GPU / web quality level. It logs what the ground costs in each eye-height view:
-    /// the triangles of the levels of detail the chunks' LOD groups pick, inside the view; and what the instanced foliage costs: the
-    /// instances, draws and triangles <see cref="InstancedScatterRenderer"/> drew for it (outlines and shadow casters apart).
+    /// only), the busiest spot of the placed models from eye height and from above, and the first view again on the integrated GPU / web
+    /// quality level. It logs what the ground and the placed models cost in each eye-height view: the triangles of the levels of detail
+    /// their LOD groups pick, inside the view; and what the instanced foliage costs: the instances, draws and triangles
+    /// <see cref="InstancedScatterRenderer"/> drew for it (outlines and shadow casters apart).
     /// <para>
     /// With scattered foliage it also shoots the grass close up and across the field, where the rings hand over, on both quality
     /// levels, and the same close view at two moments of the wind (wind_0, wind_1), logging how many pixels differ between them.
@@ -120,7 +121,8 @@ namespace SdfLevel.Editor
             void EyeShot(string name, Vector3 position, Quaternion rotation)
             {
                 Shot(name, position, rotation);
-                Debug.Log($"SDF level: {name}: the ground draws {GroundTrianglesInView(scene, camera, position, rotation):N0} triangles{FoliageCost(scatter)}");
+                Debug.Log($"SDF level: {name}: the ground draws {TrianglesInView(scene, "Ground", camera, position, rotation):N0} triangles, " +
+                          $"the placed models {TrianglesInView(scene, LevelBuilder.PlacedName, camera, position, rotation):N0}{FoliageCost(scatter)}");
             }
 
             var level = QualitySettings.GetQualityLevel();
@@ -139,6 +141,7 @@ namespace SdfLevel.Editor
                 Shot("top", new Vector3(0, 260, 0), Quaternion.Euler(90, 0, 0), 1600, 1200);
 
                 CompareWithModels(scene, eye, directory, Shot);
+                ShootCrowd(scene, Shot, EyeShot);
                 ShootCastleAndRegions(scene, Shot, EyeShot);
                 if (scatter != null)
                     ShootFoliage(scene, directory, "", Shot, EyeShot);
@@ -219,6 +222,29 @@ namespace SdfLevel.Editor
             return placed == null
                 ? Array.Empty<Transform>()
                 : placed.Cast<Transform>().Where(t => t.name == model).OrderByDescending(t => t.position.x).ToArray();
+        }
+
+        /// <summary>
+        /// The busiest spot of the placed models, where the most of them stand within 12 m of one: from eye height 18 m off on either side,
+        /// and from above at a slant. Nothing without placements.
+        /// </summary>
+        private static void ShootCrowd(Scene scene, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot)
+        {
+            var placed = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName);
+            var all = placed == null ? Array.Empty<Vector3>() : placed.Cast<Transform>().Select(t => t.position).ToArray();
+            if (all.Length == 0)
+                return;
+            var busiest = all.OrderByDescending(p => all.Count(o => Vector3.Distance(o, p) < 12)).First();
+            var around = all.Where(o => Vector3.Distance(o, busiest) < 12).ToArray();
+            var centre = OnGround(around.Aggregate(Vector3.zero, (a, b) => a + b) / around.Length);
+            var target = centre + Vector3.up * 2;
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            var near = OnGround(centre + new Vector3(0, 0, -18)) + up;
+            eyeShot("crowd_eye", near, Quaternion.LookRotation(target - near));
+            var other = OnGround(centre + new Vector3(14, 0, 11)) + up;
+            eyeShot("crowd_eye_back", other, Quaternion.LookRotation(target - other));
+            var above = centre + new Vector3(-10, 16, -20);
+            shot("crowd_above", above, Quaternion.LookRotation(centre - above), 1920, 1080);
         }
 
         /// <summary>A point given in a placed model's own pipeline coordinates (as in its .sdf), in Unity's world.</summary>
@@ -370,10 +396,11 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>
-        /// The triangles of the ground a view draws: for each chunk inside the view, those of the level of detail its LOD group picks
-        /// at that distance (Unity's relative height: the group's size over the height the view spans there, times the LOD bias).
+        /// The triangles a view draws of what is under the level's child <paramref name="part"/> (the ground's chunks, or the placed
+        /// models): for each LOD group inside the view, those of the level of detail it picks at that distance (Unity's relative height:
+        /// the group's size over the height the view spans there, times the LOD bias).
         /// </summary>
-        private static int GroundTrianglesInView(Scene scene, Camera sceneCamera, Vector3 position, Quaternion rotation)
+        private static int TrianglesInView(Scene scene, string part, Camera sceneCamera, Vector3 position, Quaternion rotation)
         {
             var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Count Camera", HideFlags.HideAndDontSave, typeof(Camera));
             try
@@ -385,7 +412,9 @@ namespace SdfLevel.Editor
                 var planes = GeometryUtility.CalculateFrustumPlanes(camera);
                 var halfAngle = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
                 var total = 0;
-                var root = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName);
+                var root = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(part);
+                if (root == null)
+                    return 0;
                 foreach (var group in root.GetComponentsInChildren<LODGroup>())
                 {
                     var lods = group.GetLODs();
