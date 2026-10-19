@@ -1,0 +1,1638 @@
+diff --git a/SDFPipeline.Cli/Program.cs b/SDFPipeline.Cli/Program.cs
+index 85e1b13..9599afb 100644
+--- a/SDFPipeline.Cli/Program.cs
++++ b/SDFPipeline.Cli/Program.cs
+@@ -89,6 +89,21 @@ MaterialLibrary? LoadMaterials()
+     }
+ }
+ 
++IReadOnlyDictionary<string, MaterialPattern>? LoadPatterns()
++{
++    try
++    {
++        return ModelFiles.FindMaterialsFolder(Directory.GetCurrentDirectory()) is { } materialsFolder
++            ? MaterialFiles.LoadPatterns(materialsFolder)
++            : new Dictionary<string, MaterialPattern>();
++    }
++    catch (InvalidOperationException exception)
++    {
++        Console.Error.WriteLine(exception.Message);
++        return null;
++    }
++}
++
+ int Mesh(string[] arguments)
+ {
+     var resolution = MeshingOptions.DefaultResolution;
+@@ -134,7 +149,9 @@ int Mesh(string[] arguments)
+ 
+     if (LoadMaterials() is not { } materials)
+         return 1;
+-    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Materials = materials };
++    if (LoadPatterns() is not { } patterns)
++        return 1;
++    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Materials = materials, Patterns = patterns };
+     // Where each model's mesh goes: next to it, or into the --into folder under the same subfolder it has below the meshed directory
+     // (content/models/weapons/pistol.sdf meshed from content/models goes to <into>/weapons/), with the --suffix after its name
+     Func<string, string> OutputsUnder(string? directory) => model =>
+diff --git a/SDFPipeline.Tests/Materials/MaterialTests.cs b/SDFPipeline.Tests/Materials/MaterialTests.cs
+index 1a11f1a..33b09b2 100644
+--- a/SDFPipeline.Tests/Materials/MaterialTests.cs
++++ b/SDFPipeline.Tests/Materials/MaterialTests.cs
+@@ -1,4 +1,8 @@
++using System.Buffers.Binary;
++using System.Text;
++using System.Text.Json;
+ using SDFPipeline.Materials;
++using SDFPipeline.Meshing;
+ using SDFPipeline.ProgramFiles;
+ using SDFPipeline.Rendering;
+ using SDFProject.Calculation;
+@@ -75,6 +79,103 @@ public class MaterialTests
+         Assert.Contains(problem, exception.Problem);
+     }
+ 
++    [Fact]
++    public void Pattern_IsReadFromItsLine_AndLeftOutOfTheParameters()
++    {
++        const string text = "format 1\nroughness = 0.7\npattern stones size=0.55 grout=0.035";
++
++        Assert.Equal(new MaterialPattern(MaterialPatternKind.Stones, 0.55f, 0.035f), MaterialFile.ReadPattern(text));
++        Assert.Equal(MaterialDefinition.Default with { roughness = 0.7f }, MaterialFile.Read(text));
++        Assert.Null(MaterialFile.ReadPattern("format 1\nroughness = 0.7"));
++        // Grout defaults to a twentieth of the size
++        Assert.Equal(new MaterialPattern(MaterialPatternKind.Gills, 0.1f, 0.005f), MaterialFile.ReadPattern("format 1\npattern gills size=0.1"));
++
++        var pattern = new MaterialPattern(MaterialPatternKind.Fibres, 0.08f, 0.012f);
++        var written = MaterialFile.Write(Cap, pattern);
++        Assert.EndsWith("pattern fibres size=0.08 grout=0.012\n", written);
++        Assert.Equal(Cap, MaterialFile.Read(written));
++        Assert.Equal(pattern, MaterialFile.ReadPattern(written));
++        Assert.DoesNotContain("pattern", MaterialFile.Write(Cap));
++    }
++
++    [Theory]
++    [InlineData("format 1\npattern bricks size=0.5", "There is no pattern 'bricks'; there are stones, fibres, gills")]
++    [InlineData("format 1\npattern stones grout=0.03", "A pattern needs its size")]
++    [InlineData("format 1\npattern stones size=0.5 depth=1", "Patterns have no setting 'depth'")]
++    [InlineData("format 1\npattern stones size=0", "'size' needs a length in metres above 0")]
++    [InlineData("format 1\npattern stones size=0.5 grout=0.5", "The grout must be narrower")]
++    [InlineData("format 1\npattern stones size=0.5\npattern gills size=0.1", "The pattern is given twice")]
++    public void Pattern_ExplainsWhatIsWrong(string text, string problem)
++    {
++        var exception = Assert.Throws<SdfProgramFileException>(() => MaterialFile.ReadPattern(text));
++
++        Assert.Contains(problem, exception.Problem);
++        // The parameters are read past a good pattern line, but not past a bad one
++        Assert.Throws<SdfProgramFileException>(() => MaterialFile.Read(text));
++    }
++
++    [Fact]
++    public void Pattern_ReachesTheGlb_OnlyForTheMaterialThatHasOne()
++    {
++        var program = Read(
++            """
++            Union
++                Material material=wall
++                    Box size=(1, 0.5, 0.5)
++                Material material=cap
++                    Translate translation=(0, 0.5, 0)
++                        Sphere radius=0.4
++            """);
++        var options = new MeshingOptions
++        {
++            Resolution = 32,
++            Patterns = new Dictionary<string, MaterialPattern> { ["wall"] = new(MaterialPatternKind.Stones, 0.3f, 0.02f) },
++        };
++        var model = ModelMesher.Mesh(program, options);
++
++        Assert.Equal(new MaterialPattern(MaterialPatternKind.Stones, 0.3f, 0.02f), model.Materials.Single(m => m.Name == "wall").Pattern);
++        Assert.Null(model.Materials.Single(m => m.Name == "cap").Pattern);
++
++        var glb = GlbWriter.Write(model, "walls");
++        var jsonLength = (int)BinaryPrimitives.ReadUInt32LittleEndian(glb.AsSpan(12));
++        using var json = JsonDocument.Parse(Encoding.UTF8.GetString(glb, 20, jsonLength));
++        var materials = json.RootElement.GetProperty("extras").GetProperty("sdf").GetProperty("materials").EnumerateArray()
++            .ToDictionary(m => m.GetProperty("name").GetString()!);
++        var written = materials["wall"].GetProperty("pattern");
++        Assert.Equal("stones", written.GetProperty("kind").GetString());
++        Assert.Equal(0.3f, written.GetProperty("size").GetSingle());
++        Assert.Equal(0.02f, written.GetProperty("grout").GetSingle());
++        Assert.False(materials["cap"].TryGetProperty("pattern", out _));
++
++        // Without the pattern the file is as it was before patterns: the same text but for the pattern, and the same binary chunk
++        var plain = GlbWriter.Write(ModelMesher.Mesh(program, options with { Patterns = new Dictionary<string, MaterialPattern>() }), "walls");
++        var plainLength = (int)BinaryPrimitives.ReadUInt32LittleEndian(plain.AsSpan(12));
++        Assert.Equal(Encoding.UTF8.GetString(plain, 20, plainLength).TrimEnd(),
++            Encoding.UTF8.GetString(glb, 20, jsonLength).TrimEnd().Replace(",\"pattern\":" + written.GetRawText(), ""));
++        Assert.Equal(plain.AsSpan(20 + plainLength).ToArray(), glb.AsSpan(20 + jsonLength).ToArray());
++    }
++
++    [Fact]
++    public void LoadPatterns_ListsTheMaterialsThatHaveOne()
++    {
++        var folder = Directory.CreateTempSubdirectory("sdf-materials-");
++        try
++        {
++            MaterialFile.Save(Path.Combine(folder.FullName, "chanterelle_cap.sdfmat"), Cap);
++            File.WriteAllText(Path.Combine(folder.FullName, "castle_wall.sdfmat"), "format 1\npattern stones size=0.5 grout=0.03");
++
++            var patterns = MaterialFiles.LoadPatterns(folder.FullName);
++
++            Assert.Equal(["castle_wall"], patterns.Keys);
++            Assert.Equal(MaterialPatternKind.Stones, patterns["castle_wall"].Kind);
++            Assert.Equal(MaterialDefinition.Default, MaterialFiles.LoadLibrary(folder.FullName).Resolve("castle_wall"));
++        }
++        finally
++        {
++            folder.Delete(recursive: true);
++        }
++    }
++
+     [Fact]
+     public void LoadLibrary_NamesMaterialsAfterTheirFiles()
+     {
+diff --git a/SDFPipeline/Materials/MaterialFile.cs b/SDFPipeline/Materials/MaterialFile.cs
+index 6ce147c..90e195d 100644
+--- a/SDFPipeline/Materials/MaterialFile.cs
++++ b/SDFPipeline/Materials/MaterialFile.cs
+@@ -14,7 +14,9 @@ namespace SDFPipeline.Materials;
+ /// baseColor = (0.86, 0.42, 0.05)
+ /// roughness = 0.55
+ /// subsurfaceRadius = 0.02
++/// pattern stones size=0.55 grout=0.035
+ /// </code>
++/// The pattern line is optional (see <see cref="MaterialPattern"/>); only the meshing reads it, the parameters leave it out.
+ /// </summary>
+ public static class MaterialFile
+ {
+@@ -22,7 +24,7 @@ public static class MaterialFile
+ 
+     public const string Extension = ".sdfmat";
+ 
+-    public static string Write(MaterialDefinition material)
++    public static string Write(MaterialDefinition material, MaterialPattern? pattern = null)
+     {
+         var text = new StringBuilder($"{FileSyntax.FormatKeyword} {FormatVersion}\n\n");
+         foreach (var parameter in MaterialDefinition.Parameters)
+@@ -31,11 +33,19 @@ public static class MaterialFile
+             var value = components.Length == 1 ? components[0] : $"({string.Join(", ", components)})";
+             text.Append($"{parameter.Name} = {value}\n");
+         }
++        if (pattern is not null)
++            text.Append($"{MaterialPattern.Keyword} {MaterialPattern.NameOf(pattern.Kind)} size={FileSyntax.Number(pattern.Size)} grout={FileSyntax.Number(pattern.Grout)}\n");
+         return text.ToString();
+     }
+ 
+     /// <exception cref="SdfProgramFileException">The text is not a valid material; the exception names the line.</exception>
+-    public static MaterialDefinition Read(string text)
++    public static MaterialDefinition Read(string text) => ReadWithPattern(text).Material;
++
++    /// <summary>The material's pattern line, or null if it has none.</summary>
++    /// <exception cref="SdfProgramFileException">The text is not a valid material; the exception names the line.</exception>
++    public static MaterialPattern? ReadPattern(string text) => ReadWithPattern(text).Pattern;
++
++    private static (MaterialDefinition Material, MaterialPattern? Pattern) ReadWithPattern(string text)
+     {
+         var lines = SourceLine.Parse(text);
+         if (lines.Count == 0)
+@@ -43,6 +53,7 @@ public static class MaterialFile
+         ReadFormat(lines[0]);
+ 
+         var material = MaterialDefinition.Default;
++        MaterialPattern? pattern = null;
+         var seen = new HashSet<string>();
+         foreach (var line in lines.Skip(1))
+         {
+@@ -51,6 +62,13 @@ public static class MaterialFile
+ 
+             var cursor = new Cursor(line);
+             var name = cursor.ReadName("a parameter like roughness = 0.5");
++            if (name == MaterialPattern.Keyword)
++            {
++                if (pattern is not null)
++                    throw cursor.Error("The pattern is given twice");
++                pattern = ReadPattern(cursor);
++                continue;
++            }
+             var parameter = MaterialDefinition.FindParameter(name)
+                             ?? throw cursor.Error($"Materials have no parameter '{name}'; they have {string.Join(", ", MaterialDefinition.Parameters.Select(p => p.Name))}");
+             if (!seen.Add(name))
+@@ -60,7 +78,35 @@ public static class MaterialFile
+             cursor.ExpectEnd();
+             material = parameter.With(material, components);
+         }
+-        return material;
++        return (material, pattern);
++    }
++
++    /// <summary>The rest of a pattern line: the kind, then size and grout in metres.</summary>
++    private static MaterialPattern ReadPattern(Cursor cursor)
++    {
++        var kinds = string.Join(", ", Enum.GetValues<MaterialPatternKind>().Select(MaterialPattern.NameOf));
++        var kindName = cursor.ReadName($"a pattern ({kinds})");
++        var kind = Enum.GetValues<MaterialPatternKind>().Where(k => MaterialPattern.NameOf(k) == kindName).Cast<MaterialPatternKind?>().FirstOrDefault()
++                   ?? throw cursor.Error($"There is no pattern '{kindName}'; there are {kinds}");
++        var values = new Dictionary<string, float>();
++        while (!cursor.AtEnd)
++        {
++            var name = cursor.ReadName("size= or grout=");
++            if (name is not ("size" or "grout"))
++                throw cursor.Error($"Patterns have no setting '{name}'; they have size and grout");
++            if (values.ContainsKey(name))
++                throw cursor.Error($"'{name}' is given twice");
++            cursor.Expect('=');
++            if (cursor.ReadValue() is not RawNumber number || Parse(number) is not (> 0 and var value))
++                throw cursor.Error($"'{name}' needs a length in metres above 0");
++            values[name] = value;
++        }
++        if (!values.TryGetValue("size", out var size))
++            throw cursor.Error("A pattern needs its size, like size=0.5");
++        var grout = values.GetValueOrDefault("grout", size * 0.05f);
++        if (grout >= size)
++            throw cursor.Error("The grout must be narrower than the pattern's size");
++        return new MaterialPattern(kind, size, grout);
+     }
+ 
+     public static MaterialDefinition Load(string path) => Read(File.ReadAllText(path));
+@@ -110,6 +156,26 @@ public static class MaterialFiles
+             .Order(StringComparer.Ordinal)
+             .ToArray();
+ 
++    /// <summary>The patterns of the materials in the folder that have one, by material name.</summary>
++    /// <exception cref="InvalidOperationException">A material file is invalid; the message names the file.</exception>
++    public static IReadOnlyDictionary<string, MaterialPattern> LoadPatterns(string directory)
++    {
++        var patterns = new Dictionary<string, MaterialPattern>();
++        foreach (var path in All(directory))
++        {
++            try
++            {
++                if (MaterialFile.ReadPattern(File.ReadAllText(path)) is { } pattern)
++                    patterns[MaterialFile.NameOf(path)] = pattern;
++            }
++            catch (SdfProgramFileException exception)
++            {
++                throw new InvalidOperationException($"{path}:{exception.Line}: {exception.Problem}", exception);
++            }
++        }
++        return patterns;
++    }
++
+     /// <exception cref="SdfProgramFileException">A material file is invalid; the message names the file.</exception>
+     public static MaterialLibrary LoadLibrary(string directory)
+     {
+diff --git a/SDFPipeline/Meshing/DualContouring.cs b/SDFPipeline/Meshing/DualContouring.cs
+index 3f97273..4741e1c 100644
+--- a/SDFPipeline/Meshing/DualContouring.cs
++++ b/SDFPipeline/Meshing/DualContouring.cs
+@@ -10,6 +10,12 @@ public sealed record TriangleMesh(Vector3[] Positions, int[] Triangles)
+     public static readonly TriangleMesh Empty = new([], []);
+ 
+     public int TriangleCount => Triangles.Length / 3;
++
++    /// <summary>
++    /// For a simplified mesh, the vertex of the contoured mesh each vertex is (the one that stayed when others merged into it), so it
++    /// keeps that vertex's region; null for any other mesh.
++    /// </summary>
++    public int[]? Sources { get; init; }
+ }
+ 
+ /// <summary>A point on the surface and the outward normal there, from the SDF: the tangent plane the mesh should keep close to.</summary>
+diff --git a/SDFPipeline/Meshing/GlbWriter.cs b/SDFPipeline/Meshing/GlbWriter.cs
+index 4570353..b16be7f 100644
+--- a/SDFPipeline/Meshing/GlbWriter.cs
++++ b/SDFPipeline/Meshing/GlbWriter.cs
+@@ -1,6 +1,7 @@
+ using System.Buffers.Binary;
+ using System.Numerics;
+ using System.Text.Json;
++using SDFPipeline.Materials;
+ using SDFPipeline.ProgramFiles;
+ using SDFProject.ProgramDefinition;
+ 
+@@ -233,7 +234,13 @@ public static class GlbWriter
+                     up = "+Y",
+                     front = "+Z",
+                     cellSize = model.Grid?.CellSize,
+-                    materials = model.Materials.Select(m => new { name = m.Name, parameters = Parameters(m.Definition) }).ToArray(),
++                    // A pattern only where the material has one, so files without stay as they were
++                    materials = model.Materials.Select(m => new
++                    {
++                        name = m.Name,
++                        parameters = Parameters(m.Definition),
++                        pattern = m.Pattern is { } p ? new { kind = MaterialPattern.NameOf(p.Kind), size = p.Size, grout = p.Grout } : null,
++                    }).ToArray(),
+                     attributes = new Dictionary<string, string>
+                     {
+                         [MaterialIdsAttribute] = "the two materials that weigh most at the vertex, indices into materials",
+diff --git a/SDFPipeline/Meshing/MeshingOptions.cs b/SDFPipeline/Meshing/MeshingOptions.cs
+index 22a85b6..e0ba401 100644
+--- a/SDFPipeline/Meshing/MeshingOptions.cs
++++ b/SDFPipeline/Meshing/MeshingOptions.cs
+@@ -1,3 +1,4 @@
++using SDFPipeline.Materials;
+ using SDFProject.ProgramDefinition;
+ 
+ namespace SDFPipeline.Meshing;
+@@ -90,6 +91,9 @@ public sealed record MeshingOptions
+     /// <summary>The materials the program's Material nodes refer to; unknown names become <see cref="MaterialDefinition.Missing"/>.</summary>
+     public MaterialLibrary Materials { get; init; } = MaterialLibrary.Empty;
+ 
++    /// <summary>The patterns of the materials that have one, by material name (see <see cref="MaterialPattern"/>), written to the .glb.</summary>
++    public IReadOnlyDictionary<string, MaterialPattern> Patterns { get; init; } = new Dictionary<string, MaterialPattern>();
++
+     /// <summary>
+     /// The shape a piece was cut from (a model's <c>surface part=</c> setting), or null. Where the piece's surface is that shape's own,
+     /// within half a cell of it, thickness and occlusion are measured on that shape rather than on the piece, so the piece is shaded as
+diff --git a/SDFPipeline/Meshing/ModelMesher.cs b/SDFPipeline/Meshing/ModelMesher.cs
+index 3dadd52..d92ac8b 100644
+--- a/SDFPipeline/Meshing/ModelMesher.cs
++++ b/SDFPipeline/Meshing/ModelMesher.cs
+@@ -90,7 +90,7 @@ public static class ModelMesher
+         var calculator = new SdfCalculatorCpu();
+         var whole = calculator.Prepare(PartSplitter.Expanded(program));
+         var surface = options.SurfaceOf is { } cutFrom ? calculator.Prepare(PartSplitter.Expanded(cutFrom)) : null;
+-        var table = new MaterialTable(options.Materials);
++        var table = new MaterialTable(options.Materials, options.Patterns);
+         var meshes = new List<PartMesh>();
+         var warnings = new List<string>();
+         foreach (var source in PartSplitter.Split(program, warnings))
+@@ -142,6 +142,10 @@ public static class ModelMesher
+                 ? simplified.Positions
+                 : Evaluate(simplified.Positions, p => MaterialBorders.OntoSurface(p, shape.Distance, cellSize * 1e-3f));
+             var samples = Evaluate(onSurface, shape.Surface);
++            var probeBefore = (SurfaceSample[])samples.Clone();
++            InRegions(onSurface, samples, simplified.Sources!, regions, contoured.Mesh.Positions, shape, table, cellSize);
++            if (Environment.GetEnvironmentVariable("SDF_PROBE") is not null)
++                Console.Error.WriteLine($"PROBE {source.Name} LOD{level}: {samples.Where((s, i) => !ReferenceEquals(s, probeBefore[i]) && !s.Equals(probeBefore[i])).Count()} of {samples.Length} resampled");
+             var materialOfSource = samples.Select(sample => SurfaceAttributes.Material(sample, table)).ToArray();
+             var materials = shaded.Source.Select(v => materialOfSource[v]).ToArray();
+ 
+@@ -179,6 +183,47 @@ public static class ModelMesher
+         return levels[0] with { Lods = levels.Skip(1).ToArray(), Instances = source.Instances };
+     }
+ 
++    /// <summary>
++    /// Gives each vertex the material of its region. Simplification keeps regions apart, but a merged vertex may come to stand where
++    /// another material is, such as a cap vertex in the corner under the cap where the stem goes in: sampled there, it would take the
++    /// stem's colour, and the faces it shares with the cap would run from white to red across the whole cap. Such a vertex is sampled
++    /// instead at the nearest point of its own region on the way back to where contouring put it, which is in its region. Only the
++    /// material is sampled there: the vertex stays where it is.
++    /// </summary>
++    private static void InRegions(Vector3[] positions, SurfaceSample[] samples, int[] sources, int[] regions, Vector3[] contouredPositions,
++        SdfCalculatorCpu.Prepared shape, MaterialTable table, float cellSize)
++    {
++        int RegionAt(Vector3 p)
++        {
++            var source = Dominant(shape.Surface(p));
++            lock (table) return table.IndexOf(source);
++        }
++
++        Parallel.For(0, positions.Length, v =>
++        {
++            var region = regions[sources[v]];
++            int sampled;
++            lock (table) sampled = table.IndexOf(Dominant(samples[v]));
++            if (sampled == region)
++                return;
++            float inside = 1, outside = 0;
++            var (from, to) = (positions[v], contouredPositions[sources[v]]);
++            for (var step = 0; step < RegionBisectionSteps; step++)
++            {
++                var middle = (inside + outside) * 0.5f;
++                if (RegionAt(MaterialBorders.OntoSurface(Vector3.Lerp(from, to, middle), shape.Distance, cellSize * 1e-3f)) == region)
++                    inside = middle;
++                else
++                    outside = middle;
++            }
++            var found = MaterialBorders.OntoSurface(Vector3.Lerp(from, to, inside), shape.Distance, cellSize * 1e-3f);
++            if (RegionAt(found) == region)
++                samples[v] = shape.Surface(found);
++        });
++    }
++
++    private const int RegionBisectionSteps = 10;
++
+     private static MaterialSource Dominant(SurfaceSample sample) => sample.Materials.MaxBy(s => s.Weight).Source;
+ 
+     private static T[] Evaluate<T>(Vector3[] positions, Func<Vector3, T> evaluate)
+diff --git a/SDFPipeline/Meshing/QuadricSimplifier.cs b/SDFPipeline/Meshing/QuadricSimplifier.cs
+index 7919349..2c939df 100644
+--- a/SDFPipeline/Meshing/QuadricSimplifier.cs
++++ b/SDFPipeline/Meshing/QuadricSimplifier.cs
+@@ -559,6 +559,7 @@ public static class QuadricSimplifier
+             var newIndex = new int[positions.Length];
+             Array.Fill(newIndex, -1);
+             var kept = new List<Vector3>();
++            var keptSources = new List<int>();
+             var keptTriangles = new List<int>();
+             for (var t = 0; t < removedTriangle.Length; t++)
+             {
+@@ -570,11 +571,12 @@ public static class QuadricSimplifier
+                     {
+                         newIndex[vertex] = kept.Count;
+                         kept.Add(positions[vertex]);
++                        keptSources.Add(vertex);
+                     }
+                     keptTriangles.Add(newIndex[vertex]);
+                 }
+             }
+-            return new TriangleMesh(kept.ToArray(), keptTriangles.ToArray());
++            return new TriangleMesh(kept.ToArray(), keptTriangles.ToArray()) { Sources = keptSources.ToArray() };
+         }
+     }
+ }
+diff --git a/SDFPipeline/Meshing/SurfaceAttributes.cs b/SDFPipeline/Meshing/SurfaceAttributes.cs
+index 33b0232..382a2e0 100644
+--- a/SDFPipeline/Meshing/SurfaceAttributes.cs
++++ b/SDFPipeline/Meshing/SurfaceAttributes.cs
+@@ -1,17 +1,23 @@
+ using System.Numerics;
++using SDFPipeline.Materials;
+ using SDFProject.Calculation;
+ using SDFProject.ProgramDefinition;
+ 
+ namespace SDFPipeline.Meshing;
+ 
+ /// <summary>A material of the model's material table: a Material node's name, "color(r, g, b)" for a Color node, or "default".</summary>
+-public sealed record MeshMaterial(string Name, MaterialDefinition Definition, MaterialSource Source);
++public sealed record MeshMaterial(string Name, MaterialDefinition Definition, MaterialSource Source)
++{
++    /// <summary>The pattern the material's file gives it, or null.</summary>
++    public MaterialPattern? Pattern { get; init; }
++}
+ 
+ /// <summary>
+ /// The materials a model's meshes use, numbered in the order they are first met. Vertices refer to them by number; shaders look up
+ /// their parameters in the table. Not for use from several threads at once.
+ /// </summary>
+-public sealed class MaterialTable(MaterialLibrary library)
++/// <param name="patterns">The patterns of the materials that have one, by name.</param>
++public sealed class MaterialTable(MaterialLibrary library, IReadOnlyDictionary<string, MaterialPattern>? patterns = null)
+ {
+     private readonly Dictionary<MaterialSource, int> indices = [];
+     private readonly List<MeshMaterial> materials = [];
+@@ -25,7 +31,10 @@ public sealed class MaterialTable(MaterialLibrary library)
+             return index;
+         index = materials.Count;
+         indices[source] = index;
+-        materials.Add(new MeshMaterial(NameOf(source), source.Resolve(library), source));
++        materials.Add(new MeshMaterial(NameOf(source), source.Resolve(library), source)
++        {
++            Pattern = source.Name is { } name ? patterns?.GetValueOrDefault(name) : null,
++        });
+         return index;
+     }
+ 
+diff --git a/Unity/Assets/Mushrooms/Editor/MushroomBuilder.cs b/Unity/Assets/Mushrooms/Editor/MushroomBuilder.cs
+index 720f9ef..5c7b623 100644
+--- a/Unity/Assets/Mushrooms/Editor/MushroomBuilder.cs
++++ b/Unity/Assets/Mushrooms/Editor/MushroomBuilder.cs
+@@ -35,8 +35,9 @@ namespace SdfMushrooms.Editor
+     /// <para>
+     /// Part instances: a part the pipeline meshed once for several uses (the .glb has a node with a matrix per use) is a child of the
+     /// root per use, named after the use's node (eye.0, eye.1), placed, turned, scaled and mirrored as the use puts it, with its own LOD
+-    /// group sized to the part, so each use switches level by its own size and distance. Its levels are children of it, drawing the
+-    /// part's mesh assets, which all uses share. The prefab then reads, from the root down:
++    /// group sized to the part, so each use switches level by its own size and distance, though never earlier than the whole model
++    /// would (see <see cref="AddLodGroup"/>). Its levels are children of it, drawing the part's mesh assets, which all uses share.
++    /// The prefab then reads, from the root down:
+     /// <code>
+     /// castle0                 LOD group over the model's own meshes (if it has any), the model's colliders
+     ///   body                  LOD0 of the body, with an Outline child; and each part meshed in the model's space, as before
+@@ -84,7 +85,7 @@ namespace SdfMushrooms.Editor
+         /// look only, the realistic one gone. Version 9: URP instead of HDRP. Version 10: colliders from the model's collider setting.
+         /// Version 11: part instances, a child with its own LOD group per use, and the shadows, outline, cull and collider settings per part.
+         /// </summary>
+-        public const int BuilderVersion = 11;
++        public const int BuilderVersion = 12;
+ 
+         private static string VersionStamp
+         {
+@@ -258,6 +259,8 @@ namespace SdfMushrooms.Editor
+                 var modelSize = Largest(BoundsInRoot(root));
+                 if (levels > 1 && placed.Count > 0)
+                     AddLodGroup(root, placed, lods, CullHeight(model.Cull, modelSize, LodCullHeight));
++                // Where the whole model, every mesh of it in one LOD group, would change level: a use changes no earlier
++                var modelHeights = Heights(model.Meshes, modelSize, model.LodCount, LodCullHeight);
+                 foreach (var (use, part, partLods) in uses)
+                 {
+                     if (partLods.Length < 2)
+@@ -265,7 +268,8 @@ namespace SdfMushrooms.Editor
+                     // Culled where the whole model would be, unless the part says how far it shows
+                     var size = Largest(BoundsInRoot(use));
+                     var cull = part.Settings != null ? part.Settings.Value<float?>("cull") : model.Cull;
+-                    AddLodGroup(use, new[] { part }, partLods, CullHeight(cull, size, LodCullHeight * size / Mathf.Max(modelSize, 1e-4f)));
++                    var share = size / Mathf.Max(modelSize, 1e-4f);
++                    AddLodGroup(use, new[] { part }, partLods, CullHeight(cull, size, LodCullHeight * share), modelHeights.Select(h => h * share).ToArray());
+                 }
+                 AddCollider(root, model, MeshOf, uses.Select(u => (u.Use, u.Part)));
+ 
+@@ -425,8 +429,14 @@ namespace SdfMushrooms.Editor
+         /// The levels cross-fade (URP dithers both for half a second, see SdfToon.shader): with only a few levels each change of
+         /// triangles would otherwise pop.
+         /// </para>
++        /// <para>
++        /// A use of a part meshed once changes level no earlier than the whole model would (<paramref name="atMost"/>, the model's heights
++        /// in the use's own size). Its error limits are in its own grid's cells, which are fine for a small part, so by them alone an
++        /// eye would drop to LOD2 from 4 m, where its pupil's rings, which the error does not measure, have simplified into a cross.
++        /// </para>
+         /// </summary>
+-        private static void AddLodGroup(GameObject owner, IReadOnlyList<SdfGlb.MeshData> parts, IReadOnlyList<List<Renderer>> renderers, float cullHeight)
++        private static void AddLodGroup(GameObject owner, IReadOnlyList<SdfGlb.MeshData> parts, IReadOnlyList<List<Renderer>> renderers, float cullHeight,
++            IReadOnlyList<float> atMost = null)
+         {
+             // What RecalculateBounds would give, taken from the meshes: the parts sit at the owner's origin, and the renderers of an object
+             // that was only just made may not have their bounds yet
+@@ -437,21 +447,33 @@ namespace SdfMushrooms.Editor
+             group.localReferencePoint = bounds.center;
+             group.size = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
+ 
+-            var levels = renderers.Count;
++            var heights = Heights(parts, group.size, renderers.Count, cullHeight);
++            if (atMost != null)
++            {
++                for (var level = 0; level < heights.Length - 1 && level < atMost.Count - 1; level++)
++                    heights[level] = Mathf.Min(heights[level], atMost[level]);
++                for (var level = 1; level < heights.Length; level++)
++                    heights[level] = Mathf.Min(heights[level], heights[level - 1] / 1.5f);
++            }
++            group.SetLODs(renderers.Select((r, level) => new LOD(heights[level], r.ToArray())).ToArray());
++        }
++
++        /// <summary>The heights of <see cref="AddLodGroup"/> for <paramref name="levels"/> levels of parts of the given size.</summary>
++        private static float[] Heights(IReadOnlyList<SdfGlb.MeshData> parts, float size, int levels, float cullHeight)
++        {
+             var heights = new float[levels];
+             heights[levels - 1] = cullHeight;
+             for (var level = levels - 2; level >= 0; level--)
+             {
+                 var error = parts.Max(m => m.AtLevel(level + 1).MaxError);
+                 // Files that carry no error limit: halve the height with each level
+-                var height = error > 0 ? group.size * LodPixelError / (error * 1080) : 0.5f / (1 << level);
++                var height = error > 0 ? size * LodPixelError / (error * 1080) : 0.5f / (1 << level);
+                 heights[level] = Mathf.Max(height, heights[level + 1] * 1.5f);
+             }
+             heights[0] = Mathf.Min(heights[0], 0.5f);
+             for (var level = 1; level < levels; level++)
+                 heights[level] = Mathf.Min(heights[level], heights[level - 1] / 1.5f);
+-
+-            group.SetLODs(renderers.Select((r, level) => new LOD(heights[level], r.ToArray())).ToArray());
++            return heights;
+         }
+ 
+         /// <summary>
+@@ -521,8 +543,9 @@ namespace SdfMushrooms.Editor
+ 
+         /// <summary>
+         /// The mesh in Unity's coordinates (x mirrored, so triangles are turned round), with the vertex data packed as SdfSurface.hlsl
+-        /// expects it, plus the edge colour per vertex (UV6, see <see cref="EdgeColor"/>). The toon look takes nothing from the material,
+-        /// so the material regions are drawn as one submesh.
++        /// expects it, plus the edge colour per vertex (UV6, see <see cref="EdgeColor"/>) and, only on a mesh with a patterned material,
++        /// the pattern (UV7, see <see cref="Patterns"/>). The toon look takes nothing from the material, so the material regions are drawn
++        /// as one submesh.
+         /// </summary>
+         private static void Fill(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName)
+         {
+@@ -568,10 +591,14 @@ namespace SdfMushrooms.Editor
+                     : EdgeColor(materials, (int)materialIds[2 * v], (int)materialIds[2 * v + 1], materialBlend[v], thickness[v]);
+             }
+ 
++            var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
++            var uv7 = Patterns(materials, materialIds, materialBlend, indices, n);
++
+             mesh.Clear();
+             mesh.name = $"{modelName}_{data.Name}";
+             mesh.indexFormat = n > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+-            mesh.SetVertexBufferParams(n,
++            var layout = new List<VertexAttributeDescriptor>
++            {
+                 new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+                 new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
+                 new VertexAttributeDescriptor(VertexAttribute.Color, VertexAttributeFormat.Float32, 4),
+@@ -581,7 +608,11 @@ namespace SdfMushrooms.Editor
+                 new VertexAttributeDescriptor(VertexAttribute.TexCoord3, VertexAttributeFormat.Float32, 4),
+                 new VertexAttributeDescriptor(VertexAttribute.TexCoord4, VertexAttributeFormat.Float32, 4),
+                 new VertexAttributeDescriptor(VertexAttribute.TexCoord5, VertexAttributeFormat.Float32, 2),
+-                new VertexAttributeDescriptor(VertexAttribute.TexCoord6, VertexAttributeFormat.Float32, 4));
++                new VertexAttributeDescriptor(VertexAttribute.TexCoord6, VertexAttributeFormat.Float32, 4),
++            };
++            if (uv7 != null)
++                layout.Add(new VertexAttributeDescriptor(VertexAttribute.TexCoord7, VertexAttributeFormat.Float32, 4));
++            mesh.SetVertexBufferParams(n, layout.ToArray());
+             mesh.SetVertices(positions);
+             mesh.SetNormals(normals);
+             mesh.SetColors(colors);
+@@ -592,8 +623,9 @@ namespace SdfMushrooms.Editor
+             mesh.SetUVs(4, uv4);
+             mesh.SetUVs(5, uv5.Select(u => new Vector2(u.x, u.y)).ToArray());
+             mesh.SetUVs(6, uv6);
++            if (uv7 != null)
++                mesh.SetUVs(7, uv7);
+             // The regions' triangles, turned round for the mirrored x
+-            var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
+             var turned = new int[indices.Length];
+             for (var t = 0; t < indices.Length; t += 3)
+             {
+@@ -607,6 +639,48 @@ namespace SdfMushrooms.Editor
+             mesh.UploadMeshData(false);
+         }
+ 
++        /// <summary>
++        /// The pattern at each vertex (UV7, as SdfPattern.hlsl reads it), or null if no material of the mesh has one: that of the material
++        /// that weighs most there. Where a patterned material borders another, its border vertices keep the pattern at weight 0, so it
++        /// fades out across the faces between; an unpatterned vertex beside it takes its neighbour's pattern at weight 0, so the faces
++        /// between do not blend two patterns' sizes.
++        /// </summary>
++        private static Vector4[] Patterns(IReadOnlyList<SdfGlb.Material> materials, float[] materialIds, float[] materialBlend, int[] indices, int n)
++        {
++            if (materialIds == null || materialBlend == null || materials.All(m => m.Pattern.x <= 0))
++                return null;
++            var patterns = new Vector4[n];
++            for (var v = 0; v < n; v++)
++            {
++                var second = materialBlend[v] > 0.5f;
++                var material = (int)materialIds[2 * v + (second ? 1 : 0)];
++                patterns[v] = material >= 0 && material < materials.Count ? materials[material].Pattern : Vector4.zero;
++            }
++            if (patterns.All(p => p.x <= 0))
++                return null;
++
++            var border = new bool[n];
++            var borrowed = new Vector4[n];
++            for (var t = 0; t < indices.Length; t += 3)
++            for (var c = 0; c < 3; c++)
++            {
++                var (a, b) = (indices[t + c], indices[t + (c + 1) % 3]);
++                if (patterns[a] == patterns[b])
++                    continue;
++                border[a] = border[b] = true;
++                if (patterns[a].x <= 0) borrowed[a] = patterns[b];
++                if (patterns[b].x <= 0) borrowed[b] = patterns[a];
++            }
++            for (var v = 0; v < n; v++)
++            {
++                if (!border[v])
++                    continue;
++                var own = patterns[v].x > 0 ? patterns[v] : borrowed[v];
++                patterns[v] = new Vector4(own.x, own.y, own.z, 0);
++            }
++            return patterns;
++        }
++
+         /// <summary>
+         /// The vertex's edge colour for the toon look: rgb = the colour thin material turns to, a = how far it turns. Each of the two
+         /// materials at the vertex turns its share towards its own edgeColor as the material is thinner than its edgeThickness, as the
+diff --git a/Unity/Assets/Mushrooms/Editor/MushroomStyle.cs b/Unity/Assets/Mushrooms/Editor/MushroomStyle.cs
+index f37dea5..0e27029 100644
+--- a/Unity/Assets/Mushrooms/Editor/MushroomStyle.cs
++++ b/Unity/Assets/Mushrooms/Editor/MushroomStyle.cs
+@@ -70,6 +70,8 @@ namespace SdfMushrooms.Editor
+             material.SetVector("_ToonSpecular", new Vector4(highlight, highlightThreshold, highlightMaxRoughness, 0));
+             material.SetVector("_ToonRim", new Vector4(rim, rimWidth, 0, 0));
+             material.SetVector("_ToonVariation", new Vector4(colorVariation, 0, 0, 0));
++            // The patterns' lines are inked like the outline
++            material.SetVector("_ToonInk", Linear(outlineTone));
+         }
+ 
+         /// <summary>Puts the outline settings on the outline material.</summary>
+diff --git a/Unity/Assets/Mushrooms/Editor/SdfGlb.cs b/Unity/Assets/Mushrooms/Editor/SdfGlb.cs
+index da53df2..a9e9e31 100644
+--- a/Unity/Assets/Mushrooms/Editor/SdfGlb.cs
++++ b/Unity/Assets/Mushrooms/Editor/SdfGlb.cs
+@@ -81,11 +81,26 @@ namespace SdfMushrooms.Editor
+             }
+         }
+ 
++        /// <summary>The kinds of pattern, numbered as SdfPattern.hlsl and the pipeline's MaterialPatternKind number them.</summary>
++        private static readonly string[] PatternKinds = { "", "stones", "fibres", "gills" };
++
++        private static Vector4 PatternOf(JObject pattern)
++        {
++            var kind = Array.IndexOf(PatternKinds, pattern.Value<string>("kind"));
++            return kind > 0 ? new Vector4(kind, pattern.Value<float>("size"), pattern.Value<float>("grout"), 1) : Vector4.zero;
++        }
++
+         public sealed class Material
+         {
+             public string Name;
+             public JObject Parameters;
+ 
++            /// <summary>
++            /// The material's pattern as SdfPattern.hlsl reads it (kind 1 stones, 2 fibres, 3 gills; size and grout in metres, weight
++            /// 1), or zero if it has none.
++            /// </summary>
++            public Vector4 Pattern;
++
+             public float Number(string name, float fallback = 0) =>
+                 Parameters.TryGetValue(name, out var token) && token.Type is JTokenType.Float or JTokenType.Integer ? token.Value<float>() : fallback;
+ 
+@@ -257,7 +272,12 @@ namespace SdfMushrooms.Editor
+                 foreach (var mesh in meshes)
+                     mesh.Settings = parts[mesh.Name] as JObject;
+             foreach (var material in (JArray)sdf["materials"])
+-                result.Materials.Add(new Material { Name = material.Value<string>("name"), Parameters = (JObject)material["parameters"] });
++                result.Materials.Add(new Material
++                {
++                    Name = material.Value<string>("name"),
++                    Parameters = (JObject)material["parameters"],
++                    Pattern = material["pattern"] is JObject pattern ? PatternOf(pattern) : Vector4.zero,
++                });
+             return result;
+         }
+ 
+diff --git a/Unity/Assets/Mushrooms/Shaders/SdfToon.shader b/Unity/Assets/Mushrooms/Shaders/SdfToon.shader
+index ef8c3d8..abea040 100644
+--- a/Unity/Assets/Mushrooms/Shaders/SdfToon.shader
++++ b/Unity/Assets/Mushrooms/Shaders/SdfToon.shader
+@@ -8,7 +8,8 @@
+ // position), so the levels of a model's LOD group dissolve into each other in colour, depth and shadow alike, and the outline drops
+ // the same pixels as its surface. Every pass also supports GPU instancing, for meshes drawn many times with
+ // Graphics.RenderMeshInstanced; the instanced renderer's variant (SDF_SCATTER, see SdfScatter.hlsl) adds wind, a tint at the base and
+-// a dithered fade between its rings of distance.
++// a dithered fade between its rings of distance. Materials with a pattern (stone courses, stem fibres, gill lines) have it drawn per
++// pixel in the part's own space, see SdfPattern.hlsl.
+ Shader "SdfMushrooms/Toon"
+ {
+     Properties
+@@ -20,6 +21,7 @@ Shader "SdfMushrooms/Toon"
+         _ToonSpecular("Highlight (strength, threshold, max roughness)", Vector) = (0.6, 0.6, 0.75, 0)
+         _ToonRim("Rim (strength, width)", Vector) = (0.25, 0.3, 0, 0)
+         _ToonVariation("Colour variation (amount)", Vector) = (0.5, 0, 0, 0)
++        _ToonInk("Ink of the patterns' lines (the colour times this, linear)", Vector) = (0.18, 0.13, 0.14, 0)
+ 
+         // Only declared because SdfSurface.hlsl, which this shader includes, reads them: the toon look takes everything per vertex,
+         // so one material draws every mushroom
+@@ -50,6 +52,7 @@ Shader "SdfMushrooms/Toon"
+         float4 _ToonSpecular;
+         float4 _ToonRim;
+         float4 _ToonVariation;
++        float4 _ToonInk;
+         float4 _EdgeColor;
+         float4 _DetailAxis;
+         float4 _Subsurface;
+@@ -90,6 +93,7 @@ Shader "SdfMushrooms/Toon"
+             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+             #include "SdfSurface.hlsl"
+             #include "SdfToon.hlsl"
++            #include "SdfPattern.hlsl"
+             #pragma vertex Vert
+             #pragma fragment Frag
+ 
+@@ -105,6 +109,7 @@ Shader "SdfMushrooms/Toon"
+                 float4 uv4 : TEXCOORD4;
+                 float2 uv5 : TEXCOORD5;
+                 float4 uv6 : TEXCOORD6;
++                float4 uv7 : TEXCOORD7;
+                 UNITY_VERTEX_INPUT_INSTANCE_ID
+             };
+ 
+@@ -121,6 +126,7 @@ Shader "SdfMushrooms/Toon"
+                 float4 uv4 : TEXCOORD7;
+                 float2 uv5 : TEXCOORD8;
+                 float4 uv6 : TEXCOORD9;
++                float4 uv7 : TEXCOORD10;
+                 UNITY_VERTEX_INPUT_INSTANCE_ID
+             };
+ 
+@@ -142,6 +148,7 @@ Shader "SdfMushrooms/Toon"
+                 output.uv4 = input.uv4;
+                 output.uv5 = input.uv5;
+                 output.uv6 = input.uv6;
++                output.uv7 = input.uv7;
+                 return output;
+             }
+ 
+@@ -170,6 +177,9 @@ Shader "SdfMushrooms/Toon"
+                 }
+ 
+                 float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5, 0, 0), input.uv6);
++                // The pattern, in the part's own space (each instance's, under GPU instancing)
++                SdfPattern(input.uv7, TransformWorldToObject(input.positionWS), TransformWorldToObjectNormal(n), input.positionWS,
++                    distance(input.positionWS, GetCameraPositionWS()), albedo, n);
+                 float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, input.uv0.x, input.uv0.y, input.color.a, saturate(input.uv0.w),
+                     saturate(input.uv6.a));
+                 // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows; far away it fades
+diff --git a/content/models/buildings/castle0.sdf b/content/models/buildings/castle0.sdf
+index e6d0b16..a1494db 100644
+--- a/content/models/buildings/castle0.sdf
++++ b/content/models/buildings/castle0.sdf
+@@ -2,9 +2,15 @@
+ # curtain wall runs round an oval about 31 x 21 m, the gate at +z: seventeen wall bays and the gate bay, each turned to follow its
+ # chord of the oval, with a joint stem or a tower wherever two bays meet. Two large towers stand at the oval's ends, two small ones
+ # flank the keep, and two slim gate turrets lean apart either side of the gate. Towers vary by their lean and turn, and by a scale
+-# that moves them down or up by as much as their ring moved, so every ring meets the wall-walk at 5 m. The keep stands against
+-# the rear wall; its ring is the balcony the rear walk runs onto, and two stairs of shelf fungi spiral up its stem to it. Merlons
+-# on every bay, mycelium round the feet and young fly agarics outside the wall are detail pieces.
++# that moves them down or up by as much as their ring moved, so every ring stays at its height. The keep stands against the rear
++# wall; its ring is the balcony the rear walk runs onto, and two stairs of shelf fungi spiral up its stem to it. Merlons on every
++# bay, mycelium round the feet and young fly agarics outside the wall are detail pieces.
++# Floor heights (ticket 09): floors of parts that overlap never lie in one plane, or they would z-fight. The bays' walks are at
++# 5 m, the joints' pads at 5.15 m and the towers', gate turrets' and keep's rings at 5.3 m: joints meet bays and towers, and the
++# keep's ring meets bays and joints; it is small enough to clear the small towers' rings, which clear the large towers'.
++# Neighbouring bays overlap only under a joint's pad or a tower's ring. Every step is 15 or 30 cm. The towers
++# lean only slightly (about 1 degree for the gate turrets), as a leaning ring tilts: 5 degrees took the turrets' rings 21 cm up
++# and down where the walk meets them, through the floors next to them. Merlons sit 5 cm into the parapet.
+ # Only Part uses under translates, turns, uniform scales and a symmetry, so each repeated part is meshed once and drawn per use.
+ format 1
+ collider mesh
+@@ -15,11 +21,11 @@ Union
+         Rotate rotation=(0, 0, 0)
+             Union
+                 Part part=castle_wall_gate
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 1, with its merlons
+@@ -27,11 +33,11 @@ Union
+         Rotate rotation=(0, 0.202, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 2, with its merlons
+@@ -39,11 +45,11 @@ Union
+         Rotate rotation=(0, 0.437, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 3, with its merlons
+@@ -51,11 +57,11 @@ Union
+         Rotate rotation=(0, 0.761, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 4, with its merlons
+@@ -63,11 +69,11 @@ Union
+         Rotate rotation=(0, 1.257, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 5, with its merlons
+@@ -75,11 +81,11 @@ Union
+         Rotate rotation=(0, 1.884, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 6, with its merlons
+@@ -87,11 +93,11 @@ Union
+         Rotate rotation=(0, 2.381, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 7, with its merlons
+@@ -99,11 +105,11 @@ Union
+         Rotate rotation=(0, 2.704, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 8, with its merlons
+@@ -111,11 +117,11 @@ Union
+         Rotate rotation=(0, 2.94, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 9, with its merlons
+@@ -123,11 +129,11 @@ Union
+         Rotate rotation=(0, 3.141, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 10, with its merlons
+@@ -135,11 +141,11 @@ Union
+         Rotate rotation=(0, -2.94, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 11, with its merlons
+@@ -147,11 +153,11 @@ Union
+         Rotate rotation=(0, -2.704, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 12, with its merlons
+@@ -159,11 +165,11 @@ Union
+         Rotate rotation=(0, -2.381, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 13, with its merlons
+@@ -171,11 +177,11 @@ Union
+         Rotate rotation=(0, -1.885, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 14, with its merlons
+@@ -183,11 +189,11 @@ Union
+         Rotate rotation=(0, -1.258, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 15, with its merlons
+@@ -195,11 +201,11 @@ Union
+         Rotate rotation=(0, -0.761, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 16, with its merlons
+@@ -207,11 +213,11 @@ Union
+         Rotate rotation=(0, -0.438, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Bay 17, with its merlons
+@@ -219,17 +225,17 @@ Union
+         Rotate rotation=(0, -0.202, 0)
+             Union
+                 Part part=castle_wall_bay
+-                Translate translation=(-1.25, 5.55, 0.85)
++                Translate translation=(-1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(0, 5.55, 0.85)
++                Translate translation=(0, 5.45, 0.85)
+                     Part part=castle_merlon
+-                Translate translation=(1.25, 5.55, 0.85)
++                Translate translation=(1.25, 5.45, 0.85)
+                     Part part=castle_merlon
+ 
+     # Tower at joint 0
+     Translate translation=(3.24, 0, 8.169)
+         Rotate rotation=(0, 0.098, 0)
+-            Rotate rotation=(0.02, 0, -0.09)
++            Rotate rotation=(0.01, 0, -0.018)
+                 Part part=castle_gate_turret
+ 
+     # Mycelium round its foot
+@@ -256,7 +262,7 @@ Union
+     # Tower at joint 4
+     Translate translation=(12.4, 0, 0)
+         Rotate rotation=(0, 1.571, 0)
+-            Rotate rotation=(-0.02, 0, -0.035)
++            Rotate rotation=(-0.01, 0, -0.007)
+                 Part part=castle_tower_large
+ 
+     # Mycelium round its foot
+@@ -273,7 +279,7 @@ Union
+     # Tower at joint 6
+     Translate translation=(8.613, 0, -6.052)
+         Rotate rotation=(0, 2.563, 0)
+-            Rotate rotation=(-0.03, 0, -0.02)
++            Rotate rotation=(-0.015, 0, -0.004)
+                 Part part=castle_tower_small
+ 
+     # Mycelium round its foot
+@@ -303,9 +309,9 @@ Union
+             Part part=castle_wall_joint
+ 
+     # Tower at joint 11
+-    Translate translation=(-8.61, -0.3, -6.054)
++    Translate translation=(-8.61, -0.318, -6.054)
+         Rotate rotation=(0, -2.564, 0)
+-            Rotate rotation=(-0.025, 0, 0.025)
++            Rotate rotation=(-0.013, 0, 0.005)
+                 Scale scale=(1.06, 1.06, 1.06)
+                     Part part=castle_tower_small
+ 
+@@ -321,9 +327,9 @@ Union
+             Part part=castle_wall_joint
+ 
+     # Tower at joint 13
+-    Translate translation=(-12.4, 0.4, -0.003)
++    Translate translation=(-12.4, 0.424, -0.003)
+         Rotate rotation=(0, -1.571, 0)
+-            Rotate rotation=(0.025, 0, 0.03)
++            Rotate rotation=(0.013, 0, 0.006)
+                 Scale scale=(0.92, 0.92, 0.92)
+                     Part part=castle_tower_large
+ 
+@@ -349,9 +355,9 @@ Union
+             Part part=castle_wall_joint
+ 
+     # Tower at joint 17
+-    Translate translation=(-3.244, -0.2, 8.169)
++    Translate translation=(-3.244, -0.212, 8.169)
+         Rotate rotation=(0, -0.099, 0)
+-            Rotate rotation=(0.02, 0, 0.09)
++            Rotate rotation=(0.01, 0, 0.018)
+                 Scale scale=(1.04, 1.04, 1.04)
+                     Part part=castle_gate_turret
+ 
+diff --git a/content/parts/castle/castle_gate_turret.sdf b/content/parts/castle/castle_gate_turret.sdf
+index 60816b4..39c5f35 100644
+--- a/content/parts/castle/castle_gate_turret.sdf
++++ b/content/parts/castle/castle_gate_turret.sdf
+@@ -1,8 +1,8 @@
+ # Castle gate turret: a slim young fly agaric 7.6 m tall with a 2.1 m cap; two of them, leaning apart, frame the gate.
+ # Modelled at an eighth of its size and scaled up, so the cap's white flecks and the stem's fibres come out at the size they have on
+-# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at the
+-# wall-walk's 5 m, a balcony 0.96 m wide round the stem that the walk runs onto; the layout may scale a tower up
+-# only if it sinks it by as much as the ring rose.
++# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at
++# 5.3 m, 30 cm above the wall-walk (the floor heights are in castle0.sdf), a balcony round the stem that the walk runs onto; the
++# layout may scale a tower up only if it sinks it by as much as the ring rose.
+ format 1
+ collider mesh
+ Detail detail=0.4
+@@ -12,17 +12,17 @@ Detail detail=0.4
+             Box size=(12, 12, 12)
+         Scale scale=(8, 8, 8)
+             Union
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     SmoothUnion smoothness=0.06
+                         ArbitraryRoundCone a=(0, 0.1, 0) b=(0, 0.93, 0) radiusA=0.17 radiusB=0.12
+                         Translate translation=(0, 0.05, 0)
+                             Ellipsoid radii=(0.2, 0.12, 0.2)
+                 # The ring (annulus): a flat balcony with the skirt of the ring hanging under its edge
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     Union
+-                        Translate translation=(0, 0.617, 0)
++                        Translate translation=(0, 0.6545, 0)
+                             CappedCylinder radius=0.29 height=0.008
+-                        Translate translation=(0, 0.595, 0)
++                        Translate translation=(0, 0.6325, 0)
+                             Round radius=0.004
+                                 CappedCone height=0.016 bottomRadius=0.28 topRadius=0.29
+                 # Glowing round windows on the side facing out
+diff --git a/content/parts/castle/castle_keep.sdf b/content/parts/castle/castle_keep.sdf
+index b715d8f..92986a8 100644
+--- a/content/parts/castle/castle_keep.sdf
++++ b/content/parts/castle/castle_keep.sdf
+@@ -1,5 +1,5 @@
+-# Castle keep: the biggest fly agaric, 19 m, standing in the courtyard against the rear wall. Its flat ring at the wall-walk's 5 m
+-# is a balcony 1.9 m wide that the rear walk runs onto and the two castle_stairs climb to; a second, hanging ring higher up; glowing
++# Castle keep: the biggest fly agaric, 19 m, standing in the courtyard against the rear wall. Its flat ring at 5.3 m, 30 cm above
++# the wall-walk, is a balcony 1.7 m wide that the rear walk steps up onto and the two castle_stairs climb to; a second, hanging ring higher up; glowing
+ # windows and a door on the courtyard side (+z). Modelled at a tenth of its size and scaled up, like the towers.
+ format 1
+ collider mesh
+@@ -10,7 +10,7 @@ Detail detail=0.45
+             Box size=(12, 12, 12)
+         Scale scale=(10, 10, 10)
+             Union
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     # The stem swells into a low foot, kept inside the stairs' first steps so they stand clear of it
+                     SmoothUnion smoothness=0.05
+                         ArbitraryRoundCone a=(0, 0.1, 0) b=(0, 1.52, 0) radiusA=0.34 radiusB=0.25
+@@ -18,21 +18,21 @@ Detail detail=0.45
+                             Ellipsoid radii=(0.37, 0.07, 0.37)
+                 # The ring, with an opening on either side where the stairs come up through it (from 0.98 to 1.98 radians round from the
+                 # front, the last ten steps), so they have headroom under it
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     Subtraction
+                         Union
+-                            Translate translation=(0, 0.492, 0)
+-                                CappedCylinder radius=0.5 height=0.008
+-                            Translate translation=(0, 0.47, 0)
++                            Translate translation=(0, 0.522, 0)
++                                CappedCylinder radius=0.485 height=0.008
++                            Translate translation=(0, 0.5, 0)
+                                 Round radius=0.004
+-                                    CappedCone height=0.016 bottomRadius=0.49 topRadius=0.5
++                                    CappedCone height=0.016 bottomRadius=0.475 topRadius=0.485
+                         SymmetryX
+                             Intersection
+                                 Plane normal=(-0.557, 0, 0.83) height=0
+                                 Plane normal=(-0.398, 0, -0.917) height=0
+-                                Translate translation=(0, 0.5, 0)
++                                Translate translation=(0, 0.52, 0)
+                                     CappedCylinder radius=0.53 height=0.06
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     Union
+                         Translate translation=(0, 1.06, 0)
+                             Round radius=0.008
+diff --git a/content/parts/castle/castle_mycelium.sdf b/content/parts/castle/castle_mycelium.sdf
+index 5301426..ba32be0 100644
+--- a/content/parts/castle/castle_mycelium.sdf
++++ b/content/parts/castle/castle_mycelium.sdf
+@@ -1,6 +1,6 @@
+ # Castle mycelium: pale threads running out over the ground from a foot about 2.3 m across, six of them, each bending as it goes,
+-# tapering and branching once, half sunk in the ground (cut off at y = 0). Placed round the towers' feet, turned for variety, and
+-# scaled up round the keep's.
++# tapering and branching once, half sunk in the ground (cut off 3 cm below y = 0, so their flat underside never lies in the
++# ground's plane). Placed round the towers' feet, turned for variety, and scaled up round the keep's.
+ format 1
+ collider none
+ shadows off
+@@ -8,7 +8,7 @@ cull 40
+ Detail detail=0.2
+     Material material=amanita_gills
+         Intersection
+-            Translate translation=(0, 0.5, 0)
++            Translate translation=(0, 0.47, 0)
+                 Box size=(8, 0.5, 8)
+             Union
+                 ArbitraryRoundCone a=(0.847, 0, 1.921) b=(1.174, 0, 2.863) radiusA=0.17 radiusB=0.145
+diff --git a/content/parts/castle/castle_stair.sdf b/content/parts/castle/castle_stair.sdf
+index cccac26..309d24a 100644
+--- a/content/parts/castle/castle_stair.sdf
++++ b/content/parts/castle/castle_stair.sdf
+@@ -1,68 +1,75 @@
+-# Castle stair: shelf fungi spiralling up round a stem that stands at the origin (the keep's), twenty steps of 25 cm each from the
+-# front (+z) round towards +x, up through the opening in the keep's ring to its top at 5 m. The shelves are 1.9 m deep, 33 cm apart on their middle line (37 degrees),
+-# and reach 1.1 m or more out from the keep's stem. The layout mirrors it for the second stair on the other side.
++# Castle stair: shelf fungi spiralling up round a stem that stands at the origin (the keep's), twenty-two steps of 24 cm each from
++# the front (+z) round towards +x, up through the opening in the keep's ring to its top at 5.3 m. The shelves are 1.9 m deep, 30 cm
++# apart on their middle line (38 degrees), and reach 1.1 m or more out from the keep's stem. The layout mirrors it for the second
++# stair on the other side.
+ format 1
+ collider mesh lod=1
+ Detail detail=0.35
+-    Material material=amanita_gills
++    Material material=castle_shelf
+         Union
+-            Translate translation=(1.753, 0.13, 3.926)
++            Translate translation=(1.753, 0.121, 3.926)
+                 Rotate rotation=(0, 0.42, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(2.054, 0.38, 3.778)
+-                Rotate rotation=(0, 0.498, 0)
++            Translate translation=(2.026, 0.362, 3.793)
++                Rotate rotation=(0, 0.491, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(2.342, 0.63, 3.606)
+-                Rotate rotation=(0, 0.576, 0)
++            Translate translation=(2.288, 0.603, 3.641)
++                Rotate rotation=(0, 0.561, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(2.616, 0.88, 3.413)
+-                Rotate rotation=(0, 0.654, 0)
++            Translate translation=(2.539, 0.844, 3.47)
++                Rotate rotation=(0, 0.632, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(2.874, 1.13, 3.199)
+-                Rotate rotation=(0, 0.732, 0)
++            Translate translation=(2.778, 1.085, 3.282)
++                Rotate rotation=(0, 0.702, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(3.114, 1.38, 2.965)
+-                Rotate rotation=(0, 0.81, 0)
++            Translate translation=(3.002, 1.325, 3.078)
++                Rotate rotation=(0, 0.773, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(3.336, 1.63, 2.713)
+-                Rotate rotation=(0, 0.888, 0)
++            Translate translation=(3.212, 1.566, 2.859)
++                Rotate rotation=(0, 0.843, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(3.537, 1.88, 2.445)
+-                Rotate rotation=(0, 0.966, 0)
++            Translate translation=(3.405, 1.807, 2.626)
++                Rotate rotation=(0, 0.914, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(3.717, 2.13, 2.162)
+-                Rotate rotation=(0, 1.044, 0)
++            Translate translation=(3.582, 2.048, 2.379)
++                Rotate rotation=(0, 0.985, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(3.874, 2.38, 1.866)
+-                Rotate rotation=(0, 1.122, 0)
++            Translate translation=(3.741, 2.289, 2.12)
++                Rotate rotation=(0, 1.055, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.008, 2.63, 1.558)
+-                Rotate rotation=(0, 1.2, 0)
++            Translate translation=(3.881, 2.53, 1.851)
++                Rotate rotation=(0, 1.126, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.117, 2.88, 1.241)
+-                Rotate rotation=(0, 1.278, 0)
++            Translate translation=(4.002, 2.771, 1.573)
++                Rotate rotation=(0, 1.196, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.201, 3.13, 0.917)
+-                Rotate rotation=(0, 1.356, 0)
++            Translate translation=(4.103, 3.012, 1.287)
++                Rotate rotation=(0, 1.267, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.26, 3.38, 0.586)
+-                Rotate rotation=(0, 1.434, 0)
++            Translate translation=(4.183, 3.253, 0.994)
++                Rotate rotation=(0, 1.337, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.293, 3.63, 0.253)
+-                Rotate rotation=(0, 1.512, 0)
++            Translate translation=(4.243, 3.494, 0.697)
++                Rotate rotation=(0, 1.408, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.299, 3.88, -0.083)
+-                Rotate rotation=(0, 1.59, 0)
++            Translate translation=(4.282, 3.735, 0.396)
++                Rotate rotation=(0, 1.479, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.28, 4.13, -0.417)
+-                Rotate rotation=(0, 1.668, 0)
++            Translate translation=(4.299, 3.975, 0.093)
++                Rotate rotation=(0, 1.549, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.234, 4.38, -0.75)
+-                Rotate rotation=(0, 1.746, 0)
++            Translate translation=(4.295, 4.216, -0.21)
++                Rotate rotation=(0, 1.62, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.163, 4.63, -1.077)
+-                Rotate rotation=(0, 1.824, 0)
++            Translate translation=(4.269, 4.457, -0.513)
++                Rotate rotation=(0, 1.69, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+-            Translate translation=(4.066, 4.88, -1.398)
++            Translate translation=(4.223, 4.698, -0.812)
++                Rotate rotation=(0, 1.761, 0)
++                    Ellipsoid radii=(0.34, 0.12, 0.95)
++            Translate translation=(4.155, 4.939, -1.108)
++                Rotate rotation=(0, 1.831, 0)
++                    Ellipsoid radii=(0.34, 0.12, 0.95)
++            Translate translation=(4.066, 5.18, -1.398)
+                 Rotate rotation=(0, 1.902, 0)
+                     Ellipsoid radii=(0.34, 0.12, 0.95)
+diff --git a/content/parts/castle/castle_tower_large.sdf b/content/parts/castle/castle_tower_large.sdf
+index 14d1239..b860901 100644
+--- a/content/parts/castle/castle_tower_large.sdf
++++ b/content/parts/castle/castle_tower_large.sdf
+@@ -1,8 +1,8 @@
+ # Castle tower, large: a fly agaric 12.5 m tall with a 4.4 m cap, for the ends of the castle's oval.
+ # Modelled at an eighth of its size and scaled up, so the cap's white flecks and the stem's fibres come out at the size they have on
+-# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at the
+-# wall-walk's 5 m, a balcony 1.36 m wide round the stem that the walk runs onto; the layout may scale a tower up
+-# only if it sinks it by as much as the ring rose.
++# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at
++# 5.3 m, 30 cm above the wall-walk (the floor heights are in castle0.sdf), a balcony round the stem that the walk runs onto; the
++# layout may scale a tower up only if it sinks it by as much as the ring rose.
+ format 1
+ collider mesh
+ Detail detail=0.4
+@@ -12,19 +12,19 @@ Detail detail=0.4
+             Box size=(12, 12, 12)
+         Scale scale=(8, 8, 8)
+             Union
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     SmoothUnion smoothness=0.06
+                         ArbitraryRoundCone a=(0, 0.1, 0) b=(0, 1.542, 0) radiusA=0.29 radiusB=0.24
+                         Translate translation=(0, 0.05, 0)
+                             Ellipsoid radii=(0.4, 0.12, 0.4)
+                 # The ring (annulus): a flat balcony with the skirt of the ring hanging under its edge
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     Union
+-                        Translate translation=(0, 0.617, 0)
+-                            CappedCylinder radius=0.46 height=0.008
+-                        Translate translation=(0, 0.595, 0)
++                        Translate translation=(0, 0.6545, 0)
++                            CappedCylinder radius=0.44 height=0.008
++                        Translate translation=(0, 0.6325, 0)
+                             Round radius=0.004
+-                                CappedCone height=0.016 bottomRadius=0.45 topRadius=0.46
++                                CappedCone height=0.016 bottomRadius=0.43 topRadius=0.44
+                 # Glowing round windows on the side facing out
+                 Material material=flower_center
+                     Union
+diff --git a/content/parts/castle/castle_tower_small.sdf b/content/parts/castle/castle_tower_small.sdf
+index 6c5240c..3452ea4 100644
+--- a/content/parts/castle/castle_tower_small.sdf
++++ b/content/parts/castle/castle_tower_small.sdf
+@@ -1,8 +1,8 @@
+ # Castle tower, small: a fly agaric 9.5 m tall with a 3.3 m cap, flanking the keep.
+ # Modelled at an eighth of its size and scaled up, so the cap's white flecks and the stem's fibres come out at the size they have on
+-# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at the
+-# wall-walk's 5 m, a balcony 1.36 m wide round the stem that the walk runs onto; the layout may scale a tower up
+-# only if it sinks it by as much as the ring rose.
++# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at
++# 5.3 m, 30 cm above the wall-walk (the floor heights are in castle0.sdf), a balcony round the stem that the walk runs onto; the
++# layout may scale a tower up only if it sinks it by as much as the ring rose.
+ format 1
+ collider mesh
+ Detail detail=0.4
+@@ -12,19 +12,19 @@ Detail detail=0.4
+             Box size=(12, 12, 12)
+         Scale scale=(8, 8, 8)
+             Union
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     SmoothUnion smoothness=0.06
+                         ArbitraryRoundCone a=(0, 0.1, 0) b=(0, 1.167, 0) radiusA=0.29 radiusB=0.189
+                         Translate translation=(0, 0.05, 0)
+                             Ellipsoid radii=(0.4, 0.12, 0.4)
+                 # The ring (annulus): a flat balcony with the skirt of the ring hanging under its edge
+-                Material material=amanita_stem
++                Material material=castle_stem
+                     Union
+-                        Translate translation=(0, 0.617, 0)
+-                            CappedCylinder radius=0.46 height=0.008
+-                        Translate translation=(0, 0.595, 0)
++                        Translate translation=(0, 0.6545, 0)
++                            CappedCylinder radius=0.44 height=0.008
++                        Translate translation=(0, 0.6325, 0)
+                             Round radius=0.004
+-                                CappedCone height=0.016 bottomRadius=0.45 topRadius=0.46
++                                CappedCone height=0.016 bottomRadius=0.43 topRadius=0.44
+                 # Glowing round windows on the side facing out
+                 Material material=flower_center
+                     Union
+diff --git a/content/parts/castle/castle_wall_bay.sdf b/content/parts/castle/castle_wall_bay.sdf
+index c0dc8ad..c7fb2ca 100644
+--- a/content/parts/castle/castle_wall_bay.sdf
++++ b/content/parts/castle/castle_wall_bay.sdf
+@@ -1,7 +1,9 @@
+ # Castle wall bay: one bay of the fly agaric castle's curtain wall, 3.8 m long (x), its outer face towards +z, standing on y = 0.
+-# A core 1.2 m thick of pale stem flesh, swelling at the foot like a stem's bulb, with three stems packed along the outer face;
+-# on top a 2.1 m wall-walk at 5 m and a parapet on its outer edge. The castle's layout turns one bay per chord of its oval
+-# wall; neighbouring bays overlap behind a castle_wall_joint, which hides the seam. Merlons are placed by the layout.
++# A core 1.2 m thick of pale stem flesh in courses of blocks (castle_wall's pattern), swelling at the foot like a stem's bulb, with
++# three fibrous stems packed along the outer face; on top a 2.1 m wall-walk at 5 m (the lowest of the castle's floor heights, see
++# castle0.sdf) and a parapet on its outer edge.
++# The castle's layout turns one bay per chord of its oval wall; neighbouring bays overlap under a castle_wall_joint, whose pad
++# above the walk covers the overlap and the seam. Merlons are placed by the layout.
+ format 1
+ collider mesh
+ Detail detail=0.3
+@@ -9,19 +11,22 @@ Detail detail=0.3
+     Intersection
+         Translate translation=(0, 11.7, 0)
+             Box size=(12, 12, 12)
+-        Material material=amanita_stem
+-            Union
+-                # The core, the walk on top of it and the parapet on its outer edge
+-                Translate translation=(0, 2.4, 0)
+-                    Box size=(1.9, 2.4, 0.6)
+-                Translate translation=(0, 4.85, -0.05)
+-                    Box size=(1.9, 0.15, 1.05)
+-                Translate translation=(0, 5.25, 0.85)
+-                    Box size=(1.9, 0.25, 0.15)
+-                # The foot swells out like a stem's bulb on both sides
+-                Translate translation=(0, 0.2, 0)
+-                    Ellipsoid radii=(2.1, 1.5, 1.3)
+-                # Stems packed along the outer face, thick at the foot and tapering up
+-                ArbitraryRoundCone a=(-1.25, 0, 0.6) b=(-1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+-                ArbitraryRoundCone a=(0, 0, 0.6) b=(0, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+-                ArbitraryRoundCone a=(1.25, 0, 0.6) b=(1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
++        Union
++            # The core, the walk on top of it and the parapet on its outer edge, laid in courses of blocks
++            Material material=castle_wall
++                Union
++                    Translate translation=(0, 2.4, 0)
++                        Box size=(1.9, 2.4, 0.6)
++                    Translate translation=(0, 4.85, -0.05)
++                        Box size=(1.9, 0.15, 1.05)
++                    Translate translation=(0, 5.25, 0.85)
++                        Box size=(1.9, 0.25, 0.15)
++            Material material=castle_stem
++                Union
++                    # The foot swells out like a stem's bulb on both sides
++                    Translate translation=(0, 0.2, 0)
++                        Ellipsoid radii=(2.1, 1.5, 1.3)
++                    # Stems packed along the outer face, thick at the foot and tapering up
++                    ArbitraryRoundCone a=(-1.25, 0, 0.6) b=(-1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
++                    ArbitraryRoundCone a=(0, 0, 0.6) b=(0, 4.3, 0.5) radiusA=0.72 radiusB=0.42
++                    ArbitraryRoundCone a=(1.25, 0, 0.6) b=(1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+diff --git a/content/parts/castle/castle_wall_gate.sdf b/content/parts/castle/castle_wall_gate.sdf
+index cdd4ec4..cc09379 100644
+--- a/content/parts/castle/castle_wall_gate.sdf
++++ b/content/parts/castle/castle_wall_gate.sdf
+@@ -1,5 +1,6 @@
+ # Castle gate bay: a castle_wall_bay with the gate cut through it, a passage 3.2 m wide under a round arch 4.6 m high, and the
+ # partial veil of a young mushroom hanging over the opening on the outer side. Two castle_gate_turrets frame it in the layout.
++# The passage is cut 10 cm below y = 0, so its floor is the level's tiled ground, not a face of its own in the ground's plane.
+ format 1
+ collider mesh
+ Detail detail=0.3
+@@ -8,27 +9,31 @@ Detail detail=0.3
+         Translate translation=(0, 11.7, 0)
+             Box size=(12, 12, 12)
+         Union
+-            Material material=amanita_stem
+-                Subtraction
+-                    Union
+-                        # The core, the walk on top of it and the parapet on its outer edge
+-                        Translate translation=(0, 2.4, 0)
+-                            Box size=(1.9, 2.4, 0.6)
+-                        Translate translation=(0, 4.85, -0.05)
+-                            Box size=(1.9, 0.15, 1.05)
+-                        Translate translation=(0, 5.25, 0.85)
+-                            Box size=(1.9, 0.25, 0.15)
+-                        # The foot swells out like a stem's bulb on both sides
+-                        Translate translation=(0, 0.2, 0)
+-                            Ellipsoid radii=(2.1, 1.5, 1.3)
+-                        # Stems packed along the outer face, thick at the foot and tapering up
+-                        ArbitraryRoundCone a=(-1.25, 0, 0.6) b=(-1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+-                        ArbitraryRoundCone a=(0, 0, 0.6) b=(0, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+-                        ArbitraryRoundCone a=(1.25, 0, 0.6) b=(1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+-                    Union
+-                        Translate translation=(0, 1.5, 0)
+-                            Box size=(1.6, 1.5, 2)
+-                        ArbitraryCappedCylinder a=(0, 3, -2) b=(0, 3, 2) radius=1.6
++            Subtraction
++                Union
++                    # The core, the walk on top of it and the parapet on its outer edge, laid in courses of blocks
++                    Material material=castle_wall
++                        Union
++                            Translate translation=(0, 2.4, 0)
++                                Box size=(1.9, 2.4, 0.6)
++                            Translate translation=(0, 4.85, -0.05)
++                                Box size=(1.9, 0.15, 1.05)
++                            Translate translation=(0, 5.25, 0.85)
++                                Box size=(1.9, 0.25, 0.15)
++                    Material material=castle_stem
++                        Union
++                            # The foot swells out like a stem's bulb on both sides
++                            Translate translation=(0, 0.2, 0)
++                                Ellipsoid radii=(2.1, 1.5, 1.3)
++                            # Stems packed along the outer face, thick at the foot and tapering up
++                            ArbitraryRoundCone a=(-1.25, 0, 0.6) b=(-1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
++                            ArbitraryRoundCone a=(0, 0, 0.6) b=(0, 4.3, 0.5) radiusA=0.72 radiusB=0.42
++                            ArbitraryRoundCone a=(1.25, 0, 0.6) b=(1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
++                # The passage and its arch
++                Union
++                    Translate translation=(0, 1.45, 0)
++                        Box size=(1.6, 1.55, 2)
++                    ArbitraryCappedCylinder a=(0, 3, -2) b=(0, 3, 2) radius=1.6
+             # The veil: a cream band under the walk with a fringe of folds hanging from it
+             Material material=amanita_gills
+                 Union
+diff --git a/content/parts/castle/castle_wall_joint.sdf b/content/parts/castle/castle_wall_joint.sdf
+index b8b401f..027b65d 100644
+--- a/content/parts/castle/castle_wall_joint.sdf
++++ b/content/parts/castle/castle_wall_joint.sdf
+@@ -1,5 +1,6 @@
+ # Castle wall joint: where two wall bays meet, a stem stands out of the wall's outer face (+z) with a small red cap, and a round pad
+-# at the walk's height fills the angle between the bays' walks. The stem hides the seam on the outside; it leaves 1.3 m of walk.
++# 15 cm above the walk (at 5.15 m) fills the angle between the bays' walks and covers where they overlap. The stem hides the seam
++# on the outside; it leaves 1.3 m of walk. The cap's flat underside sits 5 cm below the parapet's top, not level with it.
+ format 1
+ collider mesh
+ Detail detail=0.3
+@@ -8,16 +9,16 @@ Detail detail=0.3
+         Translate translation=(0, 11.7, 0)
+             Box size=(12, 12, 12)
+         Union
+-            Material material=amanita_stem
++            Material material=castle_stem
+                 Union
+                     SmoothUnion smoothness=0.4
+                         ArbitraryRoundCone a=(0, 0, 0.75) b=(0, 5.5, 0.85) radiusA=1.05 radiusB=0.62
+                         Translate translation=(0, 0.15, 0.6)
+                             Ellipsoid radii=(1.6, 0.9, 1.5)
+-                    Translate translation=(0, 4.85, -0.05)
++                    Translate translation=(0, 5, -0.05)
+                         CappedCylinder radius=1.15 height=0.15
+             # The cap at mushroom scale, scaled up so its flecks are a hand wide
+-            Translate translation=(0, 5.4, 0.85)
++            Translate translation=(0, 5.35, 0.85)
+                 Scale scale=(2.4, 2.4, 2.4)
+                     Material material=amanita_cap
+                         Intersection
