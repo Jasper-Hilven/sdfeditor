@@ -12,6 +12,7 @@ the one before.
 | 04 | [Hills and island](04-hills-and-island.md) | Instanced tree line on the border hills, crest clusters, the island's rocky underside |
 | 05 | [Tuning](05-tuning.md) | Budgets met on the high and integrated-GPU/web presets |
 | 06 | [Castles](06-castles.md) | Castle split into instanced parts with LODs per part, shader wall detail, mushroom theme. After 02, **in parallel with 03**, before 04 |
+| 07 | [Sky](07-sky.md) | Sky presets per level from `content/skies/`; Eye-Moon Night for the meadow (eye moon, glowing abyss, spores); sky-tinted toon bands and distance fade, also in the IDE preview. After 02, in parallel with 03; its toon-shader change before 06's shader patterns; preferably before 04 |
 
 ## The level
 
