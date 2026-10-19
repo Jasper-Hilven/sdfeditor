@@ -1,0 +1,29 @@
+# Castle amanitas: three young fly agarics in a clump, for the foot of the castle's walls outside.
+format 1
+collider none
+shadows near
+cull 35
+Detail detail=0.22
+    Union
+        Material material=amanita_stem
+            Union
+                ArbitraryRoundCone a=(0, 0.05, 0) b=(0, 0.75, 0) radiusA=0.13 radiusB=0.09
+                ArbitraryRoundCone a=(0.45, 0.05, 0.2) b=(0.5, 0.42, 0.2) radiusA=0.1 radiusB=0.07
+                ArbitraryRoundCone a=(-0.35, 0.05, 0.35) b=(-0.38, 0.28, 0.35) radiusA=0.08 radiusB=0.06
+        Material material=amanita_cap
+            Union
+                Intersection
+                    Translate translation=(0, 0.72, 0)
+                        Ellipsoid radii=(0.34, 0.24, 0.34)
+                    Translate translation=(0, 1.1, 0)
+                        Box size=(0.4, 0.38, 0.4)
+                Intersection
+                    Translate translation=(0.5, 0.4, 0.2)
+                        Ellipsoid radii=(0.24, 0.2, 0.24)
+                    Translate translation=(0.5, 0.7, 0.2)
+                        Box size=(0.3, 0.3, 0.3)
+                Intersection
+                    Translate translation=(-0.38, 0.26, 0.35)
+                        Ellipsoid radii=(0.16, 0.13, 0.16)
+                    Translate translation=(-0.38, 0.5, 0.35)
+                        Box size=(0.2, 0.24, 0.2)

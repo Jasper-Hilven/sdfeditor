@@ -13,6 +13,8 @@ the one before.
 | 05 | [Tuning](05-tuning.md) | Budgets met on the high and integrated-GPU/web presets |
 | 06 | [Castles](06-castles.md) | Castle split into instanced parts with LODs per part, shader wall detail, mushroom theme. After 02, **in parallel with 03**, before 04 |
 | 07 | [Sky](07-sky.md) | Sky presets per level from `content/skies/`; Eye-Moon Night for the meadow (eye moon, glowing abyss, spores); sky-tinted toon bands and distance fade, also in the IDE preview. After 02, in parallel with 03; its toon-shader change before 06's shader patterns; preferably before 04 |
+| 08 | Special effects (`08-special-effects.md`, being written) | `SpecialEffects` scene: lightning, tracers, goop, exploding mushroom from SDF-intersection pieces |
+| 09 | [Castle fixes](09-castle-fixes.md) | Cap red no longer bleeds into stems at coarse LODs; walk-level floors of neighbouring parts 15 cm apart, no z-fighting. After 06; alongside 04 or 07 |
 
 ## The level
 

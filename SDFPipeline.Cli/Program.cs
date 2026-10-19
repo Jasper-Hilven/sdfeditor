@@ -15,6 +15,9 @@ const string usage = """
       sdf render <model.sdf> [output.png] [--size <pixels>]   Renders side, top, front and perspective views to a PNG
       Options: --light <x,y,z>   direction towards the sun, e.g. --light 0,1,-2 to light the model from behind
                --style <look>    realistic (default) or toon, the cartoon look of the Unity toon shader
+               --camera <yaw,pitch,distance[,x,y,z]>
+                                 the perspective view's camera: radians round the target (yaw 0 looks from +z), metres
+                                 away, and the target, e.g. --camera 0,-0.06,40,0,4,0 for eye height 40 m in front
       sdf mesh [--resolution <cells>]                         Meshes every .sdf in the content folder to a .glb next to its file
       sdf mesh <directory> [--resolution <cells>]             Meshes every .sdf in the directory and its subdirectories
       sdf mesh <model.sdf> [output.glb] [--resolution <cells>]
@@ -189,7 +192,14 @@ bool MeshOne(string input, string output, MeshingOptions options)
             Console.Error.WriteLine($"{input}: no material file for {string.Join(", ", missing)}, meshed with the magenta stand-in");
         var settings = SdfProgramFile.LoadSettings(input);
         var meshOptions = settings.SurfacePart is { } part ? options with { SurfaceOf = SdfProgramFile.LoadPart(input, part) } : options;
-        var model = ModelMesher.Mesh(program, meshOptions) with { Settings = settings };
+        var meshed = ModelMesher.Mesh(program, meshOptions);
+        var model = meshed with
+        {
+            Settings = settings,
+            PartSettings = SdfProgramFile.LoadPartSettings(input, meshed.Meshes.Select(m => m.Part).OfType<string>(), settings),
+        };
+        foreach (var warning in model.Warnings)
+            Console.Error.WriteLine($"{input}: {warning}");
         if (model.Meshes.Count == 0)
         {
             Console.Error.WriteLine($"{input}: there is no finite surface to mesh");
@@ -206,8 +216,10 @@ bool MeshOne(string input, string output, MeshingOptions options)
             var statistics = mesh.Statistics;
             // A part's own Detail multiplies the model's, so the detail is shown where it differs from the one above
             var detail = mesh.Detail != model.Detail ? string.Create(CultureInfo.InvariantCulture, $", detail {mesh.Detail:0.###}") : "";
+            // A part meshed once for several uses says how often it is drawn
+            var instances = mesh.Instances.Count > 0 ? $", {mesh.Instances.Count} instances" : "";
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}"));
+                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}{instances}"));
             // Each level of detail is simplified on from the one before, so its time is on top of that level's
             for (var level = 1; level <= mesh.Lods.Count; level++)
             {
@@ -357,6 +369,7 @@ async Task<int> Render(string[] arguments)
     var size = RenderOptions.DefaultSize;
     V3? light = null;
     var style = RenderStyle.Realistic;
+    RenderView? view = null;
     var paths = new List<string>();
     for (var i = 0; i < arguments.Length; i++)
     {
@@ -375,6 +388,15 @@ async Task<int> Render(string[] arguments)
             light = new V3(xyz[0], xyz[1], xyz[2]);
             continue;
         }
+        if (arguments[i] == "--camera" && i + 1 < arguments.Length)
+        {
+            var components = arguments[++i].Split(',');
+            if (components.Length is not (3 or 6) || !components.All(c => float.TryParse(c, NumberStyles.Float, CultureInfo.InvariantCulture, out _)))
+                return Usage($"--camera takes yaw,pitch,distance or yaw,pitch,distance,x,y,z, not {arguments[i]}");
+            var values = components.Select(c => float.Parse(c, CultureInfo.InvariantCulture)).ToArray();
+            view = new RenderView(values[0], values[1], values[2], values.Length == 6 ? values[3..] : null);
+            continue;
+        }
         if (arguments[i] == "--size" && i + 1 < arguments.Length)
         {
             if (!int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out size) || size is < 64 or > 4096)
@@ -389,7 +411,7 @@ async Task<int> Render(string[] arguments)
     if (LoadMaterials() is not { } materials)
         return 1;
 
-    var options = new RenderOptions { Size = size, Materials = materials, LightDirection = light, Style = style };
+    var options = new RenderOptions { Size = size, Materials = materials, LightDirection = light, Style = style, View = view };
     switch (paths)
     {
         case []:

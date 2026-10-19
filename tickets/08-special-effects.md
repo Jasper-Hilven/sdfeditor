@@ -96,6 +96,16 @@ To check by hand:
 - The web build in a browser, and frame time on the web preset with all effects running.
 - Whether the puffs read as smoke: they are lit discs with an ink ring; seen against the sun they are mostly in the lit band.
 
+After merging main (06's part instances):
+
+- The scout's eyes and hands, inside the `amanita_scout` part, are now instanced parts (one mesh each, a node per side): part uses
+  are found through other parts too. A part with no mesh of its own (only inside an intersection or as a cutter) is skipped without a
+  warning, so the pieces mesh quietly. Instanced parts' thickness and occlusion follow the `surface` setting at their first placement.
+- Frame 0 is a little further from the intact scout (4,419 pixels over 24 levels, 0.3 %): the intact scout's eye instances have LOD
+  groups of their own, sized by the eye, so from a few metres they show LOD2, whose pupil rings simplify into a cross; the pieces'
+  eyes (synced to the whole scout's group) show LOD0. That is 06's per-part LOD rule; small rings like the eye's may want a lower
+  error or `Detail` there.
+
 Notes and what remains:
 
 - The other mushrooms have no pieces yet: a piece set is a part with the model's shape, a core (if it has floating bits) and the

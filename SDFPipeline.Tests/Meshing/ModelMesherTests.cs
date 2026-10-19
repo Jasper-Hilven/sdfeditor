@@ -41,15 +41,21 @@ public class ModelMesherTests
     [Fact]
     public void Split_GivesTheBodyAndEachPartOnItsOwn()
     {
-        var sources = PartSplitter.Split(ReadScout());
+        var warnings = new List<string>();
+        var sources = PartSplitter.Split(ReadScout(), warnings);
 
         Assert.Equal(["body", "eye", "hand"], sources.Select(s => s.Name));
         float D(string name, float x, float y, float z) =>
             new SdfCalculatorCpu().Prepare(sources.Single(s => s.Name == name).Program).Distance(new Vector3(x, y, z));
 
-        // Both eyes and both hands are in their part's mesh, placed and mirrored, and in no other
-        Assert.True(D("eye", 0.1f, 0.5f, 0.17f) < 0 && D("eye", -0.1f, 0.5f, 0.17f) < 0);
+        // The eyes are used only through a translate and a mirror: meshed once at the part's own origin, drawn twice
+        var eye = sources.Single(s => s.Name == "eye");
+        Assert.True(D("eye", 0, 0, 0) < 0 && D("eye", 0.1f, 0.5f, 0.17f) > 0);
+        Assert.Equal([new Vector3(0.1f, 0.5f, 0.17f), new Vector3(-0.1f, 0.5f, 0.17f)], eye.Instances.Select(m => m.Translation));
         Assert.True(D("body", 0.1f, 0.5f, 0.3f) > 0 && D("hand", 0.1f, 0.5f, 0.3f) > 0);
+        // The hands are also a cutter, so both hands are in their part's mesh, placed and mirrored, and in no other
+        Assert.Empty(sources.Single(s => s.Name == "hand").Instances);
+        Assert.Equal(["Part 'hand' is used 3 times but meshed in place, all uses as one mesh: a use is the cutter of a Subtraction"], warnings);
         Assert.True(D("hand", 0.35f, 0.31f, 0) < 0 && D("hand", -0.35f, 0.31f, 0) < 0);
         Assert.True(D("body", 0.35f, 0.3f, 0) > 0);
         // The hand that cuts a hole in the body is part of the body's shape, not a hand of its own
@@ -69,9 +75,15 @@ public class ModelMesherTests
         float D(string name, float x, float y, float z) =>
             new SdfCalculatorCpu().Prepare(sources.Single(s => s.Name == name).Program).Distance(new Vector3(x, y, z));
 
-        // Each in its own mesh, placed by both the model and the part
-        Assert.True(D("eye", 0.1f, 1.5f, 0.17f) < 0 && D("eye", -0.1f, 1.5f, 0.17f) < 0);
+        // The eyes, used twice through rigid placements only, are one mesh in the eye's own space with an instance per use, placed by
+        // both the model and the part
+        var eye = sources.Single(s => s.Name == "eye");
+        Assert.True(D("eye", 0, 0, 0) < 0);
+        Assert.Equal([new Vector3(-0.1f, 1.5f, 0.17f), new Vector3(0.1f, 1.5f, 0.17f)],
+            eye.Instances.Select(m => m.Translation).OrderBy(t => t.X).Select(t => new Vector3(MathF.Round(t.X, 4), MathF.Round(t.Y, 4), MathF.Round(t.Z, 4))));
         Assert.True(D("scout", 0.1f, 1.5f, 0.3f) > 0 && D("scout", 0, 1.3f, 0) < 0);
+        // The hands, one of them a cutter, are meshed in place, in the model's space
+        Assert.Empty(sources.Single(s => s.Name == "hand").Instances);
         Assert.True(D("hand", 0.35f, 1.31f, 0) < 0 && D("scout", 0.35f, 1.3f, 0) > 0);
     }
 
@@ -170,7 +182,8 @@ public class ModelMesherTests
 
         var meshes = root.GetProperty("meshes").EnumerateArray().ToArray();
         Assert.Equal(model.Meshes.Select(m => m.Name), meshes.Select(m => m.GetProperty("name").GetString()));
-        Assert.Equal(model.Meshes.Select(m => m.Name), root.GetProperty("nodes").EnumerateArray().Select(n => n.GetProperty("name").GetString()));
+        // The eye is drawn twice, a node each; the hand, being a cutter as well, is meshed in place
+        Assert.Equal(["body", "eye.0", "hand", "eye.1"], root.GetProperty("nodes").EnumerateArray().Select(n => n.GetProperty("name").GetString()));
         for (var i = 0; i < meshes.Length; i++)
         {
             var mesh = model.Meshes[i];

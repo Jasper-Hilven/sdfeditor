@@ -81,15 +81,21 @@ public class ExplodingPiecesTests
     }
 
     [Fact]
-    public void TheModel_IsMeshedAsTheScoutWithItsEyesAndHands_AndEachPieceAsOneMesh()
+    public void TheModel_IsMeshedAsTheScoutWithInstancedEyesAndHands_AndEachPieceAsOneMesh()
     {
         var scout = PartSplitter.Split(SdfProgramFile.Read(
             File.ReadAllText(Path.Combine(Content, "models", "characters", "amanita-scout.sdf")), ModelFiles.PartsIn(Content)));
         Assert.Equal(["amanita_scout", "eye", "hand"], scout.Select(s => s.Name));
+        // The eyes and hands, in the scout's part, are each one mesh with an instance per side
+        Assert.Equal(2, scout.Single(s => s.Name == "eye").Instances.Count);
+        Assert.Equal(2, scout.Single(s => s.Name == "hand").Instances.Count);
 
+        // A piece is one mesh, and the parts it cuts (the scout's eyes and hands with it) are no meshes and no warnings
+        var warnings = new List<string>();
         var piece = PartSplitter.Split(SdfProgramFile.Read(
-            File.ReadAllText(Path.Combine(Content, "models", "characters", "exploding", "amanita-scout-eye0.sdf")), ModelFiles.PartsIn(Content)));
+            File.ReadAllText(Path.Combine(Content, "models", "characters", "exploding", "amanita-scout-eye0.sdf")), ModelFiles.PartsIn(Content)), warnings);
         Assert.Equal([PartSplitter.BodyName], piece.Select(s => s.Name));
+        Assert.Empty(warnings);
     }
 
     /// <summary>A point in the unit ball, the same for the same index.</summary>
