@@ -20,6 +20,9 @@
 // Metres from the camera over which the pattern fades to the mean colour
 #define SDF_PATTERN_FADE float2(25.0, 40.0)
 
+// The share of the ink that fibre lines take: lighter than joints, so the stems' grain reads as fibre, not as bark
+#define SDF_FIBRE_INK 0.4
+
 // A stone course is this share of a block's length high
 #define SDF_STONE_COURSE 0.55
 // How much a block's colour varies from the next (fraction of the colour, either way)
@@ -102,6 +105,7 @@ void SdfPattern(float4 pattern, float3 positionOS, float3 normalOS, float3 posit
     float distanceToLine;
     float coverage;
     float3 color = albedo;
+    float inkShare = 1.0;
     float3 an = abs(normalOS);
     if (kind < 1.5)
     {
@@ -138,8 +142,10 @@ void SdfPattern(float4 pattern, float3 positionOS, float3 normalOS, float3 posit
     {
         // Fibres show on the stem's sides, not on its flat rings
         distanceToLine = SdfFibreLines(positionOS, size);
-        coverage = grout / size;
         lines *= 1.0 - smoothstep(0.5, 0.8, an.y);
+        // Fibres are a grain, not joints: their ink is a light share of the surface's, so the stems read soft beside the stone courses
+        inkShare = SDF_FIBRE_INK;
+        coverage = inkShare * grout / size;
     }
     else
     {
@@ -148,7 +154,7 @@ void SdfPattern(float4 pattern, float3 positionOS, float3 normalOS, float3 posit
     }
 
     float aa = max(fwidth(distanceToLine), 1e-5);
-    float drawn = 1.0 - smoothstep(0.5 * grout - aa, 0.5 * grout + aa, distanceToLine);
+    float drawn = inkShare * (1.0 - smoothstep(0.5 * grout - aa, 0.5 * grout + aa, distanceToLine));
     // Far off, the mean colour: the blocks' colours averaged out, and the ink spread over the surface as the lines cover it
     float3 base = lerp(albedo, color, blocks);
     float3 mean = lerp(base, ink, saturate(coverage));
