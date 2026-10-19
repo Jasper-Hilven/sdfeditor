@@ -4,6 +4,8 @@ Make the level meet its budgets on both presets and in the web build, and make t
 
 Depends on: 00–04.
 
+**Status: will not yet do this.** Measuring and meeting the budgets is put off for now; the ticket stays as written for later.
+
 ## Budgets (per frame, first-person camera anywhere in the play area)
 
 | | High (M4 Max) | Integrated GPU / web |

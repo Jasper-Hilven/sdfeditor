@@ -11,7 +11,7 @@ ticket's Status says.
 | 02 | [Ground materials and castles](done/02-ground-materials-and-castles.md) | Grass, dirt, path and tiles on the ground; castles and rocks placed, with colliders |
 | 03 | [Foliage and the instanced renderer](done/03-foliage.md) | Grass turfs and flowers scattered and drawn instanced, with wind; the renderer is general |
 | 04 | [Hills and island](done/04-hills-and-island.md) | Instanced tree line on the border hills, crest clusters, the island's rocky underside. Done; left: walking and wind in Play mode, web frame time, a resolution rule for the 512 config |
-| 05 | [Tuning](05-tuning.md) | Budgets met on the high and integrated-GPU/web presets |
+| 05 | [Tuning](done/05-tuning.md) | Budgets met on the high and integrated-GPU/web presets. Will not yet do this |
 | 06 | [Castles](done/06-castles.md) | Castle split into instanced parts with LODs per part, shader wall detail, mushroom theme. After 02, **in parallel with 03**, before 04 |
 | 07 | [Sky](done/07-sky.md) | Sky presets per level from `content/skies/`; Eye-Moon Night for the meadow (eye moon, glowing abyss, spores); sky-tinted toon bands and distance fade, also in the IDE preview. After 02, in parallel with 03; its toon-shader change before 06's shader patterns; preferably before 04 |
 | 08 | [Special effects](done/08-special-effects.md) | `SpecialEffects` scene: lightning, tracers, goop, exploding mushroom from SDF-intersection pieces |
