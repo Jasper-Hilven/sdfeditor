@@ -122,16 +122,6 @@ The castle is grown, not built: no stone courses on its walls and no flagstones 
 - Test: no material used by `castle0`'s parts has a `stones` pattern (walk the parts from `castle0.sdf` through `Part` nodes).
 - Until 15 swaps the meadow's castle, the meadow shows this fungal castle on its tiles; that is expected.
 
-Status (14.2): done. `castle_wall.sdfmat` now has `pattern fibres size=0.08 grout=0.012` and a comment saying the wall is grown stems;
-`castle_wall_gate.sdf`'s comment says "the level's ground" (castle0's header and the other parts never mention stone or tiles). Test
-`CastleMaterialsTests.Castle0_UsesNoStonesPattern_InAnyOfItsParts` walks castle0 and its `Part` nodes and checks every material's
-pattern. **Chosen: fibres, kept.** The `sdf render` views are CPU renders that do not draw patterns, and Unity snapshots were not run
-here, so the walk tops were judged from the shader: `SdfPattern.hlsl` draws fibres as 3D noise (not a planar projection, so no
-stretching or ruling) and already fades them out on faces that look up (`lines *= 1 - smoothstep(0.5, 0.8, normal.y)`), so walk tops
-and parapet tops carry speckle and colour variation only. 14.7's snapshots should still glance at them; if wrong, drop the pattern
-line. Re-meshing: no glb is committed (`content/**/*.glb` is gitignored; 06.0's "committed glbs" means the local ones), so none was
-added; 14.7's `sdf unity` run re-meshes the castle parts and `castle0` at 128 cells and carries `fibres` for `castle_wall`.
-
 ### 14.3 — Moss turfs and fungi tufts
 
 The foliage, scattered by the thousand and drawn instanced like the grass turfs and flowers it replaces. Folder
