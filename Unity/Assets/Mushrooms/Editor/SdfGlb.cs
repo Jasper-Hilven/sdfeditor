@@ -18,6 +18,11 @@ namespace SdfMushrooms.Editor
     /// coarser levels hang off it in <see cref="MeshData.Lods"/>. The levels are found the way glTF viewers find them, through the
     /// MSFT_lod extension on the part's node, so a mesh only counts as a level when a part lists it; every other mesh is a part.
     /// </para>
+    /// <para>
+    /// Part instances: a part the pipeline meshed once for several uses has a node per use with its matrix (eye.0, eye.1, ...), in the
+    /// part's <see cref="MeshData.Instances"/>; its levels are listed on each of those nodes alike. A mesh without them is in the model's
+    /// space, as in files from before instances.
+    /// </para>
     /// </summary>
     public sealed class SdfGlb
     {
@@ -42,6 +47,22 @@ namespace SdfMushrooms.Editor
 
             /// <summary>How far a level may be off the surface, in metres (the pipeline's error limit for it); 0 for LOD0.</summary>
             public float MaxError;
+
+            /// <summary>The part the mesh is of (extras.part): "body" for the model's own shape.</summary>
+            public string Part;
+
+            /// <summary>
+            /// For a part meshed once in its own space, each use: its node's name and matrix, in the file's coordinates (glTF's,
+            /// before x is mirrored for Unity). Empty for a mesh in the model's space.
+            /// </summary>
+            public List<(string Name, Matrix4x4 Matrix)> Instances = new List<(string Name, Matrix4x4 Matrix)>();
+
+            /// <summary>
+            /// The part's own settings, resolved over the model's (extras.sdf.parts): collider (an object as <see cref="Collider"/>,
+            /// shape none for none), shadows (on, off, near), outline (bool) and cull (metres or absent); null when the part takes the
+            /// model's.
+            /// </summary>
+            public JObject Settings;
 
             /// <summary>
             /// The mesh at a level of detail: this one at 0, else that level, or the coarsest there is when the part has fewer levels
@@ -91,6 +112,15 @@ namespace SdfMushrooms.Editor
         /// top and radius (in the file's coordinates); null for none.
         /// </summary>
         public JObject Collider;
+
+        /// <summary>The model's shadows: on (every level, the default), off, or near (LOD0 only).</summary>
+        public string Shadows = "on";
+
+        /// <summary>Whether the model has the ink outline (on by default).</summary>
+        public bool Outline = true;
+
+        /// <summary>The distance in metres beyond which the model is not drawn; null to cull it by its size on screen.</summary>
+        public float? Cull;
 
         /// <summary>Levels of detail, LOD0 included: 1 for a file without levels.</summary>
         public int LodCount => 1 + Meshes.Select(m => m.Lods.Count).DefaultIfEmpty(0).Max();
@@ -160,6 +190,7 @@ namespace SdfMushrooms.Editor
                 {
                     Name = mesh.Value<string>("name") ?? $"mesh{meshes.Count}",
                     MaxError = mesh["extras"]?.Value<float?>("maxError").GetValueOrDefault() ?? 0,
+                    Part = mesh["extras"]?.Value<string>("part"),
                 };
                 var primitives = (JArray)mesh["primitives"];
                 var attributes = (JObject)primitives[0]["attributes"];
@@ -186,7 +217,8 @@ namespace SdfMushrooms.Editor
             {
                 var ids = node["extensions"]?["MSFT_lod"]?["ids"] as JArray;
                 var meshIndex = node.Value<int?>("mesh");
-                if (ids == null || meshIndex is not int part || part < 0 || part >= meshes.Count)
+                // Every instance of a part lists its levels; they are the same meshes, taken once
+                if (ids == null || meshIndex is not int part || part < 0 || part >= meshes.Count || meshes[part].Lods.Count > 0)
                     continue;
                 foreach (var id in ids)
                 {
@@ -200,11 +232,30 @@ namespace SdfMushrooms.Editor
             }
             result.Meshes.AddRange(meshes.Where((m, i) => !isLevel[i]));
 
+            // The scene's nodes with a matrix are the uses of parts meshed in their own space; glTF's matrix is column-major
+            var scene = json["scenes"]?[json.Value<int?>("scene") ?? 0]?["nodes"] as JArray ?? new JArray();
+            foreach (var id in scene)
+            {
+                var node = nodes[id.Value<int>()];
+                if (node["matrix"] is not JArray { Count: 16 } matrix || node.Value<int?>("mesh") is not int index || index < 0 || index >= meshes.Count)
+                    continue;
+                var m = matrix.Select(v => v.Value<float>()).ToArray();
+                meshes[index].Instances.Add((node.Value<string>("name"), new Matrix4x4(
+                    new Vector4(m[0], m[1], m[2], m[3]), new Vector4(m[4], m[5], m[6], m[7]),
+                    new Vector4(m[8], m[9], m[10], m[11]), new Vector4(m[12], m[13], m[14], m[15]))));
+            }
+
             var sdf = json["extras"]?["sdf"];
             if (sdf == null)
                 throw new InvalidDataException($"{name} was not written by the SDF pipeline: it has no extras.sdf");
             result.CellSize = sdf.Value<float?>("cellSize").GetValueOrDefault();
             result.Collider = sdf["collider"] as JObject;
+            result.Shadows = sdf.Value<string>("shadows") ?? "on";
+            result.Outline = sdf.Value<bool?>("outline") ?? true;
+            result.Cull = sdf.Value<float?>("cull");
+            if (sdf["parts"] is JObject parts)
+                foreach (var mesh in meshes)
+                    mesh.Settings = parts[mesh.Name] as JObject;
             foreach (var material in (JArray)sdf["materials"])
                 result.Materials.Add(new Material { Name = material.Value<string>("name"), Parameters = (JObject)material["parameters"] });
             return result;

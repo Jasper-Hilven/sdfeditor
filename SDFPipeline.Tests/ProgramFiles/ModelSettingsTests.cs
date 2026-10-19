@@ -32,6 +32,12 @@ public class ModelSettingsTests
     [InlineData("format 1\ncollider mesh\ncollider convex\nSphere radius=1", 3, "The collider is given twice, first on line 2")]
     [InlineData("format 1\ncollider capsule lod=1\nSphere radius=1", 2, "A capsule collider is not made from a mesh")]
     [InlineData("format 1\ncollider mesh level=1\nSphere radius=1", 2, "only lod= can follow")]
+    [InlineData("format 1\nshadows soft\nSphere radius=1", 2, "Shadows are on, off or near")]
+    [InlineData("format 1\noutline\nSphere radius=1", 2, "The outline is on or off")]
+    [InlineData("format 1\ncull -3\nSphere radius=1", 2, "Give the distance in metres")]
+    [InlineData("format 1\ncull\nSphere radius=1", 2, "Give the distance in metres")]
+    [InlineData("format 1\ncull 30\noutline off\ncull 40\nSphere radius=1", 4, "The cull is given twice, first on line 2")]
+    [InlineData("format 1\nshadows on off\nSphere radius=1", 2, "Unexpected 'off'")]
     public void Read_ExplainsWhatIsWrongAndWhere(string text, int line, string problem)
     {
         var exception = Assert.Throws<SdfProgramFileException>(() => SdfProgramFile.Read(text));
@@ -41,12 +47,26 @@ public class ModelSettingsTests
     }
 
     [Fact]
-    public void Part_HasNoSettingsOfItsOwn()
+    public void Read_TakesShadowsOutlineAndCull()
     {
-        var exception = Assert.Throws<SdfProgramFileException>(() =>
-            SdfProgramFile.Read("format 1\nPart part=lid", name => name == "lid" ? "format 1\ncollider convex\nSphere radius=1" : null));
+        var settings = ModelSettings.Read("format 1\nshadows near\noutline off\ncull 35.5\nSphere radius=1");
 
-        Assert.Contains("A part has no settings of its own", exception.Problem);
+        Assert.Equal(new ModelSettings(ColliderShape.None, null) { Shadows = ShadowCasting.Near, Outline = false, Cull = 35.5f }, settings);
+        Assert.Equal((ShadowCasting.On, true, (float?)null), (ModelSettings.Default.Shadows, ModelSettings.Default.Outline, ModelSettings.Default.Cull));
+    }
+
+    [Fact]
+    public void Part_HasSettingsOfItsOwn_OverTheModels()
+    {
+        const string lid = "format 1\ncollider none\nshadows off\nSphere radius=1";
+        var model = new ModelSettings(ColliderShape.Mesh, 1) { Outline = false, Cull = 40 };
+
+        // The program reader leaves them out of the shape, as a model's
+        SdfProgramFile.Read("format 1\nPart part=lid", name => name == "lid" ? lid : null);
+        Assert.True(ModelSettings.HasSettings(lid));
+        Assert.False(ModelSettings.HasSettings("format 1\nlid = 1\nSphere radius=$lid"));
+        // What the part sets wins, the rest is the model's
+        Assert.Equal(new ModelSettings(ColliderShape.None, null) { Shadows = ShadowCasting.Off, Outline = false, Cull = 40 }, ModelSettings.Read(lid, model));
     }
 
     private static JsonElement Collider(string text, int lods)

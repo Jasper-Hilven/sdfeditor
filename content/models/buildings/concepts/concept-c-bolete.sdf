@@ -1,0 +1,214 @@
+# Concept C, "Bolete burrow": a low, round, brown-capped castle round a tall parasol donjon. The four corner towers are fat
+# porcini: barrel stems swelling at the middle under thick brown caps over pale pores, with glowing round windows. The curtain walls
+# are low ramparts of fused pale stems, mossy at the foot, crenellated with little brown button caps. Over the rear wall rises the
+# donjon, a parasol mushroom 21 m tall: a slender stem with its ring as a balcony halfway up and a broad, flat, scaly cap with a
+# knob at its middle, which gives the castle a silhouette that reads from the far end of the field. The gate is a round arch
+# between two porcini. Shelf fungi step up the inside of the front wall. Same footprint as castle0 (31 x 21 m, gate at +z).
+# A concept for ticket 06, one model; the comments name the parts it would split into.
+format 1
+
+# Cut off at the ground
+Intersection
+    Translate translation=(0, 30, 0)
+        Box size=(40, 30, 30)
+    Union
+        # part castle-tower (x4): a porcini at each corner
+        SymmetryXZ
+            Translate translation=(13, 0, 8)
+                Scale scale=(6.5, 6.5, 6.5)
+                    # A porcini at a sixth of its size: a fat barrel stem and a thick brown cap over pale pores
+                    Union
+                        Material material=amanita_stem
+                            SmoothUnion smoothness=0.08
+                                Translate translation=(0, 0.42, 0)
+                                    Ellipsoid radii=(0.52, 0.5, 0.52)
+                                ArbitraryRoundCone a=(0, 0.05, 0) b=(0, 1.15, 0) radiusA=0.42 radiusB=0.36
+                        Material material=flower_center
+                            Union
+                                Translate translation=(0.3, 0.75, 0.3)
+                                    Ellipsoid radii=(0.07, 0.09, 0.07)
+                                Translate translation=(0.4, 0.3, 0.26)
+                                    Ellipsoid radii=(0.06, 0.08, 0.06)
+                        Material material=amanita_gills
+                            Translate translation=(0, 1.2, 0)
+                                CappedCylinder radius=0.66 height=0.02
+                        Material material=tree_bark
+                            Round radius=0.04
+                                Intersection
+                                    Translate translation=(0, 1.15, 0)
+                                        Ellipsoid radii=(0.74, 0.62, 0.74)
+                                    Translate translation=(0, 1.62, 0)
+                                        Box size=(0.8, 0.4, 0.8)
+
+        # part castle-wall-bay and castle-wall-gate: a rampart of fused pale stems, moss at its foot
+        Material material=amanita_stem
+            Subtraction
+                Union
+                    Subtraction
+                        Translate translation=(0, 2.3, 0)
+                            Box size=(14.8, 2.3, 9.8)
+                        Translate translation=(0, 2.3, 0)
+                            Box size=(13.4, 3, 8.4)
+                    SymmetryXZ
+                        Union
+                            Translate translation=(0, 0, 9.7)
+                                LimitedRepetition spacing=1.6 limits=(7, 0, 0)
+                                    Ellipsoid radii=(0.95, 4.4, 0.6)
+                            Translate translation=(14.7, 0, 0)
+                                LimitedRepetition spacing=1.6 limits=(0, 0, 4)
+                                    Ellipsoid radii=(0.6, 4.4, 0.95)
+                    Subtraction
+                        Translate translation=(0, 4.8, 0)
+                            Box size=(15, 0.25, 10)
+                        Translate translation=(0, 4.8, 0)
+                            Box size=(13.4, 1, 8.4)
+                Union
+                    Translate translation=(0, 1.4, 9.6)
+                        Box size=(1.6, 1.4, 2)
+                    ArbitraryCappedCylinder a=(0, 2.8, 7.4) b=(0, 2.8, 11.8) radius=1.6
+        Material material=rock_moss
+            Subtraction
+                Translate translation=(0, 0, 0)
+                    Box size=(15.6, 0.5, 10.6)
+                Union
+                    Box size=(13.2, 1, 8.2)
+                    Translate translation=(0, 0, 10)
+                        Box size=(1.6, 1, 1.2)
+
+        # detail merlon (x50): brown button caps on the rampart
+        SymmetryXZ
+            Union
+                Translate translation=(0.8, 5.05, 9.8)
+                    LimitedRepetition spacing=1.6 limits=(7, 0, 0)
+                        # A button bolete as a merlon
+                        Union
+                            Material material=amanita_stem
+                                Translate translation=(0, 0.16, 0)
+                                    CappedCylinder radius=0.2 height=0.16
+                            Material material=tree_bark
+                                Intersection
+                                    Translate translation=(0, 0.3, 0)
+                                        Ellipsoid radii=(0.36, 0.32, 0.36)
+                                    Translate translation=(0, 0.6, 0)
+                                        Box size=(0.4, 0.3, 0.4)
+                Translate translation=(14.8, 5.05, 0)
+                    LimitedRepetition spacing=1.6 limits=(0, 0, 4)
+                        # A button bolete as a merlon
+                        Union
+                            Material material=amanita_stem
+                                Translate translation=(0, 0.16, 0)
+                                    CappedCylinder radius=0.2 height=0.16
+                            Material material=tree_bark
+                                Intersection
+                                    Translate translation=(0, 0.3, 0)
+                                        Ellipsoid radii=(0.36, 0.32, 0.36)
+                                    Translate translation=(0, 0.6, 0)
+                                        Box size=(0.4, 0.3, 0.4)
+
+        # part castle-gate: two small porcini guarding the arch
+        SymmetryX
+            Translate translation=(3.7, 0, 10.9)
+                Scale scale=(3.4, 3.4, 3.4)
+                    # A porcini at a sixth of its size: a fat barrel stem and a thick brown cap over pale pores
+                    Union
+                        Material material=amanita_stem
+                            SmoothUnion smoothness=0.08
+                                Translate translation=(0, 0.42, 0)
+                                    Ellipsoid radii=(0.52, 0.5, 0.52)
+                                ArbitraryRoundCone a=(0, 0.05, 0) b=(0, 1.15, 0) radiusA=0.42 radiusB=0.36
+                        Material material=flower_center
+                            Union
+                                Translate translation=(0.3, 0.75, 0.3)
+                                    Ellipsoid radii=(0.07, 0.09, 0.07)
+                                Translate translation=(0.4, 0.3, 0.26)
+                                    Ellipsoid radii=(0.06, 0.08, 0.06)
+                        Material material=amanita_gills
+                            Translate translation=(0, 1.2, 0)
+                                CappedCylinder radius=0.66 height=0.02
+                        Material material=tree_bark
+                            Round radius=0.04
+                                Intersection
+                                    Translate translation=(0, 1.15, 0)
+                                        Ellipsoid radii=(0.74, 0.62, 0.74)
+                                    Translate translation=(0, 1.62, 0)
+                                        Box size=(0.8, 0.4, 0.8)
+
+        # part castle-keep: the parasol donjon behind the rear wall's middle
+        Translate translation=(0, 0, -6)
+            Union
+                Material material=amanita_stem
+                    SmoothUnion smoothness=0.6
+                        ArbitraryRoundCone a=(0, 0, 0) b=(0, 20, 0) radiusA=2.2 radiusB=1.3
+                        Translate translation=(0, 0.6, 0)
+                            Ellipsoid radii=(3.4, 1.6, 3.4)
+                # The ring, a balcony above the wall-walk
+                Material material=amanita_gills
+                    Translate translation=(0, 11, 0)
+                        Round radius=0.08
+                            CappedCone height=0.35 bottomRadius=3.4 topRadius=2
+                Material material=flower_center
+                    Union
+                        Translate translation=(0, 14.5, 1.45)
+                            Ellipsoid radii=(0.4, 0.55, 0.3)
+                        Translate translation=(0, 7.5, 1.75)
+                            Ellipsoid radii=(0.45, 0.6, 0.3)
+                Material material=amanita_gills
+                    Translate translation=(0, 19.9, 0)
+                        CappedCylinder radius=6.2 height=0.12
+                Translate translation=(0, 19.9, 0)
+                    Scale scale=(8, 8, 8)
+                        Material material=tree_bark
+                            Union
+                                Round radius=0.02
+                                    Intersection
+                                        Translate translation=(0, -0.05, 0)
+                                            Ellipsoid radii=(0.82, 0.2, 0.82)
+                                        Translate translation=(0, 0.3, 0)
+                                            Box size=(0.9, 0.3, 0.9)
+                                Translate translation=(0, 0.17, 0)
+                                    Ellipsoid radii=(0.16, 0.08, 0.16)
+
+        # part castle-stair (x2, mirrored): shelf fungi stepping up the inside of the front wall, 25 cm a step
+        Material material=tree_bark
+            SymmetryX
+                Union
+                    Translate translation=(3.400, 0.190, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(3.730, 0.440, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(4.060, 0.690, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(4.390, 0.940, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(4.720, 1.190, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(5.050, 1.440, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(5.380, 1.690, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(5.710, 1.940, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(6.040, 2.190, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(6.370, 2.440, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(6.700, 2.690, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(7.030, 2.940, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(7.360, 3.190, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(7.690, 3.440, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(8.020, 3.690, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(8.350, 3.940, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(8.680, 4.190, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(9.010, 4.440, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(9.340, 4.690, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)
+                    Translate translation=(9.670, 4.940, 8.4)
+                        Ellipsoid radii=(0.42, 0.07, 0.55)

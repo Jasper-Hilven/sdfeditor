@@ -91,10 +91,11 @@ public class LevelOfDetailTests
             }
         }
 
-        // The pupil and the band are kept on every level, however coarse
+        // The band is kept on every level, however coarse, and the pupil down to LOD2: the eye, meshed once for both uses on a grid
+        // round one eye, is 14 triangles at LOD3 of these 64 cells, too few for any pupil
         var eye = model.Meshes.Single(m => m.Name == "eye");
         var pupil = model.Materials.Select(m => m.Name).ToList().IndexOf("pupil");
-        Assert.All(eye.Lods, lod => Assert.Contains(GlbWriter.Regions(lod), region => region.Material == pupil));
+        Assert.All(eye.Lods.Take(2), lod => Assert.Contains(GlbWriter.Regions(lod), region => region.Material == pupil));
         var band = model.Materials.Select(m => m.Name).ToList().IndexOf("band");
         Assert.All(model.Meshes[0].Lods, lod => Assert.Contains(GlbWriter.Regions(lod), region => region.Material == band));
     }
@@ -149,7 +150,8 @@ public class LevelOfDetailTests
 
             Assert.DoesNotContain(GlbWriter.LodExtension, oneRoot.GetRawText());
             Assert.False(oneRoot.GetProperty("extras").GetProperty("sdf").TryGetProperty("lods", out _));
-            Assert.Equal(oneMeshes.Length, oneRoot.GetProperty("nodes").GetArrayLength());
+            // A node per mesh, and one more for each further instance of the mirrored eyes and hands
+            Assert.Equal(oneMeshes.Length + 2, oneRoot.GetProperty("nodes").GetArrayLength());
         }
     }
 
@@ -167,9 +169,12 @@ public class LevelOfDetailTests
 
             Assert.Equal(["body", "eye", "hand", "body_LOD1", "body_LOD2", "eye_LOD1", "eye_LOD2", "hand_LOD1", "hand_LOD2"],
                 meshes.Select(m => m.GetProperty("name").GetString()));
-            Assert.Equal(meshes.Select(m => m.GetProperty("name").GetString()), nodes.Select(n => n.GetProperty("name").GetString()));
+            // The mirrored eyes and hands are instances, a node per use and level
+            Assert.Equal(["body", "eye.0", "hand.0", "eye.1", "hand.1", "body_LOD1", "body_LOD2", "eye_LOD1.0", "eye_LOD2.0", "eye_LOD1.1",
+                    "eye_LOD2.1", "hand_LOD1.0", "hand_LOD2.0", "hand_LOD1.1", "hand_LOD2.1"],
+                nodes.Select(n => n.GetProperty("name").GetString()));
             // Only LOD0 is in the scene
-            Assert.Equal([0, 1, 2], root.GetProperty("scenes")[0].GetProperty("nodes").EnumerateArray().Select(n => n.GetInt32()));
+            Assert.Equal([0, 1, 2, 3, 4], root.GetProperty("scenes")[0].GetProperty("nodes").EnumerateArray().Select(n => n.GetInt32()));
             Assert.Contains(GlbWriter.LodExtension, root.GetProperty("extensionsUsed").EnumerateArray().Select(e => e.GetString()));
             Assert.Equal(3, root.GetProperty("extras").GetProperty("sdf").GetProperty("lods").GetProperty("count").GetInt32());
             Assert.True(binary.Length >= root.GetProperty("buffers")[0].GetProperty("byteLength").GetInt32());
@@ -184,7 +189,8 @@ public class LevelOfDetailTests
                     var node = nodes[ids[level - 1]];
                     var mesh = meshes[node.GetProperty("mesh").GetInt32()];
                     var lod = model.Meshes[part].Lods[level - 1];
-                    Assert.Equal(GlbWriter.LodName(model.Meshes[part].Name, level), node.GetProperty("name").GetString());
+                    var use = model.Meshes[part].Instances.Count > 0 ? ".0" : "";
+                    Assert.Equal(GlbWriter.LodName(model.Meshes[part].Name, level) + use, node.GetProperty("name").GetString());
                     Assert.Equal(model.Meshes[part].Name, mesh.GetProperty("extras").GetProperty("part").GetString());
                     Assert.Equal(level, mesh.GetProperty("extras").GetProperty("lod").GetInt32());
                     Assert.Equal(lod.MaxError, mesh.GetProperty("extras").GetProperty("maxError").GetSingle());
