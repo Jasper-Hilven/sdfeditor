@@ -149,12 +149,102 @@ public class LevelFileTests
         Assert.Null(regions.At(new Vector2(84, 0)));
         // Every piece on the board, both colours of every kind among them, each model in content/models
         var models = LevelModels.In(Path.Combine(content, "models"));
-        Assert.InRange(level.Placements.Count, 60, 120);
+        Assert.InRange(level.Placements.Count, 60, 160);
         Assert.All(level.Placements, p => Assert.True(MathF.Abs(p.At.X) < 80 && MathF.Abs(p.At.Y) < 80, $"{p.Model} on line {p.Line}"));
         Assert.All(level.Placements, p => Assert.NotNull(models(p.Model)));
         foreach (var piece in new[] { "pawn", "rook", "knight", "bishop", "queen", "king" })
         foreach (var colour in new[] { "light", "dark" })
             Assert.Contains(level.Placements, p => p.Model == $"{piece}-{colour}");
+    }
+
+    [Fact]
+    public void ContentChessboard_GamePieces_UseAllTwentyModelsOnTheBoard()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "chessboard" + LevelFile.Extension));
+
+        var games = Directory.GetFiles(Path.Combine(content, "models", "games"), "*.sdf").Select(Path.GetFileNameWithoutExtension).ToList();
+        Assert.Equal(20, games.Count);
+        foreach (var model in games)
+            Assert.Contains(level.Placements, p => p.Model == model);
+        Assert.All(level.Placements.Where(p => games.Contains(p.Model)),
+            p => Assert.True(MathF.Abs(p.At.X) < 76 && MathF.Abs(p.At.Y) < 76, $"{p.Model} on line {p.Line} is off the board"));
+    }
+
+    [Fact]
+    public void ContentChessboard_GamePieces_DoNotOverlapEachOtherOrTheChessPieces()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+        var path = Path.Combine(content, LevelFile.FolderName, "chessboard" + LevelFile.Extension);
+        var level = LevelFile.Load(path);
+        var lines = File.ReadAllLines(path);
+        var footprints = LevelModels.In(Path.Combine(content, "models"));
+        var games = Directory.GetFiles(Path.Combine(content, "models", "games"), "*.sdf").Select(Path.GetFileNameWithoutExtension).ToHashSet();
+
+        var problems = OverlapProblems(level.Placements, lines, footprints, games);
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    [Fact]
+    public void ContentChessboard_OverlapCheck_FindsAGamePieceMovedOntoAChessPiece()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+        var path = Path.Combine(content, LevelFile.FolderName, "chessboard" + LevelFile.Extension);
+        var level = LevelFile.Load(path);
+        var lines = File.ReadAllLines(path);
+        var footprints = LevelModels.In(Path.Combine(content, "models"));
+        var games = Directory.GetFiles(Path.Combine(content, "models", "games"), "*.sdf").Select(Path.GetFileNameWithoutExtension).ToHashSet();
+
+        // The first domino lands in the middle of the first chess piece, and the first chess piece's neighbour die lands on a game piece
+        var chess = level.Placements.First(p => !games.Contains(p.Model));
+        var moved = level.Placements.Select(p => p.Model == "domino-6-3-lying" ? p with { At = chess.At } : p).ToList();
+
+        Assert.NotEmpty(OverlapProblems(moved, lines, footprints, games));
+    }
+
+    /// <summary>
+    /// Every footprint circle (centre of the model's bounds on the ground, half its larger side, both times the scale) of a game piece
+    /// that sinks into another: within a group of the file (the comments in the place block start groups) by more than a quarter of
+    /// the smaller radius, anywhere else (other groups, chess pieces) at all.
+    /// </summary>
+    private static List<string> OverlapProblems(IReadOnlyList<Placement> placements, string[] lines, Func<string, ModelFootprint?> footprints,
+        ICollection<string?> games)
+    {
+        // A group is the last comment above a placement
+        int GroupOf(int line)
+        {
+            for (var i = Math.Min(line, lines.Length) - 1; i >= 0; i--)
+                if (lines[i].TrimStart().StartsWith('#'))
+                    return i;
+            return -1;
+        }
+
+        var circles = placements.Select(p =>
+        {
+            var footprint = footprints(p.Model)!;
+            var centre = p.At + Placement2D.ToLevel(footprint.Center * p.Scale, p.Yaw);
+            return (Placement: p, Centre: centre, Radius: MathF.Max(footprint.Size.X, footprint.Size.Y) / 2 * p.Scale, Group: GroupOf(p.Line),
+                Game: games.Contains(p.Model));
+        }).ToList();
+
+        var problems = new List<string>();
+        for (var i = 0; i < circles.Count; i++)
+        for (var j = i + 1; j < circles.Count; j++)
+        {
+            var (a, b) = (circles[i], circles[j]);
+            if (!a.Game && !b.Game)
+                continue;
+            var allowed = a.Game && b.Game && a.Group == b.Group ? 0.25f * MathF.Min(a.Radius, b.Radius) : 0;
+            var depth = a.Radius + b.Radius - Vector2.Distance(a.Centre, b.Centre);
+            if (depth > allowed)
+                problems.Add($"{a.Placement.Model} (line {a.Placement.Line}) and {b.Placement.Model} (line {b.Placement.Line}) overlap by {depth:0.00} m, " +
+                             $"allowed {allowed:0.00} m");
+        }
+        return problems;
     }
 
     [Fact]
