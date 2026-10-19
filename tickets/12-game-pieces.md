@@ -27,8 +27,8 @@ origin; merged in, with main's part instancing).
 
 Run 12.1 to 12.3 in parallel, then 12.4; after it 12.5 and 12.6 in parallel; 12.7 last.
 
-- [12.1](12.1-mesh-cards.md) mesh four card models at 256
-- [12.2](12.2-mesh-dice-houses-chips.md) mesh the tumbled die, Monopoly pieces and chips at 256
+- [12.1](done/12.1-mesh-cards.md) mesh four card models at 256
+- [12.2](done/12.2-mesh-dice-houses-chips.md) mesh the tumbled die, Monopoly pieces and chips at 256
 - [12.3](12.3-remesh-existing-at-256.md) re-mesh the ten 512 models at 256
 - [12.4](12.4-part-split-check.md) part split check and triangle table (after 12.1 to 12.3)
 - [12.5](12.5-unity-check.md) Unity prefabs, showcase and colliders (after 12.4)

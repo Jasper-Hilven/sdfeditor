@@ -19,9 +19,9 @@ games go on the same board in 12.
   variants (`*-fallen`). Each is a turned mushroom (cap = the piece's head), `collider convex`, a root
   `Detail detail=0.5` (big smooth forms, many copies). Heights 2.7 m (pawn) to 5.6 m (king). Materials `materials/chess/chess_{light,dark}_{cap,gills,stem}.sdfmat`.
 - **Meshed** at the `Pipeline to Unity` settings (`--resolution 512 --lods 3`) into `Unity/Assets/Mushrooms/Generated/chess/`:
-  652 s for all 19 on the M4 Max. LOD0 per piece 15k (pawn) – 22k (queen) triangles (before [13](13-chess-no-eyes.md) removed the
+  652 s for all 19 on the M4 Max. LOD0 per piece 15k (pawn) – 22k (queen) triangles (before [13](done/13-chess-no-eyes.md) removed the
   extra meshes); LOD1 about a fifth, LOD2 about a fifteenth.
-- **Chess pieces without eyes and hands**: see [13](13-chess-no-eyes.md); the mesh and triangle figures in this ticket are from before it.
+- **Chess pieces without eyes and hands**: see [13](done/13-chess-no-eyes.md); the mesh and triangle figures in this ticket are from before it.
 - **Baked** with `sdf level`: 100 chunks, 69,269 ground triangles at LOD0, 93 placed models, 2,807 scattered (grass and flowers on
   the hills only).
 - **Unity**: `LevelBuilder.BuildAllInBatch` builds `Chessboard.unity` (builder version 5, with the default day sky); the scene is in the

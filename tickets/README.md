@@ -1,24 +1,25 @@
 # Tickets: the first level
 
 The plan for the first playable level, step by step. Each ticket holds what it needs on its own; do them in order, as each builds on
-the one before.
+the one before. Tickets with no work left move to [`done/`](done/); what is left there is only to look at by hand, as each
+ticket's Status says.
 
 | # | Ticket | Outcome |
 |---|---|---|
-| 00 | [URP port](00-urp-port.md) | Unity on URP; the toon look unchanged; a web build runs |
-| 01 | [Ground](01-ground.md) | `sdf level` bakes a level file to terrain chunks; Unity builds the level scene from them |
-| 02 | [Ground materials and castles](02-ground-materials-and-castles.md) | Grass, dirt, path and tiles on the ground; castles and rocks placed, with colliders |
-| 03 | [Foliage and the instanced renderer](03-foliage.md) | Grass turfs and flowers scattered and drawn instanced, with wind; the renderer is general |
-| 04 | [Hills and island](04-hills-and-island.md) | Instanced tree line on the border hills, crest clusters, the island's rocky underside. Done; left: walking and wind in Play mode, web frame time, a resolution rule for the 512 config |
+| 00 | [URP port](done/00-urp-port.md) | Unity on URP; the toon look unchanged; a web build runs |
+| 01 | [Ground](done/01-ground.md) | `sdf level` bakes a level file to terrain chunks; Unity builds the level scene from them |
+| 02 | [Ground materials and castles](done/02-ground-materials-and-castles.md) | Grass, dirt, path and tiles on the ground; castles and rocks placed, with colliders |
+| 03 | [Foliage and the instanced renderer](done/03-foliage.md) | Grass turfs and flowers scattered and drawn instanced, with wind; the renderer is general |
+| 04 | [Hills and island](done/04-hills-and-island.md) | Instanced tree line on the border hills, crest clusters, the island's rocky underside. Done; left: walking and wind in Play mode, web frame time, a resolution rule for the 512 config |
 | 05 | [Tuning](05-tuning.md) | Budgets met on the high and integrated-GPU/web presets |
-| 06 | [Castles](06-castles.md) | Castle split into instanced parts with LODs per part, shader wall detail, mushroom theme. After 02, **in parallel with 03**, before 04 |
-| 07 | [Sky](07-sky.md) | Sky presets per level from `content/skies/`; Eye-Moon Night for the meadow (eye moon, glowing abyss, spores); sky-tinted toon bands and distance fade, also in the IDE preview. After 02, in parallel with 03; its toon-shader change before 06's shader patterns; preferably before 04 |
-| 08 | [Special effects](08-special-effects.md) | `SpecialEffects` scene: lightning, tracers, goop, exploding mushroom from SDF-intersection pieces |
+| 06 | [Castles](done/06-castles.md) | Castle split into instanced parts with LODs per part, shader wall detail, mushroom theme. After 02, **in parallel with 03**, before 04 |
+| 07 | [Sky](done/07-sky.md) | Sky presets per level from `content/skies/`; Eye-Moon Night for the meadow (eye moon, glowing abyss, spores); sky-tinted toon bands and distance fade, also in the IDE preview. After 02, in parallel with 03; its toon-shader change before 06's shader patterns; preferably before 04 |
+| 08 | [Special effects](done/08-special-effects.md) | `SpecialEffects` scene: lightning, tracers, goop, exploding mushroom from SDF-intersection pieces |
 | 09 | [Castle fixes](09-castle-fixes.md) | Cap red no longer bleeds into stems at coarse LODs; walk-level floors of neighbouring parts 15 cm apart, no z-fighting. After 06; alongside 04 or 07 |
-| 10 | [Sky: remaining](10-sky-remaining.md) | What is left of 07: web frame time and Safari, the sky's motion checked in Play mode, the tower snapshot on the new castle, the showcase snapshot's stray object. After 07 |
+| 10 | [Sky: remaining](done/10-sky-remaining.md) | What is left of 07: web frame time and Safari, the sky's motion checked in Play mode, the tower snapshot on the new castle, the showcase snapshot's stray object. After 07 |
 | 11 | [Chessboard](11-chessboard.md) | Second level: a 160 m chessboard in anarchy chess, 19 mushroom chess pieces placed, `Chessboard.unity` built. Left: sky, web draw calls and budget, straight square edges, Play-mode check. After 03 and 07 |
 | 12 | [Game pieces](12-game-pieces.md) | Mushroom dice, Monopoly houses, dominoes, meeples, chips and cards for the chessboard level: modelled; meshing, Unity check and placement in subtickets 12.1-12.7. After 11 |
-| 13 | [Chess without eyes](13-chess-no-eyes.md) | The 19 chess pieces lose their floating eyes and hands; re-meshed, prefabs and scenes rebuilt. After 11 |
+| 13 | [Chess without eyes](done/13-chess-no-eyes.md) | The 19 chess pieces lose their floating eyes and hands; re-meshed, prefabs and scenes rebuilt. After 11 |
 
 ## The level
 
