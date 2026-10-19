@@ -38,4 +38,4 @@ Depends on: 11. Independent of 12 and 06 (12 places game pieces in `chessboard.l
 
 ## Status
 
-Not started.
+Done. 13.1-13.6 merged. The 19 pieces were edited, re-meshed at 256 cells with 3 LODs (LOD0 about 4k-8k triangles per piece, down from 15k-29k; the old figures were from the 512 run), prefabs, Chessboard.unity, Meadow.unity and Mushrooms.unity regenerated, and a test (`ContentChessPieces_HaveNoEyesOrHands`) added. The eye and hand parts and materials stay: other models use them. Unity batch logs were clean. Left: a Play-mode look at the pieces.
