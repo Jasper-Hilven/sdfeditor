@@ -117,4 +117,10 @@ ceiling, a crowd of pieces close up) and check them by eye. Update the level fil
 
 ## Status
 
-Not started.
+Done. Subtickets 14.1-14.8 merged. `Chessboard.unity` is a closed cube of six chessboards: the floor is the baked board, walls and ceiling are quads drawn by `SdfRoomFace.shader` with colliders on all six faces (`room size=(160,160,160)` in the level file; `LevelRoom.cs`). No hills, island, foliage or sky are baked or built; the camera clears to flat black. Light: one overhead warm directional light, walls and ceiling cast and receive no shadows, pieces shadow the floor (see 14.2).
+
+Deviation: the colour cannot alternate across all 12 cube edges (three squares meet at each corner, two colours). The checker alternates across the floor-wall, wall-ceiling and in-face edges and matches along the four vertical wall-wall edges (`RoomChecker`, tested; an editor check samples all 12 edges).
+
+All 19 chess pieces are Staunton-style (`chess_light`, `chess_dark` materials), the cards are real cards (`card-ace-held` leans on a king), the Monopoly pieces and meeples are plain, dice are renamed `die-red`, `die-red-tumbled`, `die-ivory`, `die-d8`, dominoes and chips are plain. Meshed at 256 cells, 3 LODs. `dotnet build` and `dotnet test` pass (533 + 367); Unity batch logs have no `error CS` or shader errors. Triangles per view (ground plus pieces) about 25k-95k; no draw-call count printed, no budget work.
+
+Left by eye: a Play-mode walk to the walls and ceiling, the lamp tone, the knight's small ears and mane, the toppled house's seat on the board, and 9 of 16 snapshots were not opened. Budgets not measured (will not yet do this).
