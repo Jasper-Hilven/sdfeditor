@@ -1,0 +1,41 @@
+# Meeple: the board game's little person, 2.65 m tall, as a mushroom, its feet on the origin and its front to +z. The flat,
+# soft-edged body of the meeple, 1.9 m from hand to hand and 0.84 m thick, in a chanterelle's golden orange, its round head
+# wearing a fly agaric's scarlet cap for a hat with cream gills under the brim, and a pair of big floating eyes in front of its
+# face.
+format 1
+
+Union
+    # The body: the meeple's outline, legs, arms and head, cut out of a slab and rounded
+    Material material=game_chanterelle_gold
+        Round radius=0.12
+            Extrusion height=0.3
+                SmoothUnion2D smoothness=0.12
+                    # Body and legs, with the gap between the legs cut out
+                    Subtraction2D
+                        Translate2D offset=(0, 0.72)
+                            Trapezoid2D bottomRadius=0.62 topRadius=0.3 height=0.6
+                        Triangle2D a=(-0.24, 0) b=(0.24, 0) c=(0, 0.52)
+                    # The arms, stretched out wide
+                    Translate2D offset=(0, 1.38)
+                        Ellipse2D radii=(0.82, 0.22)
+                    # The head
+                    Translate2D offset=(0, 1.84)
+                        Circle radius=0.3
+    # The cap on the head
+    Material material=amanita_cap
+        Round radius=0.025
+            Intersection
+                Translate translation=(0, 2.18, 0)
+                    Ellipsoid radii=(0.62, 0.48, 0.54)
+                Translate translation=(0, 2.56, 0)
+                    Box size=(0.7, 0.38, 0.6)
+    Material material=game_gills
+        Translate translation=(0, 2.2, 0)
+            Intersection
+                Ellipsoid radii=(0.57, 0.3, 0.49)
+                Box size=(0.6, 0.04, 0.55)
+    # The eyes, one and a half times the scouts', floating just in front of the face
+    SymmetryX
+        Translate translation=(0.15, 1.84, 0.6)
+            Scale scale=(1.5, 1.5, 1.5)
+                Part part=eye

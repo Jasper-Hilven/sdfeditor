@@ -1,0 +1,182 @@
+# Card, ace of mushrooms: a giant playing card 3 m wide, 4.2 m tall and 13 cm thick, centred on the origin and standing in the xy
+# plane with its face to +z, its back the fly agaric's red with white warts. The suit is mushrooms: fly agarics, red with white
+# spots on ivory stems, outlined in dark ink. Every mark is painted flush on the white blank: the blank cut to the front (or back)
+# half of the space and to the 2D shapes of the mark, so the card stays one smooth slab and one mesh; where marks overlap, the
+# later one in the union shows. The blank is written out in each mark rather than used as a part, which would make it a mesh of
+# its own under the marks. The ace has one big mushroom in the middle and an A with a small mushroom in two opposite corners.
+format 1
+
+Union
+    # The blank, 3 m wide, 4.2 m tall and 13 cm thick, with rounded corners and edges
+    Material material=game_wart_white
+        Round radius=0.03
+            Extrusion height=0.035
+                RoundedBox2D size=(1.47, 2.07) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+    # The back: a red panel inside a white border
+    Material material=game_cap_red
+        Intersection
+            Round radius=0.03
+                Extrusion height=0.035
+                    RoundedBox2D size=(1.47, 2.07) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+            Translate translation=(0, 0, -0.5)
+                Extrusion height=0.5
+                    RoundedBox2D size=(1.3, 1.9) radiusTopRight=0.14 radiusBottomRight=0.14 radiusTopLeft=0.14 radiusBottomLeft=0.14
+    # flecked with rows of white warts, every other row smaller and shifted half a step
+    Material material=game_wart_white
+        Intersection
+            Round radius=0.03
+                Extrusion height=0.035
+                    RoundedBox2D size=(1.47, 2.07) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+            Translate translation=(0, 0, -0.5)
+                Intersection
+                    Extrusion height=0.5
+                        RoundedBox2D size=(1.2, 1.8) radiusTopRight=0.1 radiusBottomRight=0.1 radiusTopLeft=0.1 radiusBottomLeft=0.1
+                    Union
+                        LimitedRepetition spacing=0.38 limits=(3, 5, 0)
+                            Extrusion height=0.5
+                                Circle radius=0.1
+                        Translate translation=(0.19, 0.19, 0)
+                            LimitedRepetition spacing=0.38 limits=(3, 4, 0)
+                                Extrusion height=0.5
+                                    Circle radius=0.06
+    # The mushrooms' ink outlines, a little bigger than the mushrooms
+    Material material=game_ink_brown
+        Intersection
+            Round radius=0.03
+                Extrusion height=0.035
+                    RoundedBox2D size=(1.47, 2.07) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+            Translate translation=(0, 0, 0.5)
+                Extrusion height=0.5
+                    Union2D
+                        Translate2D offset=(0, 0.15)
+                            Round2D radius=0.063
+                                Union2D
+                                    Intersection2D
+                                        Ellipse2D radii=(1.05, 0.882)
+                                        Translate2D offset=(0, 1.05)
+                                            Box2D size=(1.26, 1.05)
+                                    Translate2D offset=(0, -0.462)
+                                        RoundedBox2D size=(0.336, 0.504) radiusTopRight=0.063 radiusBottomRight=0.21 radiusTopLeft=0.063 radiusBottomLeft=0.21
+                        Translate2D offset=(-1.18, 1.3)
+                            Round2D radius=0.0126
+                                Union2D
+                                    Intersection2D
+                                        Ellipse2D radii=(0.21, 0.1764)
+                                        Translate2D offset=(0, 0.21)
+                                            Box2D size=(0.252, 0.21)
+                                    Translate2D offset=(0, -0.0924)
+                                        RoundedBox2D size=(0.0672, 0.1008) radiusTopRight=0.0126 radiusBottomRight=0.042 radiusTopLeft=0.0126 radiusBottomLeft=0.042
+                        Translate2D offset=(1.18, -1.3)
+                            Rotate2D angle=3.1416
+                                Round2D radius=0.0126
+                                    Union2D
+                                        Intersection2D
+                                            Ellipse2D radii=(0.21, 0.1764)
+                                            Translate2D offset=(0, 0.21)
+                                                Box2D size=(0.252, 0.21)
+                                        Translate2D offset=(0, -0.0924)
+                                            RoundedBox2D size=(0.0672, 0.1008) radiusTopRight=0.0126 radiusBottomRight=0.042 radiusTopLeft=0.0126 radiusBottomLeft=0.042
+    # Their red caps, and the index letters
+    Material material=game_cap_red
+        Intersection
+            Round radius=0.03
+                Extrusion height=0.035
+                    RoundedBox2D size=(1.47, 2.07) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+            Translate translation=(0, 0, 0.5)
+                Extrusion height=0.5
+                    Union2D
+                        Translate2D offset=(0, 0.15)
+                            Intersection2D
+                                Ellipse2D radii=(1.05, 0.882)
+                                Translate2D offset=(0, 1.05)
+                                    Box2D size=(1.26, 1.05)
+                        Translate2D offset=(-1.18, 1.3)
+                            Intersection2D
+                                Ellipse2D radii=(0.21, 0.1764)
+                                Translate2D offset=(0, 0.21)
+                                    Box2D size=(0.252, 0.21)
+                        Translate2D offset=(1.18, -1.3)
+                            Rotate2D angle=3.1416
+                                Intersection2D
+                                    Ellipse2D radii=(0.21, 0.1764)
+                                    Translate2D offset=(0, 0.21)
+                                        Box2D size=(0.252, 0.21)
+                        Translate2D offset=(-1.18, 1.7)
+                            Union2D
+                                OrientedBox2D a=(-0.13, -0.17) b=(0, 0.17) thickness=0.06
+                                OrientedBox2D a=(0.13, -0.17) b=(0, 0.17) thickness=0.06
+                                OrientedBox2D a=(-0.075, -0.04) b=(0.075, -0.04) thickness=0.05
+                        Translate2D offset=(1.18, -1.7)
+                            Rotate2D angle=3.1416
+                                Union2D
+                                    OrientedBox2D a=(-0.13, -0.17) b=(0, 0.17) thickness=0.06
+                                    OrientedBox2D a=(0.13, -0.17) b=(0, 0.17) thickness=0.06
+                                    OrientedBox2D a=(-0.075, -0.04) b=(0.075, -0.04) thickness=0.05
+    # Their ivory stems
+    Material material=game_porcini_flesh
+        Intersection
+            Round radius=0.03
+                Extrusion height=0.035
+                    RoundedBox2D size=(1.47, 2.07) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+            Translate translation=(0, 0, 0.5)
+                Extrusion height=0.5
+                    Union2D
+                        Translate2D offset=(0, 0.15)
+                            Translate2D offset=(0, -0.462)
+                                RoundedBox2D size=(0.336, 0.504) radiusTopRight=0.063 radiusBottomRight=0.21 radiusTopLeft=0.063 radiusBottomLeft=0.21
+                        Translate2D offset=(-1.18, 1.3)
+                            Translate2D offset=(0, -0.0924)
+                                RoundedBox2D size=(0.0672, 0.1008) radiusTopRight=0.0126 radiusBottomRight=0.042 radiusTopLeft=0.0126 radiusBottomLeft=0.042
+                        Translate2D offset=(1.18, -1.3)
+                            Rotate2D angle=3.1416
+                                Translate2D offset=(0, -0.0924)
+                                    RoundedBox2D size=(0.0672, 0.1008) radiusTopRight=0.0126 radiusBottomRight=0.042 radiusTopLeft=0.0126 radiusBottomLeft=0.042
+    # The white spots on the caps
+    Material material=game_wart_white
+        Intersection
+            Round radius=0.03
+                Extrusion height=0.035
+                    RoundedBox2D size=(1.47, 2.07) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+            Translate translation=(0, 0, 0.5)
+                Extrusion height=0.5
+                    Union2D
+                        Translate2D offset=(0, 0.15)
+                            Translate2D offset=(0, 0.546)
+                                Circle radius=0.168
+                        Translate2D offset=(0, 0.15)
+                            Translate2D offset=(-0.567, 0.273)
+                                Circle radius=0.126
+                        Translate2D offset=(0, 0.15)
+                            Translate2D offset=(0.546, 0.315)
+                                Circle radius=0.1365
+                        Translate2D offset=(0, 0.15)
+                            Translate2D offset=(0.21, 0.21)
+                                Circle radius=0.0735
+                        Translate2D offset=(-1.18, 1.3)
+                            Translate2D offset=(0, 0.1092)
+                                Circle radius=0.0336
+                        Translate2D offset=(-1.18, 1.3)
+                            Translate2D offset=(-0.1134, 0.0546)
+                                Circle radius=0.0252
+                        Translate2D offset=(-1.18, 1.3)
+                            Translate2D offset=(0.1092, 0.063)
+                                Circle radius=0.0273
+                        Translate2D offset=(-1.18, 1.3)
+                            Translate2D offset=(0.042, 0.042)
+                                Circle radius=0.0147
+                        Translate2D offset=(1.18, -1.3)
+                            Rotate2D angle=3.1416
+                                Translate2D offset=(0, 0.1092)
+                                    Circle radius=0.0336
+                        Translate2D offset=(1.18, -1.3)
+                            Rotate2D angle=3.1416
+                                Translate2D offset=(-0.1134, 0.0546)
+                                    Circle radius=0.0252
+                        Translate2D offset=(1.18, -1.3)
+                            Rotate2D angle=3.1416
+                                Translate2D offset=(0.1092, 0.063)
+                                    Circle radius=0.0273
+                        Translate2D offset=(1.18, -1.3)
+                            Rotate2D angle=3.1416
+                                Translate2D offset=(0.042, 0.042)
+                                    Circle radius=0.0147

@@ -1,0 +1,23 @@
+# Webcap d8: a giant eight-sided die in a violet webcap's silky purple, about 2 m tall, its edges softly rounded, with a single
+# white wart in the middle of each of its eight faces. It lies on one face, as a d8 comes to rest, the opposite face up.
+format 1
+collider convex
+
+# Resting on a face: its inner radius, size / √3, above the board
+Translate translation=(0, 1.03, 0)
+    # Turned so the face whose normal is (1, 1, 1) points up: a quarter turn about x brings that normal to (1, √2, 0), then
+    # atan(1 / √2) about z stands it upright
+    Rotate rotation=(-0.7853982, 0, 0.6154797)
+        SmoothUnion smoothness=0.03
+            Material material=game_webcap_violet
+                Round radius=0.12
+                    Octahedron size=1.58
+            # The warts: a ball sunk into the middle of each face, (size / 3)(±1, ±1, ±1), standing 13 cm proud
+            Material material=game_wart_white
+                Union
+                    SymmetryXZ
+                        Translate translation=(0.5, 0.5, 0.5)
+                            Sphere radius=0.26
+                    SymmetryXZ
+                        Translate translation=(0.5, -0.5, 0.5)
+                            Sphere radius=0.26

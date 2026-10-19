@@ -1,0 +1,45 @@
+# Die pips: the 21 pips of a six-sided die 2.2 m on a side, centred on the origin, as low domed warts like those on a fly agaric's
+# cap, half sunk into the faces so they stand 8 cm proud. One on top (+y), two in front (+z), three on the right (+x), four on the
+# left, five at the back and six underneath, opposite faces adding up to seven as on a real die. The one is a single big spot. The
+# pips are form only: the die using them wraps them in its own material.
+format 1
+
+Union
+    # One, on top: a single big spot
+    Translate translation=(0, 1.1, 0)
+        Ellipsoid radii=(0.3, 0.1, 0.3)
+    # Two, in front: corner to corner
+    Translate translation=(0.55, 0.55, 1.1)
+        Ellipsoid radii=(0.17, 0.17, 0.08)
+    Translate translation=(-0.55, -0.55, 1.1)
+        Ellipsoid radii=(0.17, 0.17, 0.08)
+    # Three, on the right: the diagonal
+    Translate translation=(1.1, 0.55, 0.55)
+        Ellipsoid radii=(0.08, 0.17, 0.17)
+    Translate translation=(1.1, 0, 0)
+        Ellipsoid radii=(0.08, 0.17, 0.17)
+    Translate translation=(1.1, -0.55, -0.55)
+        Ellipsoid radii=(0.08, 0.17, 0.17)
+    # Four, on the left: the corners
+    Translate translation=(-1.1, 0.55, 0.55)
+        Ellipsoid radii=(0.08, 0.17, 0.17)
+    Translate translation=(-1.1, 0.55, -0.55)
+        Ellipsoid radii=(0.08, 0.17, 0.17)
+    Translate translation=(-1.1, -0.55, 0.55)
+        Ellipsoid radii=(0.08, 0.17, 0.17)
+    Translate translation=(-1.1, -0.55, -0.55)
+        Ellipsoid radii=(0.08, 0.17, 0.17)
+    # Five, at the back: the corners and the centre
+    SymmetryX
+        Union
+            Translate translation=(0.55, 0.55, -1.1)
+                Ellipsoid radii=(0.17, 0.17, 0.08)
+            Translate translation=(0.55, -0.55, -1.1)
+                Ellipsoid radii=(0.17, 0.17, 0.08)
+    Translate translation=(0, 0, -1.1)
+        Ellipsoid radii=(0.17, 0.17, 0.08)
+    # Six, underneath: two rows of three
+    SymmetryX
+        Translate translation=(0.55, -1.1, 0)
+            LimitedRepetition spacing=0.55 limits=(0, 0, 1)
+                Ellipsoid radii=(0.17, 0.08, 0.17)

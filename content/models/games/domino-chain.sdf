@@ -1,0 +1,20 @@
+# Domino chain: three giant dominoes caught mid-topple, about 7 m long and 4 m tall. The front one, the 4-1, still stands upright
+# facing +z; behind it the 6-3 has tipped 30° forward and leans with its top on the 4-1's back; behind that the 2-6 has tipped 50°
+# and leans on the 6-3. Each tilts about the middle of its bottom edge, which sinks a few centimetres into the ground as it turns.
+format 1
+collider mesh
+
+Union
+    # The 4-1, upright at the front
+    Translate translation=(0, 2, 2.6)
+        Part part=domino_4_1
+    # The 6-3, tipped forward 0.522 rad: its top front edge, 4 sin θ + 0.32 cos θ ahead of its foot, rests on the 4-1's back face,
+    # 2.28 m ahead
+    Rotate rotation=(0.522, 0, 0)
+        Translate translation=(0, 2, 0)
+            Part part=domino_6_3
+    # The 2-6, tipped forward 0.87 rad from 2.3 m behind, its top front edge on the 6-3's back face
+    Translate translation=(0, 0, -2.3)
+        Rotate rotation=(0.87, 0, 0)
+            Translate translation=(0, 2, 0)
+                Part part=domino_2_6
