@@ -13,7 +13,8 @@ namespace SdfMushrooms.Editor
     /// <list type="bullet">
     /// <item>Tools > SDF Mushrooms > Build Web, or Build and Run Web, which serves it locally and opens the browser.</item>
     /// <item>Without a window: <c>Unity -batchmode -quit -projectPath Unity -buildTarget WebGL -executeMethod
-    /// SdfMushrooms.Editor.WebBuild.Build</c> (the "Unity Web Build" run configuration), which exits with an error if the build fails.</item>
+    /// SdfMushrooms.Editor.WebBuild.Build</c> (the "Unity Web Build" run configuration), which exits with an error if the build fails.
+    /// <c>-scene Assets/Scenes/Meadow.unity</c> (repeatable) builds those scenes instead of the build settings', the first one starting.</item>
     /// </list>
     /// Compressed with gzip, with the loader able to decompress it itself, so any static file server shows it (e.g.
     /// <c>python3 -m http.server -d Unity/Builds/Web</c>), not only one that sends the Content-Encoding header.
@@ -45,7 +46,9 @@ namespace SdfMushrooms.Editor
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
 
-            var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
+            var args = System.Environment.GetCommandLineArgs();
+            var chosen = args.Select((a, i) => a == "-scene" && i + 1 < args.Length ? args[i + 1] : null).Where(a => a != null).ToArray();
+            var scenes = chosen.Length > 0 ? chosen : EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
             if (scenes.Length == 0)
             {
                 Debug.LogError("SDF mushrooms: no scenes in the build settings to build for the web");
