@@ -1,0 +1,41 @@
+# Stone gate turret: a slim round tower 7.4 m to the eaves with a conical tile roof; two of them, leaning apart, frame the gate.
+# Modelled at its real size. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at
+# 5.3 m, 30 cm above the wall-walk (the floor heights are in castle1.sdf), a balcony round the tower that the walk runs onto; the
+# layout may scale a tower up only if it sinks it by as much as the ring rose. 
+format 1
+collider mesh
+Detail detail=0.4
+    # Cut off 30 cm below the ground
+    Intersection
+        Translate translation=(0, 11.7, 0)
+            Box size=(12, 12, 12)
+        Union
+            Material material=castle_stone
+                Union
+                    # The shaft with a batter at its foot
+                    Translate translation=(0, 3.720, 0)
+                        CappedCone height=3.720 bottomRadius=1.4 topRadius=0.96
+                    Translate translation=(0, 0.9, 0)
+                        CappedCone height=0.9 bottomRadius=2.15 topRadius=1.35
+                    # The ring: a flat stone balcony round the tower with a bevelled skirt under its edge
+                    Translate translation=(0, 5.236, 0)
+                        CappedCylinder radius=2.32 height=0.064
+                    Translate translation=(0, 5.06, 0)
+                        Round radius=0.03
+                            CappedCone height=0.128 bottomRadius=2.2 topRadius=2.32
+                    # The corbelled top: the shaft flares into the drum under the roof
+                    Translate translation=(0, 6.84, 0)
+                        CappedCone height=0.6 bottomRadius=0.96 topRadius=1.7
+                    Translate translation=(0, 7.74, 0)
+                        CappedCylinder radius=1.7 height=0.3
+            # Glowing windows on the side facing out
+            Material material=flower_center
+                Union
+                    Translate translation=(0, 2.4, 1.138)
+                        Ellipsoid radii=(0.3, 0.5, 0.25)
+                    Translate translation=(0, 6.43, 0.900)
+                        Ellipsoid radii=(0.3, 0.5, 0.25)
+            # The conical roof of tiles, with a little overhang
+            Material material=castle_roof
+                Translate translation=(0, 9.44, 0)
+                    CappedCone height=1.4 bottomRadius=2.0 topRadius=0.06

@@ -1,0 +1,54 @@
+# Stone gate bay: a stone_wall_bay with the gate cut through it, a passage 3.2 m wide under a round arch 4.6 m high, framed on the
+# outer side by a timber surround (castle_wood). Two stone_gate_turrets frame it in the layout.
+# The passage is cut 10 cm below y = 0, so its floor is the level's tiled ground, not a face of its own in the ground's plane.
+format 1
+collider mesh
+Detail detail=0.3
+    # Cut off 30 cm below the ground
+    Intersection
+        Translate translation=(0, 11.7, 0)
+            Box size=(12, 12, 12)
+        Union
+            Material material=castle_stone
+                Subtraction
+                    Union
+                        # The core, the walk on top of it and the parapet on its outer edge
+                        Translate translation=(0, 2.4, 0)
+                            Box size=(1.9, 2.4, 0.6)
+                        Translate translation=(0, 4.85, -0.05)
+                            Box size=(1.9, 0.15, 1.05)
+                        Translate translation=(0, 5.25, 0.85)
+                            Box size=(1.9, 0.25, 0.15)
+                        # The batter: the foot of the wall slopes out on both faces, 1.1 m from the middle at the ground, 0.6 m at 2.4 m
+                        Intersection
+                            Translate translation=(0, 1.2, 0)
+                                Box size=(1.9, 1.2, 1.2)
+                            Plane normal=(0, 0.204, 0.979) height=-1.077
+                            Plane normal=(0, 0.204, -0.979) height=-1.077
+                        # Corbels under the overhanging walk, outer and inner, from 4.2 m up to the walk's underside
+                        Intersection
+                            Translate translation=(0, 4.525, 0.55)
+                                Box size=(1.9, 0.325, 0.45)
+                            Plane normal=(0, -0.524, 0.852) height=1.689
+                        Intersection
+                            Translate translation=(0, 4.525, -0.6)
+                                Box size=(1.9, 0.325, 0.5)
+                            Plane normal=(0, -0.61, -0.793) height=2.087
+                    Union
+                        Translate translation=(0, 1.45, 0)
+                            Box size=(1.6, 1.55, 2)
+                        ArbitraryCappedCylinder a=(0, 3, -2) b=(0, 3, 2) radius=1.6
+            # The timber surround: an arch ring and two posts on the outer face
+            Material material=castle_wood
+                Union
+                    Translate translation=(0, 3, 0.64)
+                        Subtraction
+                            Intersection
+                                Translate translation=(0, 0.9, 0)
+                                    Box size=(1.9, 0.9, 0.08)
+                                ArbitraryCappedCylinder a=(0, 0, -1) b=(0, 0, 1) radius=1.82
+                            ArbitraryCappedCylinder a=(0, 0, -1) b=(0, 0, 1) radius=1.6
+                    Translate translation=(1.71, 1.5, 0.64)
+                        Box size=(0.11, 1.5, 0.08)
+                    Translate translation=(-1.71, 1.5, 0.64)
+                        Box size=(0.11, 1.5, 0.08)

@@ -1,0 +1,19 @@
+# Stone castle lantern: a small glowing lamp hanging on an iron hook, about 0.25 m tall. Modelled at its own origin, the hook's
+# attachment point, facing +z: the hook reaches out 0.3 m to +z, then the lamp hangs down -y from its tip.
+format 1
+collider none
+shadows off
+cull 40
+outline off
+Detail detail=0.05
+    Union
+        # The hook: a short arm out from the wall, a curl down, and a thin wire to the lamp
+        Material material=castle_iron
+            Union
+                ArbitraryRoundCone a=(0, 0, 0) b=(0, 0, 0.24) radiusA=0.022 radiusB=0.02
+                ArbitraryRoundCone a=(0, 0, 0.24) b=(0, -0.05, 0.29) radiusA=0.02 radiusB=0.018
+                ArbitraryRoundCone a=(0, -0.05, 0.29) b=(0, -0.085, 0.3) radiusA=0.018 radiusB=0.016
+        # The lamp, a glowing pane in an iron cage
+        Material material=flower_center
+            Translate translation=(0, -0.18, 0.3)
+                Ellipsoid radii=(0.085, 0.115, 0.085)

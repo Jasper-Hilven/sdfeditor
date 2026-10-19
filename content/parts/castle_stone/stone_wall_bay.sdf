@@ -1,0 +1,36 @@
+# Stone wall bay: one bay of the stone castle's curtain wall, 3.8 m long (x), its outer face towards +z, standing on y = 0. Same
+# footprint and heights as castle_wall_bay: a core 1.2 m thick of dressed stone with a batter at the foot, corbels under a 2.1 m
+# wall-walk at 5 m (the lowest of the castle's floor heights, see castle1.sdf) and a parapet on its outer edge.
+# The castle's layout turns one bay per chord of its oval wall; neighbouring bays overlap under a stone_wall_joint, whose pad
+# above the walk covers the overlap and the seam. Merlons are placed by the layout.
+format 1
+collider mesh
+Detail detail=0.3
+    # Cut off 30 cm below the ground
+    Intersection
+        Translate translation=(0, 11.7, 0)
+            Box size=(12, 12, 12)
+        Material material=castle_stone
+            Union
+                # The core, the walk on top of it and the parapet on its outer edge
+                Translate translation=(0, 2.4, 0)
+                    Box size=(1.9, 2.4, 0.6)
+                Translate translation=(0, 4.85, -0.05)
+                    Box size=(1.9, 0.15, 1.05)
+                Translate translation=(0, 5.25, 0.85)
+                    Box size=(1.9, 0.25, 0.15)
+                # The batter: the foot of the wall slopes out on both faces, 1.1 m from the middle at the ground, 0.6 m at 2.4 m
+                Intersection
+                    Translate translation=(0, 1.2, 0)
+                        Box size=(1.9, 1.2, 1.2)
+                    Plane normal=(0, 0.204, 0.979) height=-1.077
+                    Plane normal=(0, 0.204, -0.979) height=-1.077
+                # Corbels under the overhanging walk, outer and inner, from 4.2 m up to the walk's underside
+                Intersection
+                    Translate translation=(0, 4.525, 0.55)
+                        Box size=(1.9, 0.325, 0.45)
+                    Plane normal=(0, -0.524, 0.852) height=1.689
+                Intersection
+                    Translate translation=(0, 4.525, -0.6)
+                        Box size=(1.9, 0.325, 0.5)
+                    Plane normal=(0, -0.61, -0.793) height=2.087
