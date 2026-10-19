@@ -7,6 +7,13 @@ what is left is to mesh them into Unity at a bearable cost, check them there, an
 Depends on: 11 (the chessboard level, `content/levels/chessboard.level`: 20 × 20 squares of 8 m, 160 m square, centred on the
 origin; merged in, with main's part instancing).
 
+## Status
+
+Done, except the triangle budget, which will not yet be done (scope change). 12.1-12.7 are merged: the 20 models are meshed at 256
+cells with 3 LODs, are prefabs with colliders in Unity, 37 of them are placed on the chessboard (no overlaps, tested), and
+`Chessboard.unity` is rebuilt with them and looked at in snapshots (pieces stand on the board). Left: the measured triangle and
+draw-call budget with the 37 pieces (high about 2M, web about 500k triangles and 200 draw calls), and a Play-mode look at the board.
+
 ## Done
 
 - 20 models in `content/models/games/`, each with a `collider` line, base on y = 0, sizes 1.5–7 m:
@@ -75,13 +82,13 @@ Findings of the part split check (12.4):
 
 Run 12.1 to 12.3 in parallel, then 12.4; after it 12.5 and 12.6 in parallel; 12.7 last.
 
-- [12.1](done/12.1-mesh-cards.md) mesh four card models at 256
-- [12.2](done/12.2-mesh-dice-houses-chips.md) mesh the tumbled die, Monopoly pieces and chips at 256
-- [12.3](done/12.3-remesh-existing-at-256.md) re-mesh the ten 512 models at 256
-- [12.4](done/12.4-part-split-check.md) part split check and triangle table (after 12.1 to 12.3)
-- [12.5](done/12.5-unity-check.md) Unity prefabs, showcase and colliders (after 12.4)
-- [12.6](done/12.6-placement.md) placement with overlap check and test (after 12.4)
-- [12.7](12.7-budget-rebuild.md) triangle budget, rebake and rebuild (after 12.5 and 12.6)
+- [12.1](12.1-mesh-cards.md) mesh four card models at 256
+- [12.2](12.2-mesh-dice-houses-chips.md) mesh the tumbled die, Monopoly pieces and chips at 256
+- [12.3](12.3-remesh-existing-at-256.md) re-mesh the ten 512 models at 256
+- [12.4](12.4-part-split-check.md) part split check and triangle table (after 12.1 to 12.3)
+- [12.5](12.5-unity-check.md) Unity prefabs, showcase and colliders (after 12.4)
+- [12.6](12.6-placement.md) placement with overlap check and test (after 12.4)
+- [12.7](12.7-budget-rebuild.md) rebake and rebuild with the placed pieces, snapshot check (triangle budget: will not yet do this; after 12.5 and 12.6)
 
 ## To do
 
