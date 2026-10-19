@@ -151,22 +151,24 @@ splitting into parts**. The pick decides the part kit.
 
 ## Acceptance
 
-- `castle0` is built from separate parts. The glb holds one mesh per part kind and one node per use, and the prefab shows each use
+- [x] `castle0` is built from separate parts. The glb holds one mesh per part kind and one node per use, and the prefab shows each use
   with its own LOD group, switching independently as the camera moves along the walls.
-- No gaps, z-fighting or visible seams at the joins from 1.5 m, at any LOD combination.
-- Walls show stone or fungus detail from the shader with no triangle cost. The detail fades with distance with no shimmer and no pop
-  at LOD switches.
-- The triangle budget above is met. Report draw calls per castle on both presets, before and after step 7.
-- The castle reads as a castle and as part of the mushroom world. Shown in concept renders and in level snapshots from the field and
+- [x] No gaps, z-fighting or visible seams at the joins from 1.5 m, at any LOD combination.
+- [x] Walls show stone or fungus detail from the shader with no triangle cost (castle_wall stones, castle_stem fibres, castle_shelf gills).
+- [ ] The detail fades with distance with no shimmer and no pop at LOD switches: the fade (25 to 40 m) is built, but the shimmer and
+  LOD0/1 switch tests were not run. Fibre look judged by eye only.
+- [ ] The triangle budget above is met: high yes (at most 184.7k in the views measured); web courtyard about 85k against the 60 to 80k aim,
+  so not met. Draw calls before and after step 7 are in the first cost table above; the second table has the current ones.
+- [x] The castle reads as a castle and as part of the mushroom world. Shown in concept renders and in level snapshots from the field and
   the courtyard.
-- Courtyard, stairs and wall-walk are walkable, and the walls, towers and gate block the player.
-- Existing models that use a part only once bake as before (byte-identical glb where nothing changed).
+- [x] Courtyard, stairs and wall-walk are walkable, and the walls, towers and gate block the player.
+- [x] Existing models that use a part only once bake as before (byte-identical glb where nothing changed).
 
 ## Status
 
-Done except step 5 (shader wall patterns), which waits for the sky branch (07) to be merged into main, since 07 rewrites
-`SdfToon.shader`'s colour stage. Phase 1 is committed on `castles` (c660541) and main (03, 07) is merged in (7d4ff48); the rest is not
-committed.
+Done, including steps 5 and 6's further details (shader wall patterns and the distance fade, window frames, wall shelves, lanterns
+and veils; subtickets 06.1 to 06.11, listed at the end). Phase 1 is committed on `castles` (c660541) and main (03, 07) is merged in
+(7d4ff48); steps 5 and 6's details are committed after that (see the block below).
 
 - **Part instances** (`PartSplitter`, `ModelMesher`, `GlbWriter`): a part used two or more times (symmetries and repetitions count
   their copies), every use through rigid placements only, is meshed once in its own file's space; each use is a glTF node `part.k`
@@ -239,10 +241,54 @@ To check by hand:
 - Shadow cascades: shadow-caster triangles for the castle group are not logged separately.
 - Looking at the courtyard from the wall-walk, and the castle's look at night once 07 is merged (glowing windows rely on it).
 
-Step 5 (shader patterns, distance fade) and step 6's further detail pieces (window frames, shelf fungi on walls, lanterns, veils)
-are not started.
+**Steps 5 and 6 details (subtickets 06.1 to 06.11).**
 
-## Subtickets for what is left (step 5 and step 6's further details)
+- **Pattern pipeline**: a `.sdfmat` takes one optional line `pattern stones|fibres|gills size=<m> [grout=<m>]` (default grout
+  `size / 20`, 06.1, f44e033). `MaterialFile.ReadPattern` returns it; `MaterialFile.Read` is unchanged. The glb's
+  `extras.sdf.materials[i].pattern` carries `{kind, size, grout}` only for patterned materials; castle0 at 128 and birch0 at 256 mesh
+  byte-identically. `MushroomBuilder` (`BuilderVersion` 13, 06.2, 39352c0) writes **UV7** = (kind, size, grout, weight) on meshes with
+  a patterned material (weight 0 at the border of a patterned material); meshes without a pattern have none. `LevelBuilder.Mirrored`
+  already copied every channel, so it is unchanged. `SdfPattern.hlsl` (06.3, 40a70e0) draws stones, fibres and gills per pixel in the
+  part's object space, with ink lines (`_ToonInk`) and a fade to the mean colour from 25 to 40 m plus an `fwidth` term. The fragment
+  in `SdfToon.shader` keeps the `glow` argument of `SdfToonShade` and the final `SkyFade(color, input.positionWS)`. Object-space
+  position and normal are interpolators (`uv7` TEXCOORD10, TEXCOORD11, TEXCOORD12): 13 of WebGL2's 16 varyings. The outline shader and
+  `SdfToonFar.shader` are untouched. The IDE preview and `sdf render` do not draw patterns (06 did not ask for it).
+- **Castle materials** (06.4, d88b79d): `castle_wall` (stones 0.55 / 0.035) on the wall bays and the gate bay's wall; `castle_stem`
+  (fibres 0.08 / 0.012) on the towers, keep, gate turrets and joint stems; `castle_shelf` (gills 0.09 / 0.012) on the stairs' shelf
+  fungi. Caps, the gate's veil and the small details are unpatterned.
+- **Pattern tuning** (06.5, 3b1e002; 06.11, b231e04): the fibre noise distance now scales with `2.5 * size` (it read as large blotches),
+  then fibre ink is 0.4 of the surface's ink (`SDF_FIBRE_INK`), since fibres still read as bark beside the stone courses.
+- **Detail pieces** (06.6 to 06.9, 06.10 deac55f): `castle_window_frame`, `castle_wall_shelf`, `castle_lantern`, `castle_veil` in
+  `content/parts/castle/` (all `collider none`, `shadows off`, `outline off`; `cull` 35, 35, 40, 35). Placed in `castle0`: 16 window
+  frames, 12 wall shelves, 6 lanterns, 4 veils. LOD0 triangles per piece 200 / 176 / 226 / 224. The castle at LOD0 is about 98.6k, +8%
+  over the 91k above. Rebuilt in Unity in 06.11 (b231e04); the pieces go through the instanced renderer with their cull distances.
+- **Cost** with the details and patterns (GameObjects plus instanced group, outlines included, shadow casters not):
+
+  | View | Draws | Triangles |
+  |---|---|---|
+  | high, far end | 20 | 22.9k |
+  | high, meadow 28 m before the gate | 28 | 58.0k |
+  | high, at the gate | 31 | 184.7k |
+  | high, courtyard | 26 | 166.1k |
+  | high, courtyard gate | 46 | 131.8k |
+  | high, wall-walk | 24 | 89.6k |
+  | high, wall joint | 31 | 144.2k |
+  | high, tower foot | 44 | 150.9k |
+  | web, far end | 20 | 22.9k |
+  | web, courtyard | 39 | 85.0k |
+
+  Web in the courtyard is about 85k, over the 60 to 80k aim. The pattern's web-preset ALU is only estimated, at about 200 worst case.
+
+To check by hand (steps 5 and 6):
+
+- No shimmer test by two snapshots a few cm apart at 20, 30 and 40 m, and no LOD0/LOD1 switch test with the pattern.
+- Cull distances of the detail pieces (35 to 40 m) were not measured; no 1.5 m detail close-up of the pieces was taken.
+- The gate lanterns and the joint shelves were not seen in renders; the night look of lanterns and window panes was not checked.
+- The fibre look was judged by eye only. The pattern's web ALU is an estimate, not a device measurement.
+- Unity `LevelSnapshot.Capture` hung in batch mode after writing its snapshots and had to be killed; the Meadow, Chessboard and
+  Mushrooms scenes were regenerated and committed.
+
+## Subtickets (step 5 and step 6's further details, all done)
 
 Shared rules: [06.0](06.0-rules.md). Order: 06.1, 06.3, 06.6 to 06.9 are independent; 06.2 and 06.4 follow 06.1; 06.5 follows
 06.2, 06.3 and 06.4; 06.10 follows 06.4 and 06.6 to 06.9; 06.11 follows 06.5 and 06.10. The IDE preview does not draw patterns (06 does
