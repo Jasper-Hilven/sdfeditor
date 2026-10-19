@@ -4,20 +4,23 @@
 format 1
 collider mesh
 
-Union
-    # The card, its bottom edge sunk 5 cm into the ground
-    Translate translation=(0, 2.05, 0)
-        Part part=card_ace
-    # The hands, three and a half times the scouts', fingers pointing in across the card's edges (a quarter turn about y turns
-    # them from +z to -x), the left one mirrored
-    SymmetryX
-        Translate translation=(1.62, 2.1, 0)
-            Scale scale=(3.5, 3.5, 3.5)
-                Rotate rotation=(0, -1.5707964, 0)
-                    Material material=amanita_stem
-                        Part part=hand
-    # The eyes, two and a half times the scouts', just over the top edge and a little in front of it
-    SymmetryX
-        Translate translation=(0.32, 4.3, 0.12)
-            Scale scale=(2.5, 2.5, 2.5)
-                Part part=eye
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Union
+        # The card, its bottom edge sunk 5 cm into the ground
+        Translate translation=(0, 2.05, 0)
+            Part part=card_ace
+        # The hands, three and a half times the scouts', fingers pointing in across the card's edges (a quarter turn about y turns
+        # them from +z to -x), the left one mirrored
+        SymmetryX
+            Translate translation=(1.62, 2.1, 0)
+                Scale scale=(3.5, 3.5, 3.5)
+                    Rotate rotation=(0, -1.5707964, 0)
+                        Material material=amanita_stem
+                            Part part=hand
+        # The eyes, two and a half times the scouts', just over the top edge and a little in front of it
+        SymmetryX
+            Translate translation=(0.32, 4.3, 0.12)
+                Scale scale=(2.5, 2.5, 2.5)
+                    Part part=eye

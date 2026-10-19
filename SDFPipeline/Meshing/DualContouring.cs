@@ -660,38 +660,79 @@ public static class DualContouring
         var suspects = new HashSet<int>(suspectFaces);
         for (var round = 0; round < UnfoldRounds && suspects.Count > 0; round++)
         {
+            var suspectArray = suspects.ToArray();
+            var isFolded = new bool[suspectArray.Length];
+            Parallel.For(0, suspectArray.Length, s =>
+            {
+                var t = suspectArray[s];
+                isFolded[s] = !facesOut(positions[triangles[3 * t]], positions[triangles[3 * t + 1]], positions[triangles[3 * t + 2]]);
+            });
             var folded = new SortedSet<int>();
-            foreach (var t in suspects)
-            {
-                var (a, b, c) = (triangles[3 * t], triangles[3 * t + 1], triangles[3 * t + 2]);
-                if (!facesOut(positions[a], positions[b], positions[c]))
-                    folded.UnionWith([a, b, c]);
-            }
+            for (var s = 0; s < suspectArray.Length; s++)
+                if (isFolded[s])
+                    folded.UnionWith(triangles.AsSpan(3 * suspectArray[s], 3).ToArray());
 
-            // One vertex at a time, so neighbours see each other's moves; only the faces of moved vertices need looking at again
+            // As if one vertex at a time in order, so neighbours see each other's moves: a vertex's move depends only on the corners of
+            // its faces, so vertices that share no face are moved at the same time, in waves, each after every earlier vertex it shares
+            // a face with. The result is the same as moving them one by one. Only the faces of moved vertices need looking at again
             suspects.Clear();
-            foreach (var vertex in folded)
+            foreach (var wave in Waves(folded, trianglesOf, triangles))
             {
-                if (AllFaceOut(vertex, positions[vertex]))
-                    continue;
-                var ring = Vector3.Zero;
-                var ringCount = 0;
-                foreach (var t in trianglesOf[vertex])
-                    for (var c = 0; c < 3; c++)
-                        if (triangles[3 * t + c] != vertex) (ring, ringCount) = (ring + positions[triangles[3 * t + c]], ringCount + 1);
-                ring = ringCount > 0 ? ring / ringCount : positions[vertex];
-
-                foreach (var (towards, t) in (ReadOnlySpan<(Vector3, float)>)
-                         [(massPoints[vertex], 0.25f), (massPoints[vertex], 0.5f), (massPoints[vertex], 0.75f), (massPoints[vertex], 1f), (ring, 0.5f), (ring, 1f)])
+                var moves = new (bool moved, Vector3 to)[wave.Length];
+                Parallel.For(0, wave.Length, w => moves[w] = Unfolded(wave[w]));
+                for (var w = 0; w < wave.Length; w++)
                 {
-                    var candidate = Vector3.Lerp(positions[vertex], towards, t);
-                    if (!AllFaceOut(vertex, candidate))
+                    if (!moves[w].moved)
                         continue;
-                    positions[vertex] = candidate;
-                    suspects.UnionWith(trianglesOf[vertex]);
-                    break;
+                    positions[wave[w]] = moves[w].to;
+                    suspects.UnionWith(trianglesOf[wave[w]]);
                 }
             }
         }
+
+        // Where the vertex should go so that all its faces face out, if it needs to and can
+        (bool moved, Vector3 to) Unfolded(int vertex)
+        {
+            if (AllFaceOut(vertex, positions[vertex]))
+                return (false, default);
+            var ring = Vector3.Zero;
+            var ringCount = 0;
+            foreach (var t in trianglesOf[vertex])
+                for (var c = 0; c < 3; c++)
+                    if (triangles[3 * t + c] != vertex) (ring, ringCount) = (ring + positions[triangles[3 * t + c]], ringCount + 1);
+            ring = ringCount > 0 ? ring / ringCount : positions[vertex];
+
+            foreach (var (towards, t) in (ReadOnlySpan<(Vector3, float)>)
+                     [(massPoints[vertex], 0.25f), (massPoints[vertex], 0.5f), (massPoints[vertex], 0.75f), (massPoints[vertex], 1f), (ring, 0.5f), (ring, 1f)])
+            {
+                var candidate = Vector3.Lerp(positions[vertex], towards, t);
+                if (AllFaceOut(vertex, candidate))
+                    return (true, candidate);
+            }
+            return (false, default);
+        }
+    }
+
+    /// <summary>
+    /// The vertices in waves: each vertex in the wave after the latest one holding an earlier vertex (in their order) it shares a face
+    /// with, so no two in a wave share a face and each comes after every earlier vertex whose move it would see.
+    /// </summary>
+    private static List<int[]> Waves(SortedSet<int> vertices, List<int>[] trianglesOf, int[] triangles)
+    {
+        var waveOf = new Dictionary<int, int>();
+        var waves = new List<List<int>>();
+        foreach (var vertex in vertices)
+        {
+            var wave = 0;
+            foreach (var t in trianglesOf[vertex])
+                for (var c = 0; c < 3; c++)
+                    if (waveOf.TryGetValue(triangles[3 * t + c], out var earlier))
+                        wave = Math.Max(wave, earlier + 1);
+            waveOf[vertex] = wave;
+            if (wave == waves.Count)
+                waves.Add([]);
+            waves[wave].Add(vertex);
+        }
+        return waves.Select(w => w.ToArray()).ToList();
     }
 }

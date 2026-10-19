@@ -4,15 +4,18 @@
 format 1
 collider mesh
 
-Union
-    # The king, its foot at -z, leaning towards +z by asin(1.6 / 4.2), so its top edge reaches the middle
-    Translate translation=(0, 0, -1.6)
-        Rotate rotation=(0.3909, 0, 0)
-            Translate translation=(0, 2.1, 0)
-                Part part=card_king
-    # The three, its foot at +z, turned round to face -z, leaning towards -z
-    Translate translation=(0, 0, 1.6)
-        Rotate rotation=(-0.3909, 0, 0)
-            Rotate rotation=(0, 3.1415927, 0)
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Union
+        # The king, its foot at -z, leaning towards +z by asin(1.6 / 4.2), so its top edge reaches the middle
+        Translate translation=(0, 0, -1.6)
+            Rotate rotation=(0.3909, 0, 0)
                 Translate translation=(0, 2.1, 0)
-                    Part part=card_three
+                    Part part=card_king
+        # The three, its foot at +z, turned round to face -z, leaning towards -z
+        Translate translation=(0, 0, 1.6)
+            Rotate rotation=(-0.3909, 0, 0)
+                Rotate rotation=(0, 3.1415927, 0)
+                    Translate translation=(0, 2.1, 0)
+                        Part part=card_three

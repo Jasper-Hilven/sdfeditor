@@ -4,7 +4,10 @@
 format 1
 collider mesh
 
-Translate translation=(0, 0.43, 1.3)
-    # Laid on its back (a quarter turn about x brings its front, +z, up), a little less so it lies on its hat brim and its heels
-    Rotate rotation=(-1.516, 0, 0)
-        Part part=meeple
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Translate translation=(0, 0.43, 1.3)
+        # Laid on its back (a quarter turn about x brings its front, +z, up), a little less so it lies on its hat brim and its heels
+        Rotate rotation=(-1.516, 0, 0)
+            Part part=meeple

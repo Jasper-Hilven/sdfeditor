@@ -49,7 +49,13 @@ const string unityModelsFolder = "Unity/Assets/Mushrooms/Generated";
 const string unityLevelsFolder = "Unity/Assets/Level/Generated";
 
 // Each render runs its own headless Chrome; a few at a time keeps the machine responsive.
-var parallelRenders = Math.Clamp(Environment.ProcessorCount / 3, 1, 4);
+var parallelRenders = Math.Clamp(Environment.ProcessorCount / 2, 1, 10);
+// Meshing a model has long single-threaded stretches (simplifying, levels of detail, writing the .glb), so several models
+// are meshed at once to keep every core busy; each also holds its grid in memory, which caps how many.
+var parallelMeshes = Math.Clamp(Environment.ProcessorCount / 2, 1, 10);
+// A further model only starts while the process uses less than this share of the machine's memory, so many large models
+// meshed at once wait for each other instead of running out of memory; one model always runs.
+const double meshMemoryShare = 0.6;
 
 return args switch
 {
@@ -172,26 +178,52 @@ int MeshAll(string directory, MeshingOptions options, Func<string, string> outpu
         return 0;
     }
 
-    // Each model is meshed with all cores, so one at a time
     Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-        $"Meshing {models.Count} models in {Path.GetFullPath(directory)} at {options.Resolution} cells per {options.ReferenceSize} m"));
+        $"Meshing {models.Count} models in {Path.GetFullPath(directory)} at {options.Resolution} cells per {options.ReferenceSize} m, {parallelMeshes} at a time"));
     var stopwatch = Stopwatch.StartNew();
-    var failed = models.Count(model => !MeshOne(model, outputOf(model), options));
+    var failed = 0;
+    var console = new Lock();
+    var memory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+    var running = 0;
+    Parallel.ForEach(models, new ParallelOptions { MaxDegreeOfParallelism = parallelMeshes }, model =>
+    {
+        while (true)
+        {
+            if (Interlocked.Increment(ref running) == 1 || Environment.WorkingSet < memory * meshMemoryShare)
+                break;
+            Interlocked.Decrement(ref running);
+            Thread.Sleep(250);
+        }
+        // Each model's report is written in one piece when it is done, so the reports of models meshed together don't interleave
+        var output = new StringWriter();
+        var errors = new StringWriter();
+        var meshed = MeshOne(model, outputOf(model), options, output, errors);
+        lock (console)
+        {
+            Console.Error.Write(errors);
+            Console.Write(output);
+        }
+        Interlocked.Decrement(ref running);
+        if (!meshed)
+            Interlocked.Increment(ref failed);
+    });
     Console.WriteLine(failed == 0
         ? $"Meshed all {models.Count} models in {stopwatch.Elapsed.TotalSeconds:0.0} s"
         : $"{failed} of {models.Count} models failed, see above ({stopwatch.Elapsed.TotalSeconds:0.0} s)");
     return failed == 0 ? 0 : 1;
 }
 
-bool MeshOne(string input, string output, MeshingOptions options)
+bool MeshOne(string input, string output, MeshingOptions options, TextWriter? log = null, TextWriter? errors = null)
 {
+    log ??= Console.Out;
+    errors ??= Console.Error;
     try
     {
         var stopwatch = Stopwatch.StartNew();
         var program = SdfProgramFile.Load(input);
         var missing = ModelFiles.MaterialNames(program).Where(name => !options.Materials.Contains(name)).ToArray();
         if (missing.Length > 0)
-            Console.Error.WriteLine($"{input}: no material file for {string.Join(", ", missing)}, meshed with the magenta stand-in");
+            errors.WriteLine($"{input}: no material file for {string.Join(", ", missing)}, meshed with the magenta stand-in");
         var settings = SdfProgramFile.LoadSettings(input);
         var meshOptions = settings.SurfacePart is { } part ? options with { SurfaceOf = SdfProgramFile.LoadPart(input, part) } : options;
         var meshed = ModelMesher.Mesh(program, meshOptions);
@@ -201,17 +233,17 @@ bool MeshOne(string input, string output, MeshingOptions options)
             PartSettings = SdfProgramFile.LoadPartSettings(input, meshed.Meshes.Select(m => m.Part).OfType<string>(), settings),
         };
         foreach (var warning in model.Warnings)
-            Console.Error.WriteLine($"{input}: {warning}");
+            errors.WriteLine($"{input}: {warning}");
         if (model.Meshes.Count == 0)
         {
-            Console.Error.WriteLine($"{input}: there is no finite surface to mesh");
+            errors.WriteLine($"{input}: there is no finite surface to mesh");
             return false;
         }
         GlbWriter.Save(output, model);
 
         var cells = model.Grid is { } grid ? string.Create(CultureInfo.InvariantCulture, $", {grid.CellSize * 1000:0.#} mm cells") : "";
         var modelDetail = string.Create(CultureInfo.InvariantCulture, $", detail {model.Detail:0.###}");
-        Console.WriteLine($"Meshed {output} in {stopwatch.Elapsed.TotalSeconds:0.0} s{cells}{modelDetail}");
+        log.WriteLine($"Meshed {output} in {stopwatch.Elapsed.TotalSeconds:0.0} s{cells}{modelDetail}");
         var nameWidth = model.Meshes.Max(m => GlbWriter.LodName(m.Name, m.Lods.Count).Length);
         foreach (var mesh in model.Meshes)
         {
@@ -220,13 +252,13 @@ bool MeshOne(string input, string output, MeshingOptions options)
             var detail = mesh.Detail != model.Detail ? string.Create(CultureInfo.InvariantCulture, $", detail {mesh.Detail:0.###}") : "";
             // A part meshed once for several uses says how often it is drawn
             var instances = mesh.Instances.Count > 0 ? $", {mesh.Instances.Count} instances" : "";
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            log.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}{instances}"));
             // Each level of detail is simplified on from the one before, so its time is on top of that level's
             for (var level = 1; level <= mesh.Lods.Count; level++)
             {
                 var lod = mesh.Lods[level - 1];
-                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                log.WriteLine(string.Create(CultureInfo.InvariantCulture,
                     $"  {GlbWriter.LodName(mesh.Name, level).PadRight(nameWidth)}  {"",8} → {lod.TriangleCount,7:N0} triangles, {lod.Statistics.Vertices,7:N0} vertices, +{lod.Statistics.Time.TotalSeconds:0.00} s, within {lod.MaxError * 1000:0.#} mm"));
             }
         }
@@ -234,12 +266,12 @@ bool MeshOne(string input, string output, MeshingOptions options)
     }
     catch (SdfProgramFileException exception)
     {
-        Console.Error.WriteLine($"{input}:{exception.Line}: {exception.Problem}");
+        errors.WriteLine($"{input}:{exception.Line}: {exception.Problem}");
         return false;
     }
     catch (Exception exception) when (exception is IOException or InvalidOperationException or UnauthorizedAccessException)
     {
-        Console.Error.WriteLine($"{input}: {exception.Message}");
+        errors.WriteLine($"{input}: {exception.Message}");
         return false;
     }
 }

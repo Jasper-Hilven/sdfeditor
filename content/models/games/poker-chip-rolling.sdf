@@ -3,7 +3,10 @@
 format 1
 collider convex
 
-Translate translation=(0, 1.16, 0)
-    # On its edge (a quarter turn about x stands the flat chip up), then leaning 12° towards +z
-    Rotate rotation=(1.3613568, 0, 0)
-        Part part=poker_chip_red
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Translate translation=(0, 1.16, 0)
+        # On its edge (a quarter turn about x stands the flat chip up), then leaning 12° towards +z
+        Rotate rotation=(1.3613568, 0, 0)
+            Part part=poker_chip_red
