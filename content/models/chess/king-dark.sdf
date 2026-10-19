@@ -1,45 +1,32 @@
-# King, dark: the tallest mushroom, 5.6 m, turned like a chess king. A broad foot with a swollen bulb, a long stem up to a
-# flared ring, and on top a round penny-bun cap ringed with eight pointed tines like a crown, gills under its rim, and a cross of
-# stem flesh standing on its crown.
+# King, dark: a classic turned king 5.6 m tall: a base disc, a long shaft, a collar flaring into a crown band, a domed crown and a cross standing on top.
+# One plain material, chess_dark.
 format 1
 collider convex
 
 # Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Union
-        SmoothUnion smoothness=0.04
-            # The crown: a dome of a cap, flat underneath, with eight tines leaning out round its shoulder
-            Material material=chess_dark_cap
-                SmoothUnion smoothness=0.08
-                    Intersection
-                        Translate translation=(0, 3.98, 0)
-                            Sphere radius=0.9
-                        Translate translation=(0, 4.4, 0)
-                            Box size=(1, 0.62, 1)
-                    # Eight tines: two in each quarter, mirrored round
-                    SymmetryXZ
-                        Union
-                            ArbitraryRoundCone a=(0.72, 4.15, 0.3) b=(0.86, 4.72, 0.36) radiusA=0.16 radiusB=0.04
-                            ArbitraryRoundCone a=(0.3, 4.15, 0.72) b=(0.36, 4.72, 0.86) radiusA=0.16 radiusB=0.04
-            Material material=chess_dark_gills
-                Translate translation=(0, 3.8, 0)
-                    CappedCylinder radius=0.8 height=0.03
-            # Foot, bulb, stem, collar and the cross, all of one flesh
-            Material material=chess_dark_stem
-                Union
-                    SmoothUnion smoothness=0.07
-                        Translate translation=(0, 0.13, 0)
-                            RoundedCylinder radius=1.18 roundness=0.1 height=0.13
-                        Translate translation=(0, 0.37, 0)
-                            Torus innerRadius=0.54 outerRadius=1.08
-                        Translate translation=(0, 1.96, 0)
-                            CappedCone height=1.56 bottomRadius=0.6 topRadius=0.34
-                        Translate translation=(0, 3.62, 0)
-                            CappedCone height=0.14 bottomRadius=0.34 topRadius=0.32
-                        # The collar: a flared ring, the mushroom's annulus
-                        Translate translation=(0, 3.48, 0)
-                            Round radius=0.03
-                                CappedCone height=0.07 bottomRadius=0.9 topRadius=0.5
-                    # The cross on the crown
-                    Capsule a=(0, 4.8, 0) b=(0, 5.48, 0) radius=0.12
-                    Capsule a=(-0.3, 5.2, 0) b=(0.3, 5.2, 0) radius=0.11
+        Material material=chess_dark
+            SmoothUnion smoothness=0.05
+                Translate translation=(0, 0.14, 0)
+                    RoundedCylinder radius=1.18 roundness=0.06 height=0.14
+                Translate translation=(0, 0.515, 0)
+                    Round radius=0.03
+                        CappedCone height=0.235 bottomRadius=0.9675999999999999 topRadius=0.62
+                Translate translation=(0, 2.05, 0)
+                    Round radius=0.03
+                        CappedCone height=1.35 bottomRadius=0.6 topRadius=0.34
+                Translate translation=(0, 3.5, 0)
+                    RoundedCylinder radius=0.74 roundness=0.05 height=0.1
+                Translate translation=(0, 3.9, 0)
+                    Round radius=0.03
+                        CappedCone height=0.35 bottomRadius=0.34 topRadius=0.88
+                Translate translation=(0, 4.32, 0)
+                    RoundedCylinder radius=0.9 roundness=0.05 height=0.1
+                Intersection
+                    Translate translation=(0, 4.3, 0)
+                        Sphere radius=0.66
+                    Translate translation=(0, 4.8, 0)
+                        Box size=(1, 0.55, 1)
+                Capsule a=(0, 4.8, 0) b=(0, 5.48, 0) radius=0.13
+                Capsule a=(-0.42, 5.2, 0) b=(0.42, 5.2, 0) radius=0.12

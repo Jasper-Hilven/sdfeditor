@@ -308,6 +308,8 @@ public class LevelFileTests
             var text = File.ReadAllText(file);
             Assert.False(text.Contains("part=eye", StringComparison.OrdinalIgnoreCase), Path.GetFileName(file));
             Assert.False(text.Contains("part=hand", StringComparison.OrdinalIgnoreCase), Path.GetFileName(file));
+            // board games only: no mushroom cap, stem or gills materials
+            Assert.DoesNotMatch(@"material=\S*(cap|stem|gills)\b", text);
         });
     }
 

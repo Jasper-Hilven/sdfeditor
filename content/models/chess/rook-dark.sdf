@@ -1,22 +1,31 @@
-# Rook, dark: a stout bolete 3.4 m tall turned like a chess rook. A broad foot with a swollen bulb, a thick column of a stem up
-# to a flared ring, and on top a flat drum of a cap, its top hollowed and its rim cut into eight merlons like a tower's
-# battlements, gills under its overhanging edge.
+# Rook, dark: a classic turned rook 3.4 m tall: a base disc, a plinth, a stout shaft flaring into a drum, its top hollowed and its rim cut into eight merlons like a tower's battlements.
+# One plain material, chess_dark.
 format 1
 collider convex
 
 # Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Union
-        SmoothUnion smoothness=0.04
-            # The cap: a drum with a rounded rim, the middle of its top scooped out and the rim notched by four slots across it
-            Material material=chess_dark_cap
+        Material material=chess_dark
+            SmoothUnion smoothness=0.05
+                Translate translation=(0, 0.12, 0)
+                    RoundedCylinder radius=1.08 roundness=0.06 height=0.12
+                Translate translation=(0, 0.43, 0)
+                    Round radius=0.03
+                        CappedCone height=0.19 bottomRadius=0.8856 topRadius=0.7
+                Translate translation=(0, 1.25, 0)
+                    Round radius=0.03
+                        CappedCone height=0.7 bottomRadius=0.66 topRadius=0.55
+                Translate translation=(0, 2.2, 0)
+                    Round radius=0.03
+                        CappedCone height=0.3 bottomRadius=0.55 topRadius=0.92
                 Subtraction
-                    Translate translation=(0, 2.86, 0)
-                        RoundedCylinder radius=1.12 roundness=0.16 height=0.5
+                    Translate translation=(0, 2.9, 0)
+                        RoundedCylinder radius=1.0 roundness=0.12 height=0.5
                     Union
+                        Translate translation=(0, 3.45, 0)
+                            CappedCylinder radius=0.66 height=0.26
                         Translate translation=(0, 3.4, 0)
-                            CappedCylinder radius=0.74 height=0.24
-                        Translate translation=(0, 3.38, 0)
                             Union
                                 Box size=(1.4, 0.22, 0.19)
                                 Box size=(0.19, 0.22, 1.4)
@@ -24,21 +33,3 @@ Detail detail=0.5
                                     Union
                                         Box size=(1.4, 0.22, 0.19)
                                         Box size=(0.19, 0.22, 1.4)
-            Material material=chess_dark_gills
-                Translate translation=(0, 2.36, 0)
-                    CappedCylinder radius=1.02 height=0.03
-            # Foot, bulb, column and collar, all of one flesh and grown into each other
-            Material material=chess_dark_stem
-                SmoothUnion smoothness=0.07
-                    Translate translation=(0, 0.12, 0)
-                        RoundedCylinder radius=1.08 roundness=0.09 height=0.12
-                    Translate translation=(0, 0.34, 0)
-                        Torus innerRadius=0.5 outerRadius=0.98
-                    Translate translation=(0, 1.15, 0)
-                        CappedCone height=0.75 bottomRadius=0.7 topRadius=0.6
-                    Translate translation=(0, 2.15, 0)
-                        CappedCone height=0.22 bottomRadius=0.62 topRadius=0.6
-                    # The collar: a flared ring, the mushroom's annulus
-                    Translate translation=(0, 1.92, 0)
-                        Round radius=0.03
-                            CappedCone height=0.07 bottomRadius=0.94 topRadius=0.7
