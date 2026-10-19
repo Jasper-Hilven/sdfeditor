@@ -221,9 +221,11 @@ namespace SdfLevel.Editor
 
             if (Placed(scene, "castle0").FirstOrDefault() is { } castle)
             {
-                // Standing on the cap of the large tower at the oval's +x end (joint 4, 12.5 m tall), looking out of the island's end
-                // past the keep's flanking tower, a little down
-                var tower = ModelPoint(castle, 12.4f, 12.5f + LevelBuilder.EyeHeight, 0);
+                // Standing on top of the cap of the large tower at the oval's +x end (joint 4, its cap's top about 15.8 m up), looking
+                // out of the island's end past the keep's flanking tower, a little down
+                var above = ModelPoint(castle, 12.4f, 40, 0);
+                var tower = (Physics.Raycast(above, Vector3.down, out var cap, 40) ? cap.point : ModelPoint(castle, 12.4f, 15.8f, 0))
+                            + Vector3.up * LevelBuilder.EyeHeight;
                 eyeShot("sky_tower", tower, Quaternion.LookRotation(ModelDirection(castle, 0, -0.2f, -1)));
             }
             // At the island's edge behind the +x hills (pipeline -x), looking out and down into the abyss: the last ground out along +x
