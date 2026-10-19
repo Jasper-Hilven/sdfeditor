@@ -70,6 +70,8 @@ namespace SdfMushrooms.Editor
             material.SetVector("_ToonSpecular", new Vector4(highlight, highlightThreshold, highlightMaxRoughness, 0));
             material.SetVector("_ToonRim", new Vector4(rim, rimWidth, 0, 0));
             material.SetVector("_ToonVariation", new Vector4(colorVariation, 0, 0, 0));
+            // The patterns' lines are inked like the outline
+            material.SetVector("_ToonInk", Linear(outlineTone));
         }
 
         /// <summary>Puts the outline settings on the outline material.</summary>

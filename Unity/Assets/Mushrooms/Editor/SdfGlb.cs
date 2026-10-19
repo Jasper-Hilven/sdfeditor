@@ -81,10 +81,25 @@ namespace SdfMushrooms.Editor
             }
         }
 
+        /// <summary>The kinds of pattern, numbered as SdfPattern.hlsl and the pipeline's MaterialPatternKind number them.</summary>
+        private static readonly string[] PatternKinds = { "", "stones", "fibres", "gills" };
+
+        private static Vector4 PatternOf(JObject pattern)
+        {
+            var kind = Array.IndexOf(PatternKinds, pattern.Value<string>("kind"));
+            return kind > 0 ? new Vector4(kind, pattern.Value<float>("size"), pattern.Value<float>("grout"), 1) : Vector4.zero;
+        }
+
         public sealed class Material
         {
             public string Name;
             public JObject Parameters;
+
+            /// <summary>
+            /// The material's pattern as SdfPattern.hlsl reads it (kind 1 stones, 2 fibres, 3 gills; size and grout in metres, weight
+            /// 1), or zero if it has none.
+            /// </summary>
+            public Vector4 Pattern;
 
             public float Number(string name, float fallback = 0) =>
                 Parameters.TryGetValue(name, out var token) && token.Type is JTokenType.Float or JTokenType.Integer ? token.Value<float>() : fallback;
@@ -257,7 +272,12 @@ namespace SdfMushrooms.Editor
                 foreach (var mesh in meshes)
                     mesh.Settings = parts[mesh.Name] as JObject;
             foreach (var material in (JArray)sdf["materials"])
-                result.Materials.Add(new Material { Name = material.Value<string>("name"), Parameters = (JObject)material["parameters"] });
+                result.Materials.Add(new Material
+                {
+                    Name = material.Value<string>("name"),
+                    Parameters = (JObject)material["parameters"],
+                    Pattern = material["pattern"] is JObject pattern ? PatternOf(pattern) : Vector4.zero,
+                });
             return result;
         }
 

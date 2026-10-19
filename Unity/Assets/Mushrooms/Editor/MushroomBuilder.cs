@@ -84,8 +84,9 @@ namespace SdfMushrooms.Editor
         /// Version 7: diffusion profiles per snapped look instead of per material group, so they fit HDRP's list. Version 8: the toon
         /// look only, the realistic one gone. Version 9: URP instead of HDRP. Version 10: colliders from the model's collider setting.
         /// Version 11: part instances, a child with its own LOD group per use, and the shadows, outline, cull and collider settings per part.
+        /// Version 12: part LODs no earlier than the model's. Version 13: the material patterns per vertex (UV7).
         /// </summary>
-        public const int BuilderVersion = 12;
+        public const int BuilderVersion = 13;
 
         private static string VersionStamp
         {
@@ -543,8 +544,9 @@ namespace SdfMushrooms.Editor
 
         /// <summary>
         /// The mesh in Unity's coordinates (x mirrored, so triangles are turned round), with the vertex data packed as SdfSurface.hlsl
-        /// expects it, plus the edge colour per vertex (UV6, see <see cref="EdgeColor"/>). The toon look takes nothing from the material,
-        /// so the material regions are drawn as one submesh.
+        /// expects it, plus the edge colour per vertex (UV6, see <see cref="EdgeColor"/>) and, only on a mesh with a patterned material,
+        /// the pattern (UV7, see <see cref="Patterns"/>). The toon look takes nothing from the material, so the material regions are drawn
+        /// as one submesh.
         /// </summary>
         private static void Fill(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName)
         {
@@ -563,6 +565,7 @@ namespace SdfMushrooms.Editor
             var speckleShape = data.Get("_SPECKLE_SHAPE", 2) ?? new float[2 * n];
             var materialIds = data.Get("_MATERIAL_IDS", 2);
             var materialBlend = data.Get("_MATERIAL_BLEND", 1);
+            var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
 
             var positions = new Vector3[n];
             var normals = new Vector3[n];
@@ -589,11 +592,13 @@ namespace SdfMushrooms.Editor
                     ? Vector4.zero
                     : EdgeColor(materials, (int)materialIds[2 * v], (int)materialIds[2 * v + 1], materialBlend[v], thickness[v]);
             }
+            var uv7 = Patterns(materials, materialIds, materialBlend, indices, n);
 
             mesh.Clear();
             mesh.name = $"{modelName}_{data.Name}";
             mesh.indexFormat = n > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16;
-            mesh.SetVertexBufferParams(n,
+            var layout = new List<VertexAttributeDescriptor>
+            {
                 new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
                 new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
                 new VertexAttributeDescriptor(VertexAttribute.Color, VertexAttributeFormat.Float32, 4),
@@ -603,7 +608,11 @@ namespace SdfMushrooms.Editor
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord3, VertexAttributeFormat.Float32, 4),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord4, VertexAttributeFormat.Float32, 4),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord5, VertexAttributeFormat.Float32, 2),
-                new VertexAttributeDescriptor(VertexAttribute.TexCoord6, VertexAttributeFormat.Float32, 4));
+                new VertexAttributeDescriptor(VertexAttribute.TexCoord6, VertexAttributeFormat.Float32, 4),
+            };
+            if (uv7 != null)
+                layout.Add(new VertexAttributeDescriptor(VertexAttribute.TexCoord7, VertexAttributeFormat.Float32, 4));
+            mesh.SetVertexBufferParams(n, layout.ToArray());
             mesh.SetVertices(positions);
             mesh.SetNormals(normals);
             mesh.SetColors(colors);
@@ -614,8 +623,9 @@ namespace SdfMushrooms.Editor
             mesh.SetUVs(4, uv4);
             mesh.SetUVs(5, uv5.Select(u => new Vector2(u.x, u.y)).ToArray());
             mesh.SetUVs(6, uv6);
+            if (uv7 != null)
+                mesh.SetUVs(7, uv7);
             // The regions' triangles, turned round for the mirrored x
-            var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
             var turned = new int[indices.Length];
             for (var t = 0; t < indices.Length; t += 3)
             {
@@ -627,6 +637,48 @@ namespace SdfMushrooms.Editor
             mesh.SetTriangles(turned, 0, calculateBounds: false);
             mesh.RecalculateBounds();
             mesh.UploadMeshData(false);
+        }
+
+        /// <summary>
+        /// The pattern at each vertex (UV7, as SdfPattern.hlsl reads it), or null if no material of the mesh has one: that of the material
+        /// that weighs most there. Where a patterned material borders another, its border vertices keep the pattern at weight 0, so it
+        /// fades out across the faces between; an unpatterned vertex beside it takes its neighbour's pattern at weight 0, so the faces
+        /// between do not blend two patterns' sizes.
+        /// </summary>
+        private static Vector4[] Patterns(IReadOnlyList<SdfGlb.Material> materials, float[] materialIds, float[] materialBlend, int[] indices, int n)
+        {
+            if (materialIds == null || materialBlend == null || materials.All(m => m.Pattern.x <= 0))
+                return null;
+            var patterns = new Vector4[n];
+            for (var v = 0; v < n; v++)
+            {
+                var second = materialBlend[v] > 0.5f;
+                var material = (int)materialIds[2 * v + (second ? 1 : 0)];
+                patterns[v] = material >= 0 && material < materials.Count ? materials[material].Pattern : Vector4.zero;
+            }
+            if (patterns.All(p => p.x <= 0))
+                return null;
+
+            var border = new bool[n];
+            var borrowed = new Vector4[n];
+            for (var t = 0; t < indices.Length; t += 3)
+            for (var c = 0; c < 3; c++)
+            {
+                var (a, b) = (indices[t + c], indices[t + (c + 1) % 3]);
+                if (patterns[a] == patterns[b])
+                    continue;
+                border[a] = border[b] = true;
+                if (patterns[a].x <= 0) borrowed[a] = patterns[b];
+                if (patterns[b].x <= 0) borrowed[b] = patterns[a];
+            }
+            for (var v = 0; v < n; v++)
+            {
+                if (!border[v])
+                    continue;
+                var own = patterns[v].x > 0 ? patterns[v] : borrowed[v];
+                patterns[v] = new Vector4(own.x, own.y, own.z, 0);
+            }
+            return patterns;
         }
 
         /// <summary>
