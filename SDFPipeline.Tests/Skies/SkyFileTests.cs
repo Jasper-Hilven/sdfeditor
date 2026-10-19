@@ -301,6 +301,19 @@ public class SkyFileTests
         Assert.Equal(layout, SkyLayout.Of(sky, 1, new Vector2(20, 15), 10), new LayoutComparer());
     }
 
+    [Theory]
+    [InlineData("day")]
+    [InlineData("night")]
+    [InlineData("dusk")]
+    public void ContentPresets_Read(string preset)
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory)!;
+
+        var sky = SkyFile.Read(File.ReadAllText(Path.Combine(content, SkyFile.FolderName, preset + SkyFile.Extension)));
+
+        Assert.NotEmpty(SkyDocument.Bands(sky));
+    }
+
     /// <summary>Records with lists compare the lists by reference; these compare what they hold.</summary>
     private sealed class DefinitionComparer : IEqualityComparer<SkyDefinition>
     {

@@ -151,6 +151,23 @@ namespace SdfMushrooms
             }
         }
 
+        /// <summary>
+        /// Turns the sky's objects (the moon, floaters, spores and motes) on (1) or off (0), leaving the skybox and the tone. For comparing
+        /// frame times with and without them, e.g. from the web build's page: <c>unityInstance.SendMessage("Sky", "SetObjectsActive", 0)</c>.
+        /// </summary>
+        public void SetObjectsActive(int active)
+        {
+            foreach (Transform child in transform)
+                child.gameObject.SetActive(active != 0);
+        }
+
+        /// <summary>Turns the main camera towards the moon, for the same comparison where the sky costs the most: <c>SendMessage("Sky", "FaceMoon")</c>.</summary>
+        public void FaceMoon()
+        {
+            if (Camera.main != null && moonEye != null)
+                Camera.main.transform.rotation = Quaternion.LookRotation(moonEye.parent.localPosition.normalized);
+        }
+
         /// <summary>The unit direction at an azimuth (degrees from +z towards +x) and elevation (degrees up).</summary>
         public static Vector3 Direction(float azimuth, float elevation)
         {

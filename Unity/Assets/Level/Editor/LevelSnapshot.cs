@@ -205,7 +205,7 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>
-        /// The sky's views: up at the moon from the spawn point (with one), from the top of the first castle's outer back tower out over
+        /// The sky's views: up at the moon from the spawn point (with one), from the top of the first castle's large +x tower out over
         /// the crest to the edge, from the island's edge out and down, and the island from outside. Returns the direction towards the
         /// moon, or null without one; nothing is shot for a level without a sky.
         /// </summary>
@@ -221,8 +221,11 @@ namespace SdfLevel.Editor
 
             if (Placed(scene, "castle0").FirstOrDefault() is { } castle)
             {
-                // On top of the tower's roof (its apex is 12.5 m up), looking out of the island's end, a little down
-                var tower = ModelPoint(castle, 13, 14, -8);
+                // Standing on top of the cap of the large tower at the oval's +x end (joint 4, its cap's top about 15.8 m up), looking
+                // out of the island's end past the keep's flanking tower, a little down
+                var above = ModelPoint(castle, 12.4f, 40, 0);
+                var tower = (Physics.Raycast(above, Vector3.down, out var cap, 40) ? cap.point : ModelPoint(castle, 12.4f, 15.8f, 0))
+                            + Vector3.up * LevelBuilder.EyeHeight;
                 eyeShot("sky_tower", tower, Quaternion.LookRotation(ModelDirection(castle, 0, -0.2f, -1)));
             }
             // At the island's edge behind the +x hills (pipeline -x), looking out and down into the abyss: the last ground out along +x
