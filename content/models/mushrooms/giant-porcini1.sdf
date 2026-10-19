@@ -1,0 +1,24 @@
+# Leaning giant porcini: the bolete of giant-porcini0.sdf, 6 m tall, its whole body leaning about 11 degrees to one side from its
+# bulb, the cap leaning furthest. Standing in the open field between the castles, with no eyes and no hands.
+format 1
+collider convex
+
+# Half the vertices its size would give it, as the upright one has
+Detail detail=0.5
+    # Turned about the bulb's foot, so the bulb stays on the ground
+    Rotate rotation=(0, 0, -0.2)
+        Union
+            Material material=game_porcini_flesh
+                SmoothUnion smoothness=0.35
+                    Translate translation=(0, 0.65, 0)
+                        Ellipsoid radii=(1.0, 0.6, 1.0)
+                    Translate translation=(0, 2.8, 0)
+                        CappedCone height=4.6 bottomRadius=0.8 topRadius=0.58
+                    Translate translation=(0, 4.7, 0)
+                        CappedCylinder radius=2.1 height=0.5
+            Material material=game_porcini_cap
+                Intersection
+                    Translate translation=(0, 4.9, 0)
+                        Ellipsoid radii=(2.3, 1.4, 2.3)
+                    Translate translation=(0, 6.6, 0)
+                        Box size=(5.8, 3.2, 5.8)
