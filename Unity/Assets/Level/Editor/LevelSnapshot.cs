@@ -152,6 +152,15 @@ namespace SdfLevel.Editor
             try
             {
                 QualitySettings.SetQualityLevel(0, true);
+                if (scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelRoom.RoomName) != null)
+                {
+                    // A closed room has no outside: its own views (and none of the hills', edge's or sky's)
+                    ShootRoom(scene, eye, Shot, EyeShot);
+                    QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
+                    EyeShot("room_eye_web", eye, Quaternion.Euler(0, 90, 0));
+                    Debug.Log($"SDF level: snapshots written to {directory}");
+                    return;
+                }
                 foreach (var (name, yaw) in new[] { ("eye_+x", 90f), ("eye_-x", -90f), ("eye_+z", 0f), ("eye_-z", 180f) })
                     EyeShot(name, eye, Quaternion.Euler(0, yaw, 0));
 
@@ -214,6 +223,28 @@ namespace SdfLevel.Editor
                 QualitySettings.SetQualityLevel(level, true);
             }
             Debug.Log($"SDF level: snapshots written to {directory}");
+        }
+
+        /// <summary>
+        /// The views of a closed room (a chessboard cube): at eye height in the middle looking along each wall; at a corner looking along
+        /// a wall, and from the opposite corner diagonally across and up; up at the ceiling, straight and slanted; close at the foot of a
+        /// wall and at the vertical edge of two walls, where the checker must run on across the edge; from high up in the room down;
+        /// and the busiest crowd of pieces. Unity's coordinates; the room is centred on x and z and stands on y = 0.
+        /// </summary>
+        private static void ShootRoom(Scene scene, Vector3 eye, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot)
+        {
+            foreach (var (name, yaw) in new[] { ("room_eye_+x", 90f), ("room_eye_-x", -90f), ("room_eye_+z", 0f), ("room_eye_-z", 180f) })
+                eyeShot(name, eye, Quaternion.Euler(0, yaw, 0));
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            eyeShot("room_corner_along", new Vector3(72, 0, -72) + up, Quaternion.LookRotation(new Vector3(0, 0.02f, 1)));
+            eyeShot("room_corner_across", new Vector3(-72, 0, -72) + up, Quaternion.LookRotation(new Vector3(1, 0.3f, 1)));
+            eyeShot("room_ceiling", eye, Quaternion.Euler(-85, 0, 0));
+            eyeShot("room_ceiling_slant", eye, Quaternion.Euler(-45, 30, 0));
+            eyeShot("room_wall_foot", new Vector3(0, 0, 60) + up, Quaternion.Euler(20, 0, 0));
+            eyeShot("room_wall_edge", new Vector3(40, 0, 40) + up, Quaternion.LookRotation(new Vector3(1, 0.1f, 1)));
+            eyeShot("room_ceiling_edge", new Vector3(60, 0, 0) + up, Quaternion.LookRotation(new Vector3(1, 1.4f, 0)));
+            shot("room_above", new Vector3(-60, 150, -60), Quaternion.LookRotation(new Vector3(1, -1.2f, 1)), 1920, 1080);
+            ShootCrowd(scene, shot, eyeShot);
         }
 
         /// <summary>

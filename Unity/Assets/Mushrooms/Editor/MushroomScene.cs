@@ -341,12 +341,23 @@ namespace SdfMushrooms.Editor
         }
 
         /// <summary>
+        /// The light of a room with no sky (a closed cube): the lamp's direction towards it and colour (sRGB), and the flat ambient. There
+        /// is no skybox, so no sky material is made or set (<see cref="BuildLighting"/>).
+        /// </summary>
+        public sealed class IndoorLighting
+        {
+            public Vector3 lightDirection;
+            public Color lightColor;
+            public Color ambient;
+        }
+
+        /// <summary>
         /// The light of the toon world, shared by the mushroom scene and the level scenes: the sun, a procedural sky with a flat dim
         /// ambient, and the post-processing volume (tone mapping, a faint bloom); with a level's <paramref name="sky"/>, its light, skybox,
         /// ambient and post-processing instead. Without one the scene also gets a <see cref="SkySettings"/> with the identity (day) tone,
         /// so the toon look is as it was; a level adds its own.
         /// </summary>
-        public static Light BuildLighting(Scene scene, SkyLighting sky = null)
+        public static Light BuildLighting(Scene scene, SkyLighting sky = null, IndoorLighting indoor = null)
         {
             GameObject Create(string name)
             {
@@ -375,15 +386,22 @@ namespace SdfMushrooms.Editor
                 light.color = sky.lightColor;
                 sunObject.transform.rotation = Quaternion.LookRotation(-sky.lightDirection);
             }
+            else if (indoor != null)
+            {
+                // The lamp of a closed room: its direction and hue; no skybox is made or set
+                light.useColorTemperature = false;
+                light.color = indoor.lightColor;
+                sunObject.transform.rotation = Quaternion.LookRotation(-indoor.lightDirection);
+            }
 
             // A procedural sky, whose ground colour fills the background below the horizon, and a flat dim ambient for the ground's
             // shadows (no lighting to bake); no fog. Lighting settings belong to the active scene
             var active = SceneManager.GetActiveScene();
             SceneManager.SetActiveScene(scene);
             RenderSettings.sun = light;
-            RenderSettings.skybox = sky != null ? sky.skybox : SkyMaterial();
+            RenderSettings.skybox = sky != null ? sky.skybox : indoor != null ? null : SkyMaterial();
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = sky != null ? sky.ambient : new Color(0.17f, 0.14f, 0.1f);
+            RenderSettings.ambientLight = sky != null ? sky.ambient : indoor != null ? indoor.ambient : new Color(0.17f, 0.14f, 0.1f);
             RenderSettings.fog = false;
             if (active.IsValid() && active != scene)
                 SceneManager.SetActiveScene(active);
@@ -419,7 +437,8 @@ namespace SdfMushrooms.Editor
             var volume = volumeObject.AddComponent<Volume>();
             volume.isGlobal = true;
             volume.sharedProfile = profile;
-            if (sky == null)
+            // A room adds its own SkySettings (identity) to the level's root, not an object of the scene
+            if (sky == null && indoor == null)
                 EnsureSkySettings(scene);
             return light;
         }

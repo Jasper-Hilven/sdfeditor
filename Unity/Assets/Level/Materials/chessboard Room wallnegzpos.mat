@@ -7,16 +7,16 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: chessboard Sky Floaters
-  m_Shader: {fileID: 4800000, guid: b39de5d4eff864ecfa1a699f0a6baca3, type: 3}
+  m_Name: chessboard Room wallnegzpos
+  m_Shader: {fileID: 4800000, guid: 69e1d1ccee82e4011ab4aa2ac8d425cd, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2602
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
@@ -24,18 +24,30 @@ Material:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
-    m_Floats:
-    - _FarGlow: 0.4
+    m_Floats: []
     m_Colors:
+    - _DarkBase: {r: 0.3, g: 0.13, b: 0.07, a: 0}
+    - _DarkPattern: {r: 0.18, g: 0.22, b: 0, a: 0}
+    - _DarkSpeckle: {r: 0.62, g: 0.5, b: 0.36, a: 0.4}
+    - _DarkSurface: {r: 0.85, g: 0.3, b: 0.14, a: 0.3}
+    - _DarkVariation: {r: 0.36, g: 0.12, b: 0.06, a: 5}
     - _DetailAxis: {r: 0, g: 1, b: 0, a: 0}
     - _EdgeColor: {r: 0, g: 0, b: 0, a: 0}
-    - _FarDepth: {r: 60, g: 140, b: 0, a: 0}
+    - _LightBase: {r: 0.74, g: 0.64, b: 0.47, a: 0}
+    - _LightPattern: {r: 0.25, g: 0.25, b: 0, a: 0}
+    - _LightSpeckle: {r: 0.56, g: 0.42, b: 0.27, a: 0.35}
+    - _LightSurface: {r: 0.85, g: 0.3, b: 0.12, a: 0.3}
+    - _LightVariation: {r: 0.68, g: 0.55, b: 0.38, a: 5}
     - _Look: {r: 1, g: 0.2, b: 0, a: 0}
+    - _RoomFace: {r: 8, g: 0, b: 1, a: 0}
+    - _RoomOrigin: {r: 80, g: 0, b: 80, a: 0}
+    - _RoomU: {r: -1, g: 0, b: 0, a: 0}
+    - _RoomV: {r: 0, g: 1, b: 0, a: 0}
     - _Subsurface: {r: 0, g: 0.25, b: 0, a: 0}
     - _ToonBands: {r: 0, g: 0.45, b: 0.03, a: 0.5}
     - _ToonLitTone: {r: 1.1, g: 1.1, b: 1.1, a: 0}
     - _ToonMidTone: {r: 0.8200001, g: 0.80000013, b: 0.84999996, a: 0}
-    - _ToonRim: {r: 0.25, g: 0.3, b: 0, a: 0}
+    - _ToonRim: {r: 0, g: 0, b: 0, a: 0}
     - _ToonShadowTone: {r: 0.5500002, g: 0.5000001, b: 0.66000026, a: 0}
     - _ToonSpecular: {r: 0.6, g: 0.6, b: 0.75, a: 0}
     - _ToonVariation: {r: 0.5, g: 0, b: 0, a: 0}
