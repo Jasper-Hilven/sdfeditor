@@ -1,4 +1,8 @@
+using System.Buffers.Binary;
+using System.Text;
+using System.Text.Json;
 using SDFPipeline.Materials;
+using SDFPipeline.Meshing;
 using SDFPipeline.ProgramFiles;
 using SDFPipeline.Rendering;
 using SDFProject.Calculation;
@@ -73,6 +77,103 @@ public class MaterialTests
 
         Assert.Equal(line, exception.Line);
         Assert.Contains(problem, exception.Problem);
+    }
+
+    [Fact]
+    public void Pattern_IsReadFromItsLine_AndLeftOutOfTheParameters()
+    {
+        const string text = "format 1\nroughness = 0.7\npattern stones size=0.55 grout=0.035";
+
+        Assert.Equal(new MaterialPattern(MaterialPatternKind.Stones, 0.55f, 0.035f), MaterialFile.ReadPattern(text));
+        Assert.Equal(MaterialDefinition.Default with { roughness = 0.7f }, MaterialFile.Read(text));
+        Assert.Null(MaterialFile.ReadPattern("format 1\nroughness = 0.7"));
+        // Grout defaults to a twentieth of the size
+        Assert.Equal(new MaterialPattern(MaterialPatternKind.Gills, 0.1f, 0.005f), MaterialFile.ReadPattern("format 1\npattern gills size=0.1"));
+
+        var pattern = new MaterialPattern(MaterialPatternKind.Fibres, 0.08f, 0.012f);
+        var written = MaterialFile.Write(Cap, pattern);
+        Assert.EndsWith("pattern fibres size=0.08 grout=0.012\n", written);
+        Assert.Equal(Cap, MaterialFile.Read(written));
+        Assert.Equal(pattern, MaterialFile.ReadPattern(written));
+        Assert.DoesNotContain("pattern", MaterialFile.Write(Cap));
+    }
+
+    [Theory]
+    [InlineData("format 1\npattern bricks size=0.5", "There is no pattern 'bricks'; there are stones, fibres, gills")]
+    [InlineData("format 1\npattern stones grout=0.03", "A pattern needs its size")]
+    [InlineData("format 1\npattern stones size=0.5 depth=1", "Patterns have no setting 'depth'")]
+    [InlineData("format 1\npattern stones size=0", "'size' needs a length in metres above 0")]
+    [InlineData("format 1\npattern stones size=0.5 grout=0.5", "The grout must be narrower")]
+    [InlineData("format 1\npattern stones size=0.5\npattern gills size=0.1", "The pattern is given twice")]
+    public void Pattern_ExplainsWhatIsWrong(string text, string problem)
+    {
+        var exception = Assert.Throws<SdfProgramFileException>(() => MaterialFile.ReadPattern(text));
+
+        Assert.Contains(problem, exception.Problem);
+        // The parameters are read past a good pattern line, but not past a bad one
+        Assert.Throws<SdfProgramFileException>(() => MaterialFile.Read(text));
+    }
+
+    [Fact]
+    public void Pattern_ReachesTheGlb_OnlyForTheMaterialThatHasOne()
+    {
+        var program = Read(
+            """
+            Union
+                Material material=wall
+                    Box size=(1, 0.5, 0.5)
+                Material material=cap
+                    Translate translation=(0, 0.5, 0)
+                        Sphere radius=0.4
+            """);
+        var options = new MeshingOptions
+        {
+            Resolution = 32,
+            Patterns = new Dictionary<string, MaterialPattern> { ["wall"] = new(MaterialPatternKind.Stones, 0.3f, 0.02f) },
+        };
+        var model = ModelMesher.Mesh(program, options);
+
+        Assert.Equal(new MaterialPattern(MaterialPatternKind.Stones, 0.3f, 0.02f), model.Materials.Single(m => m.Name == "wall").Pattern);
+        Assert.Null(model.Materials.Single(m => m.Name == "cap").Pattern);
+
+        var glb = GlbWriter.Write(model, "walls");
+        var jsonLength = (int)BinaryPrimitives.ReadUInt32LittleEndian(glb.AsSpan(12));
+        using var json = JsonDocument.Parse(Encoding.UTF8.GetString(glb, 20, jsonLength));
+        var materials = json.RootElement.GetProperty("extras").GetProperty("sdf").GetProperty("materials").EnumerateArray()
+            .ToDictionary(m => m.GetProperty("name").GetString()!);
+        var written = materials["wall"].GetProperty("pattern");
+        Assert.Equal("stones", written.GetProperty("kind").GetString());
+        Assert.Equal(0.3f, written.GetProperty("size").GetSingle());
+        Assert.Equal(0.02f, written.GetProperty("grout").GetSingle());
+        Assert.False(materials["cap"].TryGetProperty("pattern", out _));
+
+        // Without the pattern the file is as it was before patterns: the same text but for the pattern, and the same binary chunk
+        var plain = GlbWriter.Write(ModelMesher.Mesh(program, options with { Patterns = new Dictionary<string, MaterialPattern>() }), "walls");
+        var plainLength = (int)BinaryPrimitives.ReadUInt32LittleEndian(plain.AsSpan(12));
+        Assert.Equal(Encoding.UTF8.GetString(plain, 20, plainLength).TrimEnd(),
+            Encoding.UTF8.GetString(glb, 20, jsonLength).TrimEnd().Replace(",\"pattern\":" + written.GetRawText(), ""));
+        Assert.Equal(plain.AsSpan(20 + plainLength).ToArray(), glb.AsSpan(20 + jsonLength).ToArray());
+    }
+
+    [Fact]
+    public void LoadPatterns_ListsTheMaterialsThatHaveOne()
+    {
+        var folder = Directory.CreateTempSubdirectory("sdf-materials-");
+        try
+        {
+            MaterialFile.Save(Path.Combine(folder.FullName, "chanterelle_cap.sdfmat"), Cap);
+            File.WriteAllText(Path.Combine(folder.FullName, "castle_wall.sdfmat"), "format 1\npattern stones size=0.5 grout=0.03");
+
+            var patterns = MaterialFiles.LoadPatterns(folder.FullName);
+
+            Assert.Equal(["castle_wall"], patterns.Keys);
+            Assert.Equal(MaterialPatternKind.Stones, patterns["castle_wall"].Kind);
+            Assert.Equal(MaterialDefinition.Default, MaterialFiles.LoadLibrary(folder.FullName).Resolve("castle_wall"));
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
     }
 
     [Fact]
