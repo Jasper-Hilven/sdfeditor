@@ -1,12 +1,10 @@
 # Queen, light: a tall mushroom 5 m high turned like a chess queen. A broad foot with a swollen bulb, a long slender stem with a
 # frilled skirt of gills hanging from it (the queen's collar), and on top an upturned cup of a cap holding a low dome, its rim
-# set with eight little puffballs as the queen's coronet, a button mushroom on the very top. Floating eyes and hands in front of
-# the stem.
+# set with eight little puffballs as the queen's coronet, a button mushroom on the very top.
 format 1
 collider convex
 
-# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
-# so its eyes and hands get half too
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Union
         SmoothUnion smoothness=0.04
@@ -47,14 +45,3 @@ Detail detail=0.5
                         CappedCone height=1.5 bottomRadius=0.55 topRadius=0.3
                     Translate translation=(0, 3.45, 0)
                         CappedCone height=0.12 bottomRadius=0.3 topRadius=0.36
-
-        # Floating eyes, mirrored, in front of the stem, and floating hands either side of it in the stem's flesh
-        SymmetryX
-            Translate translation=(0.24, 2.0, 0.6)
-                Scale scale=(2.4, 2.4, 2.4)
-                    Part part=eye
-        SymmetryX
-            Translate translation=(0.88, 1.55, 0.28)
-                Material material=chess_light_stem
-                    Scale scale=(2.6, 2.6, 2.6)
-                        Part part=hand
