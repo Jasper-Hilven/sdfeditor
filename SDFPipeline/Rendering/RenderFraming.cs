@@ -48,13 +48,26 @@ public static class RenderFramer
         return new RenderFraming(camera, bounds);
     }
 
-    /// <summary>The bounds of the model without its ground planes and other infinite shapes, or null when nothing finite is left.</summary>
-    internal static SdfBounds? ModelBounds(SDFProgram program) => FiniteBounds(WithoutInfiniteShapes(program)) ?? FiniteBounds(program);
+    /// <summary>
+    /// How far out a model too large for <see cref="SdfBoundsFinder.DefaultHalfExtent"/> is looked for, in metres: a level's island
+    /// underside is over 200 m across. Only tried when the model has no finite bounds within the default, so smaller models keep theirs.
+    /// </summary>
+    public const float LargeHalfExtent = 1000;
 
-    private static SdfBounds? FiniteBounds(SDFProgram program)
+    /// <summary>
+    /// The bounds of the model without its ground planes and other infinite shapes, or null when nothing finite is left. A model larger
+    /// than <see cref="SdfBoundsFinder.DefaultHalfExtent"/> is looked for again out to <see cref="LargeHalfExtent"/>.
+    /// </summary>
+    internal static SdfBounds? ModelBounds(SDFProgram program)
     {
-        var bounds = SdfMeshExporter.FindBounds(program);
-        var limit = SdfBoundsFinder.DefaultHalfExtent * 0.99f;
+        var finite = WithoutInfiniteShapes(program);
+        return FiniteBounds(finite) ?? FiniteBounds(program) ?? FiniteBounds(finite, LargeHalfExtent);
+    }
+
+    private static SdfBounds? FiniteBounds(SDFProgram program, float halfExtent = SdfBoundsFinder.DefaultHalfExtent)
+    {
+        var bounds = SdfMeshExporter.FindBounds(program, halfExtent);
+        var limit = halfExtent * 0.99f;
         return bounds is null || Vector3.Max(Vector3.Abs(bounds.Min), Vector3.Abs(bounds.Max)) is var extent
             && MathF.Max(extent.X, MathF.Max(extent.Y, extent.Z)) >= limit
                 ? null

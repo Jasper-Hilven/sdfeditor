@@ -1,0 +1,32 @@
+# Dusk: the sun low in the west, a warm band of orange and rose along the horizon under a violet sky in which the first stars show;
+# the abyss below already dark, a few spores rising from it. Between day and night: the toon bands keep nearly their daylight
+# brightness under a warm light, the shadow band turned lilac, and the haze toward the horizon warm. No moon: the sun is the light.
+format 1
+
+light azimuth=255 elevation=9 color=(1.0, 0.68, 0.45)       # a low sun: long shadows across the field
+tone brightness=0.9 shadowTint=(0.85, 0.78, 1.05) glowKeep=0.5
+                                                           # shadows lilac against the warm light; glow half exempt
+
+gradient softness=1.5                                      # band edges, in degrees: softer than night's cels
+    band from=55 color=(0.05, 0.05, 0.16)                  # each band from an elevation (degrees) up to the next one
+    band from=30 color=(0.11, 0.08, 0.24)
+    band from=15 color=(0.28, 0.13, 0.3)
+    band from=6 color=(0.6, 0.24, 0.24)
+    band from=-4 color=(0.85, 0.42, 0.2)                   # the glow along the horizon
+abyss
+    band from=-4 color=(0.16, 0.07, 0.14)                  # each band from an elevation down to the next one
+    band from=-30 color=(0.03, 0.015, 0.04)
+    glow elevation=-55 width=14 color=(0.06, 0.04, 0.08)   # a faint violet deep below
+stars density=0.25 size=1.3 twinkle=0.25 tint=0.15 minElevation=35
+                                                           # only the brightest, high up, away from the glow
+
+fade start=30 end=200 amount=0.45                          # toward the horizon colour behind each pixel, in place of fog
+
+# Small glowing caps in the middle distance, as at night but fewer and dimmer against the brighter sky
+floaters model=floating-cap0 count=3 distance=(250, 400) elevation=(-10, 14) scale=8 drift=0.4 bob=1.5
+
+spores
+    abyss count=300 color=(1.0, 0.7, 0.3) altColor=(0.3, 0.95, 0.85) rise=1.0 size=0.6 from=-80 to=10
+    near count=80 radius=35 color=(1.0, 0.85, 0.55) size=0.05 drift=0.25
+
+post exposure=-0.2 bloom=0.2

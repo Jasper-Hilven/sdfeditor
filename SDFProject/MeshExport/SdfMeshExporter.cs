@@ -14,7 +14,8 @@ public static class SdfMeshExporter
         return p => calculator.Calculate(new V3(p.X, p.Y, p.Z), program);
     }
 
-    public static SdfBounds? FindBounds(SDFProgram program) => SdfBoundsFinder.Find(DistanceFunction(program));
+    public static SdfBounds? FindBounds(SDFProgram program, float halfExtent = SdfBoundsFinder.DefaultHalfExtent) =>
+        SdfBoundsFinder.Find(DistanceFunction(program), halfExtent);
 
     public static SdfMesh ToMesh(SDFProgram program, int resolution = DefaultResolution)
     {

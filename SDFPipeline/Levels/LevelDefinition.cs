@@ -21,6 +21,12 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The models scattered over the ground by the thousand (grass turfs, flowers), one layer per scatter section, in the file's order.</summary>
     public IReadOnlyList<ScatterLayer> Scatters { get; init; } = [];
 
+    /// <summary>
+    /// The trees on the border hills and the clusters along their crests, one layer per trees section, in the file's order: scattered
+    /// like <see cref="Scatters"/>, but in a band of distance from the playable rectangle (<see cref="ScatterLayer.Band"/>).
+    /// </summary>
+    public IReadOnlyList<ScatterLayer> Trees { get; init; } = [];
+
     /// <summary>How the instanced renderer draws each group of scattered models, by the group's name.</summary>
     public IReadOnlyList<DrawGroup> DrawGroups { get; init; } = [];
 
@@ -54,11 +60,33 @@ public sealed record HillRing(float Width, float Height, float NoiseAmplitude, f
     public static readonly HillRing None = new(0, 0, 0, DefaultNoiseScale);
 }
 
-/// <summary>Where the island ends: <paramref name="Margin"/> metres behind the hills' crest.</summary>
+/// <summary>
+/// Where the island ends: <paramref name="Margin"/> metres behind the hills' crest. With a <see cref="Rim"/>, the ground's last
+/// <see cref="Shoulder"/> metres bend down to that height, the same all round, so the rocky underside (<see cref="Underside"/>) meets it
+/// along one level line.
+/// </summary>
 public sealed record IslandEdge(float Margin)
 {
+    public const float DefaultShoulder = 2;
+
     public static readonly IslandEdge None = new(0);
+
+    /// <summary>The ground's height at the island's edge, in metres; null to leave it where the hills' back slope ends.</summary>
+    public float? Rim { get; init; }
+
+    /// <summary>How far in from the edge the ground starts bending down to the <see cref="Rim"/>, in metres.</summary>
+    public float Shoulder { get; init; } = DefaultShoulder;
+
+    /// <summary>The model that is the island's underside below the edge; null for none.</summary>
+    public IslandUnderside? Underside { get; init; }
 }
+
+/// <summary>
+/// The island's rocky underside: a model from content/models/ by name, its origin at the playable area's centre at height 0, its top
+/// following the island's edge just outside it at the edge's <see cref="IslandEdge.Rim"/> height. Drawn without outline or shadows.
+/// </summary>
+/// <param name="Line">The line of the level file it is on, for errors found while baking (a model that is not there, or does not fit).</param>
+public sealed record IslandUnderside(string Model, int Line);
 
 /// <summary>
 /// A region of the ground drawn in another material than grass: <see cref="Name"/> is its role (dirt, tiles, path), and its material is
@@ -119,15 +147,24 @@ public sealed record ScatterEntry(string Model, float Weight, int Line);
 /// </summary>
 /// <param name="Scale">The smallest and largest scale an instance gets, at random between them.</param>
 /// <param name="Line">The line of the level file the section is on.</param>
+/// <remarks>
+/// A trees section (<see cref="LevelDefinition.Trees"/>) is a layer with a <see cref="Band"/> instead of a reach: its instances stand
+/// between Band.X and Band.Y metres from the playable rectangle's edge (negative inside it), and each stands on the lowest ground within
+/// <see cref="LevelScatter.FootRadius"/> of its point, so a trunk on a slope does not float.
+/// </remarks>
 public sealed record ScatterLayer(IReadOnlyList<ScatterEntry> Entries, string Group, float Density, float Cluster, float ClusterScale,
     float Spacing, IReadOnlyList<string> Avoid, float Margin, float MaxSlope, float Reach, Vector2 Scale, int Line)
 {
     public const string DefaultGroup = "foliage";
+    public const string DefaultTreesGroup = "trees";
     public const float DefaultCluster = 1;
     public const float DefaultClusterScale = 8;
     public const float DefaultMaxSlope = 90;
     public const float DefaultReach = 3;
     public static readonly Vector2 DefaultScale = new(0.85f, 1.15f);
+
+    /// <summary>For a trees section: the least and greatest distance from the playable rectangle's edge, negative inside it; null for a scatter.</summary>
+    public Vector2? Band { get; init; }
 }
 
 /// <summary>

@@ -38,6 +38,11 @@ namespace SdfLevel.Editor
     /// and an eye view again on the integrated GPU / web quality level with bloom off. Every view logs what the sky draws in it.
     /// </para>
     /// <para>
+    /// With trees (a trees draw group) it also looks up the hills and along them from their foot and into a corner, on both quality
+    /// levels, out over the crest from high above a castle, down onto the island's edge, and at the underside from below the island,
+    /// and walks a character controller into the tree that stands furthest into the playable area (<see cref="ShootTrees"/>).
+    /// </para>
+    /// <para>
     /// Without a window: <c>Unity -batchmode -quit -projectPath Unity -executeMethod SdfLevel.Editor.LevelSnapshot.Capture
     /// -snapshotDir &lt;folder&gt; [-level meadow]</c> (without -nographics, so the GPU renders). The level's scene is rebuilt first if it
     /// is stale. In the editor: Tools > SDF Level > Save Snapshots, for the open level scene. In a running editor, which batch mode cannot
@@ -164,6 +169,8 @@ namespace SdfLevel.Editor
                 var moon = ShootSky(scene, eye, EyeShot);
                 if (scatter != null)
                     ShootFoliage(scene, directory, "", Shot, EyeShot);
+                if (HasGroup(scatter, TreesGroup))
+                    ShootTrees(scene, "", Shot, EyeShot);
 
                 QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
@@ -177,6 +184,8 @@ namespace SdfLevel.Editor
                 }
                 if (scatter != null)
                     ShootFoliage(scene, directory, "_web", Shot, EyeShot);
+                if (HasGroup(scatter, TreesGroup))
+                    ShootTrees(scene, "_web", Shot, EyeShot);
                 if (moon is { } toMoon)
                 {
                     // Glow must read without bloom, which the low preset may drop
@@ -205,7 +214,7 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>
-        /// The sky's views: up at the moon from the spawn point (with one), from the top of the first castle's outer back tower out over
+        /// The sky's views: up at the moon from the spawn point (with one), from the top of the first castle's large +x tower out over
         /// the crest to the edge, from the island's edge out and down, and the island from outside. Returns the direction towards the
         /// moon, or null without one; nothing is shot for a level without a sky.
         /// </summary>
@@ -221,13 +230,16 @@ namespace SdfLevel.Editor
 
             if (Placed(scene, "castle0").FirstOrDefault() is { } castle)
             {
-                // On top of the tower's roof (its apex is 12.5 m up), looking out of the island's end, a little down
-                var tower = ModelPoint(castle, 13, 14, -8);
+                // Standing on top of the cap of the large tower at the oval's +x end (joint 4, its cap's top about 15.8 m up), looking
+                // out of the island's end past the keep's flanking tower, a little down
+                var above = ModelPoint(castle, 12.4f, 40, 0);
+                var tower = (Physics.Raycast(above, Vector3.down, out var cap, 40) ? cap.point : ModelPoint(castle, 12.4f, 15.8f, 0))
+                            + Vector3.up * LevelBuilder.EyeHeight;
                 eyeShot("sky_tower", tower, Quaternion.LookRotation(ModelDirection(castle, 0, -0.2f, -1)));
             }
             // At the island's edge behind the +x hills (pipeline -x), looking out and down into the abyss: the last ground out along +x
             var extent = PlayHalfSize(scene).x;
-            while (extent < 1000 && Physics.Raycast(new Vector3(extent + 0.5f, 200, 0), Vector3.down, 400))
+            while (extent < 1000 && HasGround(new Vector3(extent + 0.5f, 0, 0)))
                 extent += 0.5f;
             var edge = OnGround(new Vector3(extent - 2, 0, 0)) + Vector3.up * LevelBuilder.EyeHeight;
             eyeShot("sky_edge", edge, Quaternion.Euler(25, 90, 0));
@@ -286,8 +298,106 @@ namespace SdfLevel.Editor
                 return "";
             var frame = scatter.LastFrame;
             var rings = frame.InstancesPerRing == null ? "" : string.Join(" / ", frame.InstancesPerRing.Take(3));
+            // Each group's own share, outlines included: the trees' budget is the trees and clusters groups together
+            var groups = frame.DrawsPerGroup == null ? "" : "; per group " + string.Join(", ", scatter.groups.Select((g, i) => i < frame.DrawsPerGroup.Length
+                ? $"{g.name} {frame.DrawsPerGroup[i]} draws {frame.TrianglesPerGroup[i]:N0} triangles"
+                : g.name));
             return $"; the foliage {frame.Instances:N0} instances (per ring {rings}), {frame.Draws + frame.OutlineDraws} draws ({frame.OutlineDraws} of them outlines), " +
-                   $"{frame.Triangles + frame.OutlineTriangles:N0} triangles ({frame.OutlineTriangles:N0} of them outlines), {frame.ShadowTriangles:N0} into the shadow map";
+                   $"{frame.Triangles + frame.OutlineTriangles:N0} triangles ({frame.OutlineTriangles:N0} of them outlines), {frame.ShadowTriangles:N0} into the shadow map{groups}";
+        }
+
+        /// <summary>The draw group of the level file's front-row trees (ticket 04), and that of its crest clusters.</summary>
+        private const string TreesGroup = "trees";
+
+        private static bool HasGroup(InstancedScatterRenderer scatter, string group) => scatter != null && scatter.groups.Any(g => g.name == group);
+
+        /// <summary>
+        /// The trees on the border hills and the island's edge: from eye height at the foot of the +x hills looking up the slope and
+        /// along it, and into the corner; then (high preset only) from above the first castle's keep out over the crest to the edge and
+        /// the underside, down onto the edge's lip from just inside it, and the underside from below the island. Each eye view logs what
+        /// every draw group costs, so the trees' and clusters' draws and triangles can be read off. On the high preset it also walks a
+        /// character controller straight at the tree that stands furthest into the playable area, logging how close it got to the trunk.
+        /// </summary>
+        private static void ShootTrees(Scene scene, string suffix, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot)
+        {
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            var play = PlayHalfSize(scene);
+            var foot = OnGround(new Vector3(play.x - 3, 0, 12)) + up;
+            eyeShot("trees_slope" + suffix, foot, Quaternion.Euler(-8, 90, 0));
+            eyeShot("trees_along" + suffix, foot, Quaternion.Euler(-3, 25, 0));
+            var corner = OnGround(new Vector3(-(play.x - 6), 0, -(play.y - 6))) + up;
+            eyeShot("trees_corner" + suffix, corner, Quaternion.LookRotation(new Vector3(-1, 0.05f, -1)));
+            if (suffix != "")
+                return;
+
+            if (Placed(scene, "castle0").FirstOrDefault() is { } castle)
+            {
+                // Behind the castle at +x as high as its towers' caps, out over the crest to the edge and down into the abyss
+                var tower = castle.position + new Vector3(19, 16, 0);
+                eyeShot("edge_tower", tower, Quaternion.Euler(14, 90, 0));
+                eyeShot("edge_tower_side", tower, Quaternion.Euler(12, 50, 0));
+            }
+            var extent = play.x;
+            while (extent < 1000 && HasGround(new Vector3(extent + 0.5f, 0, 20)))
+                extent += 0.5f;
+            // From just outside the edge, back and down onto the lip where the grass ends on the underside's soil
+            var lip = new Vector3(extent + 7, OnGround(new Vector3(extent - 0.5f, 0, 20)).y + 4, 20);
+            eyeShot("edge_lip", lip, Quaternion.Euler(28, -70, 0));
+            var below = new Vector3(170, -45, -230);
+            eyeShot("island_below", below, Quaternion.LookRotation(new Vector3(0, -10, 0) - below));
+
+            WalkIntoATree(scene, play);
+        }
+
+        /// <summary>
+        /// Walks a character controller (the player's size) straight at the trunk of the scattered tree furthest inside the playable
+        /// area, from 5 m away, and logs how close it came to the trunk's axis against the capsule's radius: it should stop at the radius
+        /// plus its own 0.3 m. Logs the number of collider-only objects.
+        /// </summary>
+        private static void WalkIntoATree(Scene scene, Vector2 play)
+        {
+            var colliders = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.ScatterCollidersName);
+            if (colliders == null)
+            {
+                Debug.Log("SDF level: tree check: no scatter colliders");
+                return;
+            }
+            var trees = colliders.Cast<Transform>().ToArray();
+            var inside = trees.OrderBy(t => Mathf.Max(Mathf.Abs(t.position.x) - play.x, Mathf.Abs(t.position.z) - play.y)).First();
+            var capsule = inside.GetComponent<CapsuleCollider>();
+            var walker = new GameObject("Tree Check") { hideFlags = HideFlags.HideAndDontSave };
+            SceneManager.MoveGameObjectToScene(walker, scene);
+            try
+            {
+                var controller = walker.AddComponent<CharacterController>();
+                controller.height = 1.75f;
+                controller.radius = 0.3f;
+                controller.center = new Vector3(0, controller.height / 2, 0);
+                controller.slopeLimit = 45;
+                controller.stepOffset = 0.4f;
+                var axis = inside.TransformPoint(capsule.center);
+                var towards = new Vector3(-axis.x, 0, -axis.z).normalized;
+                var start = OnGround(axis + towards * 5);
+                controller.enabled = false;
+                walker.transform.position = start + Vector3.up * 0.05f;
+                controller.enabled = true;
+                Physics.SyncTransforms();
+                var closest = float.PositiveInfinity;
+                for (var travelled = 0f; travelled < 8; travelled += 0.05f)
+                {
+                    controller.Move(-towards * 0.05f + Vector3.down * 0.1f);
+                    var p = walker.transform.position;
+                    closest = Mathf.Min(closest, new Vector2(p.x - axis.x, p.z - axis.z).magnitude);
+                }
+                var radius = capsule.radius * inside.lossyScale.x;
+                var edge = Mathf.Max(Mathf.Abs(inside.position.x) - play.x, Mathf.Abs(inside.position.z) - play.y);
+                Debug.Log($"SDF level: tree check: {trees.Length} collider-only trees; walking straight at {inside.name} ({-edge:0.00} m inside the playable area, " +
+                          $"trunk capsule {radius:0.00} m) comes no closer than {closest:0.00} m to its axis (blocked at {radius + controller.radius:0.00})");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(walker);
+            }
         }
 
         /// <summary>
@@ -692,6 +802,11 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>The point of the ground's colliders (the chunks', not the placed models') below or above a point.</summary>
+        /// <summary>Whether a ground chunk is under (or over) the point; trees' and rocks' colliders do not count.</summary>
+        private static bool HasGround(Vector3 point) =>
+            Physics.RaycastAll(new Vector3(point.x, 200, point.z), Vector3.down, 400)
+                .Any(hit => hit.collider is MeshCollider && hit.collider.transform.parent != null && hit.collider.transform.parent.name == "Ground");
+
         private static Vector3 OnGround(Vector3 point)
         {
             var from = new Vector3(point.x, 200, point.z);

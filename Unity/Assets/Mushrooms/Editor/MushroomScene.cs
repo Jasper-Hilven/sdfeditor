@@ -37,9 +37,10 @@ namespace SdfMushrooms.Editor
 
         /// <summary>
         /// Groups of models that are not shown: the pieces a model bursts into and the effects' goop, which the special-effects scene
-        /// (Assets/Scenes/SpecialEffects.unity) uses instead.
+        /// (Assets/Scenes/SpecialEffects.unity) uses instead, and the scenery that only makes sense in a level: the crest clusters and
+        /// the island's underside, 200 m across.
         /// </summary>
-        private static readonly string[] HiddenGroups = { "characters/exploding", "effects" };
+        private static readonly string[] HiddenGroups = { "characters/exploding", "effects", "trees/clusters", "terrain" };
 
         public static void Ensure(IReadOnlyList<(string group, string prefab)> models)
         {

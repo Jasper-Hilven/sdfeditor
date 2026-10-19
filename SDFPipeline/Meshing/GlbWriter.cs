@@ -251,7 +251,9 @@ public static class GlbWriter
                     },
                     // Each mesh's primitives are its material regions; the number is the material's index in materials
                     regions = "primitive material = index into materials, by the material that weighs most at the triangle",
-                    collider = Collider(model.Settings, ModelPositions(model), 1, lodCount),
+                    collider = model.Settings.Collider == ColliderShape.Capsule
+                        ? Collider(model.Settings, TrunkMeshes(model), 1, lodCount)
+                        : Collider(model.Settings, [(ModelPositions(model), [])], 1, lodCount),
                     // Left out where they are the default, so such files stay as they were
                     shadows = model.Settings.Shadows == ShadowCasting.On ? null : Lower(model.Settings.Shadows),
                     outline = model.Settings.Outline ? (bool?)null : false,
@@ -281,13 +283,15 @@ public static class GlbWriter
     /// What the game engine gives the model or a part to collide with (<see cref="ModelSettings"/>), resolved for this file: the level of
     /// detail a convex or mesh collider is made from (the one asked for, or the coarsest, never beyond the levels there are), a convex one
     /// larger than <see cref="ModelSettings.LargestConvexSize"/> made a mesh, as its hull would block walkable ground round a large
-    /// outcrop, and a capsule's axis and radius, upright through the middle of the <paramref name="positions"/>' bounds (in the file's
-    /// coordinates, or a part instance's own). <paramref name="scale"/> is the largest a part's instances make it. Null for none, so files
-    /// without a collider stay as they were.
+    /// outcrop, and a capsule fitted to the <paramref name="meshes"/> (<see cref="Capsule"/>; in the file's coordinates, or a part
+    /// instance's own). <paramref name="scale"/> is the largest a part's instances make it. Null for none, so files without a collider
+    /// stay as they were.
     /// </summary>
-    private static object? Collider(ModelSettings settings, IReadOnlyList<Vector3> positions, float scale, int lodCount)
+    /// <param name="meshes">What the collider goes round: positions, and for a capsule the triangles between them.</param>
+    private static object? Collider(ModelSettings settings, IReadOnlyList<(Vector3[] Positions, int[] Triangles)> meshes, float scale, int lodCount)
     {
-        if (settings.Collider == ColliderShape.None || positions.Count == 0)
+        var positions = meshes.SelectMany(m => m.Positions).ToArray();
+        if (settings.Collider == ColliderShape.None || positions.Length == 0)
             return null;
         var min = positions.Aggregate(Vector3.Min);
         var max = positions.Aggregate(Vector3.Max);
@@ -295,13 +299,12 @@ public static class GlbWriter
         switch (settings.Collider)
         {
             case ColliderShape.Capsule:
-                var radius = MathF.Max(size.X, size.Z) / 2;
-                var centre = (min + max) / 2;
+                var (centre, radius) = Capsule(meshes, min, max);
                 return new
                 {
                     shape = "capsule",
-                    @base = new[] { centre.X, min.Y, centre.Z },
-                    top = new[] { centre.X, max.Y, centre.Z },
+                    @base = new[] { centre.X, min.Y, centre.Y },
+                    top = new[] { centre.X, max.Y, centre.Y },
                     radius,
                 };
             default:
@@ -314,6 +317,60 @@ public static class GlbWriter
                     asked = settings.Collider.ToString().ToLowerInvariant(),
                 };
         }
+    }
+
+    /// <summary>The lowest and highest share of a capsule's height that its radius is measured in: above a trunk's flared foot, below its fork.</summary>
+    public static readonly (float From, float To) CapsuleBand = (0.25f, 0.45f);
+
+    /// <summary>The share of the cross-sections' points in <see cref="CapsuleBand"/> that are within a capsule's radius of its axis.</summary>
+    public const float CapsuleShare = 0.8f;
+
+    /// <summary>How many cross-sections through <see cref="CapsuleBand"/> a capsule is fitted to.</summary>
+    private const int CapsuleSections = 6;
+
+    /// <summary>
+    /// An upright capsule round a trunk, from the lowest to the highest of the positions, fitted to cross-sections of the meshes at a
+    /// few heights between <see cref="CapsuleBand"/>'s shares of that height (where the triangles' edges cross them, so a side that
+    /// simplification left without vertices is measured all the same): its axis (x, z) through their points' mean, its radius as far out
+    /// as <see cref="CapsuleShare"/> of them, so a tree's flared foot, a root or a branch reaching into the band leaves it as thick as the
+    /// trunk is where a player walks into it. Without a cross-section, round the whole bounds.
+    /// </summary>
+    internal static (Vector2 Centre, float Radius) Capsule(IReadOnlyList<(Vector3[] Positions, int[] Triangles)> meshes, Vector3 min, Vector3 max)
+    {
+        var height = max.Y - min.Y;
+        var points = new List<Vector2>();
+        for (var k = 0; k < CapsuleSections; k++)
+        {
+            var y = min.Y + height * (CapsuleBand.From + (CapsuleBand.To - CapsuleBand.From) * k / (CapsuleSections - 1));
+            foreach (var (positions, triangles) in meshes)
+                for (var t = 0; t < triangles.Length; t += 3)
+                    for (var e = 0; e < 3; e++)
+                    {
+                        // Every edge that crosses, once for each of its two triangles: twice each moves neither the mean nor the share
+                        var (a, b) = (positions[triangles[t + e]], positions[triangles[t + (e + 1) % 3]]);
+                        if ((a.Y < y) == (b.Y < y))
+                            continue;
+                        var p = Vector3.Lerp(a, b, (y - a.Y) / (b.Y - a.Y));
+                        points.Add(new Vector2(p.X, p.Z));
+                    }
+        }
+        if (points.Count < 3)
+            return (new Vector2(min.X + max.X, min.Z + max.Z) / 2, MathF.Max(max.X - min.X, max.Z - min.Z) / 2);
+        var centre = points.Aggregate(Vector2.Add) / points.Count;
+        var distances = points.Select(p => Vector2.Distance(p, centre)).Order().ToArray();
+        return (centre, distances[Math.Min((int)(CapsuleShare * distances.Length), distances.Length - 1)]);
+    }
+
+    /// <summary>
+    /// The meshes a model's capsule is fitted to, at LOD0 in the model's space: its body (a tree's trunk and branches, without the
+    /// canopy, which is a part), or every mesh, each part instance where its use puts it, when the model is nothing but parts.
+    /// </summary>
+    private static (Vector3[] Positions, int[] Triangles)[] TrunkMeshes(MeshedModel model)
+    {
+        var body = model.Meshes.Where(m => m.Part is null).ToArray();
+        return (body.Length > 0 ? body : model.Meshes).SelectMany(m => m.Instances.Count == 0
+            ? [(m.Positions, m.Triangles)]
+            : m.Instances.Select(placement => (m.Positions.Select(p => Vector3.Transform(p, placement)).ToArray(), m.Triangles))).ToArray();
     }
 
     /// <summary>Every vertex of LOD0 in the model's space, each part instance's where its use puts it.</summary>
@@ -337,7 +394,7 @@ public static class GlbWriter
             parts[mesh.Name] = new
             {
                 part,
-                collider = Collider(settings, mesh.Positions, scale, lodCount) ?? new { shape = "none" },
+                collider = Collider(settings, [(mesh.Positions, mesh.Triangles)], scale, lodCount) ?? new { shape = "none" },
                 shadows = Lower(settings.Shadows),
                 outline = settings.Outline,
                 cull = settings.Cull,

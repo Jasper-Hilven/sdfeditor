@@ -35,9 +35,17 @@ public sealed record ScatteredLevel(IReadOnlyList<ScatterPrototype> Prototypes, 
 /// over the ground that is kept. At cluster 1 the scatter is even.</item>
 /// </list>
 /// Each kept point picks its model by weight, a yaw and a scale at random, and takes the ground's height and colour there.
+/// <para>
+/// The trees sections (<see cref="LevelDefinition.Trees"/>) are scattered the same way after the scatter layers, with streams of their
+/// own (so adding trees leaves the grass where it was), over the band of distance they give instead of the reach; each tree stands on
+/// the lowest ground within <see cref="FootRadius"/> of its point.
+/// </para>
 /// </summary>
 public static class LevelScatter
 {
+    /// <summary>How far round a tree's point the ground is sampled for the lowest, which its base is put on, in metres.</summary>
+    public const float FootRadius = 0.5f;
+
     /// <summary>
     /// How far the ground's colour goes from its base towards its variation colour on average: the ground shader shows half its
     /// patches (the toon style's colour variation) and about half the ground is in a patch.
@@ -52,11 +60,12 @@ public static class LevelScatter
     public static ScatteredLevel Scatter(LevelDefinition level, LevelTerrain terrain, GroundRegions regions,
         Func<string, ModelFootprint> footprintOf, Func<Vector2, Vector3> groundColor)
     {
-        if (level.Scatters.Count == 0)
+        var layers = level.Scatters.Concat(level.Trees).ToArray();
+        if (layers.Length == 0)
             return ScatteredLevel.None;
 
         var prototypes = new List<ScatterPrototype>();
-        foreach (var layer in level.Scatters)
+        foreach (var layer in layers)
             foreach (var entry in layer.Entries)
             {
                 var known = prototypes.FindIndex(p => p.Model == entry.Model);
@@ -69,20 +78,21 @@ public static class LevelScatter
 
         var instances = new List<ScatteredInstance>();
         var counts = new List<int>();
-        for (var index = 0; index < level.Scatters.Count; index++)
+        for (var index = 0; index < layers.Length; index++)
         {
             var before = instances.Count;
-            ScatterLayer(level, index, terrain, regions, footprintOf, groundColor, prototypes, instances);
+            // Each layer's streams: the scatters' from 200 and 300 on, as before there were trees, the trees' from 400 and 500 on
+            var stream = index < level.Scatters.Count ? index : 200 + index - level.Scatters.Count;
+            ScatterLayer(level, layers[index], stream, terrain, regions, footprintOf, groundColor, prototypes, instances);
             counts.Add(instances.Count - before);
         }
         return new ScatteredLevel(prototypes, instances, counts);
     }
 
-    private static void ScatterLayer(LevelDefinition level, int index, LevelTerrain terrain, GroundRegions regions,
+    private static void ScatterLayer(LevelDefinition level, ScatterLayer layer, int index, LevelTerrain terrain, GroundRegions regions,
         Func<string, ModelFootprint> footprintOf, Func<Vector2, Vector3> groundColor, List<ScatterPrototype> prototypes,
         List<ScatteredInstance> instances)
     {
-        var layer = level.Scatters[index];
         var avoided = layer.Avoid.Select(name =>
         {
             var region = regions.Regions.ToList().FindIndex(r => r.Name == name);
@@ -96,7 +106,17 @@ public static class LevelScatter
 
         bool Allowed(Vector2 p)
         {
-            if (terrain.DistanceOutside(p.X, p.Y) > layer.Reach || !terrain.OnIsland(p.X, p.Y))
+            if (layer.Band is { } band)
+            {
+                var distance = terrain.SignedDistance(p.X, p.Y);
+                if (distance < band.X || distance > band.Y)
+                    return false;
+            }
+            else if (terrain.DistanceOutside(p.X, p.Y) > layer.Reach)
+            {
+                return false;
+            }
+            if (!terrain.OnIsland(p.X, p.Y))
                 return false;
             foreach (var region in avoided)
                 if (regions.Distance(region, p) < layer.Margin)
@@ -114,7 +134,7 @@ public static class LevelScatter
             return terrain.Normal(p.X, p.Y).Y >= cosMaxSlope;
         }
 
-        var half = level.Play.HalfSize + new Vector2(layer.Reach);
+        var half = level.Play.HalfSize + new Vector2(layer.Band is { } outer ? MathF.Max(outer.Y, 0) : layer.Reach);
         var random = new Random32(level.Seed, 200 + index);
         var samples = PoissonDisk(-half, half, layer.Spacing, random);
         var samplesPerSquareMetre = samples.Count / (4 * half.X * half.Y);
@@ -170,9 +190,22 @@ public static class LevelScatter
             }
             var yaw = random.NextFloat() * 360 - 180;
             var scale = layer.Scale.X + (layer.Scale.Y - layer.Scale.X) * random.NextFloat();
-            instances.Add(new ScatteredInstance(prototypes.FindIndex(m => m.Model == entry.Model), new Vector3(p.X, terrain.Height(p.X, p.Y), p.Y),
+            var height = layer.Band is null ? terrain.Height(p.X, p.Y) : LowestAround(terrain, p, FootRadius);
+            instances.Add(new ScatteredInstance(prototypes.FindIndex(m => m.Model == entry.Model), new Vector3(p.X, height, p.Y),
                 yaw, scale, Srgba(groundColor(p)), random.NextUInt()));
         }
+    }
+
+    /// <summary>The lowest ground at the point and at eight points round it <paramref name="radius"/> away.</summary>
+    private static float LowestAround(LevelTerrain terrain, Vector2 p, float radius)
+    {
+        var lowest = terrain.Height(p.X, p.Y);
+        for (var k = 0; k < 8; k++)
+        {
+            var angle = k * MathF.PI / 4;
+            lowest = MathF.Min(lowest, terrain.Height(p.X + radius * MathF.Cos(angle), p.Y + radius * MathF.Sin(angle)));
+        }
+        return lowest;
     }
 
     /// <summary>

@@ -9,8 +9,9 @@ hills
     ring width=28 height=10               # rise outside the rectangle, crest about 8-12 m
     noise amplitude=2.5 scale=18          # unevenness along the crest and on the slopes
 
-edge                                      # where the island ends, behind the hill crests (the underside comes later)
-    margin=6
+edge                                      # where the island ends, behind the hill crests
+    margin=6 rim=3 shoulder=3             # its last 3 m bend down to 3 m high all round, where the underside meets the ground
+    underside island-underside            # the rock below the island, content/models/terrain/, made for these numbers
 
 # The ground other than grass, from 2D shapes; where regions overlap, the later one wins. Each is drawn in its material,
 # materials/ground/ground_<region>.sdfmat; the tiles also get the castles' footprints (ground=tiles below)
@@ -53,6 +54,36 @@ scatter
     flower4 weight=1
     density=0.12 cluster=3 clusterScale=10 spacing=0.6 avoid=dirt,tiles,path margin=0.8 maxSlope=20
 
+# The woods on the border hills, drawn instanced like the foliage. band is how far from the playable rectangle's edge they stand
+# (negative inside it). The front row climbs the inner slopes to the crest, 5 to 8 m apart, large enough that its crowns and the
+# crest hide what is behind; a few trees stand at the meadow's edge, where the player can walk up to them (their trunks block);
+# behind the crest, clusters of crowns grown into one mass fill the gaps between the front row's trunks and carry the hill line
+trees
+    tree0 weight=2
+    tree1 weight=1.5
+    tree2 weight=1.5
+    old-tree1
+    pine0
+    pine1 weight=0.8
+    band=(12, 28) density=0.0105 spacing=6 scale=(0.95, 1.4) maxSlope=35
+trees
+    tree0
+    tree2
+    old-tree1
+    band=(-3, 6) density=0.004 spacing=9 scale=(0.9, 1.2) avoid=dirt,tiles,path margin=2
+trees group=clusters
+    cluster0
+    cluster1
+    cluster2
+    cluster3
+    cluster4
+    cluster5
+    cluster6 weight=0.6
+    cluster7 weight=0.6
+    cluster8
+    cluster9
+    band=(27.5, 31.5) density=0.05 spacing=3.5 scale=(0.9, 1.2)
+
 # How the foliage is drawn round the first-person camera: the finest level with its outline and shadows up to 6 m, the next to 15 m,
 # the coarsest to 35 m, fading out over its last 5 m. A gentle sway of 4 cm at half a metre up, and the lowest 8 cm of each turf (its
 # mound of earth) in the colour of the ground under it. The integrated GPU / web preset draws half of them, to 0.7 times the distance
@@ -68,5 +99,17 @@ draw foliage
 # cull setting). Without this section the castles are drawn as GameObjects.
 draw castle
     rings=[25, 60, 400] outline=2 shadows=3 lowShadows=1 blend=2 lowDistance=0.4
+
+# How the trees are drawn: LOD0 to 25 m, LOD1 to 60 m, LOD2 beyond, never ended by distance inside the level (only by the view),
+# all with the ink outline, which carries the hill line; shadows from the nearer two rings (only the nearest on the integrated
+# GPU / web preset, which also ends LOD0 and LOD1 at 0.7 times the distance). The crowns sway a few centimetres at the treetops,
+# growing with the square of the height, so the trunks stay put
+draw trees
+    rings=[25, 60, 1000] outline=3 shadows=2 lowShadows=1 blend=2 wind=0.06 windHeight=5 lowDistance=0.7
+
+# The crest clusters, never nearer than about 30 m: LOD0 to 45 m and LOD1 beyond, outlined, casting no shadow (they would only fall
+# on the hills' back slopes, behind the crest)
+draw clusters
+    rings=[45, 1000] outline=2 blend=3 wind=0.08 windHeight=8 lowDistance=0.7
 
 sky preset=night                          # Eye-Moon Night, content/skies/night.sky

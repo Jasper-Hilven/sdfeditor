@@ -10,7 +10,8 @@ namespace SDFPipeline.Levels;
 /// fall back by <see cref="BackSlopeDrop"/> of their height towards the island's edge; their noise grows with d from nothing at the
 /// rectangle to full strength at the crest, so the playable area's edge stays clean while the crest is uneven.</item>
 /// </list>
-/// The island ends where d = ring width + edge margin (<see cref="EdgeDistance"/>): a rounded rectangle around the playable one.
+/// The island ends where d = ring width + edge margin (<see cref="EdgeDistance"/>): a rounded rectangle around the playable one. With a
+/// rim, its last metres bend down to the rim's height, the same all round (<see cref="IslandEdge.Rim"/>).
 /// <para>
 /// Placements that flatten (<see cref="Placement.Flatten"/>) then level the ground in a disc round their point to the height it had
 /// there, the base their model stands on, and blend back to it over their falloff (smoothstep), one after another in the file's order.
@@ -99,7 +100,28 @@ public sealed class LevelTerrain
         var back = level.Edge.Margin > 0 ? Smoothstep((d - hills.Width) / level.Edge.Margin) : 0f;
         height += hills.Height * (rise - BackSlopeDrop * back);
         height += hills.NoiseAmplitude * rise * hillNoise.Fractal(x / hills.NoiseScale, z / hills.NoiseScale);
-        return height;
+        return Rimmed(height, d);
+    }
+
+    /// <summary>
+    /// With a rim (<see cref="IslandEdge.Rim"/>), the ground over the last shoulder metres bent down to the rim's height: by the square of
+    /// how far into the shoulder it is, so it leaves the slope smoothly and meets the rim at a slant, not level, which keeps the line
+    /// where the underside's top cuts the ground close to the edge.
+    /// </summary>
+    private float Rimmed(float height, float d)
+    {
+        if (level.Edge.Rim is not { } rim)
+            return height;
+        var t = Math.Clamp((d - (EdgeDistance - level.Edge.Shoulder)) / level.Edge.Shoulder, 0, 1);
+        return height + (rim - height) * t * t;
+    }
+
+    /// <summary>The distance from the playable rectangle's edge: positive outside it (<see cref="DistanceOutside"/>), negative inside.</summary>
+    public float SignedDistance(float x, float z)
+    {
+        var half = level.Play.HalfSize;
+        var (dx, dz) = (MathF.Abs(x) - half.X, MathF.Abs(z) - half.Y);
+        return dx > 0 || dz > 0 ? DistanceOutside(x, z) : MathF.Max(dx, dz);
     }
 
     /// <summary>The ground's upward unit normal, from the height's slope.</summary>

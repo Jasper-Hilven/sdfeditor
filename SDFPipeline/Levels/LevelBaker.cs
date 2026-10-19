@@ -31,10 +31,11 @@ public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, floa
 /// of <see cref="GroundLayout"/> that has ground, each with its levels of detail as separate meshes named like a model's (ground,
 /// ground_LOD1, ...), and level.json with everything else the engine needs: the extent, the chunk grid, the playable rectangle, the seed,
 /// where the player starts, the ground's materials by region, the region map (regions.png, see <see cref="RegionMap"/>), the placed
-/// models, the scattered ones (instances.bin, see <see cref="InstanceFile"/> and <see cref="LevelScatter"/>) with their draw groups,
-/// the resolved sky (<see cref="SkyDocument"/>) with where its floaters and spores are, and the list of every model's name. Unity's
-/// LevelBuilder turns it into the level's scene; the ground's colliders are made there, from LOD1, the placed models bring theirs on
-/// their prefabs, and the scattered ones have none.
+/// models, the scattered ones and the trees (instances.bin, see <see cref="InstanceFile"/> and <see cref="LevelScatter"/>) with their
+/// draw groups, the island's edge with its underside model, the resolved sky (<see cref="SkyDocument"/>) with where its floaters and
+/// spores are, and the list of every model's name. Unity's LevelBuilder turns it into the level's scene; the ground's colliders are made
+/// there, from LOD1, the placed models bring theirs on their prefabs, and a scattered model whose prefab has a collider (the trees' trunk
+/// capsules) gets a collider-only object per instance.
 /// <para>
 /// The output depends on the file and the materials only, never on the machine's timing: the same input bakes byte-identical files.
 /// Chunk files from an earlier bake that this one no longer makes are deleted, as is instances.bin when nothing is scattered;
@@ -99,6 +100,10 @@ public static class LevelBaker
         foreach (var model in sky?.Definition.Models ?? [])
             if (models?.Invoke(model) is null)
                 throw new ProgramFiles.SdfProgramFileException(level.Sky?.Line ?? 1, $"The sky draws the model '{model}', but there is none in content/models/");
+        // The underside need only be there: its footprint would take seconds to find for a model 200 m across. That it fits the island
+        // is the model's business (the meadow's is checked against its level by a test)
+        if (level.Edge.Underside is { } underside && !(modelExists ?? (name => models?.Invoke(name) is not null))(underside.Model))
+            throw new ProgramFiles.SdfProgramFileException(underside.Line, $"There is no model '{underside.Model}' in content/models/");
         var regions = new GroundRegions(level, model => footprints[model]);
         foreach (var region in regions.Regions)
             if (!materials.Contains(region.Material))
@@ -108,7 +113,7 @@ public static class LevelBaker
             .ToArray();
 
         // The scattered models need only be there; the ground's colour under each instance is its material's average
-        foreach (var entry in level.Scatters.SelectMany(s => s.Entries))
+        foreach (var entry in level.Scatters.Concat(level.Trees).SelectMany(s => s.Entries))
             if (!(modelExists ?? (name => models?.Invoke(name) is not null))(entry.Model))
                 throw new ProgramFiles.SdfProgramFileException(entry.Line, $"There is no model '{entry.Model}' in content/models/");
         var groundColors = regions.Regions.Select(r => r.Material).Prepend(GrassMaterial)
@@ -197,7 +202,16 @@ public static class LevelBaker
             seed = level.Seed,
             play = new { size = Array(play.Size), min = Array(-play.HalfSize), max = Array(play.HalfSize), noise = play.NoiseAmplitude, noiseScale = play.NoiseScale },
             hills = new { width = hills.Width, height = hills.Height, noise = hills.NoiseAmplitude, noiseScale = hills.NoiseScale },
-            edge = new { margin = level.Edge.Margin, distance = terrain.EdgeDistance },
+            // With a rim, the ground's last shoulder metres bend down to the rim's height all round, where the underside model (placed
+            // at the origin, as a unique model, without outline or shadows) meets it
+            edge = new
+            {
+                margin = level.Edge.Margin,
+                distance = terrain.EdgeDistance,
+                rim = level.Edge.Rim,
+                shoulder = level.Edge.Rim is null ? (float?)null : level.Edge.Shoulder,
+                underside = level.Edge.Underside?.Model,
+            },
             extent = new { min = Array(-terrain.HalfExtent), max = Array(terrain.HalfExtent) },
             spawn = new[] { 0, terrain.Height(0, 0), 0 },
             ground = new
@@ -272,6 +286,15 @@ public static class LevelBaker
                     density = s.Density,
                     count = scattered.LayerCounts[index],
                 }).ToArray(),
+                // The trees sections, after the scatters: band is the least and greatest distance from the playable rectangle's edge
+                trees = level.Trees.Count == 0 ? null : level.Trees.Select((s, index) => new
+                {
+                    group = s.Group,
+                    models = s.Entries.Select(e => e.Model).ToArray(),
+                    density = s.Density,
+                    band = Array(s.Band!.Value),
+                    count = scattered.LayerCounts[level.Scatters.Count + index],
+                }).ToArray(),
             },
             // How the instanced renderer draws each group: rings[k] is where ring k (level of detail k) ends, in metres; the first outline
             // rings get the ink line and the first shadows (lowShadows on the integrated GPU / web preset) cast shadows; rings cross-fade
@@ -294,8 +317,11 @@ public static class LevelBaker
             }).ToArray(),
             // The sky, resolved from its preset and the level's overrides, with where its floaters and spores are (seeded by the level)
             sky = sky is null ? null : SkyDocument.Of(sky.Definition, sky.Hash, SkyLayout.Of(sky.Definition, level.Seed, play.HalfSize, terrain.EdgeDistance)),
-            // Every model the level uses, placed, scattered or in the sky, once, so Unity rebuilds the level when one of their prefabs is rebuilt
-            models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model)).Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
+            // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
+            // their prefabs is rebuilt
+            models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
+                .Concat(level.Edge.Underside is { } under ? [under.Model] : [])
+                .Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
         };
         var json = JsonSerializer.SerializeToUtf8Bytes(document, JsonOptions);
         GlbWriter.SaveAtomically(Path.Combine(folder, LevelJson), [.. json, (byte)'\n']);

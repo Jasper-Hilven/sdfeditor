@@ -63,3 +63,89 @@ right under 07's night preset (tower and edge snapshots), and it sits in front o
 - Trees block the player where reachable; canopies do not.
 - No tree in the level scene is a rendered GameObject; all are drawn by the instanced renderer.
 - Trees cost ≤ 400k triangles on the high preset, ≤ 120k on integrated GPU / web, and ≤ 80 draws including outlines.
+
+## Status
+
+Done, on branch `worktree-agent-a0e50996378d0fa09` (worktree `.claude/worktrees/agent-a0e50996378d0fa09`), from main at 0181038.
+
+- **Level file**: a new, repeatable `trees` section (`LevelFile.Sections`, `LevelDefinition.Trees`), written like a scatter: its models
+  with `weight`, then `density`, `spacing`, `band=(from, to)` (metres from the playable rectangle's edge, negative inside it) in place of
+  `reach`, and optionally `group` (trees by default), `scale`, `maxSlope`, `avoid`, `margin`, `cluster`, `clusterScale`. The `edge`
+  section takes `rim` (the ground's height at the edge), `shoulder` (how far in it starts bending down to it, 2 m by default) and,
+  on a line of its own, `underside <model>`. Errors name their line (missing band, a band the wrong way round, `reach` in a trees
+  section, a shoulder without a rim or wider than the margin, an underside without a rim, two undersides).
+- **Placement** (`LevelScatter`): trees sections are scattered after the scatters with streams of their own, so grass and flowers are
+  unchanged (7,206 turfs and 1,397 flowers, as on main). Points are kept inside the band (`LevelTerrain.SignedDistance`); each tree
+  stands on the lowest ground within 0.5 m of its point, so a trunk on a slope does not float. `meadow.level` has three: the front row
+  (tree0–2, old-tree1, pine0, pine1; band 12–28 m, spacing 6 m, scale 0.95–1.4): **110 trees**; a few at the meadow's edge (band
+  −3–6 m, avoiding the dirt, path and tiles): **20**; and the crest clusters (band 27.5–31.5 m, spacing 3.5 m, group `clusters`):
+  **161**. level.json `instances.trees` lists them with their bands and counts; `edge` gains `rim`, `shoulder` and `underside`.
+- **Rim** (`LevelTerrain`): the ground's last `shoulder` metres bend down to the rim's height by the square of the way into the shoulder,
+  so the edge is at exactly 3 m all round and meets it at a slant. In the meadow `rim=3 shoulder=3`. The ground's LOD0 error grew from
+  10.2 to 17.8 cm (the shoulder is steep: 1–6 m down over 3 m), its triangles fell from 50,884 to 50,456.
+- **Crest clusters**: `content/models/trees/clusters/cluster0..9.sdf`, each 4–8 crowns of the existing parts (canopy*, pine_canopy*,
+  old_canopy*, willow_crown*, birch_crown*, fruit_crown*) and 3–6 trunks smooth-unioned into one mass 8–14 m wide and 5–10 m tall, its
+  trunks reaching 1.5 m below the base. Everything is inside an `Intersection` with a box (above 1.5 m below the base), which keeps the
+  parts in the body's mesh: one mesh, so one draw per level. At 128 cells with `--lods 3`: LOD0 3,246–4,796 triangles (cluster0 3,402,
+  1 3,246, 2 4,418, 3 3,404, 4 4,794, 5 4,730, 6 4,566, 7 4,662, 8 3,450, 9 4,796), LOD1 630–1,230, LOD2 274–620. They and `terrain`
+  are left out of the showcase (`MushroomScene.HiddenGroups`).
+- **Trunk capsules**: the 18 trees have `collider capsule`. `GlbWriter` now fits a model's capsule to its body only (a tree's trunk, not
+  the canopy part): from its lowest to its highest point, the axis through the mean of six cross-sections between 25 % and 45 % of
+  that height (taken where triangle edges cross them, so a side that simplification left without vertices still counts), the radius as
+  far out as 80 % of their points. Radii: 0.10–0.68 m for the trees (tree0 0.35, pine0 0.17, old-tree2 0.68), 2.2–4.2 m for the
+  clusters. The trees' meshes are unchanged; only their extras and prefabs (a `CapsuleCollider` on the root) changed.
+- **Underside**: `content/models/terrain/island-underside.sdf`, made for the meadow's numbers: a soil band (`ground_dirt`) 6 m deep that
+  follows the island's outline exactly (an elongated cylinder, not distorted), 40 cm past the edge and 25 cm above the rim, hollow
+  inside so its top stays under the ground; below it a lumpy rock mass (`rock_stone`, distorted) narrowing to a keel some 45 m down,
+  and eight hanging `rock_slate` spurs. `outline off`, `shadows off`, no collider. At 1 m cells (detail 0.17): 14,386 / 3,494 / 1,876
+  triangles, 18 s to mesh. `sdf level` only checks it is there (its footprint takes seconds to find at that size); a test checks that it
+  meets the meadow's ground: at 630 points round the edge it is there 20 cm out and 10 cm above the rim, gone 1 m out, and nowhere
+  less than 10 cm under the ground further in (30 cm over the whole island). Models over 100 m across could not be meshed before:
+  `RenderFramer.ModelBounds` now searches out to 1 km when nothing is found within 50 m (smaller models keep their bounds).
+- **Unity**: `LevelBuilder` (version 6) places the underside at the origin under Level/Underside, and writes a static, collider-only
+  object per scattered instance whose prefab has colliders on its root (Level/Scatter Colliders, 291: every tree and cluster, at its
+  position, yaw and scale, with a copy of its capsule). No tree is a GameObject with a renderer. The groups come from the level file:
+  `draw trees rings=[25, 60, 1000] outline=3 shadows=2 lowShadows=1 blend=2 wind=0.06 windHeight=5 lowDistance=0.7` and
+  `draw clusters rings=[45, 1000] outline=2 blend=3 wind=0.08 windHeight=8 lowDistance=0.7` (no shadows: they would fall on the back
+  slopes). `LevelSnapshot` logs draws and triangles per draw group in every eye view, adds trees_slope / trees_along / trees_corner (both
+  presets), edge_tower, edge_tower_side, edge_lip and island_below, and walks a character controller into the tree furthest inside
+  the playable area.
+
+Verified:
+
+- `dotnet build` is clean (the two old warnings in `SDFEvaluable.cs`); `dotnet test`: 336 pipeline tests (20 new: the trees section
+  and edge with 11 error cases, the rim, bands and feet, unchanged grass, level.json, the trunk capsule, bounds of a large model, the
+  meadow's content, and the underside against its ground) and 533 project tests pass.
+- `sdf level` bakes the meadow in 3.7–5.8 s, byte-identical across runs; the chessboard's bake is unchanged.
+- Batch mode on the worktree (Library cloned from the main checkout): `BuildAllInBatch` and `LevelSnapshot.Capture` with no compile or
+  shader errors; the meadow builds "8,894 scattered (291 with colliders)".
+- Cost per view of the trees and clusters groups together, outlines included (shadow casters not):
+
+  | View | High: draws | High: triangles | Web: draws | Web: triangles |
+  |---|---|---|---|---|
+  | eye ±x / ±z from the spawn | 40–48 | 78k–97k | 40–44 | 84k–97k |
+  | eye_corner, trees_corner | 40–42 | 172k–191k | 32 | 40k |
+  | trees_slope (at the hill foot) | 42 | 166k | 40 | 53k |
+  | trees_along (along the hill foot) | 60 | 107k | 52 | 51k |
+
+  Budget: ≤ 80 draws, ≤ 400k triangles on high, ≤ 120k on web: met in every view. The clusters are most of the triangles (63k–152k);
+  the trees group stays at 15k–40k. From outside the island (island_below) both are 300k, all of the rim at once.
+- Snapshots (in the session's scratch folder, not kept): from the spawn the crest reads as one wooded line all round, the clusters filling
+  the sky between the front row's crowns; the hill foot looks like a sparse wood climbing to the crest. From above, the grass ends on a
+  brown soil band and the rock below; no gap between them was seen from above, from outside or from just past the edge.
+- Trees block: walking straight at the tree furthest inside the playable area (old-tree1, 1.76 m inside, capsule 0.45 m) stops 0.83 m
+  from its axis (0.75 m with the walker's radius). Canopies have no collider.
+
+To check by hand:
+
+- Walking along the hill foot in Play mode: the 20 edge trees block, nothing else does inside the walls.
+- The trees' wind (6 cm at 5 m, growing with the height's square) and the clusters' in motion; ring changes at 25 / 60 m (trees) and
+  45 m (clusters) while walking.
+- From a castle tower the crest and its clusters hide the edge, so the underside is seen only from outside the island; the edge_tower
+  shots stand behind the castle at 16 m, not on a real tower top.
+- Some clusters overhang the island's edge by a few metres (their crowns reach past it): from above and outside they read as the woods
+  growing to the brink. The 07 shots sky_edge and sky_edge_level now stand inside a crest cluster and show only sky; edge_lip replaces
+  them.
+- The `Pipeline to Unity` (512) config would mesh the underside at about 0.25 m cells (several hundred thousand triangles and minutes)
+  and the clusters at four times their triangles: they need the per-model resolution rule 03 and 06 already asked for.
+- Frame time of the trees on the web build; not run in a browser.

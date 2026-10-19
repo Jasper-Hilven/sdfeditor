@@ -129,6 +129,33 @@ public class ModelSettingsTests
     }
 
     [Fact]
+    public void Glb_FitsATreesCapsuleToItsTrunk_NotItsFootOrCrown()
+    {
+        // A trunk 0.25 m thick and 2 m tall on a broad, flat foot, under a crown 3 m across that is a part, so a mesh of its own
+        const string tree = """
+            format 1
+            collider capsule
+            Union
+                Translate translation=(0, 1, 0)
+                    CappedCylinder radius=0.25 height=1
+                Ellipsoid radii=(0.7, 0.15, 0.7)
+                Translate translation=(0, 2.6, 0)
+                    Part part=crown
+            """;
+        var program = SdfProgramFile.Read(tree, name => name == "crown" ? "format 1\nSphere radius=1.5" : null);
+        var model = ModelMesher.Mesh(program, new MeshingOptions { Resolution = 48 }) with { Settings = ModelSettings.Read(tree) };
+        var glb = GlbWriter.Write(model, "test");
+        using var json = JsonDocument.Parse(glb.AsMemory(20, BitConverter.ToInt32(glb, 12)));
+        var capsule = json.RootElement.GetProperty("extras").GetProperty("sdf").GetProperty("collider");
+
+        Assert.Equal("capsule", capsule.GetProperty("shape").GetString());
+        Assert.Equal(0.25f, capsule.GetProperty("radius").GetSingle(), 0.05f);
+        Assert.Equal(0, capsule.GetProperty("base")[0].GetSingle(), 0.05f);
+        Assert.Equal(-0.15f, capsule.GetProperty("base")[1].GetSingle(), 0.1f);
+        Assert.Equal(2, capsule.GetProperty("top")[1].GetSingle(), 0.1f);
+    }
+
+    [Fact]
     public void ContentRocksAndCastles_HaveColliders()
     {
         var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory)!;
