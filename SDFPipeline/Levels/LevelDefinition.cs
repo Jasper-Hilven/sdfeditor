@@ -32,6 +32,22 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 
     /// <summary>The sky the level picks, with its overrides, resolved when it is baked; null for <see cref="SkyFile.DefaultPreset"/>.</summary>
     public SkySection? Sky { get; init; }
+
+    /// <summary>The closed room over the playable area (walls and ceiling), or null for a level open to the sky.</summary>
+    public RoomSpec? Room { get; init; }
+}
+
+/// <summary>
+/// A closed room of six chessboards over the playable area: the floor (the playable rectangle, centred on the origin at y = 0), four walls
+/// standing on its edges and a ceiling at y = <c>Size.Y</c> facing down. Its squares are <paramref name="Square"/> metres across and
+/// coloured by <see cref="RoomChecker"/>.
+/// </summary>
+public sealed record RoomSpec(Vector3 Size, float Square)
+{
+    public const float DefaultSquare = 8;
+
+    /// <summary>How many squares the room has along x, y and z.</summary>
+    public (int X, int Y, int Z) Squares => ((int)MathF.Round(Size.X / Square), (int)MathF.Round(Size.Y / Square), (int)MathF.Round(Size.Z / Square));
 }
 
 /// <summary>
