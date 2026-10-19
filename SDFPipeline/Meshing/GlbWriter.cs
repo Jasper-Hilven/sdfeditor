@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Text.Json;
+using SDFPipeline.Materials;
 using SDFPipeline.ProgramFiles;
 using SDFProject.ProgramDefinition;
 
@@ -233,7 +234,13 @@ public static class GlbWriter
                     up = "+Y",
                     front = "+Z",
                     cellSize = model.Grid?.CellSize,
-                    materials = model.Materials.Select(m => new { name = m.Name, parameters = Parameters(m.Definition) }).ToArray(),
+                    // A pattern only where the material has one, so files without stay as they were
+                    materials = model.Materials.Select(m => new
+                    {
+                        name = m.Name,
+                        parameters = Parameters(m.Definition),
+                        pattern = m.Pattern is { } p ? new { kind = MaterialPattern.NameOf(p.Kind), size = p.Size, grout = p.Grout } : null,
+                    }).ToArray(),
                     attributes = new Dictionary<string, string>
                     {
                         [MaterialIdsAttribute] = "the two materials that weigh most at the vertex, indices into materials",
