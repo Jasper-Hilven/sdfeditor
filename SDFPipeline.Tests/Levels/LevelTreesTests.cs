@@ -217,6 +217,32 @@ public class LevelTreesTests
         Assert.Equal("island-underside", level.Edge.Underside?.Model);
     }
 
+    [Fact]
+    public void Meadow_FieldBetweenTheCastles_HasTreesRocksAndGiantMushrooms()
+    {
+        var level = LevelFile.Load(Path.Combine(Content, LevelFile.FolderName, "meadow.level"));
+        var models = Path.Combine(Content, "models");
+        var exists = LevelModels.Exist(models);
+
+        var field = level.Trees.Where(t => t.Group == "trees" && t.Band is { } b && b.X == -50 && b.Y == -8).ToArray();
+        var fieldRocks = level.Trees.Where(t => t.Group == "rocks").ToArray();
+        Assert.Single(field);
+        Assert.Single(fieldRocks);
+        Assert.Contains(level.DrawGroups, g => g.Name == "rocks");
+        Assert.All(field.Concat(fieldRocks).SelectMany(t => t.Entries).Select(e => e.Model), m => Assert.True(exists(m), m));
+
+        var mushrooms = level.Placements.Where(p => p.Model.StartsWith("giant-", StringComparison.Ordinal)).ToArray();
+        Assert.InRange(mushrooms.Length, 8, 15);
+        Assert.All(mushrooms, p => Assert.True(exists(p.Model), p.Model));
+        foreach (var file in Directory.GetFiles(Path.Combine(models, "mushrooms"), "giant-*.sdf"))
+        {
+            var text = File.ReadAllText(file);
+            Assert.DoesNotContain("Part part=eye", text);
+            Assert.DoesNotContain("Part part=hand", text);
+            Assert.Equal(ColliderShape.Convex, ModelSettings.Load(file).Collider);
+        }
+    }
+
     /// <summary>
     /// The meadow's underside meets its ground with no gap: just past the edge it is there a little above the rim, a metre past it it is
     /// not (a lip, not a shelf), and nowhere further in does it reach up through the ground.

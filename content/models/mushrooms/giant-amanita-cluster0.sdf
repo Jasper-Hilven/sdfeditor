@@ -1,0 +1,69 @@
+# Cluster of three giant amanitas: a tall fly agaric 6.4 m high, a middling one 4.5 m and a small one 3.2 m, their stems grown
+# close together, their caps overlapping. Each is the amanita of giant-amanita0.sdf, scaled, with no eyes and no hands.
+format 1
+collider convex
+
+# Half the vertices its size would give it, as the single one has
+Detail detail=0.5
+    Union
+        # The tall one
+        Union
+            Material material=amanita_stem
+                SmoothUnion smoothness=0.3
+                    Translate translation=(0, 0.65, 0)
+                        Ellipsoid radii=(0.72, 0.5, 0.72)
+                    Translate translation=(0, 3.0, 0)
+                        CappedCone height=4.6 bottomRadius=0.5 topRadius=0.34
+                    Translate translation=(0, 4.75, 0)
+                        CappedCone height=0.6 bottomRadius=0.62 topRadius=0.4
+            Material material=amanita_cap
+                Intersection
+                    Translate translation=(0, 5.2, 0)
+                        Ellipsoid radii=(2.4, 1.2, 2.4)
+                    Translate translation=(0, 6.7, 0)
+                        Box size=(6, 3, 6)
+            Material material=amanita_gills
+                Translate translation=(0, 5.12, 0)
+                    CappedCylinder radius=2.25 height=0.14
+        # The middling one, its cap brushing the tall one's
+        Translate translation=(2.6, 0, -1.2)
+            Scale scale=(0.7, 0.7, 0.7)
+                Union
+                    Material material=amanita_stem
+                        SmoothUnion smoothness=0.3
+                            Translate translation=(0, 0.65, 0)
+                                Ellipsoid radii=(0.72, 0.5, 0.72)
+                            Translate translation=(0, 3.0, 0)
+                                CappedCone height=4.6 bottomRadius=0.5 topRadius=0.34
+                            Translate translation=(0, 4.75, 0)
+                                CappedCone height=0.6 bottomRadius=0.62 topRadius=0.4
+                    Material material=amanita_cap
+                        Intersection
+                            Translate translation=(0, 5.2, 0)
+                                Ellipsoid radii=(2.4, 1.2, 2.4)
+                            Translate translation=(0, 6.7, 0)
+                                Box size=(6, 3, 6)
+                    Material material=amanita_gills
+                        Translate translation=(0, 5.12, 0)
+                            CappedCylinder radius=2.25 height=0.14
+        # The small one
+        Translate translation=(-2.0, 0, 1.8)
+            Scale scale=(0.5, 0.5, 0.5)
+                Union
+                    Material material=amanita_stem
+                        SmoothUnion smoothness=0.3
+                            Translate translation=(0, 0.65, 0)
+                                Ellipsoid radii=(0.72, 0.5, 0.72)
+                            Translate translation=(0, 3.0, 0)
+                                CappedCone height=4.6 bottomRadius=0.5 topRadius=0.34
+                            Translate translation=(0, 4.75, 0)
+                                CappedCone height=0.6 bottomRadius=0.62 topRadius=0.4
+                    Material material=amanita_cap
+                        Intersection
+                            Translate translation=(0, 5.2, 0)
+                                Ellipsoid radii=(2.4, 1.2, 2.4)
+                            Translate translation=(0, 6.7, 0)
+                                Box size=(6, 3, 6)
+                    Material material=amanita_gills
+                        Translate translation=(0, 5.12, 0)
+                            CappedCylinder radius=2.25 height=0.14

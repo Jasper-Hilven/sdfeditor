@@ -1,12 +1,11 @@
-# Rook, light, fallen: the light rook (rook-light.sdf) knocked over in the board's chaos and lying on its back, its eyes to the sky,
+# Rook, light, fallen: the light rook (rook-light.sdf) knocked over in the board's chaos and lying on its back,
 # its head end a little lower than its foot so both rest on the ground. Placements only turn a model about the vertical, so the
 # fall is in the model: the upright piece below, tipped over and lifted until it rests on the ground. Keep the shape in step
 # with rook-light.sdf.
 format 1
 collider convex
 
-# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
-# so its eyes and hands get half too
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Translate translation=(0, 1.08, 0)
         Rotate rotation=(-1.5708, 0, 0)
@@ -46,14 +45,3 @@ Detail detail=0.5
                             Translate translation=(0, 1.92, 0)
                                 Round radius=0.03
                                     CappedCone height=0.07 bottomRadius=0.94 topRadius=0.7
-
-                # Floating eyes, mirrored, in front of the column, and floating hands either side of it in the stem's flesh
-                SymmetryX
-                    Translate translation=(0.25, 1.36, 0.82)
-                        Scale scale=(2.4, 2.4, 2.4)
-                            Part part=eye
-                SymmetryX
-                    Translate translation=(0.98, 1.0, 0.3)
-                        Material material=chess_light_stem
-                            Scale scale=(2.6, 2.6, 2.6)
-                                Part part=hand

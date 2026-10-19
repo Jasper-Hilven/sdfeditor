@@ -95,11 +95,11 @@ public static class ModelMesher
 
         // The meshes are made at the same time, as simplifying one runs on a single core. Each numbers its materials in a table of its
         // own; they are merged in mesh order afterwards, which numbers them as meshing one after the other would
-        var tables = sources.Select(_ => new MaterialTable(options.Materials)).ToArray();
+        var tables = sources.Select(_ => new MaterialTable(options.Materials, options.Patterns)).ToArray();
         var made = new PartMesh?[sources.Length];
         Parallel.For(0, sources.Length, new ParallelOptions { MaxDegreeOfParallelism = MeshesAtOnce }, s =>
             made[s] = MeshOne(sources[s], calculator, whole, surface, GridFor(sources[s], grid, options), tables[s], options));
-        var table = new MaterialTable(options.Materials);
+        var table = new MaterialTable(options.Materials, options.Patterns);
         var meshes = new List<PartMesh>();
         for (var s = 0; s < sources.Length; s++)
         {

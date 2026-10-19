@@ -157,6 +157,23 @@ public class LevelFileTests
             Assert.Contains(level.Placements, p => p.Model == $"{piece}-{colour}");
     }
 
+    [Fact]
+    public void ContentChessPieces_HaveNoEyesOrHands()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        // 19 pieces: six kinds in both colours, plus the fallen variants
+        var pieces = Directory.GetFiles(Path.Combine(content, "models", "chess"), "*.sdf");
+        Assert.Equal(19, pieces.Length);
+        Assert.All(pieces, file =>
+        {
+            var text = File.ReadAllText(file);
+            Assert.False(text.Contains("part=eye", StringComparison.OrdinalIgnoreCase), Path.GetFileName(file));
+            Assert.False(text.Contains("part=hand", StringComparison.OrdinalIgnoreCase), Path.GetFileName(file));
+        });
+    }
+
     [Theory]
     [InlineData("", 1, "The file is empty")]
     [InlineData("play size=(1, 1)", 1, "must start with 'format 1'")]

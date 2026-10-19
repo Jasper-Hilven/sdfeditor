@@ -54,8 +54,8 @@ Run 12.1 to 12.3 in parallel, then 12.4; after it 12.5 and 12.6 in parallel; 12.
      in place, as before.
    - `poker-chip-stack` uses `poker_chip_red` three times and `poker_chip_blue` twice under Translate and Rotate only: each chip
      becomes one mesh with instances. `porthole_window` (eight uses in `monopoly-hotel`, four in `monopoly_house`) and the hotel's
-     eyes go the same way, unless a use crosses its SymmetryX mirror: then the mesher warns and meshes all uses in place as one mesh
-     (the chess pieces' eyes do this, see 11). Read the warnings in the mesh log.
+     eyes go the same way, unless a use crosses its SymmetryX mirror: then the mesher warns and meshes all uses in place as one mesh.
+     Read the warnings in the mesh log.
    - The cards were first built on `card_blank` and `card_back` parts. That split the white back into its own mesh with the painted
      face lying on the same surface, so it would z-fight. Now fixed: the blank is written out in every painted layer. The two .glb
      files meshed before the fix were deleted. Check every other painted model is one mesh too (chips: yes, no nested parts).

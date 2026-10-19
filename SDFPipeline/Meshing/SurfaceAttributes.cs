@@ -1,17 +1,23 @@
 using System.Numerics;
+using SDFPipeline.Materials;
 using SDFProject.Calculation;
 using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.Meshing;
 
 /// <summary>A material of the model's material table: a Material node's name, "color(r, g, b)" for a Color node, or "default".</summary>
-public sealed record MeshMaterial(string Name, MaterialDefinition Definition, MaterialSource Source);
+public sealed record MeshMaterial(string Name, MaterialDefinition Definition, MaterialSource Source)
+{
+    /// <summary>The pattern the material's file gives it, or null.</summary>
+    public MaterialPattern? Pattern { get; init; }
+}
 
 /// <summary>
 /// The materials a model's meshes use, numbered in the order they are first met. Vertices refer to them by number; shaders look up
 /// their parameters in the table. Not for use from several threads at once.
 /// </summary>
-public sealed class MaterialTable(MaterialLibrary library)
+/// <param name="patterns">The patterns of the materials that have one, by name.</param>
+public sealed class MaterialTable(MaterialLibrary library, IReadOnlyDictionary<string, MaterialPattern>? patterns = null)
 {
     private readonly Dictionary<MaterialSource, int> indices = [];
     private readonly List<MeshMaterial> materials = [];
@@ -25,7 +31,10 @@ public sealed class MaterialTable(MaterialLibrary library)
             return index;
         index = materials.Count;
         indices[source] = index;
-        materials.Add(new MeshMaterial(NameOf(source), source.Resolve(library), source));
+        materials.Add(new MeshMaterial(NameOf(source), source.Resolve(library), source)
+        {
+            Pattern = source.Name is { } name ? patterns?.GetValueOrDefault(name) : null,
+        });
         return index;
     }
 

@@ -5,8 +5,7 @@
 format 1
 collider convex
 
-# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
-# so its eyes and hands get half too
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Translate translation=(0, 1.04, 0)
         Rotate rotation=(0, 0, 1.6708)
@@ -44,14 +43,3 @@ Detail detail=0.5
                             Translate translation=(0, 2.36, 0)
                                 Round radius=0.03
                                     CappedCone height=0.06 bottomRadius=0.72 topRadius=0.42
-
-                # Floating eyes, mirrored, in front of the stem, and floating hands either side of it in the stem's flesh
-                SymmetryX
-                    Translate translation=(0.21, 1.62, 0.56)
-                        Scale scale=(2.2, 2.2, 2.2)
-                            Part part=eye
-                SymmetryX
-                    Translate translation=(0.78, 1.25, 0.25)
-                        Material material=chess_dark_stem
-                            Scale scale=(2.4, 2.4, 2.4)
-                                Part part=hand

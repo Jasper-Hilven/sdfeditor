@@ -1,0 +1,44 @@
+# Giant amanita: a fly agaric 6.4 m tall, its cap a glossy red dome 4.8 m across, flecked with white warts, with pale gills under
+# the rim, a white stem with a drooping ring and a round bulb at its foot. Standing in the open field between the castles, as big
+# as the trees, with no eyes and no hands.
+format 1
+collider convex
+
+# Half the vertices its size would give it: big, smooth forms, a few dozen of them in the field
+Detail detail=0.5
+    Union
+        # Stem and bulb grow into each other, and the ring hangs from under the cap
+        Material material=amanita_stem
+            SmoothUnion smoothness=0.3
+                Translate translation=(0, 0.65, 0)
+                    Ellipsoid radii=(0.72, 0.5, 0.72)
+                Translate translation=(0, 3.0, 0)
+                    CappedCone height=4.6 bottomRadius=0.5 topRadius=0.34
+                Translate translation=(0, 4.75, 0)
+                    CappedCone height=0.6 bottomRadius=0.62 topRadius=0.4
+        # Cap: the top half of a wide ellipsoid, its rim flat on the gills
+        Material material=amanita_cap
+            Intersection
+                Translate translation=(0, 5.2, 0)
+                    Ellipsoid radii=(2.4, 1.2, 2.4)
+                Translate translation=(0, 6.7, 0)
+                    Box size=(6, 3, 6)
+        # Warts: white blobs set on the dome
+        Material material=game_wart_white
+            Union
+                Translate translation=(1.0, 6.1, 0.9)
+                    Sphere radius=0.24
+                Translate translation=(-0.6, 6.15, 1.4)
+                    Sphere radius=0.22
+                Translate translation=(-1.5, 6.0, -0.8)
+                    Sphere radius=0.24
+                Translate translation=(0.3, 6.05, -1.6)
+                    Sphere radius=0.2
+                Translate translation=(1.9, 5.85, -0.6)
+                    Sphere radius=0.2
+                Translate translation=(-1.9, 5.8, 0.6)
+                    Sphere radius=0.22
+        # Gills: a pale disc filling the underside of the cap
+        Material material=amanita_gills
+            Translate translation=(0, 5.12, 0)
+                CappedCylinder radius=2.25 height=0.14

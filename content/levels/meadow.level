@@ -35,6 +35,23 @@ place
     rock3 at=(-20, -35) yaw=0 scale=1.5
     rock4 at=(30, -32) yaw=125
     rock2 at=(-32, 30) yaw=200 scale=1.3
+    rock0 at=(-40, -42) yaw=15 scale=2
+    rock0 at=(34, 26) yaw=70 scale=2.4
+    rock3 at=(4, -44) yaw=250 scale=1.8
+    # The giant mushrooms standing in the open field between the castles, each on the ground where it is, with a convex collider: no
+    # eyes and no hands. They stand clear of the path, the dirt and the castles' plateaus
+    giant-amanita0 at=(-26, -14) yaw=20
+    giant-amanita0 at=(26, 12) yaw=200
+    giant-amanita0 at=(-20, 30) yaw=300
+    giant-amanita0 at=(2, 14) yaw=45
+    giant-porcini0 at=(-4, -26) yaw=60
+    giant-porcini0 at=(30, -14) yaw=30
+    giant-porcini0 at=(-18, -6) yaw=0
+    giant-porcini1 at=(14, -22) yaw=150
+    giant-porcini1 at=(-2, 38) yaw=80
+    giant-amanita-cluster0 at=(-14, 14) yaw=0
+    giant-amanita-cluster0 at=(22, 36) yaw=-40
+    giant-amanita-cluster0 at=(-36, -30) yaw=110
 
 # The ground foliage, scattered by the thousand and drawn instanced: clumps of grass on the grass ground (which reads as grass on its
 # own; the turfs are clumps on top, not a carpet) and flowers in looser drifts, nothing on the dirt, path or tiles. density is
@@ -84,6 +101,30 @@ trees group=clusters
     cluster9
     band=(27.5, 31.5) density=0.05 spacing=3.5 scale=(0.9, 1.2)
 
+# The field between the castles: groves of trees, clumps of them with open glades between, drawn instanced like the woods and with
+# trunks that block the player. band is inside the playable rectangle, 8 m or more from its edge, so the meadow's edge and the hills
+# keep their own trees; margin keeps them 3 m clear of the dirt, the path, the tiles and the castles' plateaus
+trees
+    tree0 weight=2
+    tree1 weight=1
+    tree2 weight=1
+    birch0 weight=1
+    birch1 weight=0.8
+    willow0 weight=0.8
+    fruit-tree0 weight=0.6
+    old-tree0 weight=0.6
+    pine1 weight=0.8
+    band=(-50, -8) density=0.024 spacing=4.5 cluster=3 clusterScale=10 scale=(0.9, 1.3) avoid=dirt,tiles,path margin=3 maxSlope=20
+
+# Rocks in the field, scattered in the same way: small and middling boulders, a few of them round the trees' trunks
+trees group=rocks
+    rock0 weight=1
+    rock1 weight=0.6
+    rock2 weight=0.5
+    rock3 weight=0.8
+    rock4 weight=0.8
+    band=(-50, -8) density=0.01 spacing=4.5 scale=(0.8, 1.6) avoid=dirt,tiles,path margin=2.5 maxSlope=25
+
 # How the foliage is drawn round the first-person camera: the finest level with its outline and shadows up to 6 m, the next to 15 m,
 # the coarsest to 35 m, fading out over its last 5 m. A gentle sway of 4 cm at half a metre up, and the lowest 8 cm of each turf (its
 # mound of earth) in the colour of the ground under it. The integrated GPU / web preset draws half of them, to 0.7 times the distance
@@ -111,5 +152,9 @@ draw trees
 # on the hills' back slopes, behind the crest)
 draw clusters
     rings=[45, 1000] outline=2 blend=3 wind=0.08 windHeight=8 lowDistance=0.7
+
+# The field's rocks: LOD0 to 20 m, LOD1 to 50 m, LOD2 beyond, outlined, shadows from the nearest ring only
+draw rocks
+    rings=[20, 50, 1000] outline=2 shadows=1 blend=2 lowDistance=0.7
 
 sky preset=night                          # Eye-Moon Night, content/skies/night.sky

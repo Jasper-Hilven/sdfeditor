@@ -1,0 +1,25 @@
+# Giant porcini: a king bolete 7 m tall, a swollen bulb and a thick stem of pale flesh under a fat brown bun of a cap, 5 m across,
+# with a layer of pores hanging under its rim. Standing in the open field between the castles, with no eyes and no hands.
+format 1
+collider convex
+
+# Half the vertices its size would give it: big, smooth forms, a few dozen of them in the field
+Detail detail=0.5
+    Union
+        # Bulb and stem grow into each other
+        Material material=game_porcini_flesh
+            SmoothUnion smoothness=0.35
+                Translate translation=(0, 0.6, 0)
+                    Ellipsoid radii=(1.0, 0.6, 1.0)
+                Translate translation=(0, 3.0, 0)
+                    CappedCone height=5.0 bottomRadius=0.85 topRadius=0.6
+                # The pore layer: a pale disc hanging just under the cap
+                Translate translation=(0, 4.95, 0)
+                    CappedCylinder radius=2.3 height=0.5
+        # Cap: the top half of a fat ellipsoid
+        Material material=game_porcini_cap
+            Intersection
+                Translate translation=(0, 5.2, 0)
+                    Ellipsoid radii=(2.6, 1.5, 2.6)
+                Translate translation=(0, 6.9, 0)
+                    Box size=(6.5, 3.4, 6.5)
