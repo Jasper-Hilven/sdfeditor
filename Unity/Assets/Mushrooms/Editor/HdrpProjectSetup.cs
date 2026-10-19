@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -10,17 +9,13 @@ using UnityEngine.Rendering.HighDefinition;
 namespace SdfMushrooms.Editor
 {
     /// <summary>
-    /// Makes the project render with HDRP without a single click: an HDRP asset as the render pipeline, linear colour, and the
-    /// mushrooms' diffusion profiles registered globally. When the editor opens it also builds any prefab an import missed and shows
+    /// Makes the project render with HDRP without a single click: an HDRP asset as the render pipeline and linear colour. When the editor opens it also builds any prefab an import missed and shows
     /// the mushroom scene instead of an empty one.
     /// </summary>
     [InitializeOnLoad]
     public static class HdrpProjectSetup
     {
         public const string PipelineAssetPath = "Assets/Settings/HDRenderPipelineAsset.asset";
-
-        /// <summary>HDRP's limit: 16 slots, one of them taken by the neutral profile.</summary>
-        public const int MaxDiffusionProfiles = 15;
 
         static HdrpProjectSetup()
         {
@@ -82,34 +77,18 @@ namespace SdfMushrooms.Editor
         }
 
         /// <summary>
-        /// Makes the diffusion profile list of HDRP's default volume profile, which every scene uses, hold exactly these profiles, so a
-        /// prefab dragged into any scene scatters light and profiles no longer used make room. HDRP allows 15.
+        /// Empties the diffusion profile list of HDRP's default volume profile, which held the realistic look's profiles; the toon look
+        /// scatters no light through HDRP.
         /// </summary>
-        public static void SetDiffusionProfiles(IEnumerable<DiffusionProfileSettings> profiles)
+        public static void ClearDiffusionProfiles()
         {
             if (!GraphicsSettings.TryGetRenderPipelineSettings<HDRPDefaultVolumeProfileSettings>(out var settings) || settings.volumeProfile == null)
-            {
-                Debug.LogWarning("SDF mushrooms: HDRP has no default volume profile yet, so the diffusion profiles could not be registered");
                 return;
-            }
-            var volumeProfile = settings.volumeProfile;
-            if (!volumeProfile.TryGet<DiffusionProfileList>(out var list))
-            {
-                list = volumeProfile.Add<DiffusionProfileList>(true);
-                AssetDatabase.AddObjectToAsset(list, volumeProfile);
-            }
-            var wanted = profiles.ToArray();
-            if (wanted.Length > MaxDiffusionProfiles)
-                Debug.LogWarning($"SDF mushrooms: HDRP's diffusion profile list is full; {string.Join(", ", wanted.Skip(MaxDiffusionProfiles).Select(p => p.name))} are left out");
-            wanted = wanted.Take(MaxDiffusionProfiles).ToArray();
-            var current = list.diffusionProfiles.value ?? new DiffusionProfileSettings[0];
-            if (list.active && list.diffusionProfiles.overrideState && current.SequenceEqual(wanted))
+            if (!settings.volumeProfile.TryGet<DiffusionProfileList>(out var list) || list.diffusionProfiles.value == null || list.diffusionProfiles.value.Length == 0)
                 return;
-            list.active = true;
-            list.diffusionProfiles.overrideState = true;
-            list.diffusionProfiles.value = wanted;
+            list.diffusionProfiles.value = new DiffusionProfileSettings[0];
             EditorUtility.SetDirty(list);
-            EditorUtility.SetDirty(volumeProfile);
+            EditorUtility.SetDirty(settings.volumeProfile);
         }
 
         private static void OpenSceneIfNothingIsOpen()

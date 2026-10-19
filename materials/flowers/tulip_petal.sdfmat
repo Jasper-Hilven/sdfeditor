@@ -1,12 +1,12 @@
-# Tulip petal: a glossy, saturated cartoon red, deepening to crimson in large patches. No subsurface, like the apple: HDRP has no free
-# diffusion profile for a red glow, and without one the petal shares the specular-only profile.
+# Tulip petal: a glossy, saturated cartoon red, deepening to crimson in large patches, glowing warm red-orange where light shines
+# through the cup's thin petals. subsurfaceRadius is at flower scale.
 format 1
 
 baseColor = (0.62, 0.02, 0.04)
 roughness = 0.4
 specular = 0.5
-subsurfaceColor = (0, 0, 0)
-subsurfaceRadius = 0
+subsurfaceColor = (1, 0.3, 0.15)
+subsurfaceRadius = 0.02
 detailStrength = 0.1
 detailScale = 0.015
 colorVariation = 0.12

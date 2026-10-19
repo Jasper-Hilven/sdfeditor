@@ -4,27 +4,14 @@ using UnityEngine;
 
 namespace SdfMushrooms.Editor
 {
-    /// <summary>The ways a mushroom prefab can be drawn; the vertex data is the same for both, only the materials differ.</summary>
-    public enum MushroomLook
-    {
-        /// <summary>SdfSurface.shadergraph: HDRP Lit with subsurface scattering, clear coat and detail bumps, like the IDE's preview.</summary>
-        Realistic,
-
-        /// <summary>SdfToon.shader with an SdfToonOutline.shader ink line: flat banded colour, hard highlight, rim light.</summary>
-        Toon,
-    }
-
     /// <summary>
-    /// Which look the mushroom prefabs get, and the toon look's settings: Assets/Mushrooms/Mushroom Style.asset. Pick the look with
-    /// Tools > SDF Mushrooms > Look, or select the asset and change it in the inspector. Changing the look (or turning the outline on or off) rebuilds every
-    /// prefab; changing another toon setting only updates the toon materials. Defaults match the toon branch of the IDE's preview (sdf render --style toon).
+    /// The toon look's settings: Assets/Mushrooms/Mushroom Style.asset; select the asset and change them in the inspector. Turning the
+    /// outline on or off rebuilds every prefab; changing another setting only updates the toon materials. Defaults match the toon branch of the IDE's preview (sdf render --style toon).
     /// Colours are picked as usual (sRGB) and handed to the shaders in linear.
     /// </summary>
     public sealed class MushroomStyle : ScriptableObject
     {
         public const string AssetPath = "Assets/Mushrooms/Mushroom Style.asset";
-
-        public MushroomLook look = MushroomLook.Toon;
 
         [Header("Bands")]
         [Tooltip("Light (-1 facing away to 1 facing the sun, cast shadow counts as -1) below which the surface is in the shadow tone")]
@@ -98,8 +85,8 @@ namespace SdfMushrooms.Editor
             return new Vector4(linear.r, linear.g, linear.b, 0);
         }
 
-        // Inspector edits: the toon materials take the new settings at once; prefabs built with another look (or with or without the
-        // outline) are rebuilt, which BuildStale tells from the stamp on each prefab
+        // Inspector edits: the toon materials take the new settings at once; prefabs built with or without the outline when it is now
+        // the other way are rebuilt, which BuildStale tells from the stamp on each prefab
         private void OnValidate()
         {
             EditorApplication.delayCall += () =>
@@ -107,37 +94,6 @@ namespace SdfMushrooms.Editor
                 MushroomBuilder.ApplyToonSettings();
                 MushroomBuilder.BuildStale();
             };
-        }
-
-        private const string Menu = "Tools/SDF Mushrooms/Look/";
-
-        [MenuItem(Menu + "Realistic")]
-        private static void Realistic() => SetLook(MushroomLook.Realistic);
-
-        [MenuItem(Menu + "Toon")]
-        private static void Toon() => SetLook(MushroomLook.Toon);
-
-        [MenuItem(Menu + "Realistic", true)]
-        private static bool RealisticChecked() => Check(Menu + "Realistic", MushroomLook.Realistic);
-
-        [MenuItem(Menu + "Toon", true)]
-        private static bool ToonChecked() => Check(Menu + "Toon", MushroomLook.Toon);
-
-        private static bool Check(string item, MushroomLook value)
-        {
-            UnityEditor.Menu.SetChecked(item, Load().look == value);
-            return true;
-        }
-
-        public static void SetLook(MushroomLook value)
-        {
-            var style = Load();
-            if (style.look == value)
-                return;
-            style.look = value;
-            EditorUtility.SetDirty(style);
-            AssetDatabase.SaveAssetIfDirty(style);
-            MushroomBuilder.BuildStale();
         }
     }
 }

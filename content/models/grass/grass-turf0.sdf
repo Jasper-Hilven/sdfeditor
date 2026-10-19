@@ -1,9 +1,10 @@
-# Grass turf 0: a round, springy tuft of meadow grass about 0.45 m tall and 0.5 m across, over thirty chunky, tapering blades
-# fanning up and out of a small mound of dark earth, the outer ones leaning furthest, so it reads as a fountain of green.
+# Grass turf 0: a round, springy tuft of meadow grass about 0.45 m tall and 0.5 m across, fourteen fat, leaf-shaped blades fanning
+# up and out of a small mound of dark earth, five tall ones standing in the middle and nine round them leaning furthest out, so it
+# reads as a fountain of green. Few, chunky blades rather than many thin ones, so it stays light enough to scatter by the hundreds.
 format 1
 
-# Three times the vertices its size would give it: the blades are thin next to the tuft's size
-Detail detail=3
+# Three quarters of the vertices its size would give it: the blades are fat enough to keep their shape on the coarser grid
+Detail detail=0.75
     Union
         # The mound of earth the blades grow out of, cut flat at the ground
         Material material=grass_soil
@@ -12,74 +13,35 @@ Detail detail=3
                     Ellipsoid radii=(0.15, 0.05, 0.14)
                     Translate translation=(0, 0.1, 0)
                         Box size=(0.2, 0.1, 0.2)
-        # The blades, each in two lengths that lean further out towards the tip, a plain union so each keeps its own outline
+        # The blades, each a round stem with a fat, pointed leaf leaning further out above it, a plain union so each keeps its own
+        # outline; they start inside the mound
         Material material=grass_blade
-            Union
-                ArbitraryRoundCone a=(-0.071, 0.02, 0.022) b=(-0.118, 0.189, 0.012) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(-0.118, 0.189, 0.012) b=(-0.212, 0.338, -0.008) radiusA=0.017 radiusB=0.007
-                ArbitraryRoundCone a=(-0.079, 0.02, -0.006) b=(-0.11, 0.154, -0.02) radiusA=0.023 radiusB=0.015
-                ArbitraryRoundCone a=(-0.11, 0.154, -0.02) b=(-0.172, 0.261, -0.048) radiusA=0.015 radiusB=0.006
-                ArbitraryRoundCone a=(-0.007, 0.02, -0.019) b=(0.001, 0.233, -0.053) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(0.001, 0.233, -0.053) b=(0.016, 0.422, -0.122) radiusA=0.017 radiusB=0.008
-                ArbitraryRoundCone a=(0.072, 0.02, 0.007) b=(0.101, 0.163, -0.007) radiusA=0.022 radiusB=0.014
-                ArbitraryRoundCone a=(0.101, 0.163, -0.007) b=(0.16, 0.285, -0.034) radiusA=0.014 radiusB=0.006
-                ArbitraryRoundCone a=(-0.085, 0.02, 0.034) b=(-0.141, 0.203, 0.054) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(-0.141, 0.203, 0.054) b=(-0.253, 0.358, 0.095) radiusA=0.017 radiusB=0.008
-                ArbitraryRoundCone a=(-0.018, 0.02, 0.098) b=(-0.073, 0.222, 0.155) radiusA=0.025 radiusB=0.016
-                ArbitraryRoundCone a=(-0.073, 0.222, 0.155) b=(-0.185, 0.399, 0.27) radiusA=0.016 radiusB=0.007
-                ArbitraryRoundCone a=(-0.006, 0.02, 0.026) b=(-0.024, 0.18, 0.054) radiusA=0.025 radiusB=0.016
-                ArbitraryRoundCone a=(-0.024, 0.18, 0.054) b=(-0.06, 0.305, 0.11) radiusA=0.016 radiusB=0.007
-                ArbitraryRoundCone a=(0.001, 0.02, -0.002) b=(0.007, 0.227, -0.022) radiusA=0.03 radiusB=0.019
-                ArbitraryRoundCone a=(0.007, 0.227, -0.022) b=(0.018, 0.404, -0.063) radiusA=0.019 radiusB=0.008
-                ArbitraryRoundCone a=(0.071, 0.02, 0.035) b=(0.093, 0.169, 0.057) radiusA=0.025 radiusB=0.016
-                ArbitraryRoundCone a=(0.093, 0.169, 0.057) b=(0.136, 0.285, 0.101) radiusA=0.016 radiusB=0.007
-                ArbitraryRoundCone a=(0.002, 0.02, -0.034) b=(-0.002, 0.156, -0.05) radiusA=0.028 radiusB=0.018
-                ArbitraryRoundCone a=(-0.002, 0.156, -0.05) b=(-0.011, 0.277, -0.083) radiusA=0.018 radiusB=0.008
-                ArbitraryRoundCone a=(-0.062, 0.02, -0.024) b=(-0.099, 0.212, -0.024) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(-0.099, 0.212, -0.024) b=(-0.172, 0.384, -0.025) radiusA=0.017 radiusB=0.008
-                ArbitraryRoundCone a=(-0.041, 0.02, 0.022) b=(-0.08, 0.23, 0.06) radiusA=0.024 radiusB=0.016
-                ArbitraryRoundCone a=(-0.08, 0.23, 0.06) b=(-0.159, 0.396, 0.138) radiusA=0.016 radiusB=0.007
-                ArbitraryRoundCone a=(0.015, 0.02, 0.061) b=(0.01, 0.204, 0.093) radiusA=0.03 radiusB=0.019
-                ArbitraryRoundCone a=(0.01, 0.204, 0.093) b=(-0.002, 0.366, 0.158) radiusA=0.019 radiusB=0.008
-                ArbitraryRoundCone a=(-0.005, 0.02, 0.088) b=(0, 0.172, 0.12) radiusA=0.023 radiusB=0.015
-                ArbitraryRoundCone a=(0, 0.172, 0.12) b=(0.011, 0.299, 0.186) radiusA=0.015 radiusB=0.006
-                ArbitraryRoundCone a=(0.003, 0.02, 0.077) b=(0.016, 0.186, 0.14) radiusA=0.026 radiusB=0.017
-                ArbitraryRoundCone a=(0.016, 0.186, 0.14) b=(0.042, 0.325, 0.268) radiusA=0.017 radiusB=0.007
-                ArbitraryRoundCone a=(0.029, 0.02, -0.032) b=(0.045, 0.228, -0.081) radiusA=0.024 radiusB=0.015
-                ArbitraryRoundCone a=(0.045, 0.228, -0.081) b=(0.077, 0.411, -0.18) radiusA=0.015 radiusB=0.007
-                ArbitraryRoundCone a=(-0.006, 0.02, -0.097) b=(-0.044, 0.23, -0.179) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(-0.044, 0.23, -0.179) b=(-0.12, 0.41, -0.345) radiusA=0.017 radiusB=0.008
-                ArbitraryRoundCone a=(0.016, 0.02, 0.012) b=(0.024, 0.167, 0.035) radiusA=0.024 radiusB=0.015
-                ArbitraryRoundCone a=(0.024, 0.167, 0.035) b=(0.042, 0.284, 0.082) radiusA=0.015 radiusB=0.007
-                ArbitraryRoundCone a=(-0.045, 0.02, -0.031) b=(-0.074, 0.21, -0.037) radiusA=0.024 radiusB=0.015
-                ArbitraryRoundCone a=(-0.074, 0.21, -0.037) b=(-0.133, 0.368, -0.05) radiusA=0.015 radiusB=0.007
-                ArbitraryRoundCone a=(0.047, 0.02, -0.063) b=(0.064, 0.228, -0.106) radiusA=0.022 radiusB=0.014
-                ArbitraryRoundCone a=(0.064, 0.228, -0.106) b=(0.1, 0.41, -0.195) radiusA=0.014 radiusB=0.006
-                ArbitraryRoundCone a=(-0.023, 0.02, 0.008) b=(-0.043, 0.18, 0.026) radiusA=0.023 radiusB=0.015
-                ArbitraryRoundCone a=(-0.043, 0.18, 0.026) b=(-0.083, 0.317, 0.062) radiusA=0.015 radiusB=0.006
-                ArbitraryRoundCone a=(0.077, 0.02, -0.063) b=(0.136, 0.209, -0.095) radiusA=0.023 radiusB=0.015
-                ArbitraryRoundCone a=(0.136, 0.209, -0.095) b=(0.257, 0.38, -0.16) radiusA=0.015 radiusB=0.006
-                ArbitraryRoundCone a=(0.095, 0.02, 0.011) b=(0.137, 0.231, 0.026) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(0.137, 0.231, 0.026) b=(0.223, 0.41, 0.058) radiusA=0.017 radiusB=0.008
-                ArbitraryRoundCone a=(-0.007, 0.02, -0.056) b=(0.008, 0.152, -0.085) radiusA=0.028 radiusB=0.018
-                ArbitraryRoundCone a=(0.008, 0.152, -0.085) b=(0.038, 0.256, -0.144) radiusA=0.018 radiusB=0.008
-                ArbitraryRoundCone a=(-0.007, 0.02, -0.084) b=(0.008, 0.225, -0.137) radiusA=0.027 radiusB=0.018
-                ArbitraryRoundCone a=(0.008, 0.225, -0.137) b=(0.038, 0.387, -0.247) radiusA=0.018 radiusB=0.008
-                ArbitraryRoundCone a=(0.045, 0.02, -0.047) b=(0.093, 0.223, -0.071) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(0.093, 0.223, -0.071) b=(0.193, 0.397, -0.12) radiusA=0.017 radiusB=0.008
-                ArbitraryRoundCone a=(-0.068, 0.02, -0.039) b=(-0.14, 0.202, -0.04) radiusA=0.029 radiusB=0.019
-                ArbitraryRoundCone a=(-0.14, 0.202, -0.04) b=(-0.286, 0.35, -0.042) radiusA=0.019 radiusB=0.008
-                ArbitraryRoundCone a=(-0.066, 0.02, 0.055) b=(-0.118, 0.184, 0.091) radiusA=0.023 radiusB=0.015
-                ArbitraryRoundCone a=(-0.118, 0.184, 0.091) b=(-0.224, 0.318, 0.165) radiusA=0.015 radiusB=0.006
-                ArbitraryRoundCone a=(0.076, 0.02, 0.014) b=(0.124, 0.167, 0.022) radiusA=0.026 radiusB=0.017
-                ArbitraryRoundCone a=(0.124, 0.167, 0.022) b=(0.221, 0.288, 0.038) radiusA=0.017 radiusB=0.007
-                ArbitraryRoundCone a=(0.044, 0.02, -0.024) b=(0.062, 0.174, -0.058) radiusA=0.024 radiusB=0.015
-                ArbitraryRoundCone a=(0.062, 0.174, -0.058) b=(0.099, 0.311, -0.127) radiusA=0.015 radiusB=0.007
-                ArbitraryRoundCone a=(0.067, 0.02, -0.045) b=(0.109, 0.226, -0.078) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(0.109, 0.226, -0.078) b=(0.194, 0.408, -0.144) radiusA=0.017 radiusB=0.008
-                ArbitraryRoundCone a=(-0.081, 0.02, 0.038) b=(-0.14, 0.225, 0.034) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(-0.14, 0.225, 0.034) b=(-0.26, 0.402, 0.026) radiusA=0.017 radiusB=0.007
-                ArbitraryRoundCone a=(0.046, 0.02, 0.053) b=(0.065, 0.222, 0.113) radiusA=0.03 radiusB=0.019
-                ArbitraryRoundCone a=(0.065, 0.222, 0.113) b=(0.104, 0.398, 0.234) radiusA=0.019 radiusB=0.008
-                ArbitraryRoundCone a=(0.033, 0.02, 0.059) b=(0.058, 0.165, 0.084) radiusA=0.027 radiusB=0.017
-                ArbitraryRoundCone a=(0.058, 0.165, 0.084) b=(0.109, 0.288, 0.136) radiusA=0.017 radiusB=0.008
+            SmoothUnion smoothness=0.006
+                ArbitraryRoundCone a=(0.025, 0.03, 0.004) b=(0.045, 0.221, 0.008) radiusA=0.022 radiusB=0.017
+                VesicaSegment a=(0.039, 0.183, 0.007) b=(0.086, 0.412, 0.015) width=0.019
+                ArbitraryRoundCone a=(-0.001, 0.03, 0.025) b=(-0.002, 0.212, 0.046) radiusA=0.022 radiusB=0.017
+                VesicaSegment a=(-0.002, 0.176, 0.04) b=(-0.003, 0.394, 0.09) width=0.019
+                ArbitraryRoundCone a=(-0.021, 0.03, 0.014) b=(-0.041, 0.218, 0.027) radiusA=0.022 radiusB=0.017
+                VesicaSegment a=(-0.035, 0.18, 0.023) b=(-0.083, 0.406, 0.053) width=0.019
+                ArbitraryRoundCone a=(-0.017, 0.03, -0.018) b=(-0.036, 0.224, -0.037) radiusA=0.022 radiusB=0.017
+                VesicaSegment a=(-0.03, 0.185, -0.031) b=(-0.073, 0.418, -0.075) width=0.019
+                ArbitraryRoundCone a=(0.018, 0.03, -0.018) b=(0.031, 0.229, -0.032) radiusA=0.022 radiusB=0.017
+                VesicaSegment a=(0.027, 0.189, -0.027) b=(0.059, 0.428, -0.06) width=0.019
+                ArbitraryRoundCone a=(0.06, 0.03, -0.006) b=(0.13, 0.177, -0.014) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(0.109, 0.148, -0.011) b=(0.273, 0.301, -0.029) width=0.018
+                ArbitraryRoundCone a=(0.046, 0.03, 0.039) b=(0.101, 0.17, 0.086) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(0.085, 0.143, 0.072) b=(0.215, 0.287, 0.183) width=0.018
+                ArbitraryRoundCone a=(0.018, 0.03, 0.057) b=(0.04, 0.167, 0.127) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(0.034, 0.141, 0.106) b=(0.085, 0.281, 0.27) width=0.018
+                ArbitraryRoundCone a=(-0.027, 0.03, 0.054) b=(-0.052, 0.177, 0.104) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(-0.045, 0.148, 0.089) b=(-0.104, 0.301, 0.208) width=0.018
+                ArbitraryRoundCone a=(-0.056, 0.03, 0.021) b=(-0.124, 0.177, 0.046) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(-0.104, 0.149, 0.039) b=(-0.263, 0.302, 0.098) width=0.018
+                ArbitraryRoundCone a=(-0.055, 0.03, -0.024) b=(-0.126, 0.16, -0.055) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(-0.105, 0.135, -0.046) b=(-0.27, 0.268, -0.118) width=0.018
+                ArbitraryRoundCone a=(-0.025, 0.03, -0.054) b=(-0.053, 0.179, -0.115) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(-0.045, 0.15, -0.097) b=(-0.11, 0.305, -0.237) width=0.018
+                ArbitraryRoundCone a=(0.017, 0.03, -0.058) b=(0.034, 0.151, -0.113) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(0.029, 0.128, -0.097) b=(0.067, 0.25, -0.227) width=0.018
+                ArbitraryRoundCone a=(0.043, 0.03, -0.042) b=(0.098, 0.162, -0.098) radiusA=0.022 radiusB=0.016
+                VesicaSegment a=(0.081, 0.136, -0.081) b=(0.211, 0.271, -0.21) width=0.018

@@ -1,6 +1,7 @@
-# Grass turf 4: a low, round clover turf about 0.65 m across and 0.25 m tall, a mound of earth under a mat of green and short grass blades, with
-# nine clover plants, each three round leaves on a short stalk, with six white clover blossoms standing just above them on thin
-# stems. A flowering patch to break up the plain turfs.
+# Grass turf 4: a low, round clover turf about 0.65 m across and 0.25 m tall, a mound of earth under a mat of green with six little
+# tufts of three fat grass blades, six clover plants of three round, plump leaves each on a short stalk, and four white clover
+# blossoms standing above them on stems. A flowering patch to break up the plain turfs. Few, chunky shapes rather than a bristle of
+# thin blades, so it stays light enough to scatter by the hundreds.
 format 1
 
 # The mound of earth, cut flat at the ground, used twice: as the earth, and grown a little for the green mat over its top
@@ -11,8 +12,9 @@ mound =
             Translate translation=(0, 0.1, 0)
                 Box size=(0.35, 0.1, 0.35)
 
-# Four times the vertices its size would give it: the stalks and leaves are small next to the turf's size
-Detail detail=4
+# Eight tenths of the vertices its size would give it: the leaves, blades and stems are fat enough to keep their shape on the
+# coarser grid
+Detail detail=0.8
     Union
         # The mound of earth
         Material material=grass_soil
@@ -25,236 +27,94 @@ Detail detail=4
                         $mound
                     Distort amount=0.008 frequency=9
                         Plane normal=(0, -1, 0) height=0.03
-                # The short blades over the mound
-                ArbitraryRoundCone a=(0.008, 0.04, 0.191) b=(0.014, 0.112, 0.204) radiusA=0.017 radiusB=0.011
-                ArbitraryRoundCone a=(0.014, 0.112, 0.204) b=(0.026, 0.177, 0.23) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(-0.212, 0.04, 0.16) b=(-0.232, 0.101, 0.167) radiusA=0.017 radiusB=0.011
-                ArbitraryRoundCone a=(-0.232, 0.101, 0.167) b=(-0.271, 0.159, 0.182) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.172, 0.04, -0.004) b=(0.181, 0.113, 0.002) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.181, 0.113, 0.002) b=(0.2, 0.182, 0.014) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.045, 0.04, -0.105) b=(0.051, 0.094, -0.115) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.051, 0.094, -0.115) b=(0.064, 0.144, -0.135) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.082, 0.04, 0.221) b=(0.09, 0.112, 0.239) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.09, 0.112, 0.239) b=(0.107, 0.178, 0.276) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.11, 0.04, -0.219) b=(0.121, 0.103, -0.228) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.121, 0.103, -0.228) b=(0.142, 0.162, -0.247) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.177, 0.04, 0.018) b=(0.192, 0.087, 0.018) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(0.192, 0.087, 0.018) b=(0.222, 0.131, 0.018) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.109, 0.04, -0.035) b=(-0.116, 0.097, -0.036) radiusA=0.018 radiusB=0.012
-                ArbitraryRoundCone a=(-0.116, 0.097, -0.036) b=(-0.131, 0.15, -0.038) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.244, 0.04, -0.027) b=(0.274, 0.119, -0.02) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.274, 0.119, -0.02) b=(0.334, 0.193, -0.006) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(-0.241, 0.04, -0.036) b=(-0.262, 0.112, -0.052) radiusA=0.015 radiusB=0.009
-                ArbitraryRoundCone a=(-0.262, 0.112, -0.052) b=(-0.304, 0.181, -0.085) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(0.176, 0.04, 0.108) b=(0.192, 0.102, 0.12) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.192, 0.102, 0.12) b=(0.225, 0.159, 0.144) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.107, 0.04, -0.064) b=(-0.11, 0.082, -0.071) radiusA=0.017 radiusB=0.011
-                ArbitraryRoundCone a=(-0.11, 0.082, -0.071) b=(-0.117, 0.12, -0.086) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.199, 0.04, -0.023) b=(0.211, 0.091, -0.018) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(0.211, 0.091, -0.018) b=(0.236, 0.139, -0.009) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.211, 0.04, 0.112) b=(-0.224, 0.098, 0.13) radiusA=0.015 radiusB=0.009
-                ArbitraryRoundCone a=(-0.224, 0.098, 0.13) b=(-0.25, 0.152, 0.167) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(-0.101, 0.04, -0.207) b=(-0.11, 0.099, -0.227) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(-0.11, 0.099, -0.227) b=(-0.126, 0.154, -0.269) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.113, 0.04, -0.201) b=(-0.12, 0.08, -0.212) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(-0.12, 0.08, -0.212) b=(-0.134, 0.117, -0.236) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.237, 0.04, -0.019) b=(0.256, 0.113, -0.023) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.256, 0.113, -0.023) b=(0.294, 0.182, -0.031) radiusA=0.01 radiusB=0.005
-                ArbitraryRoundCone a=(-0.128, 0.04, -0.184) b=(-0.137, 0.096, -0.199) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(-0.137, 0.096, -0.199) b=(-0.156, 0.147, -0.23) radiusA=0.01 radiusB=0.005
-                ArbitraryRoundCone a=(0.098, 0.04, 0.003) b=(0.104, 0.088, 0.007) radiusA=0.015 radiusB=0.009
-                ArbitraryRoundCone a=(0.104, 0.088, 0.007) b=(0.118, 0.132, 0.014) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(-0.028, 0.04, 0.053) b=(-0.031, 0.116, 0.065) radiusA=0.014 radiusB=0.009
-                ArbitraryRoundCone a=(-0.031, 0.116, 0.065) b=(-0.037, 0.185, 0.09) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(0.169, 0.04, 0.082) b=(0.18, 0.111, 0.088) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.18, 0.111, 0.088) b=(0.202, 0.178, 0.101) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(-0.019, 0.04, -0.259) b=(-0.019, 0.08, -0.273) radiusA=0.017 radiusB=0.011
-                ArbitraryRoundCone a=(-0.019, 0.08, -0.273) b=(-0.018, 0.116, -0.3) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.019, 0.04, -0.086) b=(0.023, 0.105, -0.1) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.023, 0.105, -0.1) b=(0.031, 0.165, -0.126) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.013, 0.04, -0.107) b=(0.019, 0.103, -0.118) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(0.019, 0.103, -0.118) b=(0.032, 0.161, -0.139) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.103, 0.04, 0.066) b=(-0.117, 0.113, 0.067) radiusA=0.015 radiusB=0.009
-                ArbitraryRoundCone a=(-0.117, 0.113, 0.067) b=(-0.144, 0.179, 0.068) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(0.142, 0.04, 0.13) b=(0.156, 0.113, 0.144) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.156, 0.113, 0.144) b=(0.184, 0.182, 0.174) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.242, 0.04, -0.033) b=(0.268, 0.111, -0.041) radiusA=0.017 radiusB=0.011
-                ArbitraryRoundCone a=(0.268, 0.111, -0.041) b=(0.321, 0.18, -0.058) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.242, 0.04, 0.109) b=(0.259, 0.112, 0.11) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.259, 0.112, 0.11) b=(0.294, 0.18, 0.112) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.033, 0.04, -0.075) b=(0.037, 0.112, -0.086) radiusA=0.014 radiusB=0.009
-                ArbitraryRoundCone a=(0.037, 0.112, -0.086) b=(0.045, 0.181, -0.107) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(0.072, 0.04, -0.129) b=(0.072, 0.101, -0.144) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.072, 0.101, -0.144) b=(0.073, 0.158, -0.176) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.073, 0.04, 0.171) b=(0.074, 0.083, 0.183) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.074, 0.083, 0.183) b=(0.076, 0.123, 0.208) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(-0.036, 0.04, 0.032) b=(-0.042, 0.096, 0.038) radiusA=0.015 radiusB=0.009
-                ArbitraryRoundCone a=(-0.042, 0.096, 0.038) b=(-0.054, 0.149, 0.049) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(0.187, 0.04, 0.022) b=(0.2, 0.101, 0.016) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.2, 0.101, 0.016) b=(0.226, 0.159, 0.005) radiusA=0.01 radiusB=0.005
-                ArbitraryRoundCone a=(0.164, 0.04, -0.089) b=(0.175, 0.102, -0.104) radiusA=0.017 radiusB=0.011
-                ArbitraryRoundCone a=(0.175, 0.102, -0.104) b=(0.195, 0.159, -0.135) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.118, 0.04, -0.189) b=(0.117, 0.095, -0.204) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(0.117, 0.095, -0.204) b=(0.117, 0.147, -0.235) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.115, 0.04, -0.204) b=(-0.119, 0.109, -0.22) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(-0.119, 0.109, -0.22) b=(-0.125, 0.174, -0.253) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.005, 0.04, -0.094) b=(0.001, 0.108, -0.106) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.001, 0.108, -0.106) b=(-0.008, 0.17, -0.132) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.036, 0.04, -0.214) b=(0.037, 0.082, -0.223) radiusA=0.018 radiusB=0.012
-                ArbitraryRoundCone a=(0.037, 0.082, -0.223) b=(0.039, 0.12, -0.241) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.026, 0.04, 0.045) b=(0.032, 0.117, 0.051) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.032, 0.117, 0.051) b=(0.042, 0.187, 0.063) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.144, 0.04, -0.227) b=(0.154, 0.087, -0.237) radiusA=0.016 radiusB=0.011
-                ArbitraryRoundCone a=(0.154, 0.087, -0.237) b=(0.174, 0.131, -0.257) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(-0.14, 0.04, 0.184) b=(-0.141, 0.088, 0.195) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(-0.141, 0.088, 0.195) b=(-0.142, 0.133, 0.216) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.059, 0.04, -0.058) b=(0.063, 0.08, -0.062) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(0.063, 0.08, -0.062) b=(0.07, 0.117, -0.07) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.128, 0.04, -0.212) b=(0.131, 0.096, -0.225) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.131, 0.096, -0.225) b=(0.138, 0.149, -0.251) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.019, 0.04, -0.184) b=(0.023, 0.114, -0.207) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.023, 0.114, -0.207) b=(0.031, 0.182, -0.254) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.004, 0.04, 0.028) b=(-0.006, 0.087, 0.032) radiusA=0.018 radiusB=0.012
-                ArbitraryRoundCone a=(-0.006, 0.087, 0.032) b=(-0.011, 0.13, 0.039) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(-0.175, 0.04, 0.147) b=(-0.183, 0.08, 0.156) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(-0.183, 0.08, 0.156) b=(-0.199, 0.119, 0.173) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.181, 0.04, 0.118) b=(-0.19, 0.088, 0.129) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(-0.19, 0.088, 0.129) b=(-0.206, 0.133, 0.151) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.069, 0.04, -0.133) b=(-0.069, 0.118, -0.144) radiusA=0.015 radiusB=0.009
-                ArbitraryRoundCone a=(-0.069, 0.118, -0.144) b=(-0.069, 0.193, -0.166) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(-0.148, 0.04, 0.008) b=(-0.163, 0.119, 0.004) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(-0.163, 0.119, 0.004) b=(-0.195, 0.194, -0.003) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.207, 0.04, -0.129) b=(0.229, 0.119, -0.131) radiusA=0.018 radiusB=0.012
-                ArbitraryRoundCone a=(0.229, 0.119, -0.131) b=(0.273, 0.194, -0.136) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.143, 0.04, 0.174) b=(0.156, 0.101, 0.185) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.156, 0.101, 0.185) b=(0.182, 0.16, 0.209) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.009, 0.04, -0.235) b=(-0.005, 0.093, -0.248) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(-0.005, 0.093, -0.248) b=(0.002, 0.142, -0.273) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(-0.005, 0.04, -0.195) b=(-0.005, 0.113, -0.208) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(-0.005, 0.113, -0.208) b=(-0.005, 0.182, -0.234) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.156, 0.04, -0.206) b=(0.167, 0.087, -0.212) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.167, 0.087, -0.212) b=(0.189, 0.133, -0.223) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.046, 0.04, 0.095) b=(0.047, 0.1, 0.109) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.047, 0.1, 0.109) b=(0.049, 0.156, 0.138) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.182, 0.04, -0.082) b=(0.192, 0.096, -0.091) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(0.192, 0.096, -0.091) b=(0.212, 0.148, -0.11) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.022, 0.04, -0.153) b=(0.019, 0.084, -0.16) radiusA=0.015 radiusB=0.01
-                ArbitraryRoundCone a=(0.019, 0.084, -0.16) b=(0.012, 0.124, -0.176) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(0.128, 0.04, -0.026) b=(0.136, 0.103, -0.029) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.136, 0.103, -0.029) b=(0.154, 0.161, -0.036) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.169, 0.04, 0.014) b=(0.177, 0.08, 0.018) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.177, 0.08, 0.018) b=(0.195, 0.117, 0.026) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.093, 0.04, 0.243) b=(0.098, 0.109, 0.259) radiusA=0.015 radiusB=0.009
-                ArbitraryRoundCone a=(0.098, 0.109, 0.259) b=(0.106, 0.173, 0.291) radiusA=0.009 radiusB=0.004
-                ArbitraryRoundCone a=(0.135, 0.04, -0.015) b=(0.149, 0.118, -0.008) radiusA=0.017 radiusB=0.011
-                ArbitraryRoundCone a=(0.149, 0.118, -0.008) b=(0.177, 0.189, 0.006) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.203, 0.04, 0.033) b=(0.22, 0.109, 0.029) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.22, 0.109, 0.029) b=(0.255, 0.174, 0.02) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.171, 0.04, -0.176) b=(0.174, 0.102, -0.19) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.174, 0.102, -0.19) b=(0.18, 0.158, -0.218) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.057, 0.04, -0.214) b=(0.065, 0.089, -0.222) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(0.065, 0.089, -0.222) b=(0.08, 0.135, -0.239) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(-0.065, 0.04, 0.24) b=(-0.071, 0.08, 0.254) radiusA=0.018 radiusB=0.012
-                ArbitraryRoundCone a=(-0.071, 0.08, 0.254) b=(-0.085, 0.117, 0.282) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(0.029, 0.04, 0.017) b=(0.035, 0.11, 0.017) radiusA=0.016 radiusB=0.01
-                ArbitraryRoundCone a=(0.035, 0.11, 0.017) b=(0.046, 0.176, 0.017) radiusA=0.01 radiusB=0.004
-                ArbitraryRoundCone a=(-0.121, 0.04, 0.077) b=(-0.125, 0.1, 0.084) radiusA=0.016 radiusB=0.011
-                ArbitraryRoundCone a=(-0.125, 0.1, 0.084) b=(-0.134, 0.157, 0.099) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(0.07, 0.04, 0.043) b=(0.074, 0.082, 0.047) radiusA=0.018 radiusB=0.011
-                ArbitraryRoundCone a=(0.074, 0.082, 0.047) b=(0.083, 0.121, 0.057) radiusA=0.011 radiusB=0.005
-                ArbitraryRoundCone a=(-0.183, 0.04, -0.153) b=(-0.187, 0.084, -0.161) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(-0.187, 0.084, -0.161) b=(-0.194, 0.126, -0.176) radiusA=0.012 radiusB=0.005
-                ArbitraryRoundCone a=(-0.151, 0.04, 0.025) b=(-0.16, 0.095, 0.031) radiusA=0.019 radiusB=0.012
-                ArbitraryRoundCone a=(-0.16, 0.095, 0.031) b=(-0.18, 0.148, 0.044) radiusA=0.012 radiusB=0.005
-                # The stalks of the clover leaves and blossoms
-                Capsule a=(-0.105, 0.03, 0.025) b=(-0.131, 0.076, 0.031) radius=0.005
-                Capsule a=(0.125, 0.03, 0.005) b=(0.156, 0.106, 0.006) radius=0.005
-                Capsule a=(-0.13, 0.03, -0.046) b=(-0.163, 0.072, -0.058) radius=0.005
-                Capsule a=(-0.034, 0.03, -0.113) b=(-0.043, 0.099, -0.142) radius=0.005
-                Capsule a=(0.004, 0.03, 0.058) b=(0.006, 0.09, 0.073) radius=0.005
-                Capsule a=(-0.131, 0.03, -0.083) b=(-0.163, 0.085, -0.104) radius=0.005
-                Capsule a=(0.076, 0.03, 0.057) b=(0.095, 0.097, 0.071) radius=0.005
-                Capsule a=(-0.046, 0.03, 0.025) b=(-0.057, 0.081, 0.031) radius=0.005
-                Capsule a=(-0.031, 0.03, 0.155) b=(-0.039, 0.078, 0.194) radius=0.005
-                Capsule a=(0.071, 0.03, 0.022) b=(0.084, 0.183, 0.026) radius=0.006
-                Capsule a=(0.036, 0.03, 0.061) b=(0.042, 0.185, 0.072) radius=0.006
-                Capsule a=(-0.061, 0.03, 0.054) b=(-0.072, 0.196, 0.063) radius=0.006
-                Capsule a=(-0.131, 0.03, 0.041) b=(-0.154, 0.214, 0.048) radius=0.006
-                Capsule a=(-0.048, 0.03, -0.05) b=(-0.056, 0.165, -0.059) radius=0.006
-                Capsule a=(0.037, 0.03, -0.06) b=(0.043, 0.165, -0.07) radius=0.006
-                # The clover leaves, three round, flat leaflets on top of each leaf stalk
-                Translate translation=(-0.116, 0.076, 0.015)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.124, 0.076, 0.052)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.152, 0.076, 0.026)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.175, 0.106, 0.017)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.137, 0.106, 0.018)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.156, 0.106, -0.016)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.179, 0.072, -0.043)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.168, 0.072, -0.079)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.142, 0.072, -0.052)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.031, 0.099, -0.123)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.065, 0.099, -0.14)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.033, 0.099, -0.161)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.025, 0.09, 0.063)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.005, 0.09, 0.095)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.013, 0.09, 0.061)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.164, 0.085, -0.126)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.144, 0.085, -0.094)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.182, 0.085, -0.093)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.092, 0.097, 0.049)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.116, 0.097, 0.079)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(0.078, 0.097, 0.085)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.052, 0.081, 0.052)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.079, 0.081, 0.025)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.042, 0.081, 0.015)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.022, 0.078, 0.18)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.034, 0.078, 0.216)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
-                Translate translation=(-0.059, 0.078, 0.187)
-                    Ellipsoid radii=(0.022, 0.008, 0.022)
+                # The grass tufts, each three short, fat blades fanning out of the mat from one spot
+                Union
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(0.112, 0.048, 0.083) b=(0.156, 0.168, 0.061) width=0.022
+                        VesicaSegment a=(0.112, 0.048, 0.083) b=(0.126, 0.151, 0.123) width=0.022
+                        VesicaSegment a=(0.112, 0.048, 0.083) b=(0.073, 0.156, 0.083) width=0.022
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.017, 0.035, 0.209) b=(-0.059, 0.136, 0.187) width=0.022
+                        VesicaSegment a=(-0.017, 0.035, 0.209) b=(0.026, 0.173, 0.188) width=0.022
+                        VesicaSegment a=(-0.017, 0.035, 0.209) b=(-0.021, 0.153, 0.249) width=0.022
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.097, 0.051, 0.053) b=(-0.122, 0.173, 0.018) width=0.022
+                        VesicaSegment a=(-0.097, 0.051, 0.053) b=(-0.059, 0.171, 0.058) width=0.022
+                        VesicaSegment a=(-0.097, 0.051, 0.053) b=(-0.115, 0.16, 0.085) width=0.022
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.206, 0.034, -0.091) b=(-0.176, 0.156, -0.094) width=0.022
+                        VesicaSegment a=(-0.206, 0.034, -0.091) b=(-0.216, 0.157, -0.062) width=0.022
+                        VesicaSegment a=(-0.206, 0.034, -0.091) b=(-0.224, 0.159, -0.117) width=0.022
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.011, 0.049, -0.117) b=(-0.038, 0.177, -0.143) width=0.022
+                        VesicaSegment a=(-0.011, 0.049, -0.117) b=(0.019, 0.179, -0.121) width=0.022
+                        VesicaSegment a=(-0.011, 0.049, -0.117) b=(-0.012, 0.177, -0.068) width=0.022
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(0.168, 0.041, -0.085) b=(0.169, 0.165, -0.049) width=0.022
+                        VesicaSegment a=(0.168, 0.041, -0.085) b=(0.134, 0.154, -0.101) width=0.022
+                        VesicaSegment a=(0.168, 0.041, -0.085) b=(0.202, 0.153, -0.102) width=0.022
+                # The clover plants, each three round, plump leaflets on top of a short leaf stalk
+                Union
+                    Capsule a=(0.173, 0.046, 0.015) b=(0.173, 0.086, 0.015) radius=0.01
+                    Translate translation=(0.151, 0.086, 0.035)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(0.167, 0.086, -0.014)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(0.202, 0.086, 0.025)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Capsule a=(0.095, 0.038, 0.173) b=(0.095, 0.078, 0.173) radius=0.01
+                    Translate translation=(0.069, 0.078, 0.158)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(0.121, 0.078, 0.158)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(0.094, 0.078, 0.203)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Capsule a=(-0.114, 0.04, 0.171) b=(-0.114, 0.08, 0.171) radius=0.01
+                    Translate translation=(-0.089, 0.08, 0.154)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(-0.111, 0.08, 0.201)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(-0.141, 0.08, 0.159)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Capsule a=(-0.201, 0.045, 0.003) b=(-0.201, 0.085, 0.003) radius=0.01
+                    Translate translation=(-0.174, 0.085, -0.01)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(-0.204, 0.085, 0.033)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(-0.226, 0.085, -0.014)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Capsule a=(-0.07, 0.052, -0.145) b=(-0.07, 0.092, -0.145) radius=0.01
+                    Translate translation=(-0.04, 0.092, -0.146)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(-0.083, 0.092, -0.118)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(-0.086, 0.092, -0.17)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Capsule a=(0.115, 0.044, -0.154) b=(0.115, 0.084, -0.154) radius=0.01
+                    Translate translation=(0.131, 0.084, -0.129)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(0.085, 0.084, -0.154)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                    Translate translation=(0.13, 0.084, -0.181)
+                        Ellipsoid radii=(0.03, 0.012, 0.03)
+                # The stems of the blossoms
+                Union
+                    Capsule a=(0.059, 0.059, 0.019) b=(0.076, 0.214, 0.025) radius=0.01
+                    Capsule a=(-0.025, 0.058, 0.064) b=(-0.033, 0.223, 0.083) radius=0.01
+                    Capsule a=(-0.055, 0.058, -0.038) b=(-0.071, 0.209, -0.05) radius=0.01
+                    Capsule a=(0.034, 0.059, -0.049) b=(0.044, 0.218, -0.064) radius=0.01
         # The blossoms, round, ribbed heads on top of their stems
         Material material=grass_clover_blossom
             Union
-                Translate translation=(0.084, 0.201, 0.026)
-                    RadialWave amount=0.15 count=9
-                        Ellipsoid radii=(0.024, 0.026, 0.024)
-                Translate translation=(0.042, 0.203, 0.072)
-                    RadialWave amount=0.15 count=9
-                        Ellipsoid radii=(0.024, 0.026, 0.024)
-                Translate translation=(-0.072, 0.214, 0.063)
-                    RadialWave amount=0.15 count=9
-                        Ellipsoid radii=(0.024, 0.026, 0.024)
-                Translate translation=(-0.154, 0.232, 0.048)
-                    RadialWave amount=0.15 count=9
-                        Ellipsoid radii=(0.024, 0.026, 0.024)
-                Translate translation=(-0.056, 0.183, -0.059)
-                    RadialWave amount=0.15 count=9
-                        Ellipsoid radii=(0.024, 0.026, 0.024)
-                Translate translation=(0.043, 0.183, -0.07)
-                    RadialWave amount=0.15 count=9
-                        Ellipsoid radii=(0.024, 0.026, 0.024)
+                Translate translation=(0.076, 0.236, 0.025)
+                    RadialWave amount=0.15 count=8
+                        Ellipsoid radii=(0.034, 0.036, 0.034)
+                Translate translation=(-0.033, 0.245, 0.083)
+                    RadialWave amount=0.15 count=8
+                        Ellipsoid radii=(0.034, 0.036, 0.034)
+                Translate translation=(-0.071, 0.231, -0.05)
+                    RadialWave amount=0.15 count=8
+                        Ellipsoid radii=(0.034, 0.036, 0.034)
+                Translate translation=(0.044, 0.24, -0.064)
+                    RadialWave amount=0.15 count=8
+                        Ellipsoid radii=(0.034, 0.036, 0.034)

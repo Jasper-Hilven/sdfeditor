@@ -3,44 +3,28 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
-using UnityEngine.SceneManagement;
 
 namespace SdfMushrooms.Editor
 {
     /// <summary>
     /// Turns each .glb the SDF pipeline writes into Assets/Mushrooms/Generated into a classic prefab, Assets/Mushrooms/&lt;name&gt;.prefab,
-    /// with HDRP materials built from the file's material table, and keeps the default scene showing the best variant of each model.
+    /// drawn in the toon look, and keeps the default scene showing the best variant of each model.
     /// <para>
-    /// Regions and materials: the pipeline splits each mesh into one primitive per material region (the material that weighs most at
-    /// the triangle). Each region becomes a submesh with its own Unity material, Assets/Mushrooms/Materials/&lt;material&gt;.mat, on the
-    /// SdfSurface Shader Graph (HDRP Lit, subsurface scattering with transmission and clear coat).
-    /// Everything that blends between materials (colour, roughness, wetness, subsurface strength, detail, variation) comes per vertex,
-    /// mixed as the preview mixes it, so region borders stay smooth; see SdfSurface.hlsl for how the vertex data is packed.
-    /// The diffusion profile cannot come per vertex, and HDRP does not scatter light across a change of profile, which would show every
-    /// region border as a hard seam. So materials that blend into each other in the model (cap, ridges and stem flesh) share one
-    /// profile, made from all of them, and each vertex scatters with its own share of it (subsurface mask = its radius / the profile's).
-    /// HDRP allows only 15 profiles in all, so a profile is not made per group but per look, snapped coarsely enough that the whole
-    /// project fits (see <see cref="ProfileLook"/>); groups that look alike share one.
-    /// </para>
-    /// <para>
-    /// Looks: <see cref="MushroomStyle"/> (Assets/Mushrooms/Mushroom Style.asset, or Tools > SDF Mushrooms > Look) picks how the prefabs
-    /// are drawn. Realistic uses the materials above. Toon takes everything from the vertices, so every mushroom shares one material
-    /// on SdfToon.shader, Assets/Mushrooms/Materials/Toon/Mushroom.mat, each mesh is one submesh (one draw), and each part gets a child
-    /// renderer with the ink outline (SdfToonOutline.shader). Both looks' materials are always kept up to date, so switching loses nothing.
+    /// The toon look takes everything from the vertices: colour, roughness, wetness, subsurface glow, detail, variation and speckles
+    /// come per vertex, mixed between materials as the preview mixes them (see SdfSurface.hlsl for how the vertex data is packed), plus
+    /// the edge colour (UV6). So every model shares one material on SdfToon.shader, Assets/Mushrooms/Materials/Toon/Mushroom.mat, each
+    /// mesh is one submesh (one draw), and each part gets a child renderer with the ink outline (SdfToonOutline.shader).
+    /// <see cref="MushroomStyle"/> (Assets/Mushrooms/Mushroom Style.asset) holds the toon settings.
     /// </para>
     /// <para>
     /// Levels of detail: a model meshed with levels (sdf mesh --lods n) gets a LOD group on the prefab's root, cross-fading between them.
     /// LOD0 is the parts as above; each coarser level adds a child per part named after its mesh (body_LOD1, ...) with its own mesh asset,
     /// and the group is culled below a small share of the screen, so the many trees, rocks and props of a scene cost little far away.
-    /// The coarsest level is also the cheapest to shade: no ink outline in the toon look, and the realistic look's _far materials,
-    /// without detail bumps or scattering. A plain LOD group with baked levels rather than Unity's Mesh LOD, as the browser renderer
-    /// draws the same levels. Models without levels are built as before, without a LOD group.
+    /// The coarsest level is also the cheapest to draw: no ink outline. A plain LOD group with baked levels rather than Unity's Mesh
+    /// LOD, as the browser renderer draws the same levels. Models without levels are built as before, without a LOD group.
     /// </para>
     /// Rebuilding keeps every asset's GUID: meshes and materials are updated in place and prefabs are saved over the old ones, so the
     /// scene's instances follow along.
@@ -51,8 +35,9 @@ namespace SdfMushrooms.Editor
         public const string PrefabFolder = "Assets/Mushrooms";
         public const string MeshFolder = "Assets/Mushrooms/Meshes";
         public const string MaterialFolder = "Assets/Mushrooms/Materials";
-        public const string ProfileFolder = "Assets/Mushrooms/Materials/DiffusionProfiles";
-        public const string ShaderPath = "Assets/Mushrooms/Shaders/SdfSurface.shadergraph";
+        /// <summary>Where builder version 7 and older also put a realistic look, on HDRP Lit with subsurface scattering; see <see cref="DeleteRealisticLook"/>.</summary>
+        private const string RealisticShaderPath = "Assets/Mushrooms/Shaders/SdfSurface.shadergraph";
+        private const string RealisticProfileFolder = "Assets/Mushrooms/Materials/DiffusionProfiles";
         public const string ToonShaderPath = "Assets/Mushrooms/Shaders/SdfToon.shader";
         public const string ToonOutlineShaderPath = "Assets/Mushrooms/Shaders/SdfToonOutline.shader";
         public const string ToonMaterialFolder = "Assets/Mushrooms/Materials/Toon";
@@ -67,16 +52,16 @@ namespace SdfMushrooms.Editor
         /// Version 4: looks (the stamp also names the look, so changing it rebuilds every prefab). Version 5: one toon material for
         /// everything, the edge colour per vertex (UV6) and toon meshes as a single submesh. Version 6: levels of detail, a cross-fading
         /// LOD group over the parts' levels with a mesh asset per level, no outline and a cheaper realistic material on the coarsest.
-        /// Version 7: diffusion profiles per snapped look instead of per material group, so they fit HDRP's list.
+        /// Version 7: diffusion profiles per snapped look instead of per material group, so they fit HDRP's list. Version 8: the toon
+        /// look only, the realistic one gone.
         /// </summary>
-        public const int BuilderVersion = 7;
+        public const int BuilderVersion = 8;
 
         private static string VersionStamp
         {
             get
             {
-                var style = MushroomStyle.Load();
-                var look = style.look == MushroomLook.Toon && style.outlineWidth > 0 ? "toon+outline" : style.look.ToString().ToLowerInvariant();
+                var look = MushroomStyle.Load().outlineWidth > 0 ? "toon+outline" : "toon";
                 return $"sdf-builder {BuilderVersion} {look}";
             }
         }
@@ -91,7 +76,7 @@ namespace SdfMushrooms.Editor
             var models = imported.Concat(moved).Where(IsGenerated).ToArray();
             if (models.Length > 0 && !building)
                 Build(models);
-            // The style asset changed on disk (e.g. edited outside Unity): rebuild what was built with another look
+            // The style asset changed on disk (e.g. edited outside Unity): rebuild what was built with or without the outline
             else if (!building && imported.Contains(MushroomStyle.AssetPath))
                 EditorApplication.delayCall += () =>
                 {
@@ -184,8 +169,7 @@ namespace SdfMushrooms.Editor
                     }
                 }
                 AssetDatabase.SaveAssets();
-                DeleteUnusedProfiles();
-                HdrpProjectSetup.SetDiffusionProfiles(UsedProfiles());
+                DeleteRealisticLook();
                 DeleteOldToonMaterials();
                 MushroomScene.Ensure(SceneModels());
             }
@@ -204,21 +188,10 @@ namespace SdfMushrooms.Editor
         {
             var model = SdfGlb.Read(glbPath);
             var name = Path.GetFileNameWithoutExtension(glbPath);
-            var shader = AssetDatabase.LoadAssetAtPath<Shader>(ShaderPath)
-                         ?? throw new InvalidOperationException($"The shader {ShaderPath} is missing");
-
-            var groups = BlendGroups(model);
-            var realistic = model.Materials.Select((m, i) => MaterialFor(m, shader, groups[i])).ToArray();
-
-            // The toon material is kept up to date whichever look is on, so switching to it never shows a stale one
             var style = MushroomStyle.Load();
             var toon = ToonMaterial(style);
-            var isToon = style.look == MushroomLook.Toon;
-            var outline = isToon && style.outlineWidth > 0 ? ToonOutlineMaterial(style) : null;
-
-            // The cheaper look for the coarsest level, only made for models with levels so it stays out of the way otherwise
+            var outline = style.outlineWidth > 0 ? ToonOutlineMaterial(style) : null;
             var levels = model.LodCount;
-            var realisticFar = levels > 1 ? model.Materials.Select((m, i) => MaterialFor(m, shader, groups[i], far: true)).ToArray() : null;
 
             var root = new GameObject(name);
             try
@@ -233,9 +206,7 @@ namespace SdfMushrooms.Editor
                     {
                         // A part with fewer levels than the model shows its coarsest one at the levels it lacks
                         if (!parts.TryGetValue(meshData, out var renderers))
-                            parts[meshData] = renderers = Part(root.transform, meshData, model, name, isToon,
-                                isToon ? new[] { toon } : meshData.Primitives.Select(p => (coarsest ? realisticFar : realistic)[p.Material]).ToArray(),
-                                coarsest ? null : outline);
+                            parts[meshData] = renderers = Part(root.transform, meshData, model, name, toon, coarsest ? null : outline);
                         lods[level].AddRange(renderers);
                     }
                 }
@@ -265,18 +236,17 @@ namespace SdfMushrooms.Editor
         /// Assets/Mushrooms/Meshes/&lt;model&gt;_&lt;mesh&gt;.asset, plus the ink outline when <paramref name="outline"/> is given. Returns
         /// its renderers, for the level's LOD.
         /// </summary>
-        private static Renderer[] Part(Transform root, SdfGlb.MeshData meshData, SdfGlb model, string name, bool isToon, Material[] materials,
-            Material outline)
+        private static Renderer[] Part(Transform root, SdfGlb.MeshData meshData, SdfGlb model, string name, Material material, Material outline)
         {
             var mesh = MeshAsset($"{MeshFolder}/{name}_{meshData.Name}.asset");
-            Fill(mesh, meshData, model.Materials, name, singleSubmesh: isToon);
+            Fill(mesh, meshData, model.Materials, name);
             EditorUtility.SetDirty(mesh);
 
             var part = new GameObject(meshData.Name);
             part.transform.SetParent(root, false);
             part.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = part.AddComponent<MeshRenderer>();
-            renderer.sharedMaterials = materials;
+            renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.On;
             if (outline == null)
                 return new Renderer[] { renderer };
@@ -361,10 +331,10 @@ namespace SdfMushrooms.Editor
 
         /// <summary>
         /// The mesh in Unity's coordinates (x mirrored, so triangles are turned round), with the vertex data packed as SdfSurface.hlsl
-        /// expects it, plus the edge colour per vertex for the toon look (UV6, see <see cref="EdgeColor"/>). The realistic look needs one
-        /// submesh per material region; the toon look, which takes nothing from the material, draws the whole mesh as one.
+        /// expects it, plus the edge colour per vertex (UV6, see <see cref="EdgeColor"/>). The toon look takes nothing from the material,
+        /// so the material regions are drawn as one submesh.
         /// </summary>
-        private static void Fill(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName, bool singleSubmesh)
+        private static void Fill(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName)
         {
             var n = data.VertexCount;
             var position = data.Get("POSITION", 3);
@@ -432,22 +402,17 @@ namespace SdfMushrooms.Editor
             mesh.SetUVs(4, uv4);
             mesh.SetUVs(5, uv5.Select(u => new Vector2(u.x, u.y)).ToArray());
             mesh.SetUVs(6, uv6);
-            var submeshes = singleSubmesh
-                ? new[] { data.Primitives.SelectMany(p => p.Indices).ToArray() }
-                : data.Primitives.Select(p => p.Indices).ToArray();
-            mesh.subMeshCount = submeshes.Length;
-            for (var s = 0; s < submeshes.Length; s++)
+            // The regions' triangles, turned round for the mirrored x
+            var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
+            var turned = new int[indices.Length];
+            for (var t = 0; t < indices.Length; t += 3)
             {
-                var indices = submeshes[s];
-                var turned = new int[indices.Length];
-                for (var t = 0; t < indices.Length; t += 3)
-                {
-                    turned[t] = indices[t];
-                    turned[t + 1] = indices[t + 2];
-                    turned[t + 2] = indices[t + 1];
-                }
-                mesh.SetTriangles(turned, s, calculateBounds: false);
+                turned[t] = indices[t];
+                turned[t + 1] = indices[t + 2];
+                turned[t + 2] = indices[t + 1];
             }
+            mesh.subMeshCount = 1;
+            mesh.SetTriangles(turned, 0, calculateBounds: false);
             mesh.RecalculateBounds();
             mesh.UploadMeshData(false);
         }
@@ -455,7 +420,7 @@ namespace SdfMushrooms.Editor
         /// <summary>
         /// The vertex's edge colour for the toon look: rgb = the colour thin material turns to, a = how far it turns. Each of the two
         /// materials at the vertex turns its share towards its own edgeColor as the material is thinner than its edgeThickness, as the
-        /// realistic look does per region, so a = the summed turn and rgb = the colours weighted by it.
+        /// preview does, so a = the summed turn and rgb = the colours weighted by it.
         /// </summary>
         private static Vector4 EdgeColor(IReadOnlyList<SdfGlb.Material> materials, int first, int second, float blend, float thickness)
         {
@@ -480,87 +445,6 @@ namespace SdfMushrooms.Editor
 
         private static float[] Require(float[] values, string attribute, string model) =>
             values ?? throw new InvalidDataException($"{model} has no {attribute}; mesh it again with the current pipeline");
-
-        /// <summary>Materials that blend into each other somewhere in the model, which therefore share a diffusion profile.</summary>
-        private sealed class BlendGroup
-        {
-            public readonly List<SdfGlb.Material> Members = new List<SdfGlb.Material>();
-            public DiffusionProfileSettings Profile;
-
-            /// <summary>What the group's profile scatters at; each vertex takes its share of it.</summary>
-            public float ProfileRadius;
-
-            /// <summary>The widest scattering of its materials.</summary>
-            public float Radius => Members.Max(m => m.Number("subsurfaceRadius"));
-        }
-
-        /// <summary>The group of each material of the table: materials are grouped where a vertex has a share of both.</summary>
-        private static BlendGroup[] BlendGroups(SdfGlb model)
-        {
-            var parent = Enumerable.Range(0, model.Materials.Count).ToArray();
-            int Find(int i) => parent[i] == i ? i : parent[i] = Find(parent[i]);
-            foreach (var mesh in model.Meshes)
-            {
-                var ids = mesh.Get("_MATERIAL_IDS", 2);
-                var blend = mesh.Get("_MATERIAL_BLEND", 1);
-                if (ids == null || blend == null)
-                    continue;
-                for (var v = 0; v < mesh.VertexCount; v++)
-                {
-                    int a = (int)ids[2 * v], b = (int)ids[2 * v + 1];
-                    if (a != b && blend[v] > 0.02f && a < parent.Length && b < parent.Length)
-                        parent[Find(a)] = Find(b);
-                }
-            }
-
-            var groups = new Dictionary<int, BlendGroup>();
-            var result = new BlendGroup[parent.Length];
-            for (var i = 0; i < parent.Length; i++)
-            {
-                if (!groups.TryGetValue(Find(i), out var group))
-                    groups[Find(i)] = group = new BlendGroup();
-                group.Members.Add(model.Materials[i]);
-                result[i] = group;
-            }
-            foreach (var group in groups.Values)
-                ProfileFor(group);
-            return result;
-        }
-
-        /// <summary>
-        /// The region's material, created on first use and updated in place after that. The <paramref name="far"/> one,
-        /// &lt;material&gt;_far.mat, is for the coarsest level of detail, a few dozen pixels tall: the same graph without the detail bumps
-        /// (whose noise is most of its cost, and which only flicker at that size) and without subsurface scattering (a mask of 0, which
-        /// HDRP's scattering pass skips without taking samples). It keeps the region's diffusion profile, which also sets its specular
-        /// reflectance, and the light through thin parts.
-        /// </summary>
-        private static Material MaterialFor(SdfGlb.Material source, Shader shader, BlendGroup group, bool far = false)
-        {
-            var materialName = SafeName(source.Name) + (far ? "_far" : "");
-            var path = $"{MaterialFolder}/{materialName}.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material == null)
-            {
-                EnsureFolder(MaterialFolder);
-                material = new Material(shader) { name = materialName };
-                AssetDatabase.CreateAsset(material, path);
-            }
-            else if (material.shader != shader)
-            {
-                material.shader = shader;
-            }
-
-            var edge = source.Color("edgeColor");
-            // Thickness is passed as a share of the range every profile maps it to, so it means the same in every model
-            material.SetVector("_Subsurface", new Vector4(far ? 0 : group.ProfileRadius, ProfileMaxThickness, 0, 0));
-            material.SetVector("_DetailAxis", source.Vector("detailAxis", Vector3.up));
-            material.SetVector("_EdgeColor", new Vector4(edge.r, edge.g, edge.b, source.Number("edgeThickness")));
-            material.SetVector("_Look", new Vector4(far ? 0 : 1, 0.2f, 0, 0));
-            HDMaterial.SetDiffusionProfileShaderGraph(material, group.Profile, "_DiffusionProfile");
-            HDMaterial.ValidateMaterial(material);
-            EditorUtility.SetDirty(material);
-            return material;
-        }
 
         /// <summary>The one toon material every mushroom shares (SdfToon.shader), created on first use and updated in place after that.</summary>
         private static Material ToonMaterial(MushroomStyle style)
@@ -619,153 +503,21 @@ namespace SdfMushrooms.Editor
         }
 
         /// <summary>
-        /// A diffusion profile's look, snapped so the few HDRP allows go round: profiles that do not scatter differ only in their
-        /// specular level (<see cref="SpecularLevels"/>); scattering ones in their tint, normalised to its brightest channel and rounded to
-        /// thirds, and their radius (<see cref="ScatteringRadii"/>, the first that covers the group's widest material), all at a middle
-        /// specular level. Every glowing material of the project lands on about a dozen of them.
+        /// What builder version 7 and older made for the realistic look, gone with it: the per-region materials on the SdfSurface graph
+        /// (their _far versions too), the diffusion profiles, and HDRP's list of them.
         /// </summary>
-        private readonly struct ProfileLook
+        private static void DeleteRealisticLook()
         {
-            public readonly Color Tint;
-            public readonly float Radius;
-            public readonly float Specular;
-
-            public ProfileLook(Color tint, float radius, float specular)
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(RealisticShaderPath);
+            if (shader != null && AssetDatabase.IsValidFolder(MaterialFolder))
+                foreach (var path in AssetDatabase.FindAssets("t:Material", new[] { MaterialFolder }).Select(AssetDatabase.GUIDToAssetPath).ToArray())
+                    if (AssetDatabase.LoadAssetAtPath<Material>(path)?.shader == shader)
+                        AssetDatabase.DeleteAsset(path);
+            if (AssetDatabase.IsValidFolder(RealisticProfileFolder))
             {
-                Tint = tint;
-                Radius = radius;
-                Specular = specular;
+                HdrpProjectSetup.ClearDiffusionProfiles();
+                AssetDatabase.DeleteAsset(RealisticProfileFolder);
             }
-
-            public bool Scatters => Radius > 0;
-
-            public string Name => Scatters
-                ? string.Format(CultureInfo.InvariantCulture, "scattering_{0:0}cm_{1}{2}{3}", Radius * 100, Third(Tint.r), Third(Tint.g), Third(Tint.b))
-                : string.Format(CultureInfo.InvariantCulture, "dielectric_specular_{0:0.00}", Specular);
-
-            private static int Third(float channel) => Mathf.RoundToInt(channel * 3);
-        }
-
-        private static readonly float[] SpecularLevels = { 0.3f, 0.5f, 0.85f };
-        private static readonly float[] ScatteringRadii = { 0.03f, 0.09f, 0.16f };
-        private const float ScatteringSpecular = 0.5f;
-
-        private static ProfileLook LookOf(BlendGroup group)
-        {
-            var scattering = group.Members.Where(m => m.Number("subsurfaceRadius") > 0).ToArray();
-            if (scattering.Length == 0)
-            {
-                var specular = group.Members.Average(m => m.Number("specular", 0.5f));
-                return new ProfileLook(Color.black, 0, SpecularLevels.OrderBy(level => Mathf.Abs(level - specular)).First());
-            }
-            // The scattering colour of the group, the average of its materials', at full brightness and rounded to thirds
-            var tint = scattering.Select(m => m.Color("subsurfaceColor")).Aggregate((a, b) => a + b) / scattering.Length;
-            var brightest = Mathf.Max(tint.r, Mathf.Max(tint.g, tint.b));
-            tint = brightest > 0 ? tint / brightest : Color.white;
-            tint = new Color(Mathf.Round(tint.r * 3) / 3, Mathf.Round(tint.g * 3) / 3, Mathf.Round(tint.b * 3) / 3, 1);
-            var radius = ScatteringRadii.FirstOrDefault(r => r >= group.Radius - 1e-4f);
-            return new ProfileLook(tint, radius > 0 ? radius : ScatteringRadii[ScatteringRadii.Length - 1], ScatteringSpecular);
-        }
-
-        /// <summary>Profiles of the current scheme, named after their look; older ones are named after materials and go once unused.</summary>
-        private static bool IsLookProfile(string path)
-        {
-            var name = Path.GetFileNameWithoutExtension(path);
-            return name.StartsWith("scattering_", StringComparison.Ordinal) || name.StartsWith("dielectric_specular_", StringComparison.Ordinal);
-        }
-
-        /// <summary>
-        /// Gives the group the profile of its look, made on first use. Should the project ever need more looks than HDRP has room for,
-        /// the group takes the closest profile there is instead, so it still scatters, nearly in its own colour.
-        /// </summary>
-        private static void ProfileFor(BlendGroup group)
-        {
-            var look = LookOf(group);
-            var path = $"{ProfileFolder}/{look.Name}.asset";
-            var profile = AssetDatabase.LoadAssetAtPath<DiffusionProfileSettings>(path);
-            if (profile == null)
-            {
-                var existing = AssetDatabase.FindAssets("t:DiffusionProfileSettings", new[] { ProfileFolder })
-                    .Select(AssetDatabase.GUIDToAssetPath).Where(IsLookProfile)
-                    .Select(AssetDatabase.LoadAssetAtPath<DiffusionProfileSettings>).Where(p => p != null).ToArray();
-                if (existing.Length >= HdrpProjectSetup.MaxDiffusionProfiles)
-                {
-                    float Distance(DiffusionProfileSettings p)
-                    {
-                        var scatters = p.transmissionTint.maxColorComponent > 0;
-                        if (scatters != look.Scatters)
-                            return float.MaxValue;
-                        var radius = scatters ? p.scatteringDistance.maxColorComponent / 1000 / p.transmissionTint.maxColorComponent : 0;
-                        var tint = (Vector4)(p.transmissionTint - look.Tint);
-                        return tint.magnitude + Mathf.Abs(radius - look.Radius) * 10 + Mathf.Abs(p.indexOfRefraction - IndexOfRefraction(look.Specular));
-                    }
-                    var closest = existing.OrderBy(Distance).First();
-                    Debug.LogWarning($"SDF mushrooms: HDRP has room for no more diffusion profiles; {string.Join(", ", group.Members.Select(m => m.Name))} use {closest.name} instead of {look.Name}");
-                    group.Profile = closest;
-                    group.ProfileRadius = look.Scatters ? closest.scatteringDistance.maxColorComponent / 1000 / Mathf.Max(closest.transmissionTint.maxColorComponent, 1e-4f) : 0;
-                    return;
-                }
-                EnsureFolder(ProfileFolder);
-                profile = ScriptableObject.CreateInstance<DiffusionProfileSettings>();
-                AssetDatabase.CreateAsset(profile, path);
-                UpdateProfileHash(profile);
-            }
-            ConfigureProfile(profile, look);
-            group.Profile = profile;
-            group.ProfileRadius = look.Radius;
-        }
-
-        /// <summary>The preview's F0 is 0.08 × specular; HDRP takes it from the profile as an index of refraction.</summary>
-        private static float IndexOfRefraction(float specular)
-        {
-            var f0 = Mathf.Sqrt(Mathf.Clamp(0.08f * specular, 0.0001f, 0.25f));
-            return Mathf.Clamp((1 + f0) / (1 - f0), 1, 2);
-        }
-
-        /// <summary>The thickness every scattering profile maps its range to: a 2 m character's thickest parts, about 25 cm.</summary>
-        private const float ProfileMaxThickness = 0.25f;
-
-        private static void ConfigureProfile(DiffusionProfileSettings profile, ProfileLook look)
-        {
-            // Scattering distance per channel in millimetres (HDRP's unit, at 1 m per world unit): the look's radius, coloured by its
-            // tint so red light travels furthest in an orange material. Light through thin parts is tinted the same.
-            var serialized = new SerializedObject(profile);
-            serialized.FindProperty("profile.thicknessRemap").vector2Value = new Vector2(0, ProfileMaxThickness * 1000);
-            serialized.FindProperty("profile.transmissionMode").intValue = 0; // Thick object: thickness from shadow maps and the baked thickness
-            // Post-scatter: the albedo is applied after the light is blurred, not half before, so the colour detail (variation, speckles,
-            // edge colour) stays as sharp as the preview draws it instead of being smeared over the scattering radius
-            serialized.FindProperty("profile.texturingMode").intValue = 1;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            profile.scatteringDistance = look.Scatters ? look.Tint * (look.Radius * 1000) : new Color(0.5f, 0.5f, 0.5f);
-            profile.transmissionTint = look.Scatters ? look.Tint : Color.black;
-            profile.indexOfRefraction = IndexOfRefraction(look.Specular);
-            profile.worldScale = 1;
-            EditorUtility.SetDirty(profile);
-        }
-
-        /// <summary>The profiles the materials use, for HDRP's list.</summary>
-        private static IEnumerable<DiffusionProfileSettings> UsedProfiles() =>
-            AssetDatabase.FindAssets("t:Material", new[] { MaterialFolder })
-                .Select(guid => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid)))
-                .Where(m => m != null && m.HasProperty("_DiffusionProfile"))
-                .Select(m => HDMaterial.GetDiffusionProfileShaderGraph(m, "_DiffusionProfile"))
-                .Where(p => p != null && IsLookProfile(AssetDatabase.GetAssetPath(p)))
-                .Distinct()
-                .OrderBy(p => p.name, StringComparer.Ordinal);
-
-        /// <summary>Profiles no material uses any more, e.g. after materials were regrouped, are deleted so they do not fill HDRP's list.</summary>
-        private static void DeleteUnusedProfiles()
-        {
-            if (!AssetDatabase.IsValidFolder(ProfileFolder))
-                return;
-            var used = AssetDatabase.FindAssets("t:Material", new[] { MaterialFolder })
-                .Select(guid => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid)))
-                .Where(m => m != null && m.HasProperty("_DiffusionProfile"))
-                .Select(m => AssetDatabase.GetAssetPath(HDMaterial.GetDiffusionProfileShaderGraph(m, "_DiffusionProfile")))
-                .ToHashSet();
-            foreach (var profile in AssetDatabase.FindAssets("t:DiffusionProfileSettings", new[] { ProfileFolder }).Select(AssetDatabase.GUIDToAssetPath))
-                if (!used.Contains(profile))
-                    AssetDatabase.DeleteAsset(profile);
         }
 
         /// <summary>Toon materials other than the shared one and the outline, e.g. the per-region ones builder version 4 made.</summary>
@@ -777,20 +529,6 @@ namespace SdfMushrooms.Editor
                 if (path != ToonMaterialPath && path != ToonOutlineMaterialPath)
                     AssetDatabase.DeleteAsset(path);
         }
-
-        /// <summary>HDRP tells profiles apart by a hash of the asset's GUID, made when the asset is created from its menu; do the same.</summary>
-        private static void UpdateProfileHash(DiffusionProfileSettings profile)
-        {
-            var table = typeof(DiffusionProfileSettings).Assembly.GetType("UnityEditor.Rendering.HighDefinition.DiffusionProfileHashTable");
-            var update = table?.GetMethod("UpdateDiffusionProfileHashNow", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            if (update == null)
-                Debug.LogWarning("SDF mushrooms: HDRP's diffusion profile hash table was not found; open the profile in the inspector to fix its hash");
-            else
-                update.Invoke(null, new object[] { profile });
-        }
-
-        private static string SafeName(string name) =>
-            string.Concat(name.Select(c => char.IsLetterOrDigit(c) || c is '_' or '-' or '.' ? c : '_'));
 
         public static void EnsureFolder(string folder)
         {
