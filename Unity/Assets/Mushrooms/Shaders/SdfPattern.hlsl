@@ -76,7 +76,7 @@ float SdfGillLines(float3 p, float size)
 float SdfFibreLines(float3 p, float size)
 {
     float n = SdfNoise(float3(p.x / size, p.y / (size * 10.0), p.z / size) + 7.3);
-    return abs(n - 0.5) * size * 0.5;
+    return abs(n - 0.5) * size * 2.5;
 }
 
 // Draws the pattern into the albedo and, for bevelled blocks, the normal. pattern = UV7; positionOS and normalOS are the pixel's in
