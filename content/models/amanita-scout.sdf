@@ -1,0 +1,48 @@
+# Amanita scout: a fly agaric with a glossy red dome of a cap flecked with white warts, pale gills under it, a white stem with a
+# drooping ring and a bulb at its foot, floating eyes and small floating hands.
+format 1
+
+Union
+    # The cap sits on the gills with a slight blend, and the gills and stem meet in a small fillet rather than an abrupt seam,
+    # so stem flesh and gills blend into each other where they meet
+    SmoothUnion smoothness=0.02
+        # Cap: the top of a wide ellipsoid, rounded at the rim
+        Material material=amanita_cap
+            Distort amount=0.004 frequency=4
+                Round radius=0.025
+                    Intersection
+                        Translate translation=(0, 1.16, 0)
+                            Ellipsoid radii=(0.62, 0.42, 0.62)
+                        # A box rather than a plane, so the cap counts towards the model's bounds
+                        Translate translation=(0, 1.62, 0)
+                            Box size=(0.8, 0.4, 0.8)
+        SmoothUnion smoothness=0.06
+            # Gills: a pale disc filling the underside
+            Material material=amanita_gills
+                Translate translation=(0, 1.215, 0)
+                    CappedCylinder radius=0.58 height=0.02
+            SmoothUnion smoothness=0.04
+                # Stem and bulb grow into each other
+                Material material=amanita_stem
+                    SmoothUnion smoothness=0.1
+                        Translate translation=(0, 0.62, 0)
+                            CappedCone height=0.56 bottomRadius=0.2 topRadius=0.15
+                        Translate translation=(0, 0.15, 0)
+                            Ellipsoid radii=(0.28, 0.16, 0.28)
+                # The ring: a short flared skirt high on the stem, of the stem's own flesh so the stem reads as one piece
+                Material material=amanita_stem
+                    Translate translation=(0, 1.04, 0)
+                        Round radius=0.012
+                            CappedCone height=0.035 bottomRadius=0.23 topRadius=0.165
+
+    # Eyes, mirrored: full-size eyeballs floating in front of the stem like the hands, a few centimetres clear of it, so the body
+    # has no face of its own and the eyes can bob and roll around it cartoonishly
+    SymmetryX
+        Translate translation=(0.13, 0.86, 0.3)
+            Part part=eye
+
+    # Floating hands, mirrored: the chanterelle's hands in the stem's off-white flesh, either side of the stem below the eyes
+    SymmetryX
+        Translate translation=(0.29, 0.55, 0.1)
+            Material material=amanita_stem
+                Part part=hand

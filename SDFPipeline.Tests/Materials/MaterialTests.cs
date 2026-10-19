@@ -16,6 +16,12 @@ public class MaterialTests
         detailAxis = new V3(0, 0, 1),
         edgeColor = new V3(0.78f, 0.32f, 0.02f),
         edgeThickness = 0.1f,
+        variationColor = new V3(0.82f, 0.36f, 0.03f),
+        variationScale = 0.16f,
+        speckleColor = new V3(0.5f, 0.2f, 0.03f),
+        speckleScale = 0.026f,
+        speckleDensity = 0.6f,
+        speckleSize = 0.26f,
     };
 
     private static SDFProgram Read(string text) => SdfProgramFile.Read("format 1\n" + text);
@@ -35,6 +41,8 @@ public class MaterialTests
         Assert.Contains("baseColor = (0.86, 0.45, 0.06)", text);
         Assert.Contains("subsurfaceRadius = 0.03", text);
         Assert.Contains("detailAxis = (0, 0, 1)", text);
+        Assert.Contains("variationColor = (0.82, 0.36, 0.03)", text);
+        Assert.Contains("speckleDensity = 0.6", text);
     }
 
     [Fact]

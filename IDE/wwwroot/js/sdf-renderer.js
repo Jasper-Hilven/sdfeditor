@@ -13,6 +13,7 @@ uniform vec3 uCameraTarget;
 uniform vec3 uCameraUp;
 uniform float uOrthoScale;
 uniform vec3 uLightPosition;
+uniform int uStyle; // 0 realistic, 1 toon
 
 out vec4 fragColor;
 
@@ -145,12 +146,46 @@ vec3 detailNormal(vec3 p, vec3 n, SurfaceMaterial m)
     return normalize(n - m.detailStrength * 0.5 * gradient);
 }
 
-// Blotches of lighter and darker colour, a few detail features wide.
+// Small flecks scattered by position: one in each cell speckleScale wide that the hash picks (speckleDensity of them), placed, sized
+// and toned at random, with a ragged soft edge. x is how far the colour goes to the fleck's, y the fleck's tone (0.65 to 1.35).
+vec2 speckle(vec3 local, float scale, float density, float size)
+{
+    vec3 p = local / scale;
+    vec3 cell = floor(p);
+    float ragged = 0.35 * (shadeNoise(p * 3.1 + 5.3) - 0.5);
+    vec2 result = vec2(0.0, 1.0);
+    for (int z = -1; z <= 1; z++)
+    for (int y = -1; y <= 1; y++)
+    for (int x = -1; x <= 1; x++)
+    {
+        vec3 c = cell + vec3(x, y, z);
+        if (shadeHash(c + 0.37) >= density) continue;
+        vec3 center = c + 0.15 + 0.7 * vec3(shadeHash(c + 11.3), shadeHash(c + 23.7), shadeHash(c + 41.9));
+        float radius = max(size, 0.01) * (0.5 + shadeHash(c + 57.1));
+        float weight = 1.0 - smoothstep(0.55, 1.0, length(p - center) / radius + ragged);
+        if (weight > result.x) result = vec2(weight, 0.65 + 0.7 * shadeHash(c + 73.3));
+    }
+    return result;
+}
+
+// Large soft patches where the base colour drifts towards variationColor, then blotches of lighter and darker colour, a few detail
+// features wide, then speckles. All are functions of the shape-local position, so a mesh can bake them per vertex.
 vec3 variedColor(SurfaceMaterial m)
 {
-    if (m.colorVariation <= 0.0) return m.baseColor;
-    float variation = shadeDetail(m.localPosition / max(m.detailScale * 5.0, 0.001) + 71.3) * 2.0 - 1.0;
-    return clamp(m.baseColor * (1.0 + m.colorVariation * variation), 0.0, 1.0);
+    vec3 color = m.baseColor;
+    if (m.variationScale > 0.0)
+        color = mix(color, m.variationColor, smoothstep(0.3, 0.75, shadeDetail(m.localPosition / m.variationScale + 37.9)));
+    if (m.colorVariation > 0.0)
+    {
+        float variation = shadeDetail(m.localPosition / max(m.detailScale * 5.0, 0.001) + 71.3) * 2.0 - 1.0;
+        color = clamp(color * (1.0 + m.colorVariation * variation), 0.0, 1.0);
+    }
+    if (m.speckleScale > 0.0 && m.speckleDensity > 0.0)
+    {
+        vec2 fleck = speckle(m.localPosition, m.speckleScale, m.speckleDensity, m.speckleSize);
+        color = mix(color, clamp(m.speckleColor * fleck.y, 0.0, 1.0), fleck.x);
+    }
+    return color;
 }
 
 // 1 where the material is much thinner than edgeThickness, 0 where it is thicker: how far the colour shifts to edgeColor.
@@ -221,6 +256,116 @@ vec3 background(vec3 rd)
     return mix(vec3(0.09, 0.09, 0.11), vec3(0.22, 0.24, 0.3), clamp(rd.y * 0.5 + 0.5, 0.0, 1.0));
 }
 
+// ---- Toon style: the cartoon look of the Unity toon shader (Unity/Assets/Mushrooms/Shaders/SdfToon.hlsl, SdfToonOutline.shader).
+// Keep the two in step; these constants are the defaults of Unity's Mushroom Style asset.
+const float TOON_SHADE_THRESHOLD = 0.0;       // light (-1..1, cast shadow counts as -1) below which is the shadow tone
+const float TOON_LIT_THRESHOLD = 0.45;        // and above which is the lit tone; the mid tone is between
+const float TOON_BAND_SOFTNESS = 0.03;
+const float TOON_OCCLUSION = 0.5;             // how much ambient occlusion darkens
+const vec3 TOON_SHADOW_TONE = vec3(0.55, 0.5, 0.66);
+const vec3 TOON_MID_TONE = vec3(0.82, 0.8, 0.85);
+const vec3 TOON_LIT_TONE = vec3(1.1);
+const float TOON_HIGHLIGHT = 0.6;
+const float TOON_HIGHLIGHT_THRESHOLD = 0.6;
+const float TOON_HIGHLIGHT_MAX_ROUGHNESS = 0.75;
+const float TOON_RIM = 0.25;
+const float TOON_RIM_WIDTH = 0.3;
+const float TOON_VARIATION = 0.5;             // how much of the colour patches and blotches show; speckles always do
+const float TOON_OUTLINE_WIDTH = 4.0;         // pixels at 1080 pixels high
+const vec3 TOON_OUTLINE_TONE = vec3(0.18, 0.13, 0.14);
+
+// The material's colour with its patches toned down, speckles at full strength
+vec3 toonColor(SurfaceMaterial m)
+{
+    vec3 varied = m.baseColor;
+    if (m.variationScale > 0.0)
+        varied = mix(varied, m.variationColor, smoothstep(0.3, 0.75, shadeDetail(m.localPosition / m.variationScale + 37.9)));
+    if (m.colorVariation > 0.0)
+    {
+        float variation = shadeDetail(m.localPosition / max(m.detailScale * 5.0, 0.001) + 71.3) * 2.0 - 1.0;
+        varied = clamp(varied * (1.0 + m.colorVariation * variation), 0.0, 1.0);
+    }
+    vec3 color = mix(m.baseColor, varied, TOON_VARIATION);
+    if (m.speckleScale > 0.0 && m.speckleDensity > 0.0)
+    {
+        vec2 fleck = speckle(m.localPosition, m.speckleScale, m.speckleDensity, m.speckleSize);
+        color = mix(color, clamp(m.speckleColor * fleck.y, 0.0, 1.0), fleck.x);
+    }
+    return color;
+}
+
+vec3 toonShade(vec3 albedo, vec3 n, vec3 v, vec3 l, float shadow, vec3 tint, SurfaceMaterial m, float occlusion)
+{
+    float nl = dot(n, l);
+    float light = mix(-1.0, nl, shadow);
+    float mid = smoothstep(TOON_SHADE_THRESHOLD - TOON_BAND_SOFTNESS, TOON_SHADE_THRESHOLD + TOON_BAND_SOFTNESS, light);
+    float lit = smoothstep(TOON_LIT_THRESHOLD - TOON_BAND_SOFTNESS, TOON_LIT_THRESHOLD + TOON_BAND_SOFTNESS, light);
+    vec3 tone = mix(TOON_SHADOW_TONE, mix(TOON_MID_TONE, TOON_LIT_TONE, lit) * tint, mid);
+    vec3 color = albedo * tone * mix(1.0, occlusion, TOON_OCCLUSION);
+
+    float r = mix(m.roughness, 0.1, clamp(m.wetness, 0.0, 1.0));
+    float a = max(r * r, 0.01);
+    float shininess = 2.0 / (a * a) - 2.0;
+    float highlight = pow(clamp(dot(n, normalize(l + v)), 0.0, 1.0), shininess);
+    float strength = TOON_HIGHLIGHT * clamp(2.0 * m.specular + m.wetness, 0.0, 1.0)
+                   * (1.0 - smoothstep(TOON_HIGHLIGHT_MAX_ROUGHNESS * 0.6, TOON_HIGHLIGHT_MAX_ROUGHNESS, r));
+    color += smoothstep(TOON_HIGHLIGHT_THRESHOLD - 0.02, TOON_HIGHLIGHT_THRESHOLD + 0.02, highlight) * strength * mid * tint;
+
+    float rim = 1.0 - clamp(dot(n, v), 0.0, 1.0);
+    color += smoothstep(1.0 - TOON_RIM_WIDTH - 0.02, 1.0 - TOON_RIM_WIDTH + 0.02, rim) * TOON_RIM * mid * tint * albedo;
+    return color;
+}
+
+// Metres one pixel covers at distance t along the ray
+float pixelSize(float t, bool orthographic)
+{
+    return orthographic ? 2.0 * uOrthoScale / uResolution.y : t / (1.6 * uResolution.y);
+}
+
+// The toon pixel. The ink line is what Unity's inverted hull draws: wherever the ray passed within the line's width of a surface
+// and went on (past the silhouette, or behind a part in front of another), it takes that surface's colour, darkened.
+vec3 toonPixel(vec3 ro, vec3 rd, bool orthographic)
+{
+    float outlinePixels = TOON_OUTLINE_WIDTH * uResolution.y / 1080.0;
+    float t = 0.0;
+    float hit = -1.0;
+    float previous = MAX_DISTANCE;
+    float previousT = 0.0;
+    float closest = 1e9;
+    float closestT = 0.0;
+    for (int i = 0; i < MAX_STEPS; i++)
+    {
+        float d = map(ro + rd * t);
+        if (d < SURFACE_DISTANCE) { hit = t; break; }
+        // A step where the distance grows again: the ray passed its closest to a surface at the step before
+        if (d > previous)
+        {
+            float pixels = previous / pixelSize(previousT, orthographic);
+            if (pixels < closest) { closest = pixels; closestT = previousT; }
+        }
+        previous = d;
+        previousT = t;
+        t += d;
+        if (t > MAX_DISTANCE) break;
+    }
+    if (hit < 0.0 && previous < 0.01) hit = t;
+
+    if (closest < outlinePixels)
+        return sdf_material(ro + rd * closestT).baseColor * TOON_OUTLINE_TONE;
+    if (hit < 0.0)
+        return background(rd);
+
+    vec3 p = ro + rd * hit;
+    vec3 n = calcNormal(p);
+    SurfaceMaterial m = sdf_material(p);
+    vec3 l = normalize(uLightPosition);
+    vec3 albedo = mix(toonColor(m), m.edgeColor, thinness(p, n, m));
+    float shadow = softShadow(p + n * 0.002, l, 30.0);
+    vec3 tint = SUN_COLOR / max(max(SUN_COLOR.r, SUN_COLOR.g), SUN_COLOR.b);
+    // Shown as Unity shows it: HDRP's ACES tone mapping, which the preview's tone curve matches at its exposure
+    return acesToneMap(toonShade(albedo, n, -rd, l, shadow, tint, m, ambientOcclusion(p, n)) * EXPOSURE);
+}
+
 void main()
 {
     vec2 uv = (gl_FragCoord.xy - uViewportOrigin - 0.5 * uResolution) / uResolution.y;
@@ -231,6 +376,12 @@ void main()
     bool orthographic = uOrthoScale > 0.0;
     vec3 ro = orthographic ? uCameraPosition + 2.0 * uOrthoScale * (uv.x * right + uv.y * up) : uCameraPosition;
     vec3 rd = orthographic ? forward : normalize(uv.x * right + uv.y * up + 1.6 * forward);
+
+    if (uStyle == 1)
+    {
+        fragColor = vec4(pow(toonPixel(ro, rd, orthographic), vec3(1.0 / 2.2)), 1.0);
+        return;
+    }
 
     float t = raymarch(ro, rd);
     if (t > MAX_DISTANCE)
@@ -292,6 +443,7 @@ export function createRenderer(canvas) {
 
     const camera = { yaw: 0.7, pitch: 0.35, distance: 8, target: [0, 0, 0] };
     let lightPosition = [4, 6, 3];
+    let style = 0;
     let program = null;
     let quadView = false;
     let rotateView = false;
@@ -410,6 +562,7 @@ export function createRenderer(canvas) {
 
         gl.useProgram(program);
         gl.uniform3fv(gl.getUniformLocation(program, 'uLightPosition'), lightPosition);
+        gl.uniform1i(gl.getUniformLocation(program, 'uStyle'), style);
         if (!quadView) {
             drawView(orbitView(), 0, 0, canvas.width, canvas.height);
             return;
@@ -462,6 +615,12 @@ export function createRenderer(canvas) {
         requestRender();
     }
 
+    // Picks the look: 'realistic' (the default) or 'toon', the cartoon look of the Unity toon shader.
+    function setStyle(name) {
+        style = name === 'toon' ? 1 : 0;
+        requestRender();
+    }
+
     // Draws every view right away instead of on the next animation frame, for when the pixels are read back at once.
     function renderNow() {
         allChanged = true;
@@ -503,6 +662,7 @@ export function createRenderer(canvas) {
         setRotateView,
         setCamera,
         setLight,
+        setStyle,
         renderNow,
         dispose: () => {
             rotateView = false;

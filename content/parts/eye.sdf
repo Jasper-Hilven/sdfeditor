@@ -1,27 +1,50 @@
 # Eye: a wet eyeball 12 cm in radius, centred on the origin and looking along +z. The limbus, iris, amber ring and pupil are
-# stacked discs on its front. Lids belong to the body that uses the eye, so they can blend into it and blink with it.
+# rings painted on its front: each is the eyeball itself cut to the front half and to the space between two cylinders, so the
+# surface stays one smooth sphere, every point of it belongs to exactly one piece, and the back of the eye stays white. A smooth
+# union would soften the colour seams, but it also swells the surface where two flush pieces meet, which shows as a ridge around
+# every ring; raised rings likewise come out of meshing as a sawtooth. Lids belong to the body that uses the eye, so they can blend
+# into it and blink with it.
 format 1
 
 Union
+    # White: the whole eyeball but the front disc the rings fill
     Material material=eye_white
-        Sphere radius=0.12
+        Subtraction
+            Sphere radius=0.12
+            Intersection
+                Plane normal=(0, 0, -1) height=0
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.066
     Material material=eye_limbus
-        Intersection
-            Sphere radius=0.121
-            Rotate rotation=(1.5707964, 0, 0)
-                InfiniteCylinder center=(0, 0) radius=0.066
-    Material material=eye_iris
-        Intersection
-            Sphere radius=0.122
+        Subtraction
+            Intersection
+                Sphere radius=0.12
+                Plane normal=(0, 0, -1) height=0
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.066
             Rotate rotation=(1.5707964, 0, 0)
                 InfiniteCylinder center=(0, 0) radius=0.06
-    Material material=eye_iris_inner
-        Intersection
-            Sphere radius=0.123
+    Material material=eye_iris
+        Subtraction
+            Intersection
+                Sphere radius=0.12
+                Plane normal=(0, 0, -1) height=0
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.06
             Rotate rotation=(1.5707964, 0, 0)
                 InfiniteCylinder center=(0, 0) radius=0.034
+    Material material=eye_iris_inner
+        Subtraction
+            Intersection
+                Sphere radius=0.12
+                Plane normal=(0, 0, -1) height=0
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.034
+            Rotate rotation=(1.5707964, 0, 0)
+                InfiniteCylinder center=(0, 0) radius=0.022
     Material material=eye_pupil
         Intersection
-            Sphere radius=0.124
+            Sphere radius=0.12
+            Plane normal=(0, 0, -1) height=0
             Rotate rotation=(1.5707964, 0, 0)
                 InfiniteCylinder center=(0, 0) radius=0.022

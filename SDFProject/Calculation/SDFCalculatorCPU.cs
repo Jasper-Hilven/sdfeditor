@@ -6,11 +6,11 @@ using Plane = SDFProject.ProgramDefinition.Plane;
 
 namespace SDFProject.Calculation;
 
-public class SdfCalculatorCpu
+public partial class SdfCalculatorCpu
 {
-    private sealed record FunctionInfo(SDFFunctionDefinition Definition, Dictionary<string, int> VariableIndices);
+    internal sealed record FunctionInfo(SDFFunctionDefinition Definition, Dictionary<string, int> VariableIndices);
 
-    private readonly record struct EvaluationContext(
+    internal readonly record struct EvaluationContext(
         object[] ParameterValues,
         object[] VariableValues,
         Dictionary<string, int> VariableIndices,

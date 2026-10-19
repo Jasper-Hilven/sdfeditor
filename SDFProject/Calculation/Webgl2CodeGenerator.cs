@@ -37,6 +37,12 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
             vec3 detailAxis;
             vec3 edgeColor;
             float edgeThickness;
+            vec3 variationColor;
+            float variationScale;
+            vec3 speckleColor;
+            float speckleScale;
+            float speckleDensity;
+            float speckleSize;
             vec3 localPosition;
         };
 
@@ -61,6 +67,12 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
                 mix(a.detailAxis, b.detailAxis, t),
                 mix(a.edgeColor, b.edgeColor, t),
                 mix(a.edgeThickness, b.edgeThickness, t),
+                mix(a.variationColor, b.variationColor, t),
+                mix(a.variationScale, b.variationScale, t),
+                mix(a.speckleColor, b.speckleColor, t),
+                mix(a.speckleScale, b.speckleScale, t),
+                mix(a.speckleDensity, b.speckleDensity, t),
+                mix(a.speckleSize, b.speckleSize, t),
                 mix(a.localPosition, b.localPosition, t));
         }
 
@@ -75,7 +87,9 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
     public static string MaterialLiteral(MaterialDefinition m, string localPosition, string? baseColor = null) =>
         $"{MaterialType}({baseColor ?? Vec3Literal(m.baseColor)}, {Literal(m.roughness)}, {Literal(m.specular)}, {Vec3Literal(m.subsurfaceColor)}, " +
         $"{Literal(m.subsurfaceRadius)}, {Literal(m.detailStrength)}, {Literal(m.detailScale)}, {Literal(m.colorVariation)}, " +
-        $"{Literal(m.wetness)}, {Literal(m.detailStretch)}, {Vec3Literal(m.detailAxis)}, {Vec3Literal(m.edgeColor)}, {Literal(m.edgeThickness)}, {localPosition})";
+        $"{Literal(m.wetness)}, {Literal(m.detailStretch)}, {Vec3Literal(m.detailAxis)}, {Vec3Literal(m.edgeColor)}, {Literal(m.edgeThickness)}, " +
+        $"{Vec3Literal(m.variationColor)}, {Literal(m.variationScale)}, " +
+        $"{Vec3Literal(m.speckleColor)}, {Literal(m.speckleScale)}, {Literal(m.speckleDensity)}, {Literal(m.speckleSize)}, {localPosition})";
 
     private static string Vec3Literal(V3 v) => $"vec3({Literal(v.x)}, {Literal(v.y)}, {Literal(v.z)})";
 

@@ -24,6 +24,18 @@ public sealed record RenderOptions
 
     /// <summary>Direction towards the sun; null keeps the IDE's sun, up and to the front right.</summary>
     public V3? LightDirection { get; init; }
+
+    /// <summary>The look: the IDE's realistic shading, or the cartoon look of the Unity toon shader.</summary>
+    public RenderStyle Style { get; init; } = RenderStyle.Realistic;
+}
+
+public enum RenderStyle
+{
+    /// <summary>The IDE's own shading: subsurface light, detail bumps, wet coat.</summary>
+    Realistic,
+
+    /// <summary>Flat colour in three bands, a hard highlight, a rim light and an ink outline, as Unity's SdfToon shader draws it.</summary>
+    Toon,
 }
 
 public sealed record RenderResult(byte[] Png, RenderFraming Framing);
@@ -52,6 +64,7 @@ public static class SdfRenderer
             },
             caption = framing.Bounds is { } bounds ? Caption(bounds.Size) : null,
             light = options.LightDirection is { } light ? new[] { light.x, light.y, light.z } : null,
+            style = options.Style == RenderStyle.Toon ? "toon" : "realistic",
         });
 
         var port = FreePort();

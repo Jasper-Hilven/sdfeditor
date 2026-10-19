@@ -32,7 +32,7 @@ public static class RenderFramer
     /// </summary>
     public static RenderFraming Frame(SDFProgram program)
     {
-        var bounds = FiniteBounds(WithoutInfiniteShapes(program)) ?? FiniteBounds(program);
+        var bounds = ModelBounds(program);
         if (bounds is null)
             return new RenderFraming(RenderCamera.Default, null);
 
@@ -47,6 +47,9 @@ public static class RenderFramer
             longestSide * Margin * 0.5f);
         return new RenderFraming(camera, bounds);
     }
+
+    /// <summary>The bounds of the model without its ground planes and other infinite shapes, or null when nothing finite is left.</summary>
+    internal static SdfBounds? ModelBounds(SDFProgram program) => FiniteBounds(WithoutInfiniteShapes(program)) ?? FiniteBounds(program);
 
     private static SdfBounds? FiniteBounds(SDFProgram program)
     {

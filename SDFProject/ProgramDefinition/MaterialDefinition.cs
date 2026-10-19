@@ -5,7 +5,7 @@ namespace SDFProject.ProgramDefinition;
 /// <summary>
 /// How a surface looks, in renderer-independent physical terms that map onto Unity HDRP's Lit material: a dielectric with a base colour,
 /// roughness and specular level, light scattering through it (subsurface), a wet coat, procedural detail in the shape's own coordinates,
-/// and a colour shift where the material is thin. Lengths are in metres.
+/// a colour shift where the material is thin, large patches of a second colour, and small speckles. Lengths are in metres.
 /// </summary>
 public sealed record MaterialDefinition(
     V3 baseColor,
@@ -32,6 +32,24 @@ public sealed record MaterialDefinition(
     /// <summary>How thin the material must be to show <see cref="edgeColor"/>; 0 turns the edge colour off.</summary>
     public float edgeThickness { get; init; }
 
+    /// <summary>The colour of large, soft patches the base colour drifts towards, like the uneven tones of a real mushroom.</summary>
+    public V3 variationColor { get; init; } = new(0, 0, 0);
+
+    /// <summary>How large the <see cref="variationColor"/> patches are; 0 turns them off.</summary>
+    public float variationScale { get; init; }
+
+    /// <summary>The colour of small flecks scattered over the surface, each a little lighter or darker than the next.</summary>
+    public V3 speckleColor { get; init; } = new(0, 0, 0);
+
+    /// <summary>How far apart the speckles are, in metres; 0 turns them off.</summary>
+    public float speckleScale { get; init; }
+
+    /// <summary>How many of the places a speckle could be have one, 0 none to 1 all.</summary>
+    public float speckleDensity { get; init; }
+
+    /// <summary>A speckle's radius as a share of <see cref="speckleScale"/>; sizes vary from half to one and a half times this.</summary>
+    public float speckleSize { get; init; } = 0.3f;
+
     /// <summary>What a shape without a colour or material looks like.</summary>
     public static readonly MaterialDefinition Default = new(new V3(0.85f, 0.62f, 0.42f), 0.5f, 0.5f, new V3(0, 0, 0), 0, 0, 0.05f, 0);
 
@@ -55,6 +73,12 @@ public sealed record MaterialDefinition(
         new(nameof(detailAxis), MaterialParameterKind.Direction, m => Components(m.detailAxis), (m, v) => m with { detailAxis = Color(v) }),
         new(nameof(edgeColor), MaterialParameterKind.Color, m => Components(m.edgeColor), (m, v) => m with { edgeColor = Color(v) }),
         new(nameof(edgeThickness), MaterialParameterKind.Number, m => [m.edgeThickness], (m, v) => m with { edgeThickness = v[0] }),
+        new(nameof(variationColor), MaterialParameterKind.Color, m => Components(m.variationColor), (m, v) => m with { variationColor = Color(v) }),
+        new(nameof(variationScale), MaterialParameterKind.Number, m => [m.variationScale], (m, v) => m with { variationScale = v[0] }),
+        new(nameof(speckleColor), MaterialParameterKind.Color, m => Components(m.speckleColor), (m, v) => m with { speckleColor = Color(v) }),
+        new(nameof(speckleScale), MaterialParameterKind.Number, m => [m.speckleScale], (m, v) => m with { speckleScale = v[0] }),
+        new(nameof(speckleDensity), MaterialParameterKind.Number, m => [m.speckleDensity], (m, v) => m with { speckleDensity = v[0] }),
+        new(nameof(speckleSize), MaterialParameterKind.Number, m => [m.speckleSize], (m, v) => m with { speckleSize = v[0] }),
     ];
 
     public static MaterialParameter? FindParameter(string name) => Parameters.FirstOrDefault(p => p.Name == name);

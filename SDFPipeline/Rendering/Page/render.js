@@ -55,6 +55,7 @@ async function run() {
     if (error) throw new Error(`The shader does not compile:\n${error}`);
     renderer.setCamera(scene.camera);
     if (scene.light) renderer.setLight(scene.light);
+    if (scene.style) renderer.setStyle(scene.style);
     renderer.setQuadView(true);
     renderer.renderNow();
 
