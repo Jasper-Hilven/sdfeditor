@@ -267,6 +267,7 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
                 Onion e => Distance($"abs({Sdf(e.primitive, p)}) - {F(e.thickness)}"),
                 Color e => Sdf(e.primitive, p),
                 Material e => Sdf(e.primitive, p),
+                Detail e => Sdf(e.primitive, p),
                 Distort e => Distance($"{Sdf(e.primitive, p)} + opDistort({p}, {F(e.amount)}, {F(e.frequency)})"),
 
                 Union e => Combine(e.primitives, p, (a, b) => $"min({a}, {b})", "SDF_INFINITY"),
@@ -369,6 +370,7 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
                 VariableReferenceSDF r => Inline(r.variableId, value => Surface((SDFEvaluable)value, p, material)),
                 Color e => Surface(e.primitive, p, MaterialValue($"colorMaterial({Vec3(e.color)}, {p})")),
                 Material e => Surface(e.primitive, p, MaterialValue(MaterialLiteral(context.Materials.Resolve(e.material), p))),
+                Detail e => Surface(e.primitive, p, material),
                 Round e => Modified(e.primitive, p, material, d => $"{d} - {Float(e.radius)}"),
                 Onion e => Modified(e.primitive, p, material, d => $"abs({d}) - {Float(e.thickness)}"),
                 Displace e => Modified(e.primitive, p, material, d => $"{d} + {Sdf(e.displacement, p)}"),

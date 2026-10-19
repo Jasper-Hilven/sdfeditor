@@ -1,0 +1,32 @@
+# Birch crown: the leaves of a stylized birch, a tall, narrow oval about 1.9 m across and 3.6 m tall, centred on the origin: a
+# slim core with round clumps stacked up around it, alternating sides, each standing well out of the core so the outline bulges
+# at every one of them. Solid, with no leaf cards, holes or twigs. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness over the clumps, shallow next to their size
+Distort amount=0.025 frequency=1.8
+    # Soft creases between the clumps, each keeping its own bulge in the outline
+    SmoothUnion smoothness=0.1
+        # The slim core, holding the clumps together into one oval
+        Ellipsoid radii=(0.45, 1.3, 0.45)
+        # The bottom ring of three clumps, the broadest part of the oval
+        Translate translation=(0.42, -0.7, 0.18)
+            Ellipsoid radii=(0.52, 0.55, 0.5)
+        Translate translation=(-0.4, -0.55, 0.25)
+            Ellipsoid radii=(0.5, 0.55, 0.48)
+        Translate translation=(0.0, -0.75, -0.42)
+            Ellipsoid radii=(0.5, 0.52, 0.48)
+        # The middle ring, turned against the bottom one
+        Translate translation=(-0.42, 0.15, -0.15)
+            Ellipsoid radii=(0.48, 0.55, 0.46)
+        Translate translation=(0.4, 0.05, -0.25)
+            Ellipsoid radii=(0.46, 0.55, 0.44)
+        Translate translation=(0.05, -0.05, 0.45)
+            Ellipsoid radii=(0.46, 0.52, 0.44)
+        # Two smaller clumps higher up and one on top, narrowing the oval to its rounded tip
+        Translate translation=(0.25, 0.8, 0.2)
+            Ellipsoid radii=(0.4, 0.48, 0.38)
+        Translate translation=(-0.25, 0.85, -0.12)
+            Ellipsoid radii=(0.38, 0.46, 0.36)
+        Translate translation=(0.02, 1.4, 0.02)
+            Ellipsoid radii=(0.3, 0.38, 0.3)

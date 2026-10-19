@@ -98,6 +98,19 @@ public sealed record Color(SDFEvaluable primitive, V3Evaluable color) : SDFEvalu
 /// <summary>Gives the shape below it a named material from the <see cref="MaterialLibrary"/>.</summary>
 public sealed record Material(SDFEvaluable primitive, string material) : SDFEvaluable;
 public sealed record Distort(SDFEvaluable primitive, FloatEvaluable amount, FloatEvaluable frequency) : SDFEvaluable;
+/// <summary>
+/// The shape below it, unchanged in distance and material: it only tells the mesh builder to give the meshes <paramref name="detail"/>
+/// times the vertices their size would give them, because big but simple things like trees need far fewer than their size implies.
+/// It is read at the root of a model's or a part's file only, where it is a setting of the whole file rather than of one shape.
+/// </summary>
+public sealed record Detail(SDFEvaluable primitive, FloatEvaluable detail) : SDFEvaluable
+{
+    /// <summary>A twentieth of the vertices: below that a mesh loses its shape, whatever its size.</summary>
+    public const float MinDetail = 0.05f;
+
+    /// <summary>Four times the vertices: more than that is better had from a finer resolution for the whole model.</summary>
+    public const float MaxDetail = 4f;
+}
 
 public sealed record Union(params SDFEvaluable[] primitives) : SDFEvaluable;
 public sealed record Subtraction(SDFEvaluable a, SDFEvaluable b) : SDFEvaluable;

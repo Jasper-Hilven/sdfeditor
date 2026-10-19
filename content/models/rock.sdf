@@ -1,0 +1,22 @@
+# Rock: a squat boulder about a metre across, a rounded lump with a few broad flattened facets worn soft at their edges, a flat
+# underside it rests on and gently lumpy stone between them. Big, low-frequency forms only, so it simplifies to few triangles.
+format 1
+
+Material material=rock_stone
+    # Large lumps first, then a finer roughness over them, both shallow next to the rock's size
+    Distort amount=0.01 frequency=8
+        Distort amount=0.035 frequency=2.5
+            # The facets cut deep into an oversized lump, with softened edges rather than sharp ones, which would need many
+            # triangles to hold
+            SmoothIntersection smoothness=0.06
+                Translate translation=(0, 0.25, 0)
+                    Rotate rotation=(0.1, 0.4, -0.08)
+                        Ellipsoid radii=(0.62, 0.5, 0.55)
+                # The underside, flat on the ground
+                Plane normal=(0, -1, 0) height=0
+                # A broad top facet sloping towards the front right, and four around the sides
+                Plane normal=(0.2, 0.94, 0.28) height=-0.56
+                Plane normal=(0.88, 0.2, 0.43) height=-0.4
+                Plane normal=(-0.72, 0.32, -0.62) height=-0.38
+                Plane normal=(-0.55, 0.45, 0.7) height=-0.4
+                Plane normal=(0.3, 0.1, -0.95) height=-0.44

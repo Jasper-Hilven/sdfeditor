@@ -49,13 +49,16 @@ namespace SdfMushrooms.Editor
             RaiseSubsurfaceSampleBudget(asset);
             if (GraphicsSettings.defaultRenderPipeline != asset)
                 GraphicsSettings.defaultRenderPipeline = asset;
-            // Quality levels may override the pipeline; let them all use this one
+            // Quality levels may override the pipeline; let them all use this one. They also decide whether LOD groups cross-fade (HDRP's
+            // own "dithering cross-fade" setting moved there), which the mushrooms' LOD groups rely on to change level without a pop
             var current = QualitySettings.GetQualityLevel();
             for (var level = 0; level < QualitySettings.names.Length; level++)
             {
                 QualitySettings.SetQualityLevel(level, false);
                 if (QualitySettings.renderPipeline != null && QualitySettings.renderPipeline != asset)
                     QualitySettings.renderPipeline = asset;
+                if (!QualitySettings.enableLODCrossFade)
+                    QualitySettings.enableLODCrossFade = true;
             }
             QualitySettings.SetQualityLevel(current, false);
         }

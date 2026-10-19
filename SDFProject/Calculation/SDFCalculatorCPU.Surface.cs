@@ -156,6 +156,7 @@ public partial class SdfCalculatorCpu
             VariableReferenceSDF r => SurfaceOfVariable(p, r.variableId, material, prepared, context),
             Color e => Walk(e.primitive, p, [new MaterialShare(MaterialSource.OfColor(ToV3(Vec3(e.color))), 1, p)]),
             ProgramDefinition.Material e => Walk(e.primitive, p, [new MaterialShare(MaterialSource.Named(e.material), 1, p)]),
+            Detail e => Walk(e.primitive, p, material),
             Round e => Modified(e.primitive, d => d - Float(e.radius)),
             Onion e => Modified(e.primitive, d => MathF.Abs(d) - Float(e.thickness)),
             Displace e => Modified(e.primitive, d => d + Sdf(e.displacement, p)),

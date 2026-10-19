@@ -4,7 +4,8 @@
 //
 // Written by hand rather than as a Shader Graph because HDRP's graphs cannot replace its lighting. It draws like HDRP's own Unlit
 // (ForwardOnly, colour not scaled by exposure) but lights itself, and has the passes HDRP needs to put it in the depth prepass and in
-// shadow maps.
+// shadow maps. Every pass takes part in LOD cross-fade (SdfLodFade.hlsl), so the levels of a mushroom's LOD group dissolve into
+// each other in colour, depth and shadow alike.
 Shader "SdfMushrooms/Toon"
 {
     Properties
@@ -73,8 +74,10 @@ Shader "SdfMushrooms/Toon"
 
             HLSLPROGRAM
             #pragma multi_compile_fragment _ WRITE_MSAA_DEPTH
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+            #include "SdfLodFade.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -91,10 +94,14 @@ Shader "SdfMushrooms/Toon"
             #ifdef WRITE_MSAA_DEPTH
             float4 Frag(Varyings input) : SV_Target0
             {
+                SdfLodFade(input.positionCS);
                 return float4(input.positionCS.z, input.positionCS.z, input.positionCS.z, 1.0);
             }
             #else
-            void Frag(Varyings input) {}
+            void Frag(Varyings input)
+            {
+                SdfLodFade(input.positionCS);
+            }
             #endif
             ENDHLSL
         }
@@ -118,6 +125,7 @@ Shader "SdfMushrooms/Toon"
 
             HLSLPROGRAM
             #pragma multi_compile_fragment DIRECTIONAL_SHADOW_LOW DIRECTIONAL_SHADOW_MEDIUM DIRECTIONAL_SHADOW_HIGH
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             // Only the sun's shadows are sampled; these just satisfy HDRP's shadow code
             #define PUNCTUAL_SHADOW_MEDIUM
             #define AREA_SHADOW_MEDIUM
@@ -129,6 +137,7 @@ Shader "SdfMushrooms/Toon"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/HDShadow.hlsl"
             #include "SdfSurface.hlsl"
             #include "SdfToon.hlsl"
+            #include "SdfLodFade.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -180,6 +189,7 @@ Shader "SdfMushrooms/Toon"
 
             float4 Frag(Varyings input) : SV_Target0
             {
+                SdfLodFade(input.positionCS);
                 float3 n = normalize(input.normalWS);
                 float3 v = GetWorldSpaceNormalizeViewDir(input.positionRWS);
 
@@ -222,8 +232,10 @@ Shader "SdfMushrooms/Toon"
             ColorMask 0
 
             HLSLPROGRAM
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #define SHADERPASS SHADERPASS_SHADOWS
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+            #include "SdfLodFade.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -237,7 +249,10 @@ Shader "SdfMushrooms/Toon"
                 return output;
             }
 
-            void Frag(Varyings input) {}
+            void Frag(Varyings input)
+            {
+                SdfLodFade(input.positionCS);
+            }
             ENDHLSL
         }
     }

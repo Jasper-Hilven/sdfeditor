@@ -51,6 +51,8 @@ public record ToggleSmoothness() : ISDFPartialAction;
 public record SubtractNode() : ISDFPartialAction;
 public record IntersectNode() : ISDFPartialAction;
 public record DistortNode() : ISDFPartialAction;
+/// <summary>Wraps the scene's root in a Detail node, which tells the mesh builder how many vertices the model's meshes get.</summary>
+public record DetailNode() : ISDFPartialAction;
 public record DissolveNode() : ISDFPartialAction;
 public record ExtractVariable() : ISDFPartialAction;
 public record InlineVariable() : ISDFPartialAction;

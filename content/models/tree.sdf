@@ -1,0 +1,30 @@
+# Tree: a stylized broadleaf tree about 4.5 m tall, a stout tapering trunk with a flared foot that forks into three branches,
+# which reach up into a crown of soft blob clumps. No twigs or leaf cards: every form is thick and smooth, so the far levels of
+# detail need few triangles.
+format 1
+
+# Half the vertices its 4.5 m would give it, for the trunk and the canopy alike: both are big but simple, smooth forms that look
+# the same with fewer
+Detail detail=0.5
+    Union
+        # Trunk and branches grow into each other in smooth forks
+        Material material=tree_bark
+            Distort amount=0.01 frequency=4
+                SmoothUnion smoothness=0.12
+                    # The trunk, tapering and leaning a little, on a broad foot flat on the ground that reads as roots without being any
+                    SmoothUnion smoothness=0.25
+                        ArbitraryRoundCone a=(0, 0.3, 0) b=(0.05, 1.4, 0) radiusA=0.25 radiusB=0.17
+                        Intersection
+                            Ellipsoid radii=(0.42, 0.28, 0.4)
+                            # The ground: only the half above it
+                            Translate translation=(0, 0.4, 0)
+                                Box size=(0.6, 0.4, 0.6)
+                    # Two main branches out of the fork, reaching up and out into the crown, and a shorter third towards the back
+                    ArbitraryRoundCone a=(0.05, 1.3, 0) b=(0.95, 2.65, 0.3) radiusA=0.13 radiusB=0.07
+                    ArbitraryRoundCone a=(0.05, 1.35, 0) b=(-0.85, 2.7, 0.15) radiusA=0.13 radiusB=0.07
+                    ArbitraryRoundCone a=(0.05, 1.4, 0) b=(0.1, 2.8, -0.6) radiusA=0.11 radiusB=0.06
+
+        # The crown, in leaves, high enough that the fork and branches show beneath it, low enough that they end inside it
+        Translate translation=(0, 3.15, 0)
+            Material material=tree_foliage
+                Part part=canopy

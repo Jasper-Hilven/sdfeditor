@@ -27,6 +27,8 @@ public class SDFInteractiveNodeProgramEvaluator
 
         var tables = new PointerTables(pointers);
         var isSdfNode = tables.PointerTo(id) is SDFEvaluablePointerable;
+        if (tables.Get(id) is Detail && !AvailableOnDetail(operation))
+            return false;
 
         return operation switch
         {
@@ -44,6 +46,7 @@ public class SDFInteractiveNodeProgramEvaluator
             InteractiveWrapInSubtraction => ApplyWrapInSubtraction.CanWrap(program.Program, id),
             InteractiveWrapInIntersection => ApplyWrapInIntersection.CanWrap(program.Program, id),
             InteractiveWrapInDistortion => ApplyWrapInDistortion.CanWrap(program.Program, id),
+            InteractiveWrapInDetail => ApplyWrapInDetail.CanWrap(program.Program, id),
             InteractivePaint => ApplyPaintNode.CanPaint(program.Program, id),
             InteractiveSetMaterial => ApplyPaintNode.CanPaint(program.Program, id),
             InteractiveDissolveNode => ApplyDissolveNode.CanDissolve(program.Program, id),
@@ -69,4 +72,13 @@ public class SDFInteractiveNodeProgramEvaluator
             _ => throw new NotSupportedException($"Unknown {nameof(ISdfInteractiveNodeProgramOperation)}: {operation.GetType().Name}"),
         };
     }
+
+    /// <summary>
+    /// What can be done with a Detail node selected: moving the selection, editing its detail, and dissolving it again. Wrapping it,
+    /// painting it, putting a shape next to it or extracting it would move it away from the root of the file, where it has no effect
+    /// and a file cannot hold it; the shape below it is edited by selecting that.
+    /// </summary>
+    private static bool AvailableOnDetail(ISdfInteractiveNodeProgramOperation operation) =>
+        operation is SelectNext or SelectPrevious or SelectNextSibling or SelectPreviousSibling or SelectParent or SelectFirstChild
+            or InteractiveSetNodeParameter or AdjustNodeParameterAtCurrentZoomLevel or InteractiveDissolveNode;
 }

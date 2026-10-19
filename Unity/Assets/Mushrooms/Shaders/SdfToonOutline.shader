@@ -2,6 +2,7 @@
 // same mesh; it draws only the back faces, pushed out along the normal by a fixed number of pixels, so they peek out around the
 // silhouette and wherever the part passes in front of something further away (eyes and hands over the body, the cap over the stem).
 // The line takes the colour of the surface under it, darkened (_OutlineTone), so each mushroom keeps its own palette.
+// It cross-fades with its part between levels of detail (SdfLodFade.hlsl); MushroomBuilder leaves it off the coarsest level.
 // Keep in step with the toon branch of the IDE's preview (IDE/wwwroot/js/sdf-renderer.js).
 Shader "SdfMushrooms/Toon Outline"
 {
@@ -21,6 +22,7 @@ Shader "SdfMushrooms/Toon Outline"
     // Both passes only transform the mesh; neither depends on the pass
     #define SHADERPASS SHADERPASS_FORWARD_UNLIT
     #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+    #include "SdfLodFade.hlsl"
 
     CBUFFER_START(UnityPerMaterial)
         float _OutlineWidth;
@@ -84,6 +86,7 @@ Shader "SdfMushrooms/Toon Outline"
 
             HLSLPROGRAM
             #pragma multi_compile_fragment _ WRITE_MSAA_DEPTH
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -92,10 +95,14 @@ Shader "SdfMushrooms/Toon Outline"
             #ifdef WRITE_MSAA_DEPTH
             float4 Frag(Varyings input) : SV_Target0
             {
+                SdfLodFade(input.positionCS);
                 return float4(input.positionCS.z, input.positionCS.z, input.positionCS.z, 1.0);
             }
             #else
-            void Frag(Varyings input) {}
+            void Frag(Varyings input)
+            {
+                SdfLodFade(input.positionCS);
+            }
             #endif
             ENDHLSL
         }
@@ -117,6 +124,7 @@ Shader "SdfMushrooms/Toon Outline"
             ZTest LEqual
 
             HLSLPROGRAM
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -124,6 +132,7 @@ Shader "SdfMushrooms/Toon Outline"
 
             float4 Frag(Varyings input) : SV_Target0
             {
+                SdfLodFade(input.positionCS);
                 return float4(input.color * _OutlineTone.rgb * _DeExposureMultiplier, 1.0);
             }
             ENDHLSL

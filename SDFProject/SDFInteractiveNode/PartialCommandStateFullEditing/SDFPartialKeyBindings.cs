@@ -135,6 +135,7 @@ public static class SDFPartialKeyBindings
             [(Home, InputKey.LIndex2Home)] = new SubtractNode(),
             [(Home, InputKey.RIndex2Home)] = new IntersectNode(),
             [(Home, InputKey.LIndex2Down)] = new DistortNode(),
+            [(Home, InputKey.RIndex2Down)] = new DetailNode(),
             [(Home, InputKey.LIndex2Up)] = new DissolveNode(),
             [(Home, InputKey.RIndexUp)] = new ExtractVariable(),
             [(Home, InputKey.RIndex2Up)] = new InlineVariable(),

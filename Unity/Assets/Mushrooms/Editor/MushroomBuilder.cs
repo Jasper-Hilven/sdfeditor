@@ -32,6 +32,14 @@ namespace SdfMushrooms.Editor
     /// on SdfToon.shader, Assets/Mushrooms/Materials/Toon/Mushroom.mat, each mesh is one submesh (one draw), and each part gets a child
     /// renderer with the ink outline (SdfToonOutline.shader). Both looks' materials are always kept up to date, so switching loses nothing.
     /// </para>
+    /// <para>
+    /// Levels of detail: a model meshed with levels (sdf mesh --lods n) gets a LOD group on the prefab's root, cross-fading between them.
+    /// LOD0 is the parts as above; each coarser level adds a child per part named after its mesh (body_LOD1, ...) with its own mesh asset,
+    /// and the group is culled below a small share of the screen, so the many trees, rocks and props of a scene cost little far away.
+    /// The coarsest level is also the cheapest to shade: no ink outline in the toon look, and the realistic look's _far materials,
+    /// without detail bumps or scattering. A plain LOD group with baked levels rather than Unity's Mesh LOD, as the browser renderer
+    /// draws the same levels. Models without levels are built as before, without a LOD group.
+    /// </para>
     /// Rebuilding keeps every asset's GUID: meshes and materials are updated in place and prefabs are saved over the old ones, so the
     /// scene's instances follow along.
     /// </summary>
@@ -55,9 +63,10 @@ namespace SdfMushrooms.Editor
         /// Raise when the way prefabs are built changes: a prefab stamped with an older version is rebuilt when the editor loads, even
         /// if its model did not change. Version 2: speckles (UV4, UV5) and post-scatter diffusion profiles. Version 3: lower sun.
         /// Version 4: looks (the stamp also names the look, so changing it rebuilds every prefab). Version 5: one toon material for
-        /// everything, the edge colour per vertex (UV6) and toon meshes as a single submesh.
+        /// everything, the edge colour per vertex (UV6) and toon meshes as a single submesh. Version 6: levels of detail, a cross-fading
+        /// LOD group over the parts' levels with a mesh asset per level, no outline and a cheaper realistic material on the coarsest.
         /// </summary>
-        public const int BuilderVersion = 5;
+        public const int BuilderVersion = 6;
 
         private static string VersionStamp
         {
@@ -174,36 +183,31 @@ namespace SdfMushrooms.Editor
             var isToon = style.look == MushroomLook.Toon;
             var outline = isToon && style.outlineWidth > 0 ? ToonOutlineMaterial(style) : null;
 
+            // The cheaper look for the coarsest level, only made for models with levels so it stays out of the way otherwise
+            var levels = model.LodCount;
+            var realisticFar = levels > 1 ? model.Materials.Select((m, i) => MaterialFor(m, shader, maxThickness, groups[i], far: true)).ToArray() : null;
+
             var root = new GameObject(name);
             try
             {
-                foreach (var meshData in model.Meshes)
+                var lods = new List<Renderer>[levels];
+                var parts = new Dictionary<SdfGlb.MeshData, Renderer[]>();
+                for (var level = 0; level < levels; level++)
                 {
-                    var mesh = MeshAsset($"{MeshFolder}/{name}_{meshData.Name}.asset");
-                    Fill(mesh, meshData, model.Materials, name, singleSubmesh: isToon);
-                    EditorUtility.SetDirty(mesh);
-
-                    var part = new GameObject(meshData.Name);
-                    part.transform.SetParent(root.transform, false);
-                    part.AddComponent<MeshFilter>().sharedMesh = mesh;
-                    var renderer = part.AddComponent<MeshRenderer>();
-                    renderer.sharedMaterials = isToon ? new[] { toon } : meshData.Primitives.Select(p => realistic[p.Material]).ToArray();
-                    renderer.shadowCastingMode = ShadowCastingMode.On;
-
-                    if (outline != null)
+                    lods[level] = new List<Renderer>();
+                    var coarsest = levels > 1 && level == levels - 1;
+                    foreach (var meshData in model.Meshes.Select(m => m.AtLevel(level)))
                     {
-                        // The inverted hull: the same mesh again, back faces only, pushed out by the outline shader
-                        var hull = new GameObject(OutlineObjectName);
-                        hull.transform.SetParent(part.transform, false);
-                        hull.AddComponent<MeshFilter>().sharedMesh = mesh;
-                        var hullRenderer = hull.AddComponent<MeshRenderer>();
-                        hullRenderer.sharedMaterial = outline;
-                        hullRenderer.shadowCastingMode = ShadowCastingMode.Off;
-                        hullRenderer.receiveShadows = false;
-                        hullRenderer.lightProbeUsage = LightProbeUsage.Off;
-                        hullRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                        // A part with fewer levels than the model shows its coarsest one at the levels it lacks
+                        if (!parts.TryGetValue(meshData, out var renderers))
+                            parts[meshData] = renderers = Part(root.transform, meshData, model, name, isToon,
+                                isToon ? new[] { toon } : meshData.Primitives.Select(p => (coarsest ? realisticFar : realistic)[p.Material]).ToArray(),
+                                coarsest ? null : outline);
+                        lods[level].AddRange(renderers);
                     }
                 }
+                if (levels > 1)
+                    AddLodGroup(root, model, lods);
 
                 var prefabPath = PrefabPathOf(glbPath);
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath, out var saved);
@@ -221,6 +225,94 @@ namespace SdfMushrooms.Editor
             {
                 UnityEngine.Object.DestroyImmediate(root);
             }
+        }
+
+        /// <summary>
+        /// One part at one level of detail: a child of the prefab named after the mesh (body, body_LOD1, ...), drawing its mesh asset,
+        /// Assets/Mushrooms/Meshes/&lt;model&gt;_&lt;mesh&gt;.asset, plus the ink outline when <paramref name="outline"/> is given. Returns
+        /// its renderers, for the level's LOD.
+        /// </summary>
+        private static Renderer[] Part(Transform root, SdfGlb.MeshData meshData, SdfGlb model, string name, bool isToon, Material[] materials,
+            Material outline)
+        {
+            var mesh = MeshAsset($"{MeshFolder}/{name}_{meshData.Name}.asset");
+            Fill(mesh, meshData, model.Materials, name, singleSubmesh: isToon);
+            EditorUtility.SetDirty(mesh);
+
+            var part = new GameObject(meshData.Name);
+            part.transform.SetParent(root, false);
+            part.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = part.AddComponent<MeshRenderer>();
+            renderer.sharedMaterials = materials;
+            renderer.shadowCastingMode = ShadowCastingMode.On;
+            if (outline == null)
+                return new Renderer[] { renderer };
+
+            // The inverted hull: the same mesh again, back faces only, pushed out by the outline shader
+            var hull = new GameObject(OutlineObjectName);
+            hull.transform.SetParent(part.transform, false);
+            hull.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var hullRenderer = hull.AddComponent<MeshRenderer>();
+            hullRenderer.sharedMaterial = outline;
+            hullRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            hullRenderer.receiveShadows = false;
+            hullRenderer.lightProbeUsage = LightProbeUsage.Off;
+            hullRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            return new Renderer[] { renderer, hullRenderer };
+        }
+
+        /// <summary>
+        /// How many pixels, at 1080 lines, a level's error may cover before the finer level is needed again. One pixel keeps the change
+        /// of silhouette under the ink line's width (4 pixels by default), so the toon look shows no pop even before the cross-fade.
+        /// </summary>
+        private const float LodPixelError = 1;
+
+        /// <summary>
+        /// Below this share of the screen's height the model is culled: about 11 pixels at 1080p, where a mushroom or a small prop is a
+        /// few pixels of outline and colour that cost a draw each (two with the outline). Large things such as trees reach it only far
+        /// away, since the height is relative to their own size.
+        /// </summary>
+        private const float LodCullHeight = 0.01f;
+
+        /// <summary>
+        /// A LOD group over the parts' levels, with Unity's screen-relative heights worked out from the pipeline's error limits, so the
+        /// numbers follow the model's size and resolution instead of being guessed per model. A model of size s (the LOD group's, its
+        /// largest side) at relative height h is h × 1080 pixels tall, so an error of e metres covers e / s × h × 1080 pixels; level k is
+        /// good enough once that is under <see cref="LodPixelError"/>, which gives the height at which level k-1 hands over to it:
+        /// h = s × pixels / (e × 1080), with e the largest error of level k over the parts (each part is meshed on its own grid). The
+        /// coarsest level lasts down to <see cref="LodCullHeight"/>. Each height is kept at least half again the next one, so no level
+        /// is squeezed out, and LOD0 is left at half the screen at the latest. Quality levels scale all of it with their LOD bias.
+        /// <para>
+        /// The levels cross-fade (HDRP dithers both for half a second, see SdfLodFade.hlsl): with only a few levels each change of
+        /// triangles would otherwise pop.
+        /// </para>
+        /// </summary>
+        private static void AddLodGroup(GameObject root, SdfGlb model, IReadOnlyList<List<Renderer>> renderers)
+        {
+            // What RecalculateBounds would give, taken from the meshes: the parts sit at the root's origin, and the renderers of an object
+            // that was only just made may not have their bounds yet
+            var bounds = renderers[0].Select(r => r.GetComponent<MeshFilter>().sharedMesh.bounds).Aggregate((a, b) => { a.Encapsulate(b); return a; });
+            var group = root.AddComponent<LODGroup>();
+            group.fadeMode = LODFadeMode.CrossFade;
+            group.animateCrossFading = true;
+            group.localReferencePoint = bounds.center;
+            group.size = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
+
+            var levels = renderers.Count;
+            var heights = new float[levels];
+            heights[levels - 1] = LodCullHeight;
+            for (var level = levels - 2; level >= 0; level--)
+            {
+                var error = model.Meshes.Max(m => m.AtLevel(level + 1).MaxError);
+                // Files that carry no error limit: halve the height with each level
+                var height = error > 0 ? group.size * LodPixelError / (error * 1080) : 0.5f / (1 << level);
+                heights[level] = Mathf.Max(height, heights[level + 1] * 1.5f);
+            }
+            heights[0] = Mathf.Min(heights[0], 0.5f);
+            for (var level = 1; level < levels; level++)
+                heights[level] = Mathf.Min(heights[level], heights[level - 1] / 1.5f);
+
+            group.SetLODs(renderers.Select((r, level) => new LOD(heights[level], r.ToArray())).ToArray());
         }
 
         private static Mesh MeshAsset(string path)
@@ -399,15 +491,22 @@ namespace SdfMushrooms.Editor
             return result;
         }
 
-        /// <summary>The region's material, created on first use and updated in place after that.</summary>
-        private static Material MaterialFor(SdfGlb.Material source, Shader shader, float maxThickness, BlendGroup group)
+        /// <summary>
+        /// The region's material, created on first use and updated in place after that. The <paramref name="far"/> one,
+        /// &lt;material&gt;_far.mat, is for the coarsest level of detail, a few dozen pixels tall: the same graph without the detail bumps
+        /// (whose noise is most of its cost, and which only flicker at that size) and without subsurface scattering (a mask of 0, which
+        /// HDRP's scattering pass skips without taking samples). It keeps the region's diffusion profile, which also sets its specular
+        /// reflectance, and the light through thin parts.
+        /// </summary>
+        private static Material MaterialFor(SdfGlb.Material source, Shader shader, float maxThickness, BlendGroup group, bool far = false)
         {
-            var path = $"{MaterialFolder}/{SafeName(source.Name)}.mat";
+            var materialName = SafeName(source.Name) + (far ? "_far" : "");
+            var path = $"{MaterialFolder}/{materialName}.mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)
             {
                 EnsureFolder(MaterialFolder);
-                material = new Material(shader) { name = SafeName(source.Name) };
+                material = new Material(shader) { name = materialName };
                 AssetDatabase.CreateAsset(material, path);
             }
             else if (material.shader != shader)
@@ -416,10 +515,10 @@ namespace SdfMushrooms.Editor
             }
 
             var edge = source.Color("edgeColor");
-            material.SetVector("_Subsurface", new Vector4(group.Radius, maxThickness, 0, 0));
+            material.SetVector("_Subsurface", new Vector4(far ? 0 : group.Radius, maxThickness, 0, 0));
             material.SetVector("_DetailAxis", source.Vector("detailAxis", Vector3.up));
             material.SetVector("_EdgeColor", new Vector4(edge.r, edge.g, edge.b, source.Number("edgeThickness")));
-            material.SetVector("_Look", new Vector4(1, 0.2f, 0, 0));
+            material.SetVector("_Look", new Vector4(far ? 0 : 1, 0.2f, 0, 0));
             ConfigureProfile(group.Profile, group, maxThickness);
             HDMaterial.SetDiffusionProfileShaderGraph(material, group.Profile, "_DiffusionProfile");
             HDMaterial.ValidateMaterial(material);

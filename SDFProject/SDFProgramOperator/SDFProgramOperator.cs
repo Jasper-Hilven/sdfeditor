@@ -21,6 +21,7 @@ public class SdfProgramOperator
             WrapInSubtraction o => ApplyWrapInSubtraction.DoApplyWrapInSubtraction(program, o),
             WrapInIntersection o => ApplyWrapInIntersection.DoApplyWrapInIntersection(program, o),
             WrapInDistortion o => ApplyWrapInDistortion.DoApplyWrapInDistortion(program, o),
+            WrapInDetail o => ApplyWrapInDetail.DoApplyWrapInDetail(program, o),
             PaintNode o => ApplyPaintNode.DoApplyPaintNode(program, o),
             SetMaterial o => ApplySetMaterial.DoApplySetMaterial(program, o),
             DissolveNode o => ApplyDissolveNode.DoApplyDissolveNode(program, o),

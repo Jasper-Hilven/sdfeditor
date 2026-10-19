@@ -1,0 +1,28 @@
+# Canopy: the leafy crown of a stylized tree, a solid mass of seven soft blob clumps about 3.2 m across and 2 m tall, centred
+# on the origin, with no leaf cards, holes or twigs, so it stays one smooth surface that simplifies to few triangles. Being a
+# part, it is a mesh of its own that can sway in the wind apart from the trunk. The canopy is form only: the model using it
+# wraps it in its own material, so the same crown can be green, autumn orange or blossom pink.
+format 1
+
+# A gentle, large-scale lumpiness over the clumps, shallow next to their size
+Distort amount=0.03 frequency=1.6
+    # The clumps run into each other in soft creases, but not so softly that the crown melts into one ball: each clump keeps
+    # its own bulge in the outline
+    SmoothUnion smoothness=0.14
+        # The big central clump, highest
+        Translate translation=(0, 0.3, 0)
+            Ellipsoid radii=(0.85, 0.7, 0.8)
+        # Clumps around the sides, lower, at differing heights and sizes so the crown is not symmetrical
+        Translate translation=(0.25, -0.2, 0.85)
+            Ellipsoid radii=(0.65, 0.52, 0.6)
+        Translate translation=(1.0, -0.1, 0.15)
+            Ellipsoid radii=(0.6, 0.5, 0.58)
+        Translate translation=(-0.95, 0.05, 0.3)
+            Ellipsoid radii=(0.62, 0.52, 0.6)
+        Translate translation=(-0.6, -0.25, -0.75)
+            Ellipsoid radii=(0.6, 0.48, 0.58)
+        Translate translation=(0.6, 0.05, -0.7)
+            Ellipsoid radii=(0.58, 0.5, 0.55)
+        # A small one on top, breaking the dome's outline
+        Translate translation=(-0.25, 0.9, 0.2)
+            Ellipsoid radii=(0.45, 0.38, 0.42)

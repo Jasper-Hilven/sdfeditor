@@ -1,0 +1,24 @@
+# Pine: a stylized spruce about 6.6 m tall, a straight, slender, tapering trunk on a small flared foot, carrying a tall narrow
+# cone of stacked, drooping tiers of needle blobs. The trunk shows under the lowest tier and ends inside the cone, so there are
+# no branches or twigs to mesh: the tiers are the branches.
+format 1
+
+# Half the vertices its height would give it: the tiers are big, simple forms. Their soft rims are the finest feature, and at
+# 0.5 they still hold the scallops at the nearest level
+Detail detail=0.5
+    Union
+        Material material=tree_bark
+            Distort amount=0.008 frequency=4
+                # The trunk, straight and tapering, from a broad foot flat on the ground up into the tip of the cone
+                SmoothUnion smoothness=0.2
+                    ArbitraryRoundCone a=(0, 0.2, 0) b=(0, 5.2, 0) radiusA=0.2 radiusB=0.06
+                    Intersection
+                        Ellipsoid radii=(0.34, 0.24, 0.34)
+                        # The ground: only the half above it
+                        Translate translation=(0, 0.4, 0)
+                            Box size=(0.5, 0.4, 0.5)
+
+        # The needles, from 1.2 m up, so a short stretch of trunk shows under the lowest tier
+        Translate translation=(0, 1.2, 0)
+            Material material=pine_needles
+                Part part=pine_canopy

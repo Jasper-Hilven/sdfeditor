@@ -108,7 +108,8 @@ public static class MaterialBorders
         return Vector3.Lerp(from, to, (inside + outside) * 0.5f);
     }
 
-    private static Vector3 OntoSurface(Vector3 p, Func<Vector3, float> sdf, float step)
+    /// <summary>The point moved onto the surface along the SDF's gradient, a few Newton steps.</summary>
+    internal static Vector3 OntoSurface(Vector3 p, Func<Vector3, float> sdf, float step)
     {
         for (var i = 0; i < 3; i++)
         {

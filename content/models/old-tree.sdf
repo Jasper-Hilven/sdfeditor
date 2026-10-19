@@ -1,0 +1,53 @@
+# Old tree: a gnarled old tree about 4.7 m tall and 5 m across, a thick trunk of three strands twisted round each other, leaning
+# hard to one side and kinking back, on big roots spreading over the ground, with stout limbs reaching out nearly level under a
+# wide, flat crown of cloud pads at three heights.
+format 1
+
+# One strand of the trunk, from the ground up, off the trunk's axis: three of them turned round the axis and twisted make the trunk
+strand =
+    ArbitraryRoundCone a=(0.2, 0, 0) b=(0.14, 2.2, 0) radiusA=0.28 radiusB=0.18
+
+# Half the vertices its 5 m would give it: the twist and the roots are big forms, and the crown is simple
+Detail detail=0.5
+    Union
+        Material material=old_bark
+            Distort amount=0.015 frequency=3
+                SmoothUnion smoothness=0.12
+                    # The lower trunk: the strands twisted most of a turn round each other, run together tightly enough that
+                    # their grooves still show, leaning towards +x, all cut flat at the ground
+                    Intersection
+                        Rotate rotation=(0, 0, -0.3)
+                            Twist amount=1.6
+                                SmoothUnion smoothness=0.06
+                                    $strand
+                                    Rotate rotation=(0, 2.094, 0)
+                                        $strand
+                                    Rotate rotation=(0, 4.189, 0)
+                                        $strand
+                        # The ground: only what is above it. A box rather than a plane, so the trunk counts towards the bounds
+                        Translate translation=(0, 1.5, 0)
+                            Box size=(1.5, 1.5, 1.5)
+                    # The upper trunk, kinking back towards -x from the top of the lean, thinner
+                    ArbitraryRoundCone a=(0.62, 1.95, 0) b=(0.2, 3.1, 0.05) radiusA=0.28 radiusB=0.2
+                    # Big roots spreading from the foot over the ground in five directions, arching out of the trunk high up and
+                    # thick to their ends, which sink into the ground. Blended only a little into each other, so each root keeps
+                    # its own ridge instead of the foot turning into a skirt
+                    Intersection
+                        SmoothUnion smoothness=0.08
+                            ArbitraryRoundCone a=(0.05, 0.75, 0) b=(1.45, -0.1, 0.25) radiusA=0.27 radiusB=0.15
+                            ArbitraryRoundCone a=(0.05, 0.7, 0) b=(0.2, -0.1, 1.3) radiusA=0.25 radiusB=0.14
+                            ArbitraryRoundCone a=(0, 0.7, 0) b=(-1.25, -0.1, 0.6) radiusA=0.27 radiusB=0.15
+                            ArbitraryRoundCone a=(0, 0.7, 0) b=(-0.8, -0.1, -1.1) radiusA=0.25 radiusB=0.14
+                            ArbitraryRoundCone a=(0.05, 0.75, 0) b=(0.75, -0.1, -1.15) radiusA=0.27 radiusB=0.15
+                        # The ground
+                        Translate translation=(0, 1, 0)
+                            Box size=(2, 1, 2)
+                    # Stout limbs from the trunk, reaching out nearly level, each ending inside one of the crown's pads
+                    ArbitraryRoundCone a=(0.55, 2.2, 0) b=(1.85, 3.15, 0.3) radiusA=0.2 radiusB=0.12
+                    ArbitraryRoundCone a=(0.3, 2.8, 0.03) b=(-0.95, 3.45, 0.45) radiusA=0.19 radiusB=0.11
+                    ArbitraryRoundCone a=(0.3, 2.8, 0.03) b=(0.4, 3.35, -1.0) radiusA=0.18 radiusB=0.11
+
+        # The crown, high enough that the limbs show beneath its pads, low enough that they end inside them
+        Translate translation=(0.3, 3.55, 0)
+            Material material=old_foliage
+                Part part=old_canopy

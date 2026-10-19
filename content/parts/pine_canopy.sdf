@@ -1,0 +1,40 @@
+# Pine canopy: the needles of a stylized spruce, a tall narrow cone of six stacked tiers about 2.8 m across at the bottom and
+# 5.3 m tall, its base at the origin. Each tier is a broad, soft-rimmed lampshade whose rim droops below the tier above, with a
+# few big scallops around it so it reads as clumps of needles rather than a turned disc. Every tier overlaps the next, so the
+# canopy is one surface without a floor of its own per tier. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness, shallow next to the tiers
+Distort amount=0.025 frequency=1.4
+    # The tiers run into each other where they overlap, softly enough to hide the seam but not so softly that the steps go
+    SmoothUnion smoothness=0.08
+        # Bottom tier, broadest: wavy around its rim, turned a little against the next so the scallops do not line up
+        Translate translation=(0, 0.55, 0)
+            Rotate rotation=(0, 0.3, 0)
+                RadialWave amount=0.07 count=7
+                    Round radius=0.14
+                        CappedCone height=0.42 bottomRadius=1.25 topRadius=0.3
+        Translate translation=(0, 1.45, 0)
+            Rotate rotation=(0, 1.1, 0)
+                RadialWave amount=0.07 count=7
+                    Round radius=0.13
+                        CappedCone height=0.42 bottomRadius=1.05 topRadius=0.26
+        Translate translation=(0, 2.3, 0)
+            Rotate rotation=(0, 0.6, 0)
+                RadialWave amount=0.07 count=6
+                    Round radius=0.12
+                        CappedCone height=0.4 bottomRadius=0.86 topRadius=0.22
+        Translate translation=(0, 3.1, 0)
+            Rotate rotation=(0, 1.6, 0)
+                RadialWave amount=0.07 count=6
+                    Round radius=0.11
+                        CappedCone height=0.38 bottomRadius=0.66 topRadius=0.18
+        Translate translation=(0, 3.85, 0)
+            Rotate rotation=(0, 0.2, 0)
+                RadialWave amount=0.07 count=5
+                    Round radius=0.1
+                        CappedCone height=0.36 bottomRadius=0.46 topRadius=0.14
+        # The tip, a narrow cone with a rounded point
+        Translate translation=(0, 4.6, 0)
+            Round radius=0.08
+                CappedCone height=0.5 bottomRadius=0.26 topRadius=0.02

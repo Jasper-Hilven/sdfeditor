@@ -13,6 +13,11 @@ namespace SdfMushrooms.Editor
     /// including the pipeline's own ones (_SURFACE, _LOCAL_POSITION, ...) that glTF importers skip, its material regions, and the
     /// material table from extras.sdf. Only what the pipeline writes is supported: float and unsigned int accessors, tightly packed,
     /// one buffer in the GLB's binary chunk.
+    /// <para>
+    /// Levels of detail (sdf mesh --lods): each part's LOD0 mesh is one of <see cref="Meshes"/>, as in a file without levels, and its
+    /// coarser levels hang off it in <see cref="MeshData.Lods"/>. The levels are found the way glTF viewers find them, through the
+    /// MSFT_lod extension on the part's node, so a mesh only counts as a level when a part lists it; every other mesh is a part.
+    /// </para>
     /// </summary>
     public sealed class SdfGlb
     {
@@ -28,6 +33,21 @@ namespace SdfMushrooms.Editor
             public int VertexCount;
             public Dictionary<string, float[]> Attributes = new Dictionary<string, float[]>();
             public List<Primitive> Primitives = new List<Primitive>();
+
+            /// <summary>The part's coarser levels of detail, LOD1 first; empty for a level itself and in files without levels.</summary>
+            public List<MeshData> Lods = new List<MeshData>();
+
+            /// <summary>Which level of detail this mesh is: 0 for a part's own mesh.</summary>
+            public int Lod;
+
+            /// <summary>How far a level may be off the surface, in metres (the pipeline's error limit for it); 0 for LOD0.</summary>
+            public float MaxError;
+
+            /// <summary>
+            /// The mesh at a level of detail: this one at 0, else that level, or the coarsest there is when the part has fewer levels
+            /// than the model (which the pipeline does not write, but a LOD group needs a mesh for every part at every level).
+            /// </summary>
+            public MeshData AtLevel(int level) => level <= 0 || Lods.Count == 0 ? this : Lods[Math.Min(level, Lods.Count) - 1];
 
             /// <summary>The attribute's floats, <paramref name="components"/> per vertex; null when the file does not have it.</summary>
             public float[] Get(string name, int components)
@@ -61,9 +81,13 @@ namespace SdfMushrooms.Editor
             }
         }
 
+        /// <summary>The parts, each at LOD0.</summary>
         public List<MeshData> Meshes = new List<MeshData>();
         public List<Material> Materials = new List<Material>();
         public float CellSize;
+
+        /// <summary>Levels of detail, LOD0 included: 1 for a file without levels.</summary>
+        public int LodCount => 1 + Meshes.Select(m => m.Lods.Count).DefaultIfEmpty(0).Max();
 
         public static SdfGlb Read(string path) => Parse(File.ReadAllBytes(path), path);
 
@@ -123,9 +147,14 @@ namespace SdfMushrooms.Editor
             }
 
             var result = new SdfGlb();
+            var meshes = new List<MeshData>();
             foreach (var mesh in (JArray)json["meshes"] ?? new JArray())
             {
-                var data = new MeshData { Name = mesh.Value<string>("name") ?? $"mesh{result.Meshes.Count}" };
+                var data = new MeshData
+                {
+                    Name = mesh.Value<string>("name") ?? $"mesh{meshes.Count}",
+                    MaxError = mesh["extras"]?.Value<float?>("maxError").GetValueOrDefault() ?? 0,
+                };
                 var primitives = (JArray)mesh["primitives"];
                 var attributes = (JObject)primitives[0]["attributes"];
                 foreach (var attribute in attributes.Properties())
@@ -141,8 +170,29 @@ namespace SdfMushrooms.Editor
                         Indices = Ints(primitive.Value<int>("indices")),
                     });
                 }
-                result.Meshes.Add(data);
+                meshes.Add(data);
             }
+
+            // Each part's node lists the nodes of its levels, coarsest last; those nodes' meshes are the levels
+            var nodes = (JArray)json["nodes"] ?? new JArray();
+            var isLevel = new bool[meshes.Count];
+            foreach (var node in nodes)
+            {
+                var ids = node["extensions"]?["MSFT_lod"]?["ids"] as JArray;
+                var meshIndex = node.Value<int?>("mesh");
+                if (ids == null || meshIndex is not int part || part < 0 || part >= meshes.Count)
+                    continue;
+                foreach (var id in ids)
+                {
+                    var level = nodes[id.Value<int>()].Value<int?>("mesh");
+                    if (level is not int index || index < 0 || index >= meshes.Count || index == part)
+                        throw new InvalidDataException($"{name}: a level of detail of {meshes[part].Name} has no mesh");
+                    meshes[part].Lods.Add(meshes[index]);
+                    meshes[index].Lod = meshes[part].Lods.Count;
+                    isLevel[index] = true;
+                }
+            }
+            result.Meshes.AddRange(meshes.Where((m, i) => !isLevel[i]));
 
             var sdf = json["extras"]?["sdf"];
             if (sdf == null)

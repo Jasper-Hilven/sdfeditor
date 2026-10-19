@@ -1,0 +1,63 @@
+# Minigun: six steel barrels in a ring around the gun's axis, pointing along +z, their breeches in a painted body behind them: a
+# rotor housing, the receiver, a drive motor on the right, the ammunition feed on the left and spade grips at the back.
+format 1
+
+# One barrel on its own axis, breech at z = 0 and muzzle at z = 1
+barrel =
+    Subtraction
+        SmoothUnion smoothness=0.006
+            # The tube
+            ArbitraryCappedCylinder a=(0, 0, 0) b=(0, 0, 1) radius=0.026
+            # A band halfway along, where a clamp would hold the barrels together
+            ArbitraryCappedCylinder a=(0, 0, 0.5) b=(0, 0, 0.53) radius=0.031
+            # The muzzle, a little thicker than the tube
+            ArbitraryCappedCylinder a=(0, 0, 0.95) b=(0, 0, 1) radius=0.033
+        # The bore, open at the muzzle and closed at the breech
+        ArbitraryCappedCylinder a=(0, 0, 0.1) b=(0, 0, 1.01) radius=0.016
+
+# The gun's axis 13.5 cm up, so the bottom of the body rests on the ground
+Translate translation=(0, 0.135, 0)
+    Union
+        # Six barrels 7.5 cm from the axis, 60 degrees apart
+        Material material=minigun_steel
+            Union
+                Translate translation=(0.065, 0.0375, 0)
+                    $barrel
+                Translate translation=(0, 0.075, 0)
+                    $barrel
+                Translate translation=(-0.065, 0.0375, 0)
+                    $barrel
+                Translate translation=(-0.065, -0.0375, 0)
+                    $barrel
+                Translate translation=(0, -0.075, 0)
+                    $barrel
+                Translate translation=(0.065, -0.0375, 0)
+                    $barrel
+
+        # The body: the rotor housing around the breeches grows into the receiver behind it
+        Material material=minigun_paint
+            SmoothUnion smoothness=0.02
+                # Rotor housing, a short drum the barrels go into
+                Round radius=0.01
+                    ArbitraryCappedCylinder a=(0, 0, -0.07) b=(0, 0, 0.1) radius=0.115
+                # Receiver, a rounded box behind the housing
+                Translate translation=(0, -0.01, -0.23)
+                    RoundBox size=(0.1, 0.115, 0.17) roundness=0.025
+                # Ammunition feed on the left: a squat box the belt runs into from below
+                Translate translation=(-0.12, -0.02, -0.18)
+                    RoundBox size=(0.045, 0.06, 0.08) roundness=0.012
+
+        # Drive motor on the right, along the receiver, with a domed end at the back
+        Material material=minigun_steel
+            Union
+                ArbitraryCappedCylinder a=(0.125, 0.045, -0.33) b=(0.125, 0.045, -0.08) radius=0.042
+                Translate translation=(0.125, 0.045, -0.33)
+                    Sphere radius=0.036
+
+        # Spade grips at the back, mirrored: an upright handle on each side, held out from the receiver by an arm above and below
+        Material material=minigun_grip
+            SymmetryX
+                Union
+                    Capsule a=(0.075, -0.07, -0.48) b=(0.075, 0.07, -0.48) radius=0.018
+                    Capsule a=(0.075, 0.07, -0.48) b=(0.06, 0.07, -0.37) radius=0.013
+                    Capsule a=(0.075, -0.07, -0.48) b=(0.06, -0.07, -0.37) radius=0.013

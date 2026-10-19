@@ -15,6 +15,12 @@ public static class QuadricSimplifier
     private const float MinNormalAgreement = 0.2f;
 
     /// <summary>
+    /// The same on coarse levels, which must turn faces further to fold a curved surface into a few faces; the SDF's gradient still keeps
+    /// every face from coming to face inwards.
+    /// </summary>
+    private const float CoarseMinNormalAgreement = 0;
+
+    /// <summary>
     /// A collapse may not make a face thinner than this (see Quality) unless it was already: slivers shade badly, since the per-vertex
     /// data from the SDF is spread across them.
     /// </summary>
@@ -23,7 +29,10 @@ public static class QuadricSimplifier
     /// <summary>A collapse costing less than this fraction of the squared error budget (a tenth of it in distance) counts as free: it moves nothing noticeably off the surface.</summary>
     private const double FreeCollapse = 0.01;
 
-    /// <summary>How far a merged vertex may be from the SDF's surface, in cells, unless one it replaces was further.</summary>
+    /// <summary>
+    /// How far a merged vertex may be from the SDF's surface, in cells, unless one it replaces was further; on coarse levels the error
+    /// limit, if that is more.
+    /// </summary>
     private const float MaxVertexDistanceInCells = 0.25f;
 
     /// <summary>A face this close (cosine) to the outward normals of its corners' surface needs no check against the SDF.</summary>
@@ -45,7 +54,29 @@ public static class QuadricSimplifier
     /// <param name="regions">Optional region of each vertex, such as its material; vertices of different regions are never merged.</param>
     public static TriangleMesh Simplify(ContouredMesh mesh, Func<Vector3, float> sdf, float maxError, float cellSize, float creaseAngleDegrees,
         int[]? regions = null) =>
-        new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions).Run(maxError);
+        new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions).Run(maxError, coarse: false);
+
+    /// <summary>
+    /// The mesh at each error limit in turn, for levels of detail: the first exactly as <see cref="Simplify"/> gives it, each further one
+    /// simplified on from the one before, so the levels cost little more than the first and every level keeps what the one before kept.
+    /// Each level is made when it is enumerated.
+    /// <para>
+    /// The further levels are coarse, so they trade the first level's care for the shape at a distance. Each face must stay within the
+    /// error limit of the SDF's surface, checked on the face rather than trusted to the quadrics: they average the error over all the
+    /// planes a vertex stands for, which grows lenient once it stands for a large curved area, and would let a thin rim fold flat. In
+    /// return a merged vertex may move off the surface by up to the limit (a round shape keeps its volume when its vertices sit a little
+    /// outside it), faces may be thin (curved shapes are best followed by long faces along the direction they bend least, as along a stem)
+    /// and may turn further, and a vertex next to a material border may merge into the border, which stays where it is.
+    /// </para>
+    /// </summary>
+    /// <param name="maxErrors">The error limit of each level, in metres, growing.</param>
+    public static IEnumerable<TriangleMesh> SimplifyInSteps(ContouredMesh mesh, Func<Vector3, float> sdf, IReadOnlyList<float> maxErrors,
+        float cellSize, float creaseAngleDegrees, int[]? regions = null)
+    {
+        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions);
+        for (var level = 0; level < maxErrors.Count; level++)
+            yield return simplification.Run(maxErrors[level], coarse: level > 0);
+    }
 
     /// <summary>A plane quadric: the weighted sum of squared distances to planes, and the total weight for the average.</summary>
     private struct Quadric
@@ -114,13 +145,18 @@ public static class QuadricSimplifier
 
         private readonly Func<Vector3, float> sdf;
         private readonly float gradientStep;
-        private readonly float maxVertexDistance;
+        private readonly float cellVertexDistance;
+
+        /// <summary>Whether this run makes a coarse level of detail (see <see cref="SimplifyInSteps"/>), and how far it may then move the surface.</summary>
+        private bool coarse;
+        private float maxVertexDistance;
+        private float maxFaceDistance;
 
         public Simplification(ContouredMesh contoured, Func<Vector3, float> sdf, float cellSize, float creaseAngleDegrees, int[]? regions)
         {
             this.sdf = sdf;
             gradientStep = cellSize * 1e-3f;
-            maxVertexDistance = cellSize * MaxVertexDistanceInCells;
+            cellVertexDistance = cellSize * MaxVertexDistanceInCells;
             var mesh = contoured.Mesh;
             positions = (Vector3[])mesh.Positions.Clone();
             this.regions = regions;
@@ -248,8 +284,11 @@ public static class QuadricSimplifier
 
         private readonly record struct Candidate(int U, int V, int VersionU, int VersionV, Vector3 Target);
 
-        public TriangleMesh Run(float maxError)
+        public TriangleMesh Run(float maxError, bool coarse)
         {
+            this.coarse = coarse;
+            maxVertexDistance = coarse ? MathF.Max(cellVertexDistance, maxError) : cellVertexDistance;
+            maxFaceDistance = maxError;
             if (maxError > 0)
                 Collapse((double)maxError * maxError);
             return Compact();
@@ -272,10 +311,12 @@ public static class QuadricSimplifier
                     var (u, v) = (candidate.U, candidate.V);
                     if (removedVertex[u] || removedVertex[v] || version[u] != candidate.VersionU || version[v] != candidate.VersionV)
                         continue;
-                    // Collapses that cost nothing (on a plane or along a crease line) may pass through slivers on the way to big flat faces
-                    var curved = cost > maxSquaredError * FreeCollapse;
-                    if (!StaysManifold(u, v) || !KeepsFacing(u, v, candidate.Target, curved) || !KeepsFacing(v, u, candidate.Target, curved)
-                        || !StaysOnSurface(u, v, candidate.Target))
+                    // Collapses that cost nothing (on a plane or along a crease line) may pass through slivers on the way to big flat faces;
+                    // on coarse levels any collapse may make thin faces
+                    var guardQuality = !coarse && cost > maxSquaredError * FreeCollapse;
+                    if (!StaysManifold(u, v) || !KeepsFacing(u, v, candidate.Target, guardQuality) || !KeepsFacing(v, u, candidate.Target, guardQuality)
+                        || !StaysOnSurface(u, v, candidate.Target)
+                        || coarse && (!FacesStayNear(u, v, candidate.Target) || !FacesStayNear(v, u, candidate.Target)))
                         continue;
 
                     CollapseInto(u, v, candidate.Target);
@@ -290,13 +331,16 @@ public static class QuadricSimplifier
 
         private void Push(PriorityQueue<Candidate, double> queue, int u, int v)
         {
-            // Region borders stay put: border vertices merge only along the border, and never with another region
-            if (regions is not null && (regions[u] != regions[v] || regionBorder[u] != regionBorder[v]))
+            // Region borders stay put: border vertices merge only along the border, and never with another region. On coarse levels a
+            // vertex beside the border may merge into it and take its place, or the row beside every border would stay as dense as it is
+            if (regions is not null && (regions[u] != regions[v] || regionBorder[u] != regionBorder[v] && !coarse))
                 return;
 
             var quadric = quadrics[u] + quadrics[v];
             var crease = creaseQuadrics[u] + creaseQuadrics[v];
-            var target = (quadric.Averaged() + crease.Averaged()).Optimum((positions[u] + positions[v]) * 0.5f);
+            var target = regionBorder[u] != regionBorder[v]
+                ? positions[regionBorder[u] ? u : v]
+                : (quadric.Averaged() + crease.Averaged()).Optimum((positions[u] + positions[v]) * 0.5f);
             if (!float.IsFinite(target.X + target.Y + target.Z))
                 return;
             queue.Enqueue(new Candidate(u, v, version[u], version[v], target), Math.Max(quadric.Error(target), crease.Error(target)));
@@ -382,11 +426,11 @@ public static class QuadricSimplifier
                     return false;
                 var surface = outward[a] + outward[b] + outward[c];
                 var turnsBack = Vector3.Dot(before, surface) <= 0 && Vector3.Dot(after, surface) > 0;
-                if (!turnsBack && Vector3.Dot(before, after) < MinNormalAgreement * before.Length() * after.Length())
+                if (!turnsBack && Vector3.Dot(before, after) < (coarse ? CoarseMinNormalAgreement : MinNormalAgreement) * before.Length() * after.Length())
                     return false;
                 // A face facing with the SDF may not come to face against it. Where the surface's own normals vouch for the face that
                 // cannot happen; elsewhere, as on a thin lip, ask the SDF. A face contouring left folded may stay so while others untangle
-                var vouched = Vector3.Dot(after, surface) >= VouchedAgreement * after.Length() * surface.Length();
+                var vouched = !coarse && Vector3.Dot(after, surface) >= VouchedAgreement * after.Length() * surface.Length();
                 if (!vouched && Vector3.Dot(after, Gradient((pa + pb + pc) / 3)) <= 0
                              && Vector3.Dot(before, Gradient((positions[a] + positions[b] + positions[c]) / 3)) > 0)
                     return false;
@@ -397,14 +441,34 @@ public static class QuadricSimplifier
         }
 
         /// <summary>
-        /// Whether the merged vertex stays near the SDF's surface: within a fraction of a cell, or no further off than the worse of the two
-        /// vertices it replaces. The quadrics average over many planes, which on a lip thinner than a cell can hide a vertex sliding off it.
+        /// Whether the merged vertex stays near the SDF's surface: within a fraction of a cell (on coarse levels, the error limit), or no
+        /// further off than the worse of the two vertices it replaces. The quadrics average over many planes, which on a lip thinner than a
+        /// cell can hide a vertex sliding off it.
         /// </summary>
         private bool StaysOnSurface(int u, int v, Vector3 target)
         {
             var distance = MathF.Abs(sdf(target));
             return distance <= maxVertexDistance
                    || distance <= MathF.Max(MathF.Abs(sdf(positions[u])), MathF.Abs(sdf(positions[v])));
+        }
+
+        /// <summary>
+        /// Whether the faces around <paramref name="moved"/> that stay keep within the error limit of the SDF's surface when it moves to
+        /// the target, at their centres and the middles of their edges, where a face over a curved surface is furthest from it.
+        /// </summary>
+        private bool FacesStayNear(int moved, int other, Vector3 target)
+        {
+            foreach (var t in trianglesOf[moved])
+            {
+                var (a, b, c) = Corners(t);
+                if (a == other || b == other || c == other)
+                    continue;
+                var (pa, pb, pc) = (a == moved ? target : positions[a], b == moved ? target : positions[b], c == moved ? target : positions[c]);
+                if (MathF.Abs(sdf((pa + pb + pc) / 3)) > maxFaceDistance || MathF.Abs(sdf((pa + pb) * 0.5f)) > maxFaceDistance
+                    || MathF.Abs(sdf((pb + pc) * 0.5f)) > maxFaceDistance || MathF.Abs(sdf((pc + pa) * 0.5f)) > maxFaceDistance)
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>The SDF's gradient from four samples on a tetrahedron, which is enough to tell which way a face should face.</summary>
@@ -428,6 +492,7 @@ public static class QuadricSimplifier
             quadrics[u] += quadrics[v];
             creaseQuadrics[u] += creaseQuadrics[v];
             outward[u] += outward[v];
+            regionBorder[u] |= regionBorder[v];
             foreach (var t in trianglesOf[v])
             {
                 var (a, b, c) = Corners(t);

@@ -370,6 +370,7 @@ public class SDFPartialCommandNodeProgramOperator
         SubtractNode => new InteractiveWrapInSubtraction(),
         IntersectNode => new InteractiveWrapInIntersection(),
         DistortNode => new InteractiveWrapInDistortion(),
+        DetailNode => new InteractiveWrapInDetail(),
         DissolveNode => new InteractiveDissolveNode(),
         InlineVariable => new InteractiveInlineVariable(),
         EmptyNode => new InteractiveEmptyNode(),

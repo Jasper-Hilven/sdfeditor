@@ -17,6 +17,12 @@ namespace SDFPipeline.Meshing;
 /// KHR_materials_ior and its wetness as KHR_materials_clearcoat, so plain glTF viewers show the right gloss per region. Shaders that
 /// read the attributes below get every parameter blended smoothly across region borders instead.
 /// </para>
+/// <para>
+/// Levels of detail (<see cref="MeshingOptions.LodCount"/>) leave LOD0 as it would be without them: the scene holds a node per part with
+/// its LOD0 mesh, named after the part. Each further level is a mesh and node of its own named body_LOD1, body_LOD2 and so on, with the
+/// part and level in the mesh's extras, written after all of LOD0. The levels' nodes are not in the scene, so viewers show LOD0 alone;
+/// each LOD0 node lists its levels, coarsest last, in the MSFT_lod extension, which viewers that know it use to switch between them.
+/// </para>
 /// </summary>
 public static class GlbWriter
 {
@@ -54,6 +60,12 @@ public static class GlbWriter
 
     /// <summary>The material mix's speckleDensity and speckleSize.</summary>
     public const string SpeckleShapeAttribute = "_SPECKLE_SHAPE";
+
+    /// <summary>What a level of detail's mesh and node are called after the part's name, followed by the level: body_LOD1.</summary>
+    public const string LodSuffix = "_LOD";
+
+    /// <summary>The glTF extension that lists a node's levels of detail (Microsoft's, which Babylon.js reads).</summary>
+    public const string LodExtension = "MSFT_lod";
 
     /// <summary>The roughness of the wet coat, as the preview draws it.</summary>
     public const float CoatRoughness = 0.06f;
@@ -93,7 +105,7 @@ public static class GlbWriter
         }
 
         var meshes = new List<object>();
-        foreach (var mesh in model.Meshes)
+        int AddMesh(PartMesh mesh, string meshName, object extras)
         {
             var mixes = mesh.Materials.Select(m => m.Mix).ToArray();
             var spacing = HalfEdgeLengths(mesh);
@@ -127,25 +139,47 @@ public static class GlbWriter
                 });
                 primitives.Add(new { attributes, indices = accessors.Count - 1, material, mode = Triangles });
             }
-            meshes.Add(new
-            {
-                name = mesh.Name,
-                primitives,
-                extras = new { part = mesh.Name, contouredTriangles = mesh.Statistics.ContouredTriangles },
-            });
+            meshes.Add(new { name = meshName, primitives, extras });
+            return meshes.Count - 1;
         }
+
+        foreach (var mesh in model.Meshes)
+            AddMesh(mesh, mesh.Name, new { part = mesh.Name, contouredTriangles = mesh.Statistics.ContouredTriangles });
+
+        // The levels of detail come after all of LOD0, so LOD0's meshes and nodes keep their numbers. Their nodes are not in the scene:
+        // MSFT_lod on each LOD0 node lists them, and viewers that do not know it show LOD0 alone
+        var nodes = model.Meshes.Select((m, i) => (object)new { name = m.Name, mesh = i }).ToList();
+        for (var i = 0; i < model.Meshes.Count; i++)
+        {
+            var mesh = model.Meshes[i];
+            if (mesh.Lods.Count == 0)
+                continue;
+            var ids = new List<int>();
+            for (var level = 1; level <= mesh.Lods.Count; level++)
+            {
+                var lod = mesh.Lods[level - 1];
+                var lodName = LodName(mesh.Name, level);
+                var index = AddMesh(lod, lodName, new { part = mesh.Name, lod = level, maxError = lod.MaxError, contouredTriangles = lod.Statistics.ContouredTriangles });
+                nodes.Add(new { name = lodName, mesh = index });
+                ids.Add(nodes.Count - 1);
+            }
+            nodes[i] = new { name = mesh.Name, mesh = i, extensions = new Dictionary<string, object> { [LodExtension] = new { ids } } };
+        }
+        var lodCount = 1 + model.Meshes.Select(m => m.Lods.Count).DefaultIfEmpty(0).Max();
         Pad(binary, 0);
 
         var document = new
         {
             asset = new { version = "2.0", generator = "SDFPipeline (sdf mesh)" },
             scene = 0,
-            scenes = new[] { new { name, nodes = Enumerable.Range(0, meshes.Count).ToArray() } },
-            nodes = model.Meshes.Select((m, i) => new { name = m.Name, mesh = i }).ToArray(),
+            scenes = new[] { new { name, nodes = Enumerable.Range(0, model.Meshes.Count).ToArray() } },
+            nodes,
             meshes,
             // The material table, in order, so a primitive's material is its region's number; the vertex colours give the colour
             materials = model.Materials.Select(m => GltfMaterial(m.Name, m.Definition)).ToArray(),
-            extensionsUsed = new[] { "KHR_materials_ior", "KHR_materials_clearcoat" },
+            extensionsUsed = lodCount > 1
+                ? new[] { "KHR_materials_ior", "KHR_materials_clearcoat", LodExtension }
+                : new[] { "KHR_materials_ior", "KHR_materials_clearcoat" },
             accessors,
             bufferViews,
             buffers = new[] { new { byteLength = binary.Length } },
@@ -175,6 +209,15 @@ public static class GlbWriter
                     },
                     // Each mesh's primitives are its material regions; the number is the material's index in materials
                     regions = "primitive material = index into materials, by the material that weighs most at the triangle",
+                    // Left out without levels of detail, so such files stay as they were
+                    lods = lodCount > 1
+                        ? new
+                        {
+                            count = lodCount,
+                            names = $"a part's LOD0 mesh and node have its name, LOD k's are the name and {LodSuffix}k, listed by {LodExtension} on LOD0's node",
+                            extras = "a level's mesh has extras part, lod, and maxError: how far the level may be off the surface, in metres",
+                        }
+                        : null,
                 },
             },
         };
@@ -199,6 +242,9 @@ public static class GlbWriter
         binary.ToArray().CopyTo(span[(binaryStart + 8)..]);
         return glb;
     }
+
+    /// <summary>The name of a part's mesh and node at a level of detail; LOD0 has the part's own name.</summary>
+    public static string LodName(string part, int level) => level == 0 ? part : $"{part}{LodSuffix}{level}";
 
     /// <summary>
     /// Writes the file in one step: the bytes go to a hidden file next to it that then replaces it, so a game engine watching the folder

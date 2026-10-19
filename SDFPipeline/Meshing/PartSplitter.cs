@@ -4,7 +4,11 @@ using SDFProject.SDFProgramOperator.Helpers;
 namespace SDFPipeline.Meshing;
 
 /// <summary>A program to mesh on its own, named after what it is: the model's own geometry, or one of its parts.</summary>
-public sealed record MeshSource(string Name, SDFProgram Program);
+/// <param name="Detail">
+/// How many times the vertices its size gives the mesh: the <see cref="SDFProject.ProgramDefinition.Detail"/> at the root of the model,
+/// and for a part, times the one at the root of the part's file.
+/// </param>
+public sealed record MeshSource(string Name, SDFProgram Program, float Detail = 1);
 
 /// <summary>
 /// Splits a model into one program per mesh by rewriting its graph: the body is the model with its parts taken out, and each part is
@@ -14,6 +18,10 @@ public sealed record MeshSource(string Name, SDFProgram Program);
 /// kept side of a subtraction. A part that only shapes something else, as the cutter of a subtraction or inside an intersection, stays
 /// in that mesh. Meshes overlap where the model blends a part in with a smooth union: each mesh is the shape on its own, so the fillet
 /// between them is lost, and the part inside a smooth union is meshed without the blend.
+/// </para>
+/// <para>
+/// The Detail nodes at the roots of the model and of its parts' files leave the graph for <see cref="MeshSource.Detail"/>: they do not
+/// change the shape, and a model that is a Detail around nothing but parts then has no body left to mesh.
 /// </para>
 /// </summary>
 public static class PartSplitter
@@ -32,14 +40,24 @@ public static class PartSplitter
     {
         var expanded = Expanded(program);
         var rewriter = new Rewriter(expanded);
+        var modelDetail = DetailOf(expanded.scene);
         var sources = new List<MeshSource>();
         if (rewriter.Strip(expanded.scene) is not Empty)
-            sources.Add(new MeshSource(BodyName, expanded with { scene = rewriter.Strip(expanded.scene) }));
+            sources.Add(new MeshSource(BodyName, expanded with { scene = rewriter.Strip(expanded.scene) }, modelDetail));
         foreach (var (id, name) in rewriter.Parts.OrderBy(p => p.Value, StringComparer.Ordinal))
             if (rewriter.Keep(expanded.scene, id) is { } kept)
-                sources.Add(new MeshSource(name, expanded with { scene = kept }));
+                sources.Add(new MeshSource(name, expanded with { scene = kept }, modelDetail * DetailOf(rewriter.Value(id))));
         return sources;
     }
+
+    /// <summary>The detail the model sets for all of its meshes: that of the Detail node at its root, or 1 without one.</summary>
+    public static float ModelDetail(SDFProgram program) => DetailOf(new PointerTables(program.pointers).Expand(program.scene));
+
+    /// <summary>
+    /// The detail a file's shape sets, read from its root only: a Detail node anywhere else has no effect, which the file reader
+    /// rejects, so a program made in code that has one there is meshed as if it had none.
+    /// </summary>
+    private static float DetailOf(Evaluable root) => root is Detail { detail: ConstValueFloat { value: var detail } } ? detail : 1;
 
     private sealed class Rewriter(SDFProgram program)
     {
@@ -50,7 +68,7 @@ public static class PartSplitter
             .Where(v => SDFProject.ProgramDefinition.Parts.IsPartItself(v.name))
             .ToDictionary(v => v.id, v => SDFProject.ProgramDefinition.Parts.PartOf(v.name)!);
 
-        private SDFEvaluable Value(string variableId) => (SDFEvaluable)variables[variableId].value;
+        public SDFEvaluable Value(string variableId) => (SDFEvaluable)variables[variableId].value;
 
         /// <summary>The shape with every part that adds to it taken out; the variables on the way are written out in place.</summary>
         public SDFEvaluable Strip(SDFEvaluable node) => node switch
@@ -62,6 +80,7 @@ public static class PartSplitter
             Subtraction e => e with { a = Strip(e.a) },
             SmoothSubtraction e => e with { a = Strip(e.a) },
             Displace e => e with { primitive = Strip(e.primitive) },
+            Detail e => Strip(e.primitive),
             Intersection or SmoothIntersection or Xor or SDFFunctionCall => node,
             _ => (SDFEvaluable)EvaluableChildren.MapChildren(node, child => child is SDFEvaluable shape ? Strip(shape) : child),
         };
@@ -77,6 +96,7 @@ public static class PartSplitter
             Subtraction e => Keep(e.a, partId) is { } a ? e with { a = a } : null,
             SmoothSubtraction e => Keep(e.a, partId) is { } a ? e with { a = a } : null,
             Displace e => Keep(e.primitive, partId) is { } primitive ? e with { primitive = primitive } : null,
+            Detail e => Keep(e.primitive, partId),
             Intersection or SmoothIntersection or Xor or SDFFunctionCall => null,
             _ => KeepOnlyChild(node, partId),
         };

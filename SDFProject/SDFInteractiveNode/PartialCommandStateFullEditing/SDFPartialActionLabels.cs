@@ -50,6 +50,7 @@ public static class SDFPartialActionLabels
             SubtractNode => new("⊖", "subtract"),
             IntersectNode => new("∩", "intersect"),
             DistortNode => new("≋", "distort"),
+            DetailNode => new("◇", "detail"),
             DissolveNode => new("⤒", "dissolve"),
             ExtractVariable => new("$", "extract"),
             InlineVariable => new("⇲", "inline"),

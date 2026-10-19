@@ -1,0 +1,28 @@
+# Old canopy: the crown of a gnarled old tree, wide, flat and layered, about 4.6 m across and 1.7 m tall, centred on the origin:
+# flat cloud pads at three heights, like an old pine or a bonsai, a low one reaching out to the right, one to the left and one to
+# the back a little higher, a broad pad over the middle and a small one on top. Each pad stands clear of the next in the outline,
+# so the layers read, but a hidden core in the middle overlaps them all, so the crown is still one surface rather than separate
+# pads each with a floor of its own. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness, shallow next to the pads
+Distort amount=0.03 frequency=1.4
+    # Creases soft enough to join the pads, tight enough to keep each one's edge
+    SmoothUnion smoothness=0.1
+        # The hidden core, inside the pads, joining them
+        Translate translation=(0.1, 0.1, 0)
+            Ellipsoid radii=(0.95, 0.45, 0.8)
+        # The low pad, reaching out to the right
+        Translate translation=(1.45, -0.3, 0.3)
+            Ellipsoid radii=(1.0, 0.3, 0.85)
+        # The left and back pads, a little higher
+        Translate translation=(-1.25, 0.0, 0.45)
+            Ellipsoid radii=(0.95, 0.3, 0.8)
+        Translate translation=(0.1, -0.12, -1.05)
+            Ellipsoid radii=(0.95, 0.28, 0.75)
+        # The broad pad over the middle
+        Translate translation=(0.15, 0.45, 0.05)
+            Ellipsoid radii=(1.05, 0.32, 0.9)
+        # A small pad on top, off centre
+        Translate translation=(-0.2, 0.9, -0.15)
+            Ellipsoid radii=(0.6, 0.24, 0.55)

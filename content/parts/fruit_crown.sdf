@@ -1,0 +1,56 @@
+# Fruit crown: the crown of a small apple tree, one dense, round ball of leaves about 2.1 m across and 1.8 m tall, centred on the
+# origin: a small core wrapped in nine clumps that each keep their own bulge, with eight big apples set into it. Each apple is a
+# plain sphere centred on the surface of a clump, so it sinks about half into the leaves and adds to the crown's one surface
+# instead of being a blob of its own with its own floor. Unlike the other canopies, this part carries its materials itself,
+# leaves and apples, so the fruit sways with the crown it hangs in; the model leaves it unwrapped.
+format 1
+
+Union
+    # The leaves
+    Material material=fruit_leaves
+        # A gentle, large-scale lumpiness, shallow next to the clumps
+        Distort amount=0.02 frequency=1.8
+            # Soft creases between the clumps; a larger core or blend melted them into one smooth lump
+            SmoothUnion smoothness=0.1
+                # The core, holding the clumps together into a ball
+                Ellipsoid radii=(0.7, 0.65, 0.7)
+                # The clumps: an upper ring of four, a lower ring of four turned against it, and one on top
+                Translate translation=(0.45, 0.2, 0.4)
+                    Ellipsoid radii=(0.55, 0.5, 0.52)
+                Translate translation=(-0.5, 0.1, 0.38)
+                    Ellipsoid radii=(0.52, 0.5, 0.5)
+                Translate translation=(-0.42, 0.15, -0.48)
+                    Ellipsoid radii=(0.54, 0.5, 0.52)
+                Translate translation=(0.48, 0.05, -0.42)
+                    Ellipsoid radii=(0.52, 0.48, 0.5)
+                Translate translation=(0.02, -0.25, 0.58)
+                    Ellipsoid radii=(0.5, 0.44, 0.48)
+                Translate translation=(0.62, -0.2, 0.05)
+                    Ellipsoid radii=(0.45, 0.42, 0.45)
+                Translate translation=(-0.62, -0.18, -0.05)
+                    Ellipsoid radii=(0.45, 0.42, 0.45)
+                Translate translation=(0.0, -0.2, -0.6)
+                    Ellipsoid radii=(0.48, 0.42, 0.45)
+                Translate translation=(0.0, 0.55, 0.0)
+                    Ellipsoid radii=(0.58, 0.45, 0.55)
+
+    # Apples, big and round, each centred on a clump's surface, more of them towards the front and the sides than behind. A
+    # plain union, so the red stops crisply at the leaves rather than smearing into a pink fillet
+    Material material=apple
+        Union
+            Translate translation=(0.59, 0.06, 0.87)
+                Sphere radius=0.17
+            Translate translation=(0.10, -0.42, 1.00)
+                Sphere radius=0.17
+            Translate translation=(-0.79, 0.24, 0.76)
+                Sphere radius=0.17
+            Translate translation=(1.00, -0.39, 0.16)
+                Sphere radius=0.17
+            Translate translation=(0.70, -0.04, -0.85)
+                Sphere radius=0.17
+            Translate translation=(-1.01, -0.34, -0.17)
+                Sphere radius=0.17
+            Translate translation=(-0.56, 0.33, -0.93)
+                Sphere radius=0.17
+            Translate translation=(0.24, 0.84, 0.34)
+                Sphere radius=0.17

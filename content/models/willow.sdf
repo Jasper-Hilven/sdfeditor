@@ -1,0 +1,28 @@
+# Willow: a stylized weeping willow about 4.6 m tall and 4.6 m across, a short, thick trunk on a broad foot that splits into three
+# stout limbs, under a low dome of leaves whose long curtains hang down all around it nearly to the ground.
+format 1
+
+# Under half the vertices its 4.6 m would give it: the crown is the widest of the trees, but all its forms are big and round, and
+# the curtains' tips, the smallest of them, are still more than half a metre across
+Detail detail=0.4
+    Union
+        Material material=tree_bark
+            Distort amount=0.012 frequency=3
+                SmoothUnion smoothness=0.15
+                    # The trunk, short and stout, flaring into the ground, all cut flat at the ground
+                    Intersection
+                        SmoothUnion smoothness=0.25
+                            ArbitraryRoundCone a=(0, 0, 0) b=(0.08, 1.7, 0) radiusA=0.38 radiusB=0.28
+                            Ellipsoid radii=(0.6, 0.3, 0.55)
+                        # The ground: only what is above it. A box rather than a plane, so the trunk counts towards the bounds
+                        Translate translation=(0, 1, 0)
+                            Box size=(1, 1, 1)
+                    # Three stout limbs out of the top of the trunk, up and out, ending inside the dome
+                    ArbitraryRoundCone a=(0.08, 1.6, 0) b=(0.85, 3.0, 0.25) radiusA=0.2 radiusB=0.12
+                    ArbitraryRoundCone a=(0.08, 1.6, 0) b=(-0.75, 3.05, 0.35) radiusA=0.2 radiusB=0.12
+                    ArbitraryRoundCone a=(0.08, 1.65, 0) b=(0.0, 3.1, -0.8) radiusA=0.18 radiusB=0.11
+
+        # The crown, its dome high enough that the limbs end inside it and the curtains' tips stop just above the ground
+        Translate translation=(0, 3.3, 0)
+            Material material=willow_leaves
+                Part part=willow_crown

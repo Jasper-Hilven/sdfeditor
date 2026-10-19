@@ -10,7 +10,7 @@ namespace SdfMushrooms.Editor
     /// Unity looks for changed files only when it gets focus. This polls the generated folder twice a second, also while the editor is in
     /// the background, and imports a model as soon as the pipeline has replaced it (the pipeline writes to a hidden temporary file and
     /// renames it, so the file is always complete); the import rebuilds the prefab, and the views are repainted to show it.
-    /// It also takes snapshot requests (see <see cref="MushroomSnapshot.RequestPath"/>).
+    /// It also takes snapshot requests (see <see cref="MushroomSnapshot.RequestPath"/> and <see cref="MushroomSnapshot.LodRequestPath"/>).
     /// </summary>
     [InitializeOnLoad]
     public static class GeneratedFolderWatcher
@@ -48,6 +48,12 @@ namespace SdfMushrooms.Editor
                 var directory = File.ReadAllText(MushroomSnapshot.RequestPath).Trim();
                 File.Delete(MushroomSnapshot.RequestPath);
                 MushroomSnapshot.CaptureOpenScene(directory);
+            }
+            if (File.Exists(MushroomSnapshot.LodRequestPath))
+            {
+                var directory = File.ReadAllText(MushroomSnapshot.LodRequestPath).Trim();
+                File.Delete(MushroomSnapshot.LodRequestPath);
+                MushroomSnapshot.CaptureOpenScene(directory, levelsOfDetail: true);
             }
 
             var now = new Dictionary<string, (DateTime, long)>();

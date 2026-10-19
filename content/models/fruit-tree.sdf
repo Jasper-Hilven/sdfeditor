@@ -1,0 +1,27 @@
+# Fruit tree: a small, stylized apple tree about 3.4 m tall, a short, stout trunk on a flared foot that forks low into two
+# thick branches, under one dense, round crown of leaves hung with big red apples.
+format 1
+
+# Half the vertices its 3.4 m would give it, like the broadleaf tree: crown and trunk are big, simple forms, and the apples, the
+# smallest at 34 cm across, are still eight cells wide at the nearest level. 0.65 kept them a little rounder at the far level for a
+# third more triangles there
+Detail detail=0.5
+    Union
+        Material material=tree_bark
+            Distort amount=0.008 frequency=4
+                SmoothUnion smoothness=0.1
+                    # The trunk, short and slightly leaning, flaring into the ground, all cut flat at the ground
+                    Intersection
+                        SmoothUnion smoothness=0.15
+                            ArbitraryRoundCone a=(0, 0, 0) b=(0.06, 0.85, 0.02) radiusA=0.17 radiusB=0.13
+                            Ellipsoid radii=(0.3, 0.16, 0.28)
+                        # The ground: only what is above it. A box rather than a plane, so the trunk counts towards the bounds
+                        Translate translation=(0, 0.75, 0)
+                            Box size=(0.5, 0.75, 0.5)
+                    # Two thick branches out of the fork, up into the crown, ending inside it
+                    ArbitraryRoundCone a=(0.06, 0.8, 0.02) b=(0.55, 1.9, 0.15) radiusA=0.11 radiusB=0.07
+                    ArbitraryRoundCone a=(0.06, 0.8, 0.02) b=(-0.45, 1.95, -0.1) radiusA=0.11 radiusB=0.07
+
+        # The crown, low over the short trunk so the fork shows just beneath it. Its leaves and apples bring their own materials
+        Translate translation=(0, 2.2, 0)
+            Part part=fruit_crown

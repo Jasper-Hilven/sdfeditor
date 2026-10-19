@@ -202,7 +202,7 @@ internal sealed class SdfProgramFileReader
                 if (body is { } shape)
                     throw new SdfProgramFileException(line.Number,
                         $"{Capitalized(scope.Description)} already has its shape on line {shape.line.Number}; combine shapes with a Union");
-                body = ((SDFEvaluable)ReadNode(line, ValueKind.Sdf, scope), line);
+                body = ((SDFEvaluable)ReadNode(line, ValueKind.Sdf, scope, fileShape: scope.Function is null), line);
             }
         }
 
@@ -248,7 +248,8 @@ internal sealed class SdfProgramFileReader
         return new VariableDeclaration(name, id, value);
     }
 
-    private Evaluable ReadNode(SourceLine line, ValueKind? expected, Scope scope)
+    /// <param name="fileShape">Whether this is the shape of the file itself, the only place a <see cref="Detail"/> node is read.</param>
+    private Evaluable ReadNode(SourceLine line, ValueKind? expected, Scope scope, bool fileShape = false)
     {
         var cursor = new Cursor(line);
         if (cursor.TryConsume('$'))
@@ -326,10 +327,30 @@ internal sealed class SdfProgramFileReader
         if (nextChild < children.Count)
             throw new SdfProgramFileException(children[nextChild].Number, $"{typeName} on line {line.Number} has no room for another shape");
 
-        return (Evaluable)shape.Constructor.Invoke(arguments);
+        var node = (Evaluable)shape.Constructor.Invoke(arguments);
+        if (node is Detail detail)
+            CheckDetail(detail, fileShape, cursor);
+        return node;
 
         RawValue Take(NodeSlot slot) =>
             values.Remove(slot.Name, out var value) ? value : throw cursor.Error($"{typeName} is missing parameter '{slot.Name}'");
+    }
+
+    /// <summary>
+    /// The mesh builder reads a Detail node at the root of a model's or a part's file only. Anywhere else it would do nothing, which is
+    /// rejected rather than allowed: wrapping one branch, like the trunk, in a Detail would look like it makes that branch coarser.
+    /// The detail is a plain number, so it is known without evaluating the program and checked here.
+    /// </summary>
+    private static void CheckDetail(Detail detail, bool fileShape, Cursor cursor)
+    {
+        if (!fileShape)
+            throw cursor.Error($"{nameof(Detail)} only works as the shape of the file itself, at the top without indentation; " +
+                               "it sets the detail of the whole model or part");
+        if (detail.detail is not ConstValueFloat { value: var value })
+            throw cursor.Error($"The detail of {nameof(Detail)} must be a number, like detail=0.5");
+        if (value is < Detail.MinDetail or > Detail.MaxDetail || float.IsNaN(value))
+            throw cursor.Error(FormattableString.Invariant(
+                $"The detail of {nameof(Detail)} must be between {Detail.MinDetail} and {Detail.MaxDetail}, not {value}; 1 keeps the vertices the size gives"));
     }
 
     private Evaluable[] ReadArguments(RawValue raw, FunctionHeader? function, Scope scope, Cursor cursor)

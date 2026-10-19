@@ -24,6 +24,8 @@ const string usage = """
                --reference-size <m>   the size that gets --resolution cells (default 2)
                --into <folder>        write the .glb files into this folder instead of next to each model
                --suffix <text>        add this to each .glb's name, e.g. --suffix _512 for chanterelle-scout_512.glb
+               --lods <n>             levels of detail per mesh, LOD0 included, 1 to 4 (default 1); each further level
+                                      has about a third of the triangles of the one before
       sdf examples <directory>                                Writes the IDE's examples as .sdf files
     """;
 
@@ -72,6 +74,7 @@ int Mesh(string[] arguments)
     var referenceSize = MeshingOptions.DefaultReferenceSize;
     string? into = null;
     var suffix = "";
+    var lods = MeshingOptions.DefaultLodCount;
     var paths = new List<string>();
     for (var i = 0; i < arguments.Length; i++)
     {
@@ -88,17 +91,20 @@ int Mesh(string[] arguments)
         if (arguments[i] == "--resolution" && i + 1 < arguments.Length
             && int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out resolution) && resolution is >= 16 and <= 1024)
             continue;
+        if (arguments[i] == "--lods" && i + 1 < arguments.Length
+            && int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out lods) && lods is >= 1 and <= MeshingOptions.MaxLodCount)
+            continue;
         if (arguments[i] == "--reference-size" && i + 1 < arguments.Length
             && float.TryParse(arguments[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out referenceSize) && referenceSize > 0)
             continue;
         if (arguments[i].StartsWith("--"))
-            return Usage($"Unknown or invalid option {arguments[i]}, --resolution takes 16 to 1024 cells, --reference-size a size in metres");
+            return Usage($"Unknown or invalid option {arguments[i]}, --resolution takes 16 to 1024 cells, --reference-size a size in metres, --lods 1 to {MeshingOptions.MaxLodCount} levels");
         paths.Add(arguments[i]);
     }
 
     if (LoadMaterials() is not { } materials)
         return 1;
-    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, Materials = materials };
+    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Materials = materials };
     // Where each model's mesh goes: next to it, or into the --into folder, with the --suffix after its name
     string OutputOf(string model) =>
         Path.Combine(into ?? Path.GetDirectoryName(model) ?? "", Path.GetFileNameWithoutExtension(model) + suffix + GlbWriter.Extension);
@@ -158,13 +164,23 @@ bool MeshOne(string input, string output, MeshingOptions options)
         GlbWriter.Save(output, model);
 
         var cells = model.Grid is { } grid ? string.Create(CultureInfo.InvariantCulture, $", {grid.CellSize * 1000:0.#} mm cells") : "";
-        Console.WriteLine($"Meshed {output} in {stopwatch.Elapsed.TotalSeconds:0.0} s{cells}");
-        var nameWidth = model.Meshes.Max(m => m.Name.Length);
+        var modelDetail = string.Create(CultureInfo.InvariantCulture, $", detail {model.Detail:0.###}");
+        Console.WriteLine($"Meshed {output} in {stopwatch.Elapsed.TotalSeconds:0.0} s{cells}{modelDetail}");
+        var nameWidth = model.Meshes.Max(m => GlbWriter.LodName(m.Name, m.Lods.Count).Length);
         foreach (var mesh in model.Meshes)
         {
             var statistics = mesh.Statistics;
+            // A part's own Detail multiplies the model's, so the detail is shown where it differs from the one above
+            var detail = mesh.Detail != model.Detail ? string.Create(CultureInfo.InvariantCulture, $", detail {mesh.Detail:0.###}") : "";
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s"));
+                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}"));
+            // Each level of detail is simplified on from the one before, so its time is on top of that level's
+            for (var level = 1; level <= mesh.Lods.Count; level++)
+            {
+                var lod = mesh.Lods[level - 1];
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                    $"  {GlbWriter.LodName(mesh.Name, level).PadRight(nameWidth)}  {"",8} → {lod.TriangleCount,7:N0} triangles, {lod.Statistics.Vertices,7:N0} vertices, +{lod.Statistics.Time.TotalSeconds:0.00} s, within {lod.MaxError * 1000:0.#} mm"));
+            }
         }
         return true;
     }
