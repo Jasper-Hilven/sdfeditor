@@ -79,8 +79,8 @@ Run 12.1 to 12.3 in parallel, then 12.4; after it 12.5 and 12.6 in parallel; 12.
 - [12.2](done/12.2-mesh-dice-houses-chips.md) mesh the tumbled die, Monopoly pieces and chips at 256
 - [12.3](done/12.3-remesh-existing-at-256.md) re-mesh the ten 512 models at 256
 - [12.4](done/12.4-part-split-check.md) part split check and triangle table (after 12.1 to 12.3)
-- [12.5](12.5-unity-check.md) Unity prefabs, showcase and colliders (after 12.4)
-- [12.6](12.6-placement.md) placement with overlap check and test (after 12.4)
+- [12.5](done/12.5-unity-check.md) Unity prefabs, showcase and colliders (after 12.4)
+- [12.6](done/12.6-placement.md) placement with overlap check and test (after 12.4)
 - [12.7](12.7-budget-rebuild.md) triangle budget, rebake and rebuild (after 12.5 and 12.6)
 
 ## To do
