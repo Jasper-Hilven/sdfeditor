@@ -95,6 +95,21 @@ MaterialLibrary? LoadMaterials()
     }
 }
 
+IReadOnlyDictionary<string, MaterialPattern>? LoadPatterns()
+{
+    try
+    {
+        return ModelFiles.FindMaterialsFolder(Directory.GetCurrentDirectory()) is { } materialsFolder
+            ? MaterialFiles.LoadPatterns(materialsFolder)
+            : new Dictionary<string, MaterialPattern>();
+    }
+    catch (InvalidOperationException exception)
+    {
+        Console.Error.WriteLine(exception.Message);
+        return null;
+    }
+}
+
 int Mesh(string[] arguments)
 {
     var resolution = MeshingOptions.DefaultResolution;
@@ -140,7 +155,9 @@ int Mesh(string[] arguments)
 
     if (LoadMaterials() is not { } materials)
         return 1;
-    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Materials = materials };
+    if (LoadPatterns() is not { } patterns)
+        return 1;
+    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Materials = materials, Patterns = patterns };
     // Where each model's mesh goes: next to it, or into the --into folder under the same subfolder it has below the meshed directory
     // (content/models/weapons/pistol.sdf meshed from content/models goes to <into>/weapons/), with the --suffix after its name
     Func<string, string> OutputsUnder(string? directory) => model =>

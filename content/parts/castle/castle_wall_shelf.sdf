@@ -1,0 +1,47 @@
+# Castle wall shelf: a cluster of three bracket fungi stepping up a wall face, modelled at its own origin with the back plane at z = 0
+# (sits 4 cm into the wall) and growing toward +z. Each shelf is a half disc with a rounded lip, its cap on top and a paler gill
+# underside below its middle line. The biggest is 0.6 m wide and 0.12 m thick; the cluster is 0.8 m wide and 1.0 m high.
+format 1
+collider none
+shadows off
+cull 35
+outline off
+Detail detail=0.05
+    Union
+        Material material=amanita_cap
+            Union
+                # Big shelf, low on the left
+                Translate translation=(-0.1, 0.1, 0)
+                    Intersection
+                        Ellipsoid radii=(0.3, 0.06, 0.3)
+                        Translate translation=(0, 0.06, 0.3)
+                            Box size=(0.4, 0.06, 0.3)
+                # Middle shelf, right
+                Translate translation=(0.2, 0.55, 0)
+                    Intersection
+                        Ellipsoid radii=(0.2, 0.05, 0.2)
+                        Translate translation=(0, 0.05, 0.2)
+                            Box size=(0.3, 0.05, 0.2)
+                # Small shelf, top left
+                Translate translation=(-0.2, 0.95, 0)
+                    Intersection
+                        Ellipsoid radii=(0.14, 0.05, 0.14)
+                        Translate translation=(0, 0.05, 0.14)
+                            Box size=(0.24, 0.05, 0.14)
+        Material material=amanita_gills
+            Union
+                Translate translation=(-0.1, 0.1, 0)
+                    Intersection
+                        Ellipsoid radii=(0.3, 0.06, 0.3)
+                        Translate translation=(0, -0.06, 0.3)
+                            Box size=(0.4, 0.06, 0.3)
+                Translate translation=(0.2, 0.55, 0)
+                    Intersection
+                        Ellipsoid radii=(0.2, 0.05, 0.2)
+                        Translate translation=(0, -0.05, 0.2)
+                            Box size=(0.3, 0.05, 0.2)
+                Translate translation=(-0.2, 0.95, 0)
+                    Intersection
+                        Ellipsoid radii=(0.14, 0.05, 0.14)
+                        Translate translation=(0, -0.05, 0.14)
+                            Box size=(0.24, 0.05, 0.14)

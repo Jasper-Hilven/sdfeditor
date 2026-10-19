@@ -20,6 +20,7 @@ Shader "SdfMushrooms/Toon"
         _ToonSpecular("Highlight (strength, threshold, max roughness)", Vector) = (0.6, 0.6, 0.75, 0)
         _ToonRim("Rim (strength, width)", Vector) = (0.25, 0.3, 0, 0)
         _ToonVariation("Colour variation (amount)", Vector) = (0.5, 0, 0, 0)
+        _ToonInk("Ink of the patterns' lines (the colour times this, linear)", Vector) = (0.18, 0.13, 0.14, 0)
 
         // Only declared because SdfSurface.hlsl, which this shader includes, reads them: the toon look takes everything per vertex,
         // so one material draws every mushroom
@@ -50,6 +51,7 @@ Shader "SdfMushrooms/Toon"
         float4 _ToonSpecular;
         float4 _ToonRim;
         float4 _ToonVariation;
+        float4 _ToonInk;
         float4 _EdgeColor;
         float4 _DetailAxis;
         float4 _Subsurface;
@@ -90,6 +92,7 @@ Shader "SdfMushrooms/Toon"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "SdfSurface.hlsl"
             #include "SdfToon.hlsl"
+            #include "SdfPattern.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -105,6 +108,7 @@ Shader "SdfMushrooms/Toon"
                 float4 uv4 : TEXCOORD4;
                 float2 uv5 : TEXCOORD5;
                 float4 uv6 : TEXCOORD6;
+                float4 uv7 : TEXCOORD7;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -121,6 +125,10 @@ Shader "SdfMushrooms/Toon"
                 float4 uv4 : TEXCOORD7;
                 float2 uv5 : TEXCOORD8;
                 float4 uv6 : TEXCOORD9;
+                float4 uv7 : TEXCOORD10;
+                // The pixel's position and normal in the part's own space, for the pattern (see SdfPattern.hlsl)
+                float3 positionOS : TEXCOORD11;
+                float3 normalOS : TEXCOORD12;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -142,6 +150,9 @@ Shader "SdfMushrooms/Toon"
                 output.uv4 = input.uv4;
                 output.uv5 = input.uv5;
                 output.uv6 = input.uv6;
+                output.uv7 = input.uv7;
+                output.positionOS = input.positionOS;
+                output.normalOS = input.normalOS;
                 return output;
             }
 
@@ -170,6 +181,9 @@ Shader "SdfMushrooms/Toon"
                 }
 
                 float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5, 0, 0), input.uv6);
+                // The pattern, in the part's own space (each instance's, under GPU instancing)
+                SdfPattern(input.uv7, input.positionOS, normalize(input.normalOS), input.positionWS,
+                    distance(input.positionWS, GetCameraPositionWS()), albedo, n);
                 float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, input.uv0.x, input.uv0.y, input.color.a, saturate(input.uv0.w),
                     saturate(input.uv6.a));
                 // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows; far away it fades

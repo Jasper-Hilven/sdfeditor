@@ -1,0 +1,37 @@
+# Castle window frame: a rounded bracket-fungus frame round a round-topped window, 0.66 m wide and 0.88 m high, 10 cm deep, with a
+# small shelf at its foot. The opening is 0.5 m wide and 0.8 m high, filled by a glowing pane set 1.25 cm back from the front face.
+# Modelled at its own size, base at y = 0, facing +z, to be placed on a wall face.
+format 1
+collider none
+shadows off
+cull 35
+outline off
+Detail detail=0.05
+    Union
+        # The frame: a thick lip round the opening, with a rounded top; the opening is only recessed at the front, so the pane is painted on
+        Material material=amanita_stem
+            Subtraction
+                Union
+                    Translate translation=(0, 0.275, 0.05)
+                        Box size=(0.33, 0.275, 0.05)
+                    Translate translation=(0, 0.55, 0.05)
+                        Rotate rotation=(1.5707964, 0, 0)
+                            CappedCylinder radius=0.33 height=0.05
+                Union
+                    Translate translation=(0, 0.315, 0.1075)
+                        Box size=(0.25, 0.235, 0.0225)
+                    Translate translation=(0, 0.55, 0.1075)
+                        Rotate rotation=(1.5707964, 0, 0)
+                            CappedCylinder radius=0.25 height=0.0225
+        # The shelf at the foot, a little proud of the front
+        Material material=amanita_stem
+            Translate translation=(0, 0.02, 0.06)
+                Box size=(0.35, 0.02, 0.06)
+        # The pane, the glowing floor of the recess
+        Material material=flower_center
+            Union
+                Translate translation=(0, 0.315, 0.07625)
+                    Box size=(0.25, 0.235, 0.01125)
+                Translate translation=(0, 0.55, 0.07625)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCylinder radius=0.25 height=0.01125

@@ -1,3 +1,4 @@
+using SDFPipeline.Materials;
 using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.Meshing;
@@ -89,6 +90,9 @@ public sealed record MeshingOptions
 
     /// <summary>The materials the program's Material nodes refer to; unknown names become <see cref="MaterialDefinition.Missing"/>.</summary>
     public MaterialLibrary Materials { get; init; } = MaterialLibrary.Empty;
+
+    /// <summary>The patterns of the materials that have one, by material name (see <see cref="MaterialPattern"/>), written to the .glb.</summary>
+    public IReadOnlyDictionary<string, MaterialPattern> Patterns { get; init; } = new Dictionary<string, MaterialPattern>();
 
     /// <summary>
     /// The shape a piece was cut from (a model's <c>surface part=</c> setting), or null. Where the piece's surface is that shape's own,
