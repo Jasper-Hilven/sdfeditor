@@ -91,7 +91,7 @@ Check the explosion in `SpecialEffects`: the intact scout's eyes and the pieces'
 
 ## Status
 
-Parts 1 to 3 are done; the walks and snapshots in Unity are not (see below). 06 step 5 is not part of this branch.
+Parts 1 to 3 are done and the Unity walks and snapshots were run in batch mode (below); only by-hand checks in Play mode are left. 06 step 5 is not part of this branch.
 
 - **1. Cap colour bleed: the cause** was neither simplification across borders nor the mirrored meshes, but the material sampled
   per vertex. Simplification keeps regions apart, but a merged vertex may come to stand where another material is: a cap vertex in
@@ -140,12 +140,42 @@ Parts 1 to 3 are done; the walks and snapshots in Unity are not (see below). 06 
     parts such as merlons now keep LOD0 out to where the castle as a whole would (about 50 m).
 - `dotnet build` is clean; `dotnet test`: 318 pipeline and 533 project tests pass.
 
-Left, to check by hand or in a later run:
+**Unity checks, run in batch mode** (`Unity/Assets/Level/Editor/CastleChecks.cs`: `-executeMethod SdfLevel.Editor.CastleChecks.Run -snapshotDir <dir> [-only walk,zfight,lod]`,
+plus the existing `LevelSnapshot.Capture` and `SpecialEffectsSnapshot.Capture`). castle0 had to be re-meshed first (`sdf mesh ... --resolution 256 --lods 3`,
+castle0 only): the local glb predated 06.10's lanterns, so the meadow would not build.
 
-- **Unity**: prefabs, Meadow and Chessboard rebuilt in batch mode with no compile or shader errors, but no snapshots, walks or Play-mode
-  check yet: the walks (gate to courtyard, up the keep stair onto its 5.3 m ring, along the wall-walk past both tower kinds, every
-  step 15 or 30 cm), z-fighting at the joints and rings at several distances on both presets, and renders per level of a tower, the
-  keep and a baby amanita.
-- The explosion's frame 0 (`SpecialEffectsSnapshot`): the intact scout's eyes against the pieces'.
+- **Floors, from the drawn meshes** (flat up-facing triangles of the castle prefab's LOD meshes at every level, 5 cm cells, floors with
+  something higher over them left out as hidden): at LOD0, 1 and 2, **0 cells where two parts' floors are drawn within 5 mm** of each
+  other. The top floor lies 15 cm over the next in about 3,100 cells at every level, 30 to 35 cm in the rest. The 34 to 35 cm
+  (LOD2 32 to 33) are the **gate turrets' rings over the gate bay**: the 1 degree lean still lifts a ring edge to 5.35 m. It is
+  under the 0.4 m step height but over the "about 0.3 m" the scheme asked for; left as is (cutting the lean to 0 would fix it).
+  Against the ground, the gate passage floor lies 10 cm below the tiled ground (3,057 cells), nothing within 5 mm of it. WebGL's
+  24-bit depth without reversed-Z resolves 0.3 mm at 15 m, 1.9 mm at 40 m, 12 mm at 100 m (near 0.05, far 400): the closest floors
+  are 10.5 cm apart.
+- **Walks** (a character controller, 0.4 m step, 45 degrees, 5 cm moves; the colliders are the LOD2 meshes): gate to courtyard,
+  16 m, stays at 0.08 m, no stall. Keep stair: 206 samples to the ring, ends 5.36 m up, 0 stalls, no single move rises over 8 cm.
+  Wall-walk lap from the ring, 1,172 samples, past the large and small towers, the gate turrets and the -x side: floor changes seen
+  are bay 5.00 to pad 5.15 (+15 cm, four times), pad to ring (+16 cm), ring to pad (-11 to -13 cm), pad to the keep ring (+15 cm);
+  on the colliders' coarse shapes a few read 5 to 9 cm. 13 samples stalled, all against geometry my waypoints ran into, not a
+  height: the keep's ring at the rear wall (lanterns, veils or the stem) and a turret ring's arc start inside the stem. Nothing
+  needed more than the 0.4 m step.
+- **Z-fighting views** (`zfight_*` in the scratchpad: joints 2, 8 and 15, large towers 4 and 13, small tower 6, the keep's ring, at
+  2, 6, 15 and 40 m, high and web presets, plus a second frame 3 mm aside): looked at the contact sheets; no flicker pattern on any
+  pad, ring or the keep's ring, on either preset. The pixel-difference count between the two frames (0 to 400 of 160,000, at
+  edges and outlines) does not separate z-fighting from edge noise, so only the images and the floor audit count.
+- **Levels of detail** (small and large tower, gate turret, keep, baby amanitas, LOD0 to 2, front and from below): **no red on any
+  stem at any level**; the cap's underside shows orange-red gills at every level, the stem stays white. Triangles: small tower
+  14,972 / 2,772 / 546; large 12,352 / 2,460 / 490; keep 11,044 at LOD0; baby amanitas 2,212 / 528 / 112. At LOD2 the amanita caps
+  are blocky but red over white. A brown wood-grain patch shows under the biggest baby amanita cap at LOD0.
+- **Explosion frame 0**: `explode_frame0` against `explode_intact`: 60,273 of 1.44 M pixels differ by more than 2 levels, 5,629 by
+  more than 24 (cap shading, the shadow). The pieces' eyes show the same rings as the intact scout's (no cross, no LOD drop); their
+  iris is a little ragged. A fault outside this ticket (08's pieces): the pieces' **cap shows dark shard-like triangles** at frame 0
+  where the pieces' faces overlap.
+- `LevelSnapshot`'s collider walk reports "10 of 15 waypoints" on the wall-walk because its waypoints (0.3 m in from the joint) run
+  into the joint caps; 0.8 m in clears them.
+
+Left, for a human in Play mode: walking the stair, ring, wall-walk and both tower kinds by hand for feel (the 0.4 m step at the gate
+turret rings, the lanterns and veils on the keep ring), and the flicker while moving on the integrated GPU / WebGL build.
+
 - Under every cap the gills disc lies inside the rounded cap (its `Round` takes the cap 1.2 cm below the gills), so the undersides
   are red, not striped; a modelling fix for 06's look, not for the bleed.
