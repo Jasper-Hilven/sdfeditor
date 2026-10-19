@@ -17,7 +17,7 @@ the one before.
 | 09 | [Castle fixes](09-castle-fixes.md) | Cap red no longer bleeds into stems at coarse LODs; walk-level floors of neighbouring parts 15 cm apart, no z-fighting. After 06; alongside 04 or 07 |
 | 10 | [Sky: remaining](10-sky-remaining.md) | What is left of 07: web frame time and Safari, the sky's motion checked in Play mode, the tower snapshot on the new castle, the showcase snapshot's stray object. After 07 |
 | 11 | [Chessboard](11-chessboard.md) | Second level: a 160 m chessboard in anarchy chess, 19 mushroom chess pieces placed, `Chessboard.unity` built. Left: sky, web draw calls and budget, straight square edges, Play-mode check. After 03 and 07 |
-| 12 | [Game pieces](12-game-pieces.md) | Mushroom dice, Monopoly houses, dominoes, meeples, chips and cards for the chessboard level: modelled; meshing (too slow so far), Unity check and placement left. After 11 |
+| 12 | [Game pieces](12-game-pieces.md) | Mushroom dice, Monopoly houses, dominoes, meeples, chips and cards for the chessboard level: modelled; meshing, Unity check and placement in subtickets 12.1-12.7. After 11 |
 
 ## The level
 
