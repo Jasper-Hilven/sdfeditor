@@ -1,0 +1,82 @@
+# Fungi tuft 0: a clump of ten glowing mycena bonnets, the level's cyan-green accent, about 0.5 m tall, on thin glassy stems
+# that fan out of a small mound of humus, the three tallest in the middle. Oversized for the forest floor, like the mushrooms, so it
+# reads at a distance; the counterpart of flower0.
+format 1
+
+# Detail as the grass and flowers have it: the fine stalks and thin stems are small next to the model's size
+Detail detail=0.975
+    Intersection
+        Union
+            Material material=tuft_soil
+                Translate translation=(0, 0, 0)
+                    Distort amount=0.008 frequency=12
+                        Intersection
+                            Ellipsoid radii=(0.17, 0.045, 0.17)
+                            Translate translation=(0, 0.045, 0)
+                                Box size=(0.22, 0.045, 0.22)
+            Material material=tuft_mycena_stem
+                Union
+                    ArbitraryRoundCone a=(0.074, -0.01, -0.015) b=(0.099, 0.456, -0.02) radiusA=0.013 radiusB=0.01
+                    ArbitraryRoundCone a=(0.03, -0.01, 0.022) b=(0.041, 0.475, 0.029) radiusA=0.013 radiusB=0.01
+                    ArbitraryRoundCone a=(0.008, -0.01, 0.06) b=(0.011, 0.441, 0.082) radiusA=0.013 radiusB=0.01
+                    ArbitraryRoundCone a=(-0.012, -0.01, 0.079) b=(-0.017, 0.267, 0.107) radiusA=0.012 radiusB=0.009
+                    ArbitraryRoundCone a=(-0.074, -0.01, 0.048) b=(-0.1, 0.343, 0.065) radiusA=0.012 radiusB=0.009
+                    ArbitraryRoundCone a=(-0.107, -0.01, 0.017) b=(-0.144, 0.208, 0.023) radiusA=0.011 radiusB=0.009
+                    ArbitraryRoundCone a=(-0.101, -0.01, -0.135) b=(-0.137, 0.358, -0.182) radiusA=0.012 radiusB=0.009
+                    ArbitraryRoundCone a=(-0.02, -0.01, -0.082) b=(-0.027, 0.259, -0.11) radiusA=0.012 radiusB=0.009
+                    ArbitraryRoundCone a=(0.029, -0.01, -0.089) b=(0.039, 0.371, -0.121) radiusA=0.012 radiusB=0.009
+                    ArbitraryRoundCone a=(0.075, -0.01, -0.064) b=(0.101, 0.347, -0.086) radiusA=0.012 radiusB=0.009
+            Material material=tuft_mycena_cap
+                Union
+                    Translate translation=(0.099, 0.426, -0.02)
+                        Intersection
+                            Ellipsoid radii=(0.05, 0.054, 0.05)
+                            Translate translation=(0, 0.054, 0)
+                                Box size=(0.1, 0.054, 0.1)
+                    Translate translation=(0.041, 0.445, 0.029)
+                        Intersection
+                            Ellipsoid radii=(0.051, 0.055, 0.051)
+                            Translate translation=(0, 0.055, 0)
+                                Box size=(0.101, 0.055, 0.101)
+                    Translate translation=(0.011, 0.411, 0.082)
+                        Intersection
+                            Ellipsoid radii=(0.05, 0.054, 0.05)
+                            Translate translation=(0, 0.054, 0)
+                                Box size=(0.1, 0.054, 0.1)
+                    Translate translation=(-0.017, 0.241, 0.107)
+                        Intersection
+                            Ellipsoid radii=(0.043, 0.046, 0.043)
+                            Translate translation=(0, 0.046, 0)
+                                Box size=(0.093, 0.046, 0.093)
+                    Translate translation=(-0.1, 0.316, 0.065)
+                        Intersection
+                            Ellipsoid radii=(0.046, 0.049, 0.046)
+                            Translate translation=(0, 0.049, 0)
+                                Box size=(0.096, 0.049, 0.096)
+                    Translate translation=(-0.144, 0.184, 0.023)
+                        Intersection
+                            Ellipsoid radii=(0.041, 0.044, 0.041)
+                            Translate translation=(0, 0.044, 0)
+                                Box size=(0.091, 0.044, 0.091)
+                    Translate translation=(-0.137, 0.33, -0.182)
+                        Intersection
+                            Ellipsoid radii=(0.046, 0.05, 0.046)
+                            Translate translation=(0, 0.05, 0)
+                                Box size=(0.096, 0.05, 0.096)
+                    Translate translation=(-0.027, 0.234, -0.11)
+                        Intersection
+                            Ellipsoid radii=(0.043, 0.046, 0.043)
+                            Translate translation=(0, 0.046, 0)
+                                Box size=(0.093, 0.046, 0.093)
+                    Translate translation=(0.039, 0.344, -0.121)
+                        Intersection
+                            Ellipsoid radii=(0.047, 0.051, 0.047)
+                            Translate translation=(0, 0.051, 0)
+                                Box size=(0.097, 0.051, 0.097)
+                    Translate translation=(0.101, 0.32, -0.086)
+                        Intersection
+                            Ellipsoid radii=(0.046, 0.05, 0.046)
+                            Translate translation=(0, 0.05, 0)
+                                Box size=(0.096, 0.05, 0.096)
+        Translate translation=(0, 1.5, 0)
+            Box size=(3, 1.5, 3)

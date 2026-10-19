@@ -1,0 +1,78 @@
+# Moss turf 0: a round, springy cushion of hair-cap moss about 0.45 m tall and 0.5 m across, a dome of olive-green moss with a
+# younger, brighter crown, nine sporophyte stalks fanning up and out of it, each topped by a plump rust-brown spore capsule.
+# The moss counterpart of grass-turf0, with the same footprint and height; few chunky shapes so it stays light to scatter.
+# Few, chunky shapes rather than a bristle of fine ones, so it stays light enough to scatter by the hundreds.
+format 1
+
+# Detail as the grass and flowers have it: the fine stalks and thin stems are small next to the model's size
+Detail detail=0.45
+    Intersection
+        Union
+            Material material=moss_soil
+                Translate translation=(0, 0, 0)
+                    Distort amount=0.002 frequency=12
+                        Intersection
+                            Ellipsoid radii=(0.17, 0.05, 0.17)
+                            Translate translation=(0, 0.05, 0)
+                                Box size=(0.22, 0.05, 0.22)
+            Material material=moss_cushion
+                Translate translation=(0, 0, 0)
+                    Distort amount=0.004 frequency=9
+                        Intersection
+                            Ellipsoid radii=(0.25, 0.17, 0.24)
+                            Translate translation=(0, 0.17, 0)
+                                Box size=(0.3, 0.17, 0.29)
+            Material material=moss_teal
+                Union
+                    Translate translation=(-0.12, 0, 0.1)
+                        Distort amount=0.003 frequency=10
+                            Intersection
+                                Ellipsoid radii=(0.1, 0.09, 0.1)
+                                Translate translation=(0, 0.09, 0)
+                                    Box size=(0.15, 0.09, 0.15)
+                    Translate translation=(0.14, 0, -0.07)
+                        Distort amount=0.003 frequency=10
+                            Intersection
+                                Ellipsoid radii=(0.09, 0.08, 0.1)
+                                Translate translation=(0, 0.08, 0)
+                                    Box size=(0.14, 0.08, 0.15)
+            Material material=moss_bright
+                Translate translation=(0.02, 0.07, 0)
+                    Distort amount=0.004 frequency=10
+                        Intersection
+                            Ellipsoid radii=(0.16, 0.15, 0.16)
+                            Translate translation=(0, 0.15, 0)
+                                Box size=(0.21, 0.15, 0.21)
+            Material material=moss_stalk
+                Union
+                    Capsule a=(0.065, 0, -0.001) b=(0.114, 0.375, -0.002) radius=0.016
+                    Capsule a=(0.082, 0, 0.067) b=(0.143, 0.267, 0.117) radius=0.016
+                    Capsule a=(0.031, 0, 0.101) b=(0.055, 0.27, 0.177) radius=0.016
+                    Capsule a=(-0.013, 0, 0.018) b=(-0.024, 0.338, 0.032) radius=0.016
+                    Capsule a=(-0.11, 0, 0.062) b=(-0.193, 0.275, 0.109) radius=0.016
+                    Capsule a=(-0.137, 0, -0.023) b=(-0.239, 0.297, -0.04) radius=0.016
+                    Capsule a=(-0.031, 0, -0.063) b=(-0.055, 0.233, -0.11) radius=0.016
+                    Capsule a=(-0.002, 0, -0.107) b=(-0.004, 0.225, -0.187) radius=0.016
+                    Capsule a=(0.059, 0, -0.064) b=(0.104, 0.222, -0.111) radius=0.016
+            Material material=moss_capsule
+                Union
+                    Translate translation=(0.114, 0.405, -0.002)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(0.143, 0.297, 0.117)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(0.055, 0.3, 0.177)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(-0.024, 0.368, 0.032)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(-0.193, 0.305, 0.109)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(-0.239, 0.327, -0.04)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(-0.055, 0.263, -0.11)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(-0.004, 0.255, -0.187)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+                    Translate translation=(0.104, 0.252, -0.111)
+                        Ellipsoid radii=(0.032, 0.05, 0.032)
+        Translate translation=(0, 1.5, 0)
+            Box size=(3, 1.5, 3)

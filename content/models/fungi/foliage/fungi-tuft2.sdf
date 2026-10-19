@@ -1,0 +1,37 @@
+# Fungi tuft 2: five pestle puffballs, the tallest 1.1 m, each a creamy club-shaped head on a thick stalk, standing in a close
+# group of falling heights on a mound of humus. The tallest of the tufts, oversized so it reads at a distance; the counterpart of
+# flower2. They barely sway.
+format 1
+
+# Detail as the grass and flowers have it: the fine stalks and thin stems are small next to the model's size
+Detail detail=1.51
+    Intersection
+        Union
+            Material material=tuft_soil
+                Translate translation=(0, 0, 0)
+                    Distort amount=0.008 frequency=12
+                        Intersection
+                            Ellipsoid radii=(0.22, 0.05, 0.22)
+                            Translate translation=(0, 0.05, 0)
+                                Box size=(0.27, 0.05, 0.27)
+            Material material=tuft_puffball_stalk
+                Union
+                    ArbitraryRoundCone a=(0, -0.01, 0) b=(0.02, 0.732, 0) radiusA=0.09 radiusB=0.06
+                    ArbitraryRoundCone a=(0.22, -0.01, 0.1) b=(0.24, 0.527, 0.1) radiusA=0.071 radiusB=0.048
+                    ArbitraryRoundCone a=(-0.2, -0.01, 0.14) b=(-0.18, 0.408, 0.14) radiusA=0.06 radiusB=0.04
+                    ArbitraryRoundCone a=(0.04, -0.01, -0.24) b=(0.06, 0.322, -0.24) radiusA=0.053 radiusB=0.035
+                    ArbitraryRoundCone a=(-0.12, -0.01, -0.2) b=(-0.1, 0.223, -0.2) radiusA=0.041 radiusB=0.028
+            Material material=tuft_puffball
+                Union
+                    Translate translation=(0.02, 0.84, 0)
+                        Ellipsoid radii=(0.12, 0.18, 0.12)
+                    Translate translation=(0.24, 0.613, 0.1)
+                        Ellipsoid radii=(0.095, 0.143, 0.095)
+                    Translate translation=(-0.18, 0.48, 0.14)
+                        Ellipsoid radii=(0.08, 0.12, 0.08)
+                    Translate translation=(0.06, 0.385, -0.24)
+                        Ellipsoid radii=(0.07, 0.105, 0.07)
+                    Translate translation=(-0.1, 0.272, -0.2)
+                        Ellipsoid radii=(0.055, 0.083, 0.055)
+        Translate translation=(0, 1.5, 0)
+            Box size=(3, 1.5, 3)

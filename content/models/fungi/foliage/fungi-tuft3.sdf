@@ -1,0 +1,71 @@
+# Fungi tuft 3: seven scarlet elf cups about 0.4 m tall, glossy red bowls open to the sky on short, pale stalks, tilted a little
+# this way and that and standing round a mound of humus. Oversized for the forest floor, so the red reads at a distance; the
+# counterpart of flower3. They barely sway.
+format 1
+
+# Detail as the grass and flowers have it: the fine stalks and thin stems are small next to the model's size
+Detail detail=0.91
+    Intersection
+        Union
+            Material material=tuft_soil
+                Translate translation=(0, 0, 0)
+                    Distort amount=0.008 frequency=12
+                        Intersection
+                            Ellipsoid radii=(0.2, 0.04, 0.2)
+                            Translate translation=(0, 0.04, 0)
+                                Box size=(0.25, 0.04, 0.25)
+            Material material=tuft_cup_stalk
+                Union
+                    ArbitraryRoundCone a=(0.175, -0.01, 0.022) b=(0.204, 0.149, 0.026) radiusA=0.033 radiusB=0.024
+                    ArbitraryRoundCone a=(0.114, -0.01, 0.099) b=(0.137, 0.135, 0.118) radiusA=0.03 radiusB=0.022
+                    ArbitraryRoundCone a=(-0.002, -0.01, 0.156) b=(-0.003, 0.236, 0.186) radiusA=0.03 radiusB=0.022
+                    ArbitraryRoundCone a=(-0.159, -0.01, 0.084) b=(-0.186, 0.278, 0.098) radiusA=0.022 radiusB=0.016
+                    ArbitraryRoundCone a=(-0.174, -0.01, -0.086) b=(-0.201, 0.238, -0.099) radiusA=0.026 radiusB=0.019
+                    ArbitraryRoundCone a=(-0.065, -0.01, -0.182) b=(-0.075, 0.134, -0.21) radiusA=0.03 radiusB=0.022
+                    ArbitraryRoundCone a=(0.057, -0.01, -0.047) b=(0.08, 0.172, -0.066) radiusA=0.025 radiusB=0.018
+            Material material=tuft_cup
+                Union
+                    Translate translation=(0.204, 0.199, 0.026)
+                        Rotate rotation=(0.032, 0, -0.248)
+                            Subtraction
+                                Ellipsoid radii=(0.11, 0.088, 0.11)
+                                Translate translation=(0, 0.06, 0)
+                                    Ellipsoid radii=(0.095, 0.077, 0.095)
+                    Translate translation=(0.137, 0.18, 0.118)
+                        Rotate rotation=(0.164, 0, -0.189)
+                            Subtraction
+                                Ellipsoid radii=(0.1, 0.08, 0.1)
+                                Translate translation=(0, 0.055, 0)
+                                    Ellipsoid radii=(0.086, 0.07, 0.086)
+                    Translate translation=(-0.003, 0.281, 0.186)
+                        Rotate rotation=(0.25, 0, 0.004)
+                            Subtraction
+                                Ellipsoid radii=(0.101, 0.081, 0.101)
+                                Translate translation=(0, 0.055, 0)
+                                    Ellipsoid radii=(0.087, 0.07, 0.087)
+                    Translate translation=(-0.186, 0.312, 0.098)
+                        Rotate rotation=(0.116, 0, 0.221)
+                            Subtraction
+                                Ellipsoid radii=(0.075, 0.06, 0.075)
+                                Translate translation=(0, 0.041, 0)
+                                    Ellipsoid radii=(0.064, 0.052, 0.064)
+                    Translate translation=(-0.201, 0.278, -0.099)
+                        Rotate rotation=(-0.111, 0, 0.224)
+                            Subtraction
+                                Ellipsoid radii=(0.088, 0.07, 0.088)
+                                Translate translation=(0, 0.048, 0)
+                                    Ellipsoid radii=(0.075, 0.061, 0.075)
+                    Translate translation=(-0.075, 0.179, -0.21)
+                        Rotate rotation=(-0.236, 0, 0.084)
+                            Subtraction
+                                Ellipsoid radii=(0.1, 0.08, 0.1)
+                                Translate translation=(0, 0.055, 0)
+                                    Ellipsoid radii=(0.086, 0.07, 0.086)
+                    Translate translation=(0.08, 0.209, -0.066)
+                        Rotate rotation=(-0.159, 0, -0.193)
+                            Subtraction
+                                Ellipsoid radii=(0.082, 0.066, 0.082)
+                                Translate translation=(0, 0.045, 0)
+                                    Ellipsoid radii=(0.071, 0.058, 0.071)
+        Translate translation=(0, 1.5, 0)
+            Box size=(3, 1.5, 3)

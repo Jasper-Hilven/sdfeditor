@@ -1,0 +1,74 @@
+# Moss turf 2: a tall tussock of hair-cap moss about 1 m tall, a star of nine fat, pointed leaves round a hummock of moss, eleven
+# stalks standing clear above it, four of them reaching a metre, each carrying a plump rust-brown spore capsule. The tallest of
+# the moss turfs, the counterpart of grass-turf2.
+# Few, chunky shapes rather than a bristle of fine ones, so it stays light enough to scatter by the hundreds.
+format 1
+
+# Detail as the grass and flowers have it: the fine stalks and thin stems are small next to the model's size
+Detail detail=0.393
+    Intersection
+        Union
+            Material material=moss_soil
+                Translate translation=(0, 0, 0)
+                    Distort amount=0.002 frequency=12
+                        Intersection
+                            Ellipsoid radii=(0.17, 0.05, 0.17)
+                            Translate translation=(0, 0.05, 0)
+                                Box size=(0.22, 0.05, 0.22)
+            Material material=moss_cushion
+                Translate translation=(0, 0, 0)
+                    Distort amount=0.004 frequency=9
+                        Intersection
+                            Ellipsoid radii=(0.24, 0.16, 0.24)
+                            Translate translation=(0, 0.16, 0)
+                                Box size=(0.29, 0.16, 0.29)
+            Material material=moss_bright
+                Union
+                    VesicaSegment a=(0.029, 0.08, 0.009) b=(0.191, 0.2, 0.059) width=0.03
+                    VesicaSegment a=(0.016, 0.08, 0.025) b=(0.108, 0.25, 0.168) width=0.03
+                    VesicaSegment a=(-0.004, 0.08, 0.03) b=(-0.025, 0.2, 0.198) width=0.03
+                    VesicaSegment a=(-0.022, 0.08, 0.02) b=(-0.147, 0.25, 0.136) width=0.03
+                    VesicaSegment a=(-0.03, 0.08, 0.001) b=(-0.2, 0.2, 0.01) width=0.03
+                    VesicaSegment a=(-0.024, 0.08, -0.018) b=(-0.159, 0.25, -0.121) width=0.03
+                    VesicaSegment a=(-0.007, 0.08, -0.029) b=(-0.044, 0.2, -0.195) width=0.03
+                    VesicaSegment a=(0.014, 0.08, -0.027) b=(0.091, 0.25, -0.178) width=0.03
+                    VesicaSegment a=(0.028, 0.08, -0.012) b=(0.184, 0.2, -0.078) width=0.03
+            Material material=moss_stalk
+                Union
+                    Capsule a=(0.048, 0, -0.005) b=(0.092, 0.943, -0.009) radius=0.011
+                    Capsule a=(0.01, 0, 0.008) b=(0.035, 0.862, 0.03) radius=0.011
+                    Capsule a=(0.008, 0, 0.013) b=(0.027, 0.952, 0.041) radius=0.011
+                    Capsule a=(0, 0, 0.037) b=(0, 0.859, 0.078) radius=0.011
+                    Capsule a=(-0.067, 0, 0.091) b=(-0.107, 0.801, 0.146) radius=0.011
+                    Capsule a=(-0.069, 0, 0.017) b=(-0.121, 0.633, 0.03) radius=0.011
+                    Capsule a=(-0.155, 0, -0.023) b=(-0.238, 0.793, -0.035) radius=0.011
+                    Capsule a=(-0.085, 0, -0.127) b=(-0.131, 0.773, -0.194) radius=0.011
+                    Capsule a=(0.006, 0, -0.149) b=(0.008, 0.627, -0.23) radius=0.011
+                    Capsule a=(0.064, 0, -0.1) b=(0.101, 0.777, -0.159) radius=0.011
+                    Capsule a=(0.097, 0, -0.059) b=(0.154, 0.659, -0.094) radius=0.011
+            Material material=moss_capsule
+                Union
+                    Translate translation=(0.092, 0.976, -0.009)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(0.035, 0.895, 0.03)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(0.027, 0.985, 0.041)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(0, 0.892, 0.078)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(-0.107, 0.834, 0.146)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(-0.121, 0.666, 0.03)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(-0.238, 0.826, -0.035)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(-0.131, 0.806, -0.194)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(0.008, 0.66, -0.23)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(0.101, 0.81, -0.159)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+                    Translate translation=(0.154, 0.692, -0.094)
+                        Ellipsoid radii=(0.03, 0.055, 0.03)
+        Translate translation=(0, 1.5, 0)
+            Box size=(3, 1.5, 3)
