@@ -25,6 +25,10 @@ namespace SdfLevel.Editor
     /// <item>four invisible walls round the playable rectangle, tall enough that the hills cannot be climbed;</item>
     /// <item>the placed models (castles, big rocks; level.json "placements"): instances of the prefabs <see cref="MushroomBuilder"/>
     /// builds, static like the ground, with the colliders their prefabs bring; a placement whose prefab is missing logs a warning;</item>
+    /// <item>the scattered models (grass, flowers; level.json "instances", the bake's instances.bin): no GameObject each, but one
+    /// <see cref="InstancedScatterRenderer"/> that draws them all instanced, in the draw groups of level.json "drawGroups", reading the
+    /// prototypes' meshes from their prefabs; it is the one object besides the player that is not static, and has no colliders. Next to
+    /// it, the level's <see cref="Wind"/>;</item>
     /// <item>the sun, sky and post-processing of the mushroom scene (<see cref="MushroomScene.BuildLighting"/>);</item>
     /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>.</item>
     /// </list>
@@ -53,12 +57,18 @@ namespace SdfLevel.Editor
 
         /// <summary>
         /// Raise when the way level scenes are built changes, so every level scene is rebuilt when the editor loads. Version 2: ground
-        /// regions from the region map, and placed models.
+        /// regions from the region map, and placed models. Version 3: the scattered models through the instanced renderer, and wind.
         /// </summary>
-        public const int BuilderVersion = 2;
+        public const int BuilderVersion = 3;
 
         public const string LevelRootName = "Level";
         public const string PlacedName = "Placed";
+        public const string ScatterName = "Scatter";
+        public const string WindName = "Wind";
+
+        /// <summary>The bake's instances, instances.bin, copied next to the level's meshes as instances.bytes, which Unity reads as a TextAsset.</summary>
+        public const string InstancesFile = "instances.bin";
+        public const string InstancesAsset = "instances.bytes";
 
         /// <summary>The region map of a level, regions.png, as the bake names it.</summary>
         public const string RegionMapFile = "regions.png";
@@ -348,6 +358,7 @@ namespace SdfLevel.Editor
             AddWalls(levelRoot.transform, data);
             var placed = AddPlacements(levelRoot.transform, scene, data);
             MarkStatic(levelRoot);
+            var scattered = AddScatter(scene, level, meshFolder, data);
             AddPlayer(scene, data);
 
             EditorSceneManager.SaveScene(scene, scenePath);
@@ -361,7 +372,7 @@ namespace SdfLevel.Editor
             AddToBuildSettings(scenePath);
             if (openedHere)
                 EditorSceneManager.CloseScene(scene, true);
-            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models");
+            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered");
         }
 
         private static bool NothingWorthKeepingOpen()
@@ -505,6 +516,79 @@ namespace SdfLevel.Editor
                 count++;
             }
             return count;
+        }
+
+        /// <summary>
+        /// The scattered models: a root object <see cref="ScatterName"/> with the <see cref="InstancedScatterRenderer"/>, pointed at the
+        /// level's instances (instances.bin, copied to instances.bytes beside the level's meshes, written only when it changed), at each
+        /// prototype's prefab and at the shared toon and outline materials, with each draw group's settings from level.json. Not static:
+        /// static batching would merge the meshes it draws. The level's <see cref="Wind"/> is its own root object. Returns how many
+        /// instances there are; a level without any gets neither the renderer nor the copy.
+        /// </summary>
+        private static int AddScatter(Scene scene, string level, string meshFolder, JObject data)
+        {
+            var assetPath = $"{meshFolder}/{InstancesAsset}";
+            var instances = data["instances"] as JObject;
+            var groups = data["drawGroups"] as JArray ?? new JArray();
+            if (instances == null)
+            {
+                if (File.Exists(assetPath))
+                    AssetDatabase.DeleteAsset(assetPath);
+                if (groups.Count == 0)
+                    return 0;
+            }
+
+            TextAsset bytes = null;
+            if (instances != null)
+            {
+                var source = $"{level}/{instances.Value<string>("file") ?? InstancesFile}";
+                var content = File.ReadAllBytes(source);
+                if (!File.Exists(assetPath) || !content.AsSpan().SequenceEqual(File.ReadAllBytes(assetPath)))
+                {
+                    MushroomBuilder.EnsureFolder(meshFolder);
+                    File.WriteAllBytes(assetPath, content);
+                    AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                }
+                bytes = AssetDatabase.LoadAssetAtPath<TextAsset>(assetPath)
+                        ?? throw new InvalidDataException($"Could not import {assetPath}");
+            }
+
+            var root = new GameObject(ScatterName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            var renderer = root.AddComponent<InstancedScatterRenderer>();
+            renderer.instances = bytes;
+            renderer.toonMaterial = AssetDatabase.LoadAssetAtPath<Material>(MushroomBuilder.ToonMaterialPath);
+            renderer.outlineMaterial = AssetDatabase.LoadAssetAtPath<Material>(MushroomBuilder.ToonOutlineMaterialPath);
+            renderer.lowQualityLevel = RenderPipelineSetup.Web.Name;
+            renderer.groups = groups.Select(g => new ScatterDrawGroup
+            {
+                name = g.Value<string>("name"),
+                rings = g["rings"].ToObject<float[]>(),
+                outlineRings = g.Value<int?>("outline") ?? 0,
+                shadowRings = g.Value<int?>("shadows") ?? 0,
+                lowShadowRings = g.Value<int?>("lowShadows") ?? 0,
+                blend = g.Value<float?>("blend") ?? 1,
+                fade = g.Value<float?>("fade") ?? 0,
+                wind = g.Value<float?>("wind") ?? 0,
+                windHeight = g.Value<float?>("windHeight") ?? 1,
+                tintHeight = g.Value<float?>("tintHeight") ?? 0,
+                lowDensity = g.Value<float?>("lowDensity") ?? 1,
+                lowDistance = g.Value<float?>("lowDistance") ?? 1,
+            }).ToArray();
+            renderer.prototypes = (instances?["prototypes"] as JArray ?? new JArray()).Select(p =>
+            {
+                var model = p.Value<string>("model");
+                var prefabPath = $"{MushroomBuilder.PrefabFolder}/{model}.prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab == null)
+                    Debug.LogWarning($"SDF level: there is no prefab {prefabPath} for the scattered model {model}; mesh content/models (sdf unity) and let the prefabs build");
+                return new ScatterPrototype { name = model, group = p.Value<string>("group"), prefab = prefab };
+            }).ToArray();
+
+            var wind = new GameObject(WindName);
+            SceneManager.MoveGameObjectToScene(wind, scene);
+            wind.AddComponent<Wind>();
+            return instances?.Value<int?>("count") ?? 0;
         }
 
         private static Mesh MeshAsset(string path)

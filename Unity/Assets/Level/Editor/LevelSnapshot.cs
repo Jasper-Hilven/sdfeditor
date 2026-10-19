@@ -14,7 +14,12 @@ namespace SdfLevel.Editor
     /// Renders a level scene to PNGs for checking a change, through its player's camera: at eye height from the spawn point in four
     /// directions, from the playable area's corner towards the hills, from above, next to a tree and a mushroom (placed for the shot
     /// only), and the first view again on the integrated GPU / web quality level. It logs what the ground costs in each eye-height view:
-    /// the triangles of the levels of detail the chunks' LOD groups pick, inside the view.
+    /// the triangles of the levels of detail the chunks' LOD groups pick, inside the view; and what the instanced foliage costs: the
+    /// instances, draws and triangles <see cref="InstancedScatterRenderer"/> drew for it (outlines and shadow casters apart).
+    /// <para>
+    /// With scattered foliage it also shoots the grass close up and across the field, where the rings hand over, on both quality
+    /// levels, and the same close view at two moments of the wind (wind_0, wind_1), logging how many pixels differ between them.
+    /// </para>
     /// <para>
     /// With placed castles it also shoots the first castle (the one at +x, the pipeline's -x) from the meadow, at its gate, from its
     /// courtyard and from its wall-walk, the ground regions' edges close up and from above, and checks the colliders by walking a
@@ -111,10 +116,11 @@ namespace SdfLevel.Editor
             {
                 MushroomSnapshot.RenderView(camera, position, rotation, Path.Combine(directory, name + ".png"), width, height);
             }
+            var scatter = scene.GetRootGameObjects().Select(g => g.GetComponent<InstancedScatterRenderer>()).FirstOrDefault(r => r != null);
             void EyeShot(string name, Vector3 position, Quaternion rotation)
             {
                 Shot(name, position, rotation);
-                Debug.Log($"SDF level: {name}: the ground draws {GroundTrianglesInView(scene, camera, position, rotation):N0} triangles");
+                Debug.Log($"SDF level: {name}: the ground draws {GroundTrianglesInView(scene, camera, position, rotation):N0} triangles{FoliageCost(scatter)}");
             }
 
             var level = QualitySettings.GetQualityLevel();
@@ -134,15 +140,76 @@ namespace SdfLevel.Editor
 
                 CompareWithModels(scene, eye, directory, Shot);
                 ShootCastleAndRegions(scene, Shot, EyeShot);
+                if (scatter != null)
+                    ShootFoliage(scene, directory, "", Shot, EyeShot);
 
                 QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
+                if (scatter != null)
+                    ShootFoliage(scene, directory, "_web", Shot, EyeShot);
             }
             finally
             {
                 QualitySettings.SetQualityLevel(level, true);
             }
             Debug.Log($"SDF level: snapshots written to {directory}");
+        }
+
+        /// <summary>What the foliage cost in the view just rendered, for the log; nothing without an instanced renderer.</summary>
+        private static string FoliageCost(InstancedScatterRenderer scatter)
+        {
+            if (scatter == null)
+                return "";
+            var frame = scatter.LastFrame;
+            var rings = frame.InstancesPerRing == null ? "" : string.Join(" / ", frame.InstancesPerRing.Take(3));
+            return $"; the foliage {frame.Instances:N0} instances (per ring {rings}), {frame.Draws + frame.OutlineDraws} draws ({frame.OutlineDraws} of them outlines), " +
+                   $"{frame.Triangles + frame.OutlineTriangles:N0} triangles ({frame.OutlineTriangles:N0} of them outlines), {frame.ShadowTriangles:N0} into the shadow map";
+        }
+
+        /// <summary>
+        /// The foliage from eye height in the field between the castles: looking down into the grass close by, across the field where the
+        /// rings hand over (6, 15 and 35 m on the high preset), and the close view twice with the wind held at two moments, logging how much
+        /// of the picture moved.
+        /// </summary>
+        private static void ShootFoliage(Scene scene, string directory, string suffix, Action<string, Vector3, Quaternion, int, int> shot,
+            Action<string, Vector3, Quaternion> eyeShot)
+        {
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            var field = OnGround(new Vector3(-24, 0, 26)) + up;
+            eyeShot("foliage_close" + suffix, field, Quaternion.Euler(28, 200, 0));
+            eyeShot("foliage_rings" + suffix, field, Quaternion.Euler(4, 160, 0));
+            var other = OnGround(new Vector3(30, 0, -20)) + up;
+            eyeShot("foliage_field" + suffix, other, Quaternion.Euler(6, 20, 0));
+
+            var wind = scene.GetRootGameObjects().Select(g => g.GetComponent<Wind>()).FirstOrDefault(w => w != null);
+            if (wind == null)
+                return;
+            var phase = wind.phase;
+            try
+            {
+                var paths = new List<string>();
+                foreach (var (name, at) in new[] { ("wind_0", 0f), ("wind_1", Mathf.PI) })
+                {
+                    wind.phase = at;
+                    wind.Apply();
+                    shot(name + suffix, field, Quaternion.Euler(28, 200, 0), 1920, 1080);
+                    paths.Add(Path.Combine(directory, name + suffix + ".png"));
+                }
+                var a = new Texture2D(2, 2);
+                var b = new Texture2D(2, 2);
+                a.LoadImage(File.ReadAllBytes(paths[0]));
+                b.LoadImage(File.ReadAllBytes(paths[1]));
+                var (pa, pb) = (a.GetPixels32(), b.GetPixels32());
+                var moved = pa.Where((p, i) => Mathf.Abs(p.r - pb[i].r) + Mathf.Abs(p.g - pb[i].g) + Mathf.Abs(p.b - pb[i].b) > 24).Count();
+                Debug.Log($"SDF level: wind{suffix}: {moved:N0} of {pa.Length:N0} pixels ({100f * moved / pa.Length:0.0} %) differ between two moments of the wind");
+                UnityEngine.Object.DestroyImmediate(a);
+                UnityEngine.Object.DestroyImmediate(b);
+            }
+            finally
+            {
+                wind.phase = phase;
+                wind.Apply();
+            }
         }
 
         /// <summary>The placed instances of a model under Level/Placed, by position along x (Unity's).</summary>

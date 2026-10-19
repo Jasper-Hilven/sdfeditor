@@ -12,87 +12,90 @@ sod =
             Translate translation=(0, 0.2, 0)
                 Box size=(0.7, 0.2, 0.6)
 
-Union
-    Material material=grass_soil
-        $sod
-    # The green mat: the sod grown by a centimetre, kept only above a wavy line near its top, so earth shows round the rim
-    Material material=grass_blade
-        Union
-            # The mat, with a few low, soft hummocks of grass melted into it
-            SmoothUnion smoothness=0.03
-                Intersection
-                    Round radius=0.01
-                        $sod
-                    Distort amount=0.01 frequency=8
-                        Plane normal=(0, -1, 0) height=0.045
-                Translate translation=(0.093, 0.075, 0.145)
-                    Rotate rotation=(0, 2.838, 0)
-                        Ellipsoid radii=(0.13, 0.035, 0.103)
-                Translate translation=(-0.024, 0.075, -0.152)
-                    Rotate rotation=(0, 1.595, 0)
-                        Ellipsoid radii=(0.127, 0.04, 0.106)
-                Translate translation=(-0.221, 0.067, -0.171)
-                    Rotate rotation=(0, 2.143, 0)
-                        Ellipsoid radii=(0.139, 0.037, 0.095)
-                Translate translation=(-0.151, 0.076, 0.062)
-                    Rotate rotation=(0, 1.972, 0)
-                        Ellipsoid radii=(0.122, 0.031, 0.109)
-                Translate translation=(0.242, 0.072, -0.012)
-                    Rotate rotation=(0, 0.956, 0)
-                        Ellipsoid radii=(0.12, 0.031, 0.086)
-                Translate translation=(0.175, 0.068, -0.197)
-                    Rotate rotation=(0, 2.786, 0)
-                        Ellipsoid radii=(0.111, 0.034, 0.104)
-                Translate translation=(-0.056, 0.067, 0.248)
-                    Rotate rotation=(0, 0.724, 0)
-                        Ellipsoid radii=(0.127, 0.039, 0.107)
-            # The tufts, each three short, fat blades fanning out of the mat from one spot
+# Half the vertices its size would give it: the tufts are fat enough to keep their shape on the coarser grid, and the
+# turf is scattered by the thousand, so it stays at about 2k triangles
+Detail detail=0.5
+    Union
+        Material material=grass_soil
+            $sod
+        # The green mat: the sod grown by a centimetre, kept only above a wavy line near its top, so earth shows round the rim
+        Material material=grass_blade
             Union
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(-0.038, 0.07, 0.038) b=(-0.094, 0.248, 0.069) width=0.025
-                    VesicaSegment a=(-0.038, 0.07, 0.038) b=(-0.038, 0.226, -0.002) width=0.025
-                    VesicaSegment a=(-0.038, 0.07, 0.038) b=(0.018, 0.21, 0.057) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(0.339, 0.054, -0.022) b=(0.392, 0.204, 0.014) width=0.025
-                    VesicaSegment a=(0.339, 0.054, -0.022) b=(0.295, 0.21, -0.014) width=0.025
-                    VesicaSegment a=(0.339, 0.054, -0.022) b=(0.356, 0.228, -0.076) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(-0.252, 0.061, 0.008) b=(-0.289, 0.19, 0.057) width=0.025
-                    VesicaSegment a=(-0.252, 0.061, 0.008) b=(-0.259, 0.212, -0.053) width=0.025
-                    VesicaSegment a=(-0.252, 0.061, 0.008) b=(-0.187, 0.193, 0.029) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(0.104, 0.062, 0.188) b=(0.065, 0.187, 0.16) width=0.025
-                    VesicaSegment a=(0.104, 0.062, 0.188) b=(0.153, 0.223, 0.177) width=0.025
-                    VesicaSegment a=(0.104, 0.062, 0.188) b=(0.077, 0.203, 0.234) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(-0.327, 0.045, 0.198) b=(-0.295, 0.173, 0.257) width=0.025
-                    VesicaSegment a=(-0.327, 0.045, 0.198) b=(-0.383, 0.199, 0.212) width=0.025
-                    VesicaSegment a=(-0.327, 0.045, 0.198) b=(-0.32, 0.22, 0.129) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(0.155, 0.048, -0.293) b=(0.185, 0.175, -0.35) width=0.025
-                    VesicaSegment a=(0.155, 0.048, -0.293) b=(0.187, 0.221, -0.259) width=0.025
-                    VesicaSegment a=(0.155, 0.048, -0.293) b=(0.109, 0.217, -0.291) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(-0.248, 0.056, -0.165) b=(-0.293, 0.178, -0.167) width=0.025
-                    VesicaSegment a=(-0.248, 0.056, -0.165) b=(-0.194, 0.232, -0.191) width=0.025
-                    VesicaSegment a=(-0.248, 0.056, -0.165) b=(-0.227, 0.216, -0.107) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(-0.034, 0.066, -0.142) b=(-0.065, 0.234, -0.116) width=0.025
-                    VesicaSegment a=(-0.034, 0.066, -0.142) b=(-0.051, 0.214, -0.183) width=0.025
-                    VesicaSegment a=(-0.034, 0.066, -0.142) b=(0.01, 0.22, -0.131) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(-0.157, 0.054, 0.246) b=(-0.207, 0.208, 0.247) width=0.025
-                    VesicaSegment a=(-0.157, 0.054, 0.246) b=(-0.116, 0.176, 0.202) width=0.025
-                    VesicaSegment a=(-0.157, 0.054, 0.246) b=(-0.123, 0.231, 0.294) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(0.327, 0.044, 0.203) b=(0.268, 0.202, 0.218) width=0.025
-                    VesicaSegment a=(0.327, 0.044, 0.203) b=(0.352, 0.21, 0.155) width=0.025
-                    VesicaSegment a=(0.327, 0.044, 0.203) b=(0.353, 0.215, 0.263) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(0.159, 0.067, -0.002) b=(0.104, 0.221, 0.037) width=0.025
-                    VesicaSegment a=(0.159, 0.067, -0.002) b=(0.157, 0.218, -0.055) width=0.025
-                    VesicaSegment a=(0.159, 0.067, -0.002) b=(0.19, 0.206, 0.026) width=0.025
-                SmoothUnion smoothness=0.006
-                    VesicaSegment a=(-0.07, 0.048, -0.31) b=(-0.065, 0.212, -0.368) width=0.025
-                    VesicaSegment a=(-0.07, 0.048, -0.31) b=(-0.02, 0.187, -0.281) width=0.025
-                    VesicaSegment a=(-0.07, 0.048, -0.31) b=(-0.102, 0.176, -0.267) width=0.025
+                # The mat, with a few low, soft hummocks of grass melted into it
+                SmoothUnion smoothness=0.03
+                    Intersection
+                        Round radius=0.01
+                            $sod
+                        Distort amount=0.01 frequency=8
+                            Plane normal=(0, -1, 0) height=0.045
+                    Translate translation=(0.093, 0.075, 0.145)
+                        Rotate rotation=(0, 2.838, 0)
+                            Ellipsoid radii=(0.13, 0.035, 0.103)
+                    Translate translation=(-0.024, 0.075, -0.152)
+                        Rotate rotation=(0, 1.595, 0)
+                            Ellipsoid radii=(0.127, 0.04, 0.106)
+                    Translate translation=(-0.221, 0.067, -0.171)
+                        Rotate rotation=(0, 2.143, 0)
+                            Ellipsoid radii=(0.139, 0.037, 0.095)
+                    Translate translation=(-0.151, 0.076, 0.062)
+                        Rotate rotation=(0, 1.972, 0)
+                            Ellipsoid radii=(0.122, 0.031, 0.109)
+                    Translate translation=(0.242, 0.072, -0.012)
+                        Rotate rotation=(0, 0.956, 0)
+                            Ellipsoid radii=(0.12, 0.031, 0.086)
+                    Translate translation=(0.175, 0.068, -0.197)
+                        Rotate rotation=(0, 2.786, 0)
+                            Ellipsoid radii=(0.111, 0.034, 0.104)
+                    Translate translation=(-0.056, 0.067, 0.248)
+                        Rotate rotation=(0, 0.724, 0)
+                            Ellipsoid radii=(0.127, 0.039, 0.107)
+                # The tufts, each three short, fat blades fanning out of the mat from one spot
+                Union
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.038, 0.07, 0.038) b=(-0.094, 0.248, 0.069) width=0.025
+                        VesicaSegment a=(-0.038, 0.07, 0.038) b=(-0.038, 0.226, -0.002) width=0.025
+                        VesicaSegment a=(-0.038, 0.07, 0.038) b=(0.018, 0.21, 0.057) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(0.339, 0.054, -0.022) b=(0.392, 0.204, 0.014) width=0.025
+                        VesicaSegment a=(0.339, 0.054, -0.022) b=(0.295, 0.21, -0.014) width=0.025
+                        VesicaSegment a=(0.339, 0.054, -0.022) b=(0.356, 0.228, -0.076) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.252, 0.061, 0.008) b=(-0.289, 0.19, 0.057) width=0.025
+                        VesicaSegment a=(-0.252, 0.061, 0.008) b=(-0.259, 0.212, -0.053) width=0.025
+                        VesicaSegment a=(-0.252, 0.061, 0.008) b=(-0.187, 0.193, 0.029) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(0.104, 0.062, 0.188) b=(0.065, 0.187, 0.16) width=0.025
+                        VesicaSegment a=(0.104, 0.062, 0.188) b=(0.153, 0.223, 0.177) width=0.025
+                        VesicaSegment a=(0.104, 0.062, 0.188) b=(0.077, 0.203, 0.234) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.327, 0.045, 0.198) b=(-0.295, 0.173, 0.257) width=0.025
+                        VesicaSegment a=(-0.327, 0.045, 0.198) b=(-0.383, 0.199, 0.212) width=0.025
+                        VesicaSegment a=(-0.327, 0.045, 0.198) b=(-0.32, 0.22, 0.129) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(0.155, 0.048, -0.293) b=(0.185, 0.175, -0.35) width=0.025
+                        VesicaSegment a=(0.155, 0.048, -0.293) b=(0.187, 0.221, -0.259) width=0.025
+                        VesicaSegment a=(0.155, 0.048, -0.293) b=(0.109, 0.217, -0.291) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.248, 0.056, -0.165) b=(-0.293, 0.178, -0.167) width=0.025
+                        VesicaSegment a=(-0.248, 0.056, -0.165) b=(-0.194, 0.232, -0.191) width=0.025
+                        VesicaSegment a=(-0.248, 0.056, -0.165) b=(-0.227, 0.216, -0.107) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.034, 0.066, -0.142) b=(-0.065, 0.234, -0.116) width=0.025
+                        VesicaSegment a=(-0.034, 0.066, -0.142) b=(-0.051, 0.214, -0.183) width=0.025
+                        VesicaSegment a=(-0.034, 0.066, -0.142) b=(0.01, 0.22, -0.131) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.157, 0.054, 0.246) b=(-0.207, 0.208, 0.247) width=0.025
+                        VesicaSegment a=(-0.157, 0.054, 0.246) b=(-0.116, 0.176, 0.202) width=0.025
+                        VesicaSegment a=(-0.157, 0.054, 0.246) b=(-0.123, 0.231, 0.294) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(0.327, 0.044, 0.203) b=(0.268, 0.202, 0.218) width=0.025
+                        VesicaSegment a=(0.327, 0.044, 0.203) b=(0.352, 0.21, 0.155) width=0.025
+                        VesicaSegment a=(0.327, 0.044, 0.203) b=(0.353, 0.215, 0.263) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(0.159, 0.067, -0.002) b=(0.104, 0.221, 0.037) width=0.025
+                        VesicaSegment a=(0.159, 0.067, -0.002) b=(0.157, 0.218, -0.055) width=0.025
+                        VesicaSegment a=(0.159, 0.067, -0.002) b=(0.19, 0.206, 0.026) width=0.025
+                    SmoothUnion smoothness=0.006
+                        VesicaSegment a=(-0.07, 0.048, -0.31) b=(-0.065, 0.212, -0.368) width=0.025
+                        VesicaSegment a=(-0.07, 0.048, -0.31) b=(-0.02, 0.187, -0.281) width=0.025
+                        VesicaSegment a=(-0.07, 0.048, -0.31) b=(-0.102, 0.176, -0.267) width=0.025

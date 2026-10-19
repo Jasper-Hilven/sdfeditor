@@ -32,7 +32,8 @@ const string usage = """
                --lods <n>             levels of detail per mesh, LOD0 included, 1 to 4 (default 1); each further level
                                       has about a third of the triangles of the one before
       sdf level <level.level> --into <folder>                 Bakes the level's ground into <folder>: a .glb per 25 m chunk with
-                                                              its levels of detail, and level.json for Unity's level builder
+                                                              its levels of detail, the scattered models (instances.bin) and
+                                                              level.json for Unity's level builder
       sdf level <directory> --into <folder>                   Bakes every .level in the directory into <folder>/<level name>/
       sdf level --into <folder>                               The same for content/levels
       sdf unity [--resolution <cells>] [--lods <n>]           Updates Unity: meshes content/models into
@@ -307,7 +308,8 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         var level = LevelFile.Load(input);
         var content = ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(input))!);
         var models = content is null ? null : LevelModels.In(Path.Combine(content, "models"));
-        var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models);
+        var modelExists = content is null ? null : LevelModels.Exist(Path.Combine(content, "models"));
+        var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models, modelExists);
         var layout = baked.Layout;
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"Baked {input} into {into} in {stopwatch.Elapsed.TotalSeconds:0.0} s: {baked.ChunkFiles.Count} chunks of {layout.ChunkSize:0.#} m on a {layout.CountX} × {layout.CountZ} grid"));
@@ -322,6 +324,16 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         foreach (var placed in baked.Placements)
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"  placed        {placed.Model} at ({placed.Position.X:0.##}, {placed.Position.Y:0.##}, {placed.Position.Z:0.##}), yaw {placed.Yaw:0.#}°{(placed.Scale != 1 ? ", scale " + placed.Scale.ToString("0.##", CultureInfo.InvariantCulture) : "")}"));
+        var scattered = baked.Scattered;
+        for (var layer = 0; layer < scattered.LayerCounts.Count; layer++)
+        {
+            var scatter = level.Scatters[layer];
+            var counts = scatter.Entries.Select(e => e.Model).Select(m => scattered.Prototypes.ToList().FindIndex(p => p.Model == m))
+                .Select(p => $"{scattered.Prototypes[p].Model} {LevelBaker.Count(scattered.Instances.Count(i => i.Prototype == p))}");
+            Console.WriteLine($"  scattered     {LevelBaker.Count(scattered.LayerCounts[layer])} in group {scatter.Group}: {string.Join(", ", counts)}");
+        }
+        if (scattered.Instances.Count > 0)
+            Console.WriteLine($"  instances     {LevelBaker.Count(scattered.Instances.Count)} in {InstanceFile.FileName}");
         return true;
     }
     catch (SdfProgramFileException exception)

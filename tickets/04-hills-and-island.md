@@ -51,7 +51,9 @@ renderers and outlines would cost several hundred draws, far over the integrated
 
 ## Sky
 
-Sky only beyond the island: the skybox from 00. Optionally a few distant cloud blobs (baked SDF, no outline) for depth.
+Sky only beyond the island. The sky is ticket [07](07-sky.md): presets per level, the meadow's Eye-Moon Night with its glowing abyss
+below the island and rising spores, and the toon tint and distance fade. This ticket adds nothing to the sky. The underside must look
+right under 07's night preset (tower and edge snapshots), and it sits in front of 07's abyss spores.
 
 ## Acceptance
 
