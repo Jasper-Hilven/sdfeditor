@@ -1,11 +1,10 @@
 # Pawn, dark: a button mushroom 2.7 m tall turned like a chess pawn. A broad, flat foot with a swollen bulb round it (the
 # pawn's base), a stout stem tapering up to a flared ring (the pawn's collar), and above it a round young cap, still closed
-# like a ball, olive gills just showing under its rim (the pawn's head). Floating eyes and hands in front of the stem.
+# like a ball, olive gills just showing under its rim (the pawn's head).
 format 1
 collider convex
 
-# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
-# so its eyes and hands get half too
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Union
         SmoothUnion smoothness=0.04
@@ -34,14 +33,3 @@ Detail detail=0.5
                     Translate translation=(0, 1.5, 0)
                         Round radius=0.03
                             CappedCone height=0.06 bottomRadius=0.5 topRadius=0.3
-
-        # Floating eyes, mirrored, in front of the stem, and floating hands either side of it in the stem's flesh
-        SymmetryX
-            Translate translation=(0.19, 1.08, 0.5)
-                Scale scale=(2, 2, 2)
-                    Part part=eye
-        SymmetryX
-            Translate translation=(0.66, 0.84, 0.2)
-                Material material=chess_dark_stem
-                    Scale scale=(2.2, 2.2, 2.2)
-                        Part part=hand
