@@ -326,3 +326,160 @@ sky preset=night                         # content/skies/night.sky
 - The day preset's sky gradient is not shown in the showcase, which keeps the procedural skybox for the 00 comparisons. It is used
   by any level that picks `day`.
 - If the band arrays cost too much on WebGL (uniform count), fix the band count at 6 and pad.
+
+## Status
+
+Done (not committed). Worktree `.claude/worktrees/sky`, branch `sky`, on 3bd0d2b.
+
+- **Presets**: `content/skies/day.sky` (identity tone, the showcase's sun at azimuth 38.7°/32°, a soft blue gradient, its exposure and
+  bloom) and `night.sky` (Eye-Moon Night, as sketched; colours tuned darker on the snapshots, horizon kept dim, abyss spores 0.6 m).
+  - Reader `SDFPipeline/Skies/SkyFile.cs`, records `SkyDefinition.cs`.
+  - `light`, `tone`, `gradient`, `post` are required; the other lines are optional; a given line is complete.
+  - Unknown or repeated lines, entries and keys are rejected with their line.
+  - Level `sky` section (`LevelFile.Sections` + `LevelDefinition.Sky`): `preset=`, plus override lines merged per key, and entries by
+    name and index; `replace=true` drops the preset's entries; a line the preset lacks is added and must be complete. No section means
+    `day`.
+  - An error in the level names its line. One in the preset names the level's sky line plus `content/skies/<preset>.sky:<line>:`.
+- **Choices beyond the sketch**:
+  - abyss bands run from their `from` *down* to the next;
+  - the gradient's lowest band reaches down to where the abyss begins;
+  - gradient plus abyss bands are at most 8;
+  - `floaters` has a `scale` (how many times the model's size it looks from its distance; 8 for the 1 m cap).
+- **Bake**: `LevelBaker` writes `"sky"`, with these parts:
+  - the resolved lines;
+  - `bands`, the combined list the shaders take;
+  - the light's direction;
+  - a 16-hex `hash` of the preset file;
+  - seeded layouts: floaters, 600 abyss spores on the island outline 1.5–30 m out, 250 motes, and star and moon seeds.
+
+  `SkyDocument.cs` and `SkyLayout.cs` hold this. Point lists are one JSON line per point (`InlineNumbers`). The sky's models go into
+  `"models"`. A missing sky model is an error on the sky line. The CLI reports `sky night`.
+- **Models**:
+  - `content/models/sky/eye-moon.sdf`: `Part part=eye` plus parts `moon_lid_upper` / `moon_lid_lower` (content/parts). The lids are
+    shell halves, turned 0.8 rad open about the eye's centre.
+  - `floating-cap0.sdf`: a cap with a flared veil.
+  - Materials in `materials/sky/`; both models are `collider none`.
+  - Meshed into `Unity/Assets/Mushrooms/Generated/sky` at 512 cells, 3 LODs. The eye moon is 8.5k + 3k + 3k triangles at LOD0, and
+    2.4k + 0.8k + 0.8k at LOD1; the cap is 12k / 2.7k / 0.9k.
+  - The `sky` group is left out of the showcase (`MushroomBuilder.SceneModels`).
+- **`sdf render --sky <preset>`** (implies toon) and the IDE (`sdf-renderer.js`):
+  - New uniforms `uSkyTone`, `uSkyShadowTint`, `uSkyLight`, `uSkyFade`, the band arrays, the abyss glow and `uExposure` (0.6 × 2^(post
+    exposure + 0.26)).
+  - `toonShade` takes the thinness as glow; `toonPixel` fades the surface and the ink, in the perspective view only, since the axis
+    views are diagrams.
+  - The background is the tone-mapped gradient.
+  - IDE: a "Sky: neutral / day / night" button (presets embedded, `BundledContent.Skies`); a sky switches to the toon look.
+  - Without a sky the output is unchanged: `sdf render --style toon` of amanita-scout is pixel-identical to before.
+- **Shaders**:
+  - `SdfSky.hlsl`: the globals, plus `SkyShadowTint`, `SkyTone`, `SkyGradient` (fwidth-AA band edges and the abyss glow) and
+    `SkyFade` (elevation clamped at −2°).
+    - Unset globals (zero) read as the identity, through a set flag in `_SkyTone.z`, so prefab previews and old scenes are unchanged.
+    - The amount-0 fade returns early, so the identity is exact.
+  - `SdfToonShade` takes a `glow` input, multiplies the shadow tone by the tint and ends with `SkyTone`.
+  - `SdfToon.shader`: passes `UV6.a` as the glow and returns `SkyFade`.
+  - `SdfGround.shader`: glow 0, then `SkyFade`.
+  - `SdfToonOutline.shader`: a `positionWS` varying, and `SkyFade` on the ink. The include is in its forward pass.
+  - `SdfSky.shader` (skybox):
+    - the gradient;
+    - stars on 24 cells per cube face, at least 1.5 px, twinkling;
+    - a soft halo round the moon, so it reads without bloom.
+  - `SdfToonFar.shader`:
+    - camera-relative;
+    - lit from the eye, × (1 + `_FarGlow`);
+    - no shadow, outline or fade.
+    - Its depth is squeezed into a thin slab just inside the far plane rather than written at the far plane with ZWrite off: with no
+      depth, the lids' inner faces behind the eye drew over it.
+  - `SdfSpores.shader`:
+    - abyss rise, or a camera-wrapped box;
+    - a core plus halo, additive, HDR;
+    - 1.5 px to `_SporeMaxPixels`.
+
+    Its pixel size is measured in clip space, because `UNITY_MATRIX_P[1][1]` came out NaN here and drew nothing.
+- **Unity**:
+  - `SkySettings` (`Assets/Mushrooms/Runtime/`, ExecuteAlways):
+    - sets the globals on enable and validate;
+    - in play mode, turns the iris by Perlin noise, blinks the lids at seeded intervals, and drifts and bobs the floaters;
+    - before each camera culls, moves the far layer's and the motes' bounds to that camera.
+  - `MushroomScene.BuildLighting(scene, sky)`:
+    - without a sky, as before, plus a `SkySettings`;
+    - with one: the light (direction mirrored, colour sRGB of the sky's linear, 1.5), the skybox, the ambient from the tint, fog off,
+      and a per-level `Assets/Scenes/<Level>/Post Processing.asset` (ACES, bloom threshold 0, the sky's bloom and exposure).
+  - The existing showcase gets its `SkySettings` added without a re-layout (`EnsureSkySettings`). Re-laying it out would have moved one
+    instance and the camera, because the saved layout predates current models.
+  - `LevelSky.cs` (new; LevelBuilder version 3, one call each for lighting and `Level/Sky`) builds `Level/Sky`:
+    - the `SkySettings`;
+    - the moon at the light, 9° across the eye, eye at LOD0 and lids at LOD1;
+    - 4 floaters at their coarsest LOD;
+    - the two spore meshes (`Assets/Level/Meshes/<level> Sky/`);
+    - materials `Assets/Level/Materials/<level> Sky *.mat` and `Assets/Scenes/<Level>/Sky.mat`.
+
+Verified:
+
+- `dotnet build` is clean. `dotnet test`: 250 pipeline tests and 533 project tests pass. 33 of the pipeline tests are new: reading,
+  errors with lines, per-key and per-index merges, `replace`, an added line, the default `day`, a preset error naming file and line,
+  bands, the spore layout, and a byte-identical bake with the sky.
+- `sdf level` with `sky preset=night` is byte-identical across runs. The generated `level.json` equals a fresh bake. Editing
+  `night.sky` changes `level.json` (resolved values and hash), so the watcher rebuilds the meadow.
+- Batch builds (`BuildAllInBatch`, both presets) and snapshots have no `error CS` and no shader errors.
+- Sky cost per view on High (logged by `LevelSnapshot`):
+  - draws: 3–8, skybox included;
+  - triangles: 1.7k–13.7k. The most is 8 draws and 13,722 triangles, looking towards the moon with a floater in view.
+- No textures, no compute.
+- Readability, as sRGB luminance on the 1080p eye views:
+
+  | | Night | Day | Target |
+  |---|---|---|---|
+  | Grass, lit band | 108.5 | 124.2 | ≥ 90, night ≥ 70 % of day (87 %) |
+  | Grass, cast-shadow band | 71 | 84 | ≥ 40 |
+  | Castle's lit wall − sky behind it | 127.6 − 53.3 = 74 | (sky brighter by 45) | ≥ 30 |
+  | Web preset, bloom off: grass / wall vs sky | 100–108 / 127 vs 52 | | |
+
+  Glowing edges keep their strength (`glowKeep=1`). Far hills and castles fade into the violet haze, their outlines with them.
+- `Mushrooms.unity` is identical, pixel for pixel, to the snapshots taken before the showcase got its `SkySettings`. Against the project
+  with every Unity change of this ticket stashed, it differs by at most 1 sRGB level in a handful of pixels (amanita, scene). The very
+  first baseline differs at 11 pixels of one fruit-tree1 trunk edge (up to 9 levels), but that difference reproduces with every change
+  stashed, so it is not from this ticket.
+- Web:
+  - A WebGL 2 build of `Meadow.unity` alone (temporary script, removed) succeeds: 17 MB, no shader errors.
+  - Headless Chrome (ANGLE/Metal) shows the night sky, stars, bands and tint. The console shows only the three URP shaders known from
+    ticket 00 to be unsupported on WebGL.
+  - The project was switched back to macOS.
+- IDE: the Sky button cycles neutral → day → night in headless Chrome and lights the preview. `sdf render --sky night` of amanita-scout
+  shows the cool tint, lifted shadow band, banded background and glowing eyes as in Unity's `eye_models`.
+
+Snapshots (`.claude/jobs/c6233055/tmp/sky/`):
+
+- `night_final/`, `day_final/`: eye_±x, eye_±z, eye_corner, eye_moon, sky_tower, sky_edge, sky_edge_level, sky_outside, eye_models,
+  the web views, and on night eye_moon_web_nobloom and eye_-x_web_nobloom;
+- `showcase_final/`;
+- `web_meadow.png`;
+- `ide_night.png`, `amanita_night.png`.
+
+Not done / to check by hand:
+
+- Frame time with and without the sky on the web preset. Headless Chrome is vsync-capped (16.7 ms with the sky), and there was no
+  sky-off build to compare. Safari was not tried.
+- The moon's iris turn, its blinks and the floaters' drift run only in Play mode (`SkySettings.Update`), which batch mode does not
+  enter, so they are untested. Check the motion and the blink's lid angle (`lidCloseAngle` 45.8°) in the editor.
+- The low moon's long shadows against the web preset's 30 m shadow distance: not examined. Left to 05.
+- Star density and size were tuned at 1080p only. On the 960 px web canvas, stars are small squares.
+
+Merging:
+
+- **03 (main tree)**: its changes are the vertex stage of `SdfToon.shader` / `SdfToonOutline.shader` and `SdfScatter.hlsl` in
+  HLSLINCLUDE. Ours are the fragment and `SdfToon.hlsl`, plus a `positionWS` varying and a forward-pass include in the outline, so the
+  shaders should merge cleanly.
+  Expect small textual conflicts in:
+  - `LevelFile.cs`: the doc example, the section constants, the `Sections` array, the locals, the switch cases, and the
+    `LevelDefinition` initializer;
+  - `LevelDefinition.cs`: properties added after `Placements`;
+  - `LevelBaker.cs`: the `Bake` signature, the document's new keys after `placements`, and the `models` line;
+  - `Program.cs` `BakeOne`;
+  - `LevelBuilder.cs`: the class doc list, and `BuilderVersion`, which both set to 3 (make it 4);
+  - `LevelSnapshot.cs`: the usings, and the shots added after `ShootCastleAndRegions`;
+  - the end of `content/levels/meadow.level`.
+
+  After merging, re-bake (`level.json` and `Meadow.unity` are generated).
+- **06**: step 5 rewrites the `SdfToon.shader` fragment. It should keep the `SdfToonShade(..., glow)` call with `saturate(input.uv6.a)`
+  and `return float4(SkyFade(color, input.positionWS), 1.0)`. `MushroomBuilder` changes are small (`SceneModels` filter,
+  `EnsureSkySettings` call in `BuildStale`).

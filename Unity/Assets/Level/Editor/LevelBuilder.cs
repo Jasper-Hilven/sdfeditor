@@ -25,7 +25,8 @@ namespace SdfLevel.Editor
     /// <item>four invisible walls round the playable rectangle, tall enough that the hills cannot be climbed;</item>
     /// <item>the placed models (castles, big rocks; level.json "placements"): instances of the prefabs <see cref="MushroomBuilder"/>
     /// builds, static like the ground, with the colliders their prefabs bring; a placement whose prefab is missing logs a warning;</item>
-    /// <item>the sun, sky and post-processing of the mushroom scene (<see cref="MushroomScene.BuildLighting"/>);</item>
+    /// <item>the light, sky and post-processing (<see cref="MushroomScene.BuildLighting"/>) of the level's sky (level.json "sky"), and
+    /// under Level/Sky its settings, far layer and spores (<see cref="LevelSky"/>); a level without one is lit like the mushroom scene;</item>
     /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>.</item>
     /// </list>
     /// The ground is drawn with SdfGround.shader, in the toon look of the models (the <see cref="MushroomStyle"/> settings), its material
@@ -53,9 +54,9 @@ namespace SdfLevel.Editor
 
         /// <summary>
         /// Raise when the way level scenes are built changes, so every level scene is rebuilt when the editor loads. Version 2: ground
-        /// regions from the region map, and placed models.
+        /// regions from the region map, and placed models. Version 3: the sky.
         /// </summary>
-        public const int BuilderVersion = 2;
+        public const int BuilderVersion = 3;
 
         public const string LevelRootName = "Level";
         public const string PlacedName = "Placed";
@@ -296,7 +297,7 @@ namespace SdfLevel.Editor
                 openedHere = EditorSceneManager.sceneCount > 1;
             }
 
-            MushroomScene.BuildLighting(scene);
+            MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data));
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -349,6 +350,7 @@ namespace SdfLevel.Editor
             var placed = AddPlacements(levelRoot.transform, scene, data);
             MarkStatic(levelRoot);
             AddPlayer(scene, data);
+            LevelSky.Add(levelRoot.transform, name, data);
 
             EditorSceneManager.SaveScene(scene, scenePath);
             var importer = AssetImporter.GetAtPath(scenePath);

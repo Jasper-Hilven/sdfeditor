@@ -6,6 +6,7 @@ using SDFPipeline.Meshing;
 using SDFPipeline.ProgramFiles;
 using SDFProject.ProgramDefinition;
 using SDFPipeline.Rendering;
+using SDFPipeline.Skies;
 
 const string usage = """
     Usage:
@@ -15,6 +16,7 @@ const string usage = """
       sdf render <model.sdf> [output.png] [--size <pixels>]   Renders side, top, front and perspective views to a PNG
       Options: --light <x,y,z>   direction towards the sun, e.g. --light 0,1,-2 to light the model from behind
                --style <look>    realistic (default) or toon, the cartoon look of the Unity toon shader
+               --sky <preset>    the toon look under a sky preset of content/skies (day, night), as a level shows it
       sdf mesh [--resolution <cells>]                         Meshes every .sdf in the content folder to a .glb next to its file
       sdf mesh <directory> [--resolution <cells>]             Meshes every .sdf in the directory and its subdirectories
       sdf mesh <model.sdf> [output.glb] [--resolution <cells>]
@@ -294,7 +296,9 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         var level = LevelFile.Load(input);
         var content = ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(input))!);
         var models = content is null ? null : LevelModels.In(Path.Combine(content, "models"));
-        var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models);
+        // The sky's presets are content/skies/; without a content folder the level is baked without a sky
+        var sky = content is null ? null : SkyFile.Resolve(level.Sky, SkyFile.PresetsIn(Path.Combine(content, SkyFile.FolderName)));
+        var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models, sky);
         var layout = baked.Layout;
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"Baked {input} into {into} in {stopwatch.Elapsed.TotalSeconds:0.0} s: {baked.ChunkFiles.Count} chunks of {layout.ChunkSize:0.#} m on a {layout.CountX} × {layout.CountZ} grid"));
@@ -306,6 +310,8 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         }
         if (baked.Regions.Count > 0)
             Console.WriteLine($"  regions       {string.Join(", ", baked.Regions.Select(r => $"{r.Name} ({r.Shapes.Count} shape{(r.Shapes.Count == 1 ? "" : "s")})"))} in {RegionMap.FileName}");
+        if (sky is not null)
+            Console.WriteLine($"  sky           {sky.Preset}{(level.Sky?.Overridden.Count > 0 ? $", overriding its {string.Join(", ", level.Sky.Overridden)}" : "")}");
         foreach (var placed in baked.Placements)
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"  placed        {placed.Model} at ({placed.Position.X:0.##}, {placed.Position.Y:0.##}, {placed.Position.Z:0.##}), yaw {placed.Yaw:0.#}°{(placed.Scale != 1 ? ", scale " + placed.Scale.ToString("0.##", CultureInfo.InvariantCulture) : "")}"));
@@ -343,9 +349,16 @@ async Task<int> Render(string[] arguments)
     var size = RenderOptions.DefaultSize;
     V3? light = null;
     var style = RenderStyle.Realistic;
+    string? skyName = null;
     var paths = new List<string>();
     for (var i = 0; i < arguments.Length; i++)
     {
+        if (arguments[i] == "--sky" && i + 1 < arguments.Length)
+        {
+            skyName = arguments[++i];
+            style = RenderStyle.Toon;
+            continue;
+        }
         if (arguments[i] == "--style" && i + 1 < arguments.Length)
         {
             if (!Enum.TryParse(arguments[++i], ignoreCase: true, out style) || !Enum.IsDefined(style))
@@ -375,7 +388,25 @@ async Task<int> Render(string[] arguments)
     if (LoadMaterials() is not { } materials)
         return 1;
 
-    var options = new RenderOptions { Size = size, Materials = materials, LightDirection = light, Style = style };
+    SkyDefinition? sky = null;
+    if (skyName is not null)
+    {
+        var skies = ModelFiles.FindContentFolder(Directory.GetCurrentDirectory()) is { } contentFolder ? Path.Combine(contentFolder, SkyFile.FolderName) : null;
+        var skyPath = skies is null ? null : Path.Combine(skies, skyName + SkyFile.Extension);
+        if (skyPath is null || !File.Exists(skyPath))
+            return Usage($"--sky takes a preset of content/{SkyFile.FolderName}, like night; there is no {skyName}{SkyFile.Extension}");
+        try
+        {
+            sky = SkyFile.Load(skyPath);
+        }
+        catch (SdfProgramFileException exception)
+        {
+            Console.Error.WriteLine($"{skyPath}:{exception.Line}: {exception.Problem}");
+            return 1;
+        }
+    }
+
+    var options = new RenderOptions { Size = size, Materials = materials, LightDirection = light, Style = style, Sky = sky };
     switch (paths)
     {
         case []:

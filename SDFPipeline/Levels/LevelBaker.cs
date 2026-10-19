@@ -4,6 +4,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SDFPipeline.Meshing;
+using SDFPipeline.Skies;
 using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.Levels;
@@ -26,9 +27,10 @@ public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, floa
 /// Bakes a level for the game engine into a folder of its own (sdf level): the ground as chunk_&lt;i&gt;_&lt;j&gt;.glb, one per chunk
 /// of <see cref="GroundLayout"/> that has ground, each with its levels of detail as separate meshes named like a model's (ground,
 /// ground_LOD1, ...), and level.json with everything else the engine needs: the extent, the chunk grid, the playable rectangle, the seed,
-/// where the player starts, the ground's materials by region, the region map (regions.png, see <see cref="RegionMap"/>) and the placed
-/// models with the list of their names. Unity's LevelBuilder turns it into the level's scene; the ground's colliders are made there,
-/// from LOD1, and the placed models bring theirs on their prefabs.
+/// where the player starts, the ground's materials by region, the region map (regions.png, see <see cref="RegionMap"/>), the placed
+/// models with the list of their names, and the resolved sky (<see cref="SkyDocument"/>) with where its floaters and spores are.
+/// Unity's LevelBuilder turns it into the level's scene; the ground's colliders are made there, from LOD1, and the placed models bring
+/// theirs on their prefabs.
 /// <para>
 /// The output depends on the file and the materials only, never on the machine's timing: the same input bakes byte-identical files.
 /// Chunk files from an earlier bake that this one no longer makes are deleted; level.json is written last, so a watcher that sees it
@@ -62,9 +64,13 @@ public static class LevelBaker
     /// Where each placed model stands on the ground, by name (see <see cref="LevelModels"/>); null when there is no model to be had, or
     /// when the level places none.
     /// </param>
-    /// <exception cref="ProgramFiles.SdfProgramFileException">A placement names a model that is not there or stands off the island.</exception>
+    /// <param name="sky">The level's sky, its preset and overrides resolved (<see cref="SkyFile.Resolve(SkySection?, Func{string, string?})"/>);
+    /// null to bake without one, which Unity lights like the model showcase.</param>
+    /// <exception cref="ProgramFiles.SdfProgramFileException">
+    /// A placement names a model that is not there or stands off the island, or the sky draws a model that is not there.
+    /// </exception>
     public static BakedLevel Bake(LevelDefinition level, string name, MaterialLibrary materials, string folder,
-        Func<string, ModelFootprint?>? models = null)
+        Func<string, ModelFootprint?>? models = null, ResolvedSky? sky = null)
     {
         var terrain = new LevelTerrain(level);
         var layout = GroundLayout.Around(terrain, ChunkSize);
@@ -81,6 +87,9 @@ public static class LevelBaker
             if (!terrain.OnIsland(placement.At.X, placement.At.Y))
                 throw new ProgramFiles.SdfProgramFileException(placement.Line, $"{placement.Model} at ({placement.At.X}, {placement.At.Y}) is beyond the island's edge");
         }
+        foreach (var model in sky?.Definition.Models ?? [])
+            if (models?.Invoke(model) is null)
+                throw new ProgramFiles.SdfProgramFileException(level.Sky?.Line ?? 1, $"The sky draws the model '{model}', but there is none in content/models/");
         var regions = new GroundRegions(level, model => footprints[model]);
         foreach (var region in regions.Regions)
             if (!materials.Contains(region.Material))
@@ -201,8 +210,10 @@ public static class LevelBaker
             // The unique models, standing on the ground: position is the base of the model (its y = 0); yaw is in degrees about +y,
             // counter-clockwise seen from above. Unity mirrors x, so it places them at -x and turns them by -yaw
             placements = placed.Select(p => new { model = p.Model, position = new[] { p.Position.X, p.Position.Y, p.Position.Z }, yaw = p.Yaw, scale = p.Scale }).ToArray(),
+            // The sky, resolved from its preset and the level's overrides, with where its floaters and spores are (seeded by the level)
+            sky = sky is null ? null : SkyDocument.Of(sky.Definition, sky.Hash, SkyLayout.Of(sky.Definition, level.Seed, play.HalfSize, terrain.EdgeDistance)),
             // Every model the level uses, once, so Unity rebuilds the level when one of their prefabs is rebuilt
-            models = placed.Select(p => p.Model).Distinct().Order(StringComparer.Ordinal).ToArray(),
+            models = placed.Select(p => p.Model).Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
         };
         var json = JsonSerializer.SerializeToUtf8Bytes(document, JsonOptions);
         GlbWriter.SaveAtomically(Path.Combine(folder, LevelJson), [.. json, (byte)'\n']);

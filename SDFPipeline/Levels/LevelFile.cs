@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using SDFPipeline.ProgramFiles;
+using SDFPipeline.Skies;
 
 namespace SDFPipeline.Levels;
 
@@ -32,6 +33,9 @@ namespace SDFPipeline.Levels;
 /// place                                     # unique models from content/models/, by name
 ///     castle0 at=(-62, 0) yaw=90 ground=tiles flatten=22
 ///     rock1 at=(10, 30) yaw=40
+///
+/// sky preset=night                          # content/skies/night.sky, with any of its lines overridden below
+///     fade end=200
 /// </code>
 /// Only <c>play</c> is required: without <c>hills</c> the ground stays flat up to the edge, without <c>edge</c> the island ends at the
 /// crest, and the seed is <see cref="LevelDefinition.DefaultSeed"/>.
@@ -45,6 +49,10 @@ namespace SDFPipeline.Levels;
 /// (degrees, counter-clockwise from above), <c>scale</c>, <c>flatten</c> (the radius of level ground round it), <c>falloff</c> (metres
 /// over which that ground blends back), <c>ground</c> (a region painted under its footprint) and <c>groundMargin</c> (how far that
 /// reaches past the footprint). Later formats add sections (scatter rules) next to these, each read the same way.
+/// </para>
+/// <para>
+/// The sky names a preset in content/skies/ and may override its lines (see <see cref="SkyFile"/>); without it the level has the
+/// <see cref="SkyFile.DefaultPreset"/> sky.
 /// </para>
 /// </summary>
 public static class LevelFile
@@ -62,10 +70,11 @@ public static class LevelFile
     private const string Edge = "edge";
     private const string Regions = "regions";
     private const string Place = "place";
+    private const string Sky = "sky";
     private const string Ring = "ring";
     private const string Noise = "noise";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Sky];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -94,6 +103,7 @@ public static class LevelFile
         var edge = IslandEdge.None;
         IReadOnlyList<GroundRegion> regions = [];
         IReadOnlyList<Placement> placements = [];
+        SkySection? sky = null;
         var seen = new Dictionary<string, int>();
         foreach (var line in lines.Skip(1))
         {
@@ -125,12 +135,15 @@ public static class LevelFile
                 case Place:
                     placements = ReadPlacements(line, cursor);
                     break;
+                case Sky:
+                    sky = SkyFile.ReadSection(line, cursor);
+                    break;
             }
         }
 
         if (play is null)
             throw new SdfProgramFileException(lines[^1].Number, $"The level has no playable area; add a line like '{Play} size=(150, 100)'");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements };
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Sky = sky };
     }
 
     private static PlayArea ReadPlay(SourceLine line, Cursor cursor)

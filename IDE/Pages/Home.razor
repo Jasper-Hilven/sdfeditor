@@ -11,6 +11,7 @@
 @using SDFProject.SDFInteractiveNode.PartialCommandStateFullEditing
 @using SDFPipeline.Materials
 @using SDFPipeline.ProgramFiles
+@using SDFPipeline.Skies
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -32,6 +33,7 @@
             <span class="view-options">
                 <button class="toggle @(quadView ? "active" : "")" @onclick="ToggleQuadView">Quad view</button>
                 <button class="toggle @(rotateView ? "active" : "")" @onclick="ToggleRotateView">Rotate view</button>
+                <button class="toggle @(skyName is not null ? "active" : "")" title="The toon look under a sky preset of content/skies, as a level shows it" @onclick="NextSky">Sky: @(skyName ?? "neutral")</button>
             </span>
         </header>
         <div class="view-area">
@@ -370,6 +372,7 @@
     private string? renderError;
     private bool quadView;
     private bool rotateView;
+    private string? skyName;
 
     private enum Tab { Keyboard, Keys, History, File, Examples }
 
@@ -867,6 +870,22 @@
         rotateView = !rotateView;
         if (renderer is not null)
             await renderer.InvokeVoidAsync("setRotateView", rotateView);
+    }
+
+    /// <summary>
+    /// Neutral (the realistic preview), then each sky preset in turn: the toon look under its light, tone, background and fade, as
+    /// Unity draws a level under it.
+    /// </summary>
+    private async Task NextSky()
+    {
+        var names = BundledContent.Skies.Select(s => s.Name).ToList();
+        var next = skyName is null ? 0 : names.IndexOf(skyName) + 1;
+        skyName = next < names.Count ? names[next] : null;
+        if (renderer is null)
+            return;
+        var sky = BundledContent.Skies.FirstOrDefault(s => s.Name == skyName).Sky;
+        await renderer.InvokeVoidAsync("setStyle", sky is null ? "realistic" : "toon");
+        await renderer.InvokeVoidAsync("setSky", sky is null ? null : System.Text.Json.JsonSerializer.Serialize(SkyDocument.Of(sky)));
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

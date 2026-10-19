@@ -1,0 +1,14 @@
+# Day: the neutral sky. Its tone changes nothing, so models and ground look exactly as in the model showcase, under a plain blue
+# gradient with the showcase's sun (about 32° up, from the front right) and post-processing. No abyss, stars, fade, moon or spores.
+format 1
+
+light azimuth=38.7 elevation=32 color=(1, 0.88, 0.74)      # the showcase's 5600 K sun through its warm filter
+tone brightness=1 shadowTint=(1, 1, 1) glowKeep=0          # identity: the toon bands as they are
+
+gradient softness=8                                        # wide edges: a plain gradient rather than cel bands
+    band from=50 color=(0.17, 0.3, 0.62)
+    band from=24 color=(0.26, 0.42, 0.74)
+    band from=8 color=(0.4, 0.56, 0.8)
+    band from=-4 color=(0.56, 0.66, 0.8)                   # the pale horizon, down to the nadir
+
+post exposure=-0.26 bloom=0.175

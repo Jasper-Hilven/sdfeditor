@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using SDFProject.Calculation;
 using SDFProject.ProgramDefinition;
+using SDFPipeline.Skies;
 
 namespace SDFPipeline.Rendering;
 
@@ -27,6 +28,9 @@ public sealed record RenderOptions
 
     /// <summary>The look: the IDE's realistic shading, or the cartoon look of the Unity toon shader.</summary>
     public RenderStyle Style { get; init; } = RenderStyle.Realistic;
+
+    /// <summary>A sky to render the toon look under: its light, tone, background and fade, as Unity draws a level under it; null for none.</summary>
+    public SkyDefinition? Sky { get; init; }
 }
 
 public enum RenderStyle
@@ -65,6 +69,7 @@ public static class SdfRenderer
             caption = framing.Bounds is { } bounds ? Caption(bounds.Size) : null,
             light = options.LightDirection is { } light ? new[] { light.x, light.y, light.z } : null,
             style = options.Style == RenderStyle.Toon ? "toon" : "realistic",
+            sky = options.Sky is { } sky ? SkyDocument.Of(sky) : null,
         });
 
         var port = FreePort();

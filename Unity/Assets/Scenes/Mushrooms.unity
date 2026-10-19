@@ -1919,6 +1919,77 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 657514712239456257, guid: cf3a45b9152d242d3be6d8f8bd61711b, type: 3}
   m_PrefabInstance: {fileID: 951975908}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1025761104
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1025761106}
+  - component: {fileID: 1025761105}
+  m_Layer: 0
+  m_Name: Sky
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1025761105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1025761104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aac7741e4282344bcbadc186395963c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SdfMushrooms.SkySettings
+  brightness: 1
+  shadowTint: {x: 1, y: 1, z: 1}
+  glowKeep: 0
+  bandColors: []
+  bandFrom: []
+  softness: 1
+  abyssGlowElevation: -55
+  abyssGlowWidth: 12
+  abyssGlowColor: {x: 0, y: 0, z: 0, w: 0}
+  fadeStart: 25
+  fadeEnd: 180
+  fadeAmount: 0
+  moonEye: {fileID: 0}
+  moonUpperLid: {fileID: 0}
+  moonLowerLid: {fileID: 0}
+  turnAmount: 12
+  turnPeriod: 40
+  blinkEvery: {x: 9, y: 25}
+  blinkDuration: 0.35
+  lidCloseAngle: 45.836624
+  seed: 0
+  floaters: []
+  floaterPlaces: []
+  drift: 0
+  bob: 0
+  farRadius: 100
+  farRenderers: []
+--- !u!4 &1025761106
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1025761104}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1044248250
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3469,3 +3540,4 @@ SceneRoots:
   - {fileID: 317499129}
   - {fileID: 1167121493}
   - {fileID: 1591836984}
+  - {fileID: 1025761106}

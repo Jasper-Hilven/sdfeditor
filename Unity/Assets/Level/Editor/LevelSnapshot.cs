@@ -5,7 +5,10 @@ using System.Linq;
 using SdfMushrooms.Editor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using SdfMushrooms;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace SdfLevel.Editor
@@ -19,6 +22,11 @@ namespace SdfLevel.Editor
     /// With placed castles it also shoots the first castle (the one at +x, the pipeline's -x) from the meadow, at its gate, from its
     /// courtyard and from its wall-walk, the ground regions' edges close up and from above, and checks the colliders by walking a
     /// character controller up the castle's stair, into its wall and straight at each rock, logging where each walk ends.
+    /// </para>
+    /// <para>
+    /// With a sky (<see cref="LevelSky"/>) it also looks up at the moon from the spawn point, out from a castle tower over the crest to
+    /// the edge and the abyss, out and down from the island's edge, and at the whole island hanging over the abyss from outside; the moon
+    /// and an eye view again on the integrated GPU / web quality level with bloom off. Every view logs what the sky draws in it.
     /// </para>
     /// <para>
     /// Without a window: <c>Unity -batchmode -quit -projectPath Unity -executeMethod SdfLevel.Editor.LevelSnapshot.Capture
@@ -114,7 +122,7 @@ namespace SdfLevel.Editor
             void EyeShot(string name, Vector3 position, Quaternion rotation)
             {
                 Shot(name, position, rotation);
-                Debug.Log($"SDF level: {name}: the ground draws {GroundTrianglesInView(scene, camera, position, rotation):N0} triangles");
+                Debug.Log($"SDF level: {name}: the ground draws {GroundTrianglesInView(scene, camera, position, rotation):N0} triangles; {SkyInView(scene, camera, position, rotation)}");
             }
 
             var level = QualitySettings.GetQualityLevel();
@@ -134,15 +142,110 @@ namespace SdfLevel.Editor
 
                 CompareWithModels(scene, eye, directory, Shot);
                 ShootCastleAndRegions(scene, Shot, EyeShot);
+                var moon = ShootSky(scene, eye, EyeShot);
 
                 QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
+                if (moon is { } toMoon)
+                {
+                    // Glow must read without bloom, which the low preset may drop
+                    var bloom = scene.GetRootGameObjects().Select(g => g.GetComponent<Volume>()).FirstOrDefault(v => v != null)?.sharedProfile is { } profile
+                                && profile.TryGet<Bloom>(out var found) ? found : null;
+                    var wasActive = bloom != null && bloom.active;
+                    try
+                    {
+                        if (bloom != null)
+                            bloom.active = false;
+                        EyeShot("eye_moon_web_nobloom", eye, Quaternion.LookRotation(toMoon));
+                        EyeShot("eye_-x_web_nobloom", eye, Quaternion.Euler(0, -90, 0));
+                    }
+                    finally
+                    {
+                        if (bloom != null)
+                            bloom.active = wasActive;
+                    }
+                }
             }
             finally
             {
                 QualitySettings.SetQualityLevel(level, true);
             }
             Debug.Log($"SDF level: snapshots written to {directory}");
+        }
+
+        /// <summary>
+        /// The sky's views: up at the moon from the spawn point (with one), from the top of the first castle's outer back tower out over
+        /// the crest to the edge, from the island's edge out and down, and the island from outside. Returns the direction towards the
+        /// moon, or null without one; nothing is shot for a level without a sky.
+        /// </summary>
+        private static Vector3? ShootSky(Scene scene, Vector3 eye, Action<string, Vector3, Quaternion> eyeShot)
+        {
+            var sky = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelSky.SkyName);
+            if (sky == null)
+                return null;
+            var moon = sky.Find("Moon");
+            Vector3? toMoon = moon != null ? moon.localPosition.normalized : (Vector3?)null;
+            if (toMoon is { } direction)
+                eyeShot("eye_moon", eye, Quaternion.LookRotation(direction));
+
+            if (Placed(scene, "castle0").FirstOrDefault() is { } castle)
+            {
+                // On top of the tower's roof (its apex is 12.5 m up), looking out of the island's end, a little down
+                var tower = ModelPoint(castle, 13, 14, -8);
+                eyeShot("sky_tower", tower, Quaternion.LookRotation(ModelDirection(castle, 0, -0.2f, -1)));
+            }
+            // At the island's edge behind the +x hills (pipeline -x), looking out and down into the abyss: the last ground out along +x
+            var extent = PlayHalfSize(scene).x;
+            while (extent < 1000 && Physics.Raycast(new Vector3(extent + 0.5f, 200, 0), Vector3.down, 400))
+                extent += 0.5f;
+            var edge = OnGround(new Vector3(extent - 2, 0, 0)) + Vector3.up * LevelBuilder.EyeHeight;
+            eyeShot("sky_edge", edge, Quaternion.Euler(25, 90, 0));
+            eyeShot("sky_edge_level", edge, Quaternion.Euler(0, 90, 0));
+            // The island from outside, hanging over the abyss
+            var outside = new Vector3(-40, 50, -300);
+            eyeShot("sky_outside", outside, Quaternion.LookRotation(new Vector3(0, -15, 0) - outside));
+            return toMoon;
+        }
+
+        /// <summary>
+        /// What the sky draws in a view: its renderers inside the view (the far layer and the motes moved to the camera, as
+        /// <see cref="SkySettings"/> does before each camera culls), their triangles, and the skybox.
+        /// </summary>
+        private static string SkyInView(Scene scene, Camera sceneCamera, Vector3 position, Quaternion rotation)
+        {
+            var sky = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelSky.SkyName);
+            var settings = sky != null ? sky.GetComponent<SkySettings>() : null;
+            if (settings == null)
+                return "no sky";
+            var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Count Camera", HideFlags.HideAndDontSave, typeof(Camera));
+            try
+            {
+                var camera = cameraObject.GetComponent<Camera>();
+                camera.CopyFrom(sceneCamera);
+                camera.aspect = 16f / 9f;
+                camera.transform.SetPositionAndRotation(position, rotation);
+                var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+                var (draws, triangles) = (1, 0);
+                foreach (var renderer in sky.GetComponentsInChildren<Renderer>())
+                {
+                    var bounds = renderer.bounds;
+                    if (settings.farRenderers.Contains(renderer))
+                    {
+                        renderer.ResetBounds();
+                        bounds = renderer.bounds;
+                        bounds.center += position;
+                    }
+                    if (!GeometryUtility.TestPlanesAABB(planes, bounds))
+                        continue;
+                    draws++;
+                    triangles += (int)renderer.GetComponent<MeshFilter>().sharedMesh.GetIndexCount(0) / 3;
+                }
+                return $"the sky draws {draws} times (skybox included), {triangles:N0} triangles";
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(cameraObject);
+            }
         }
 
         /// <summary>The placed instances of a model under Level/Placed, by position along x (Unity's).</summary>

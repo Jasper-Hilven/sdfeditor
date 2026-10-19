@@ -19,6 +19,7 @@ namespace SdfMushrooms.Editor
     public static class MushroomScene
     {
         public const string MushroomsRootName = "Mushrooms";
+        public const string SkySettingsName = "Sky";
         private const string VolumeProfilePath = "Assets/Scenes/Mushrooms/Post Processing.asset";
         private const string GroundMaterialPath = "Assets/Mushrooms/Materials/Forest Floor.mat";
         private const string SkyMaterialPath = "Assets/Mushrooms/Materials/Sky.mat";
@@ -59,7 +60,7 @@ namespace SdfMushrooms.Editor
                 BuildEnvironment(scene);
             }
 
-            var changed = UpdateMushrooms(scene, models) | UpdateSun(scene);
+            var changed = UpdateMushrooms(scene, models) | UpdateSun(scene) | EnsureSkySettings(scene);
             if (changed || string.IsNullOrEmpty(scene.path))
             {
                 FrameCamera(scene);
@@ -87,6 +88,26 @@ namespace SdfMushrooms.Editor
             var dependencies = AssetDatabase.GetDependencies(MushroomBuilder.ScenePath, false);
             var used = dependencies.Where(d => d.EndsWith(".prefab")).ToHashSet();
             return prefabPaths.Any(p => !used.Contains(p)) || used.Any(u => u.StartsWith(MushroomBuilder.PrefabFolder + "/") && !prefabPaths.Contains(u));
+        }
+
+        /// <summary>
+        /// Gives a saved scene from before the sky its <see cref="SkySettings"/> (when its script is not among the scene's dependencies),
+        /// with the identity tone, leaving everything else as it is: the rows are not laid out again, nor the camera framed.
+        /// </summary>
+        public static void EnsureSkySettings()
+        {
+            if (!File.Exists(MushroomBuilder.ScenePath)
+                || AssetDatabase.GetDependencies(MushroomBuilder.ScenePath, false).Any(d => Path.GetFileName(d) == nameof(SkySettings) + ".cs"))
+                return;
+            var existing = SceneManager.GetSceneByPath(MushroomBuilder.ScenePath);
+            var openedHere = !existing.IsValid() || !existing.isLoaded;
+            var scene = openedHere
+                ? EditorSceneManager.OpenScene(MushroomBuilder.ScenePath, NothingWorthKeepingOpen() ? OpenSceneMode.Single : OpenSceneMode.Additive)
+                : existing;
+            if (EnsureSkySettings(scene))
+                EditorSceneManager.SaveScene(scene, MushroomBuilder.ScenePath);
+            if (openedHere && EditorSceneManager.sceneCount > 1)
+                EditorSceneManager.CloseScene(scene, true);
         }
 
         /// <summary>
@@ -218,6 +239,17 @@ namespace SdfMushrooms.Editor
             return true;
         }
 
+        /// <summary>Gives a scene from before the sky its <see cref="SkySettings"/>, with the identity (day) tone; returns whether it did.</summary>
+        private static bool EnsureSkySettings(Scene scene)
+        {
+            if (scene.GetRootGameObjects().Any(g => g.GetComponent<SkySettings>() != null))
+                return false;
+            var sky = new GameObject(SkySettingsName);
+            SceneManager.MoveGameObjectToScene(sky, scene);
+            sky.AddComponent<SkySettings>();
+            return true;
+        }
+
         private static Bounds Bounds(GameObject gameObject)
         {
             var renderers = gameObject.GetComponentsInChildren<Renderer>();
@@ -286,10 +318,27 @@ namespace SdfMushrooms.Editor
         }
 
         /// <summary>
-        /// The light of the toon world, shared by the mushroom scene and the level scenes: the sun, a procedural sky with a flat dim
-        /// ambient, and the post-processing volume (tone mapping, a faint bloom).
+        /// A level's sky as the lighting takes it (LevelBuilder resolves it from level.json): the main light, towards it in Unity's
+        /// coordinates and its colour, the skybox material, the ambient, and the post-processing, kept in a volume profile of the level's.
         /// </summary>
-        public static Light BuildLighting(Scene scene)
+        public sealed class SkyLighting
+        {
+            public Vector3 lightDirection;
+            public Color lightColor;
+            public Material skybox;
+            public Color ambient;
+            public float exposure;
+            public float bloom;
+            public string volumeProfilePath;
+        }
+
+        /// <summary>
+        /// The light of the toon world, shared by the mushroom scene and the level scenes: the sun, a procedural sky with a flat dim
+        /// ambient, and the post-processing volume (tone mapping, a faint bloom); with a level's <paramref name="sky"/>, its light, skybox,
+        /// ambient and post-processing instead. Without one the scene also gets a <see cref="SkySettings"/> with the identity (day) tone,
+        /// so the toon look is as it was; a level adds its own.
+        /// </summary>
+        public static Light BuildLighting(Scene scene, SkyLighting sky = null)
         {
             GameObject Create(string name)
             {
@@ -311,15 +360,22 @@ namespace SdfMushrooms.Editor
             light.shadows = LightShadows.Soft;
             light.shadowStrength = 1;
             sunObject.transform.rotation = Quaternion.LookRotation(SunDirection);
+            if (sky != null)
+            {
+                // The sky's light: the toon shaders take its direction and hue only, so the intensity stays the sun's
+                light.useColorTemperature = false;
+                light.color = sky.lightColor;
+                sunObject.transform.rotation = Quaternion.LookRotation(-sky.lightDirection);
+            }
 
             // A procedural sky, whose ground colour fills the background below the horizon, and a flat dim ambient for the ground's
             // shadows (no lighting to bake); no fog. Lighting settings belong to the active scene
             var active = SceneManager.GetActiveScene();
             SceneManager.SetActiveScene(scene);
             RenderSettings.sun = light;
-            RenderSettings.skybox = SkyMaterial();
+            RenderSettings.skybox = sky != null ? sky.skybox : SkyMaterial();
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.17f, 0.14f, 0.1f);
+            RenderSettings.ambientLight = sky != null ? sky.ambient : new Color(0.17f, 0.14f, 0.1f);
             RenderSettings.fog = false;
             if (active.IsValid() && active != scene)
                 SceneManager.SetActiveScene(active);
@@ -327,7 +383,7 @@ namespace SdfMushrooms.Editor
             // Tone mapping like the preview's ACES, and the faint glow HDRP's default bloom gave. HDRP blended 15% of the blurred image
             // in (2^0.2 - 1), which also dimmed bright models over the dark ground; URP adds it, so the sum is scaled back by the rest
             // (-0.23 EV, a little more for the brighter tone curve; fitted to the HDRP snapshots)
-            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumeProfilePath);
+            var profile = sky != null ? LevelVolumeProfile(sky) : AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumeProfilePath);
             if (profile == null)
             {
                 MushroomBuilder.EnsureFolder(Path.GetDirectoryName(VolumeProfilePath));
@@ -355,7 +411,42 @@ namespace SdfMushrooms.Editor
             var volume = volumeObject.AddComponent<Volume>();
             volume.isGlobal = true;
             volume.sharedProfile = profile;
+            if (sky == null)
+                EnsureSkySettings(scene);
             return light;
+        }
+
+        /// <summary>
+        /// A level's post-processing, Assets/Scenes/&lt;Level&gt;/Post Processing.asset: the showcase's ACES tone mapping and bloom
+        /// threshold, with the sky's exposure and bloom; updated in place when they change.
+        /// </summary>
+        private static VolumeProfile LevelVolumeProfile(SkyLighting sky)
+        {
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(sky.volumeProfilePath);
+            if (profile == null)
+            {
+                MushroomBuilder.EnsureFolder(Path.GetDirectoryName(sky.volumeProfilePath));
+                profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                AssetDatabase.CreateAsset(profile, sky.volumeProfilePath);
+            }
+            T Get<T>() where T : VolumeComponent
+            {
+                if (profile.TryGet<T>(out var component))
+                    return component;
+                component = profile.Add<T>(true);
+                component.name = typeof(T).Name;
+                AssetDatabase.AddObjectToAsset(component, profile);
+                return component;
+            }
+            Get<Tonemapping>().mode.value = TonemappingMode.ACES;
+            var bloom = Get<Bloom>();
+            bloom.threshold.value = 0;
+            bloom.intensity.value = sky.bloom;
+            bloom.scatter.value = 0.7f;
+            Get<ColorAdjustments>().postExposure.value = sky.exposure;
+            EditorUtility.SetDirty(profile);
+            AssetDatabase.SaveAssets();
+            return profile;
         }
 
         private static Material GroundMaterial()

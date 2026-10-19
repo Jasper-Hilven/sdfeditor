@@ -1,0 +1,34 @@
+# Eye-Moon Night: an indigo sky banded like a cel drawing, a giant eye for a moon, and a glowing abyss under the island.
+# The darkness is in the sky and the haze, not on the playfield: the toon bands keep most of their brightness under a cool tint.
+format 1
+
+light azimuth=140 elevation=28 color=(0.78, 0.8, 1.0)      # the moon is the main light; its direction is also where the eye hangs
+tone brightness=0.75 shadowTint=(0.8, 0.85, 1.1) glowKeep=1
+                                                           # multipliers on the toon bands; glow exempt from brightness by glowKeep
+
+gradient softness=0.6                                      # band edges, in degrees
+    band from=60 color=(0.02, 0.018, 0.07)                 # each band from an elevation (degrees) up to the next one
+    band from=32 color=(0.035, 0.026, 0.11)
+    band from=14 color=(0.065, 0.042, 0.15)
+    band from=4 color=(0.09, 0.06, 0.18)
+    band from=-6 color=(0.075, 0.08, 0.14)                  # the horizon glow, kept dim: the bloom spreads it
+abyss
+    band from=-6 color=(0.05, 0.035, 0.1)                   # each band from an elevation down to the next one
+    band from=-30 color=(0.015, 0.01, 0.035)
+    glow elevation=-55 width=12 color=(0.02, 0.12, 0.13)   # the faint teal band deep below
+stars density=0.6 size=1.6 twinkle=0.3 tint=0.25 minElevation=8
+
+fade start=25 end=180 amount=0.55                          # toward the horizon colour behind each pixel, in place of fog
+
+moon model=eye-moon size=9 glow=0.6                        # far-layer model, angular size in degrees, placed at the light
+    turn amount=12 period=40                               # iris wander, degrees and seconds (smooth noise, not tracking)
+    blink every=(9, 25) duration=0.35                      # seconds between blinks, randomised in that range
+
+# Small glowing caps in the middle distance, drawn as if 8 times the model's size at that distance
+floaters model=floating-cap0 count=4 distance=(250, 400) elevation=(-10, 18) scale=8 drift=0.6 bob=1.5
+
+spores
+    abyss count=600 color=(0.3, 0.95, 0.85) altColor=(1.0, 0.7, 0.3) rise=1.2 size=0.6 from=-80 to=20
+    near count=250 radius=35 color=(0.55, 0.95, 0.75) size=0.06 drift=0.3
+
+post exposure=-0.1 bloom=0.25

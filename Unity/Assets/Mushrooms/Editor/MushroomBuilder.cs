@@ -119,10 +119,13 @@ namespace SdfMushrooms.Editor
             return (name.Substring(0, underscore), int.TryParse(name.Substring(underscore + 1), NumberStyles.None, CultureInfo.InvariantCulture, out var cells) ? cells : 0);
         }
 
-        /// <summary>What the default scene shows: per group, the best built variant of each model, in name order.</summary>
+        /// <summary>The models of the sky (content/models/sky: the eye moon, floating caps), which levels hang in their sky layer.</summary>
+        public const string SkyGroup = "sky";
+
+        /// <summary>What the default scene shows: per group, the best built variant of each model, in name order; not the sky's models.</summary>
         public static IReadOnlyList<(string group, string prefab)> SceneModels() =>
             GeneratedModels()
-                .Where(glb => File.Exists(PrefabPathOf(glb)))
+                .Where(glb => File.Exists(PrefabPathOf(glb)) && GroupOf(glb) != SkyGroup)
                 .GroupBy(glb => (GroupOf(glb), VariantOf(glb).model))
                 .Select(variants => (variants.Key.Item1, PrefabPathOf(variants.OrderByDescending(v => VariantOf(v).rank).First())))
                 .OrderBy(m => m.Item1, StringComparer.Ordinal).ThenBy(m => m.Item2, StringComparer.Ordinal)
@@ -150,6 +153,7 @@ namespace SdfMushrooms.Editor
             var stale = StaleModels();
             if (stale.Length > 0 || !File.Exists(ScenePath))
                 Build(stale);
+            MushroomScene.EnsureSkySettings();
         }
 
         public static void Build(IReadOnlyList<string> glbPaths)

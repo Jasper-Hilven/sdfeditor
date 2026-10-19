@@ -1,0 +1,10 @@
+# Eye moon: the night sky's moon, a giant floating eye. The eye part (12 cm, looking along +z) between two pale lids, each a part of
+# its own so the engine can turn them about the eye's centre to blink; open, they are turned back off the eye and frame it like an
+# almond. Drawn far away in the sky layer, never close, so it has no collider and its size is set by the sky (moon size=).
+format 1
+collider none
+
+Union
+    Part part=eye
+    Part part=moon_lid_upper
+    Part part=moon_lid_lower

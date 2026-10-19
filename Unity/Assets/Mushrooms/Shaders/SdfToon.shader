@@ -163,9 +163,11 @@ Shader "SdfMushrooms/Toon"
                 }
 
                 float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5, 0, 0), input.uv6);
-                float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, input.uv0.x, input.uv0.y, input.color.a, saturate(input.uv0.w));
-                // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows
-                return float4(color, 1.0);
+                float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, input.uv0.x, input.uv0.y, input.color.a, saturate(input.uv0.w),
+                    saturate(input.uv6.a));
+                // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows; far away it fades
+                // toward the sky
+                return float4(SkyFade(color, input.positionWS), 1.0);
             }
             ENDHLSL
         }
