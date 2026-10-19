@@ -119,6 +119,11 @@ public class LevelFileTests
         var castles = level.Placements.Where(p => p.Model == "castle0").ToArray();
         Assert.Equal([-62f, 62f], castles.Select(c => c.At.X).Order());
         Assert.All(castles, c => Assert.Equal(("tiles", true), (c.Ground, c.Flatten > 0)));
+        // Grass turfs and flowers, off the dirt, path and tiles, drawn in the foliage group
+        Assert.Equal(["grass-turf0", "flower0"], level.Scatters.Select(s => s.Entries[0].Model));
+        Assert.All(level.Scatters, s => Assert.Equal("foliage", s.Group));
+        Assert.All(level.Scatters, s => Assert.Equal(["dirt", "tiles", "path"], s.Avoid));
+        Assert.Equal([6f, 15f, 35f], level.DrawGroups.Single(g => g.Name == "foliage").Rings);
     }
 
     [Theory]

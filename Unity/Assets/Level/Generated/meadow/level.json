@@ -1774,8 +1774,131 @@
       "scale": 1.3
     }
   ],
+  "instances": {
+    "file": "instances.bin",
+    "encoding": "see SDFPipeline/Levels/InstanceFile.cs: header (groups, prototypes, cell grid, per-cell first record and count), then 32-byte records (prototype u16, flags u16, position 3 × f32, yaw f32, scale f32, tint RGBA8, hash u32), sorted by cell",
+    "count": 8607,
+    "hash": "48471bd8117362c0",
+    "cellSize": 12.5,
+    "cellCount": [
+      18,
+      14
+    ],
+    "origin": [
+      -109,
+      -84
+    ],
+    "prototypes": [
+      {
+        "model": "grass-turf0",
+        "group": "foliage",
+        "count": 2891
+      },
+      {
+        "model": "grass-turf1",
+        "group": "foliage",
+        "count": 954
+      },
+      {
+        "model": "grass-turf2",
+        "group": "foliage",
+        "count": 1431
+      },
+      {
+        "model": "grass-turf3",
+        "group": "foliage",
+        "count": 952
+      },
+      {
+        "model": "grass-turf4",
+        "group": "foliage",
+        "count": 977
+      },
+      {
+        "model": "flower0",
+        "group": "foliage",
+        "count": 505
+      },
+      {
+        "model": "flower1",
+        "group": "foliage",
+        "count": 278
+      },
+      {
+        "model": "flower2",
+        "group": "foliage",
+        "count": 89
+      },
+      {
+        "model": "flower3",
+        "group": "foliage",
+        "count": 255
+      },
+      {
+        "model": "flower4",
+        "group": "foliage",
+        "count": 275
+      }
+    ],
+    "scatters": [
+      {
+        "group": "foliage",
+        "models": [
+          "grass-turf0",
+          "grass-turf1",
+          "grass-turf2",
+          "grass-turf3",
+          "grass-turf4"
+        ],
+        "density": 0.6,
+        "count": 7205
+      },
+      {
+        "group": "foliage",
+        "models": [
+          "flower0",
+          "flower1",
+          "flower2",
+          "flower3",
+          "flower4"
+        ],
+        "density": 0.12,
+        "count": 1402
+      }
+    ]
+  },
+  "drawGroups": [
+    {
+      "name": "foliage",
+      "rings": [
+        6,
+        15,
+        35
+      ],
+      "outline": 1,
+      "shadows": 1,
+      "lowShadows": 1,
+      "blend": 1,
+      "fade": 5,
+      "wind": 0.04,
+      "windHeight": 0.5,
+      "tintHeight": 0.08,
+      "lowDensity": 0.5,
+      "lowDistance": 0.7
+    }
+  ],
   "models": [
     "castle0",
+    "flower0",
+    "flower1",
+    "flower2",
+    "flower3",
+    "flower4",
+    "grass-turf0",
+    "grass-turf1",
+    "grass-turf2",
+    "grass-turf3",
+    "grass-turf4",
     "rock1",
     "rock2",
     "rock3",

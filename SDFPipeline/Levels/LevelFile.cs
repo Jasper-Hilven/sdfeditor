@@ -32,6 +32,14 @@ namespace SDFPipeline.Levels;
 /// place                                     # unique models from content/models/, by name
 ///     castle0 at=(-62, 0) yaw=90 ground=tiles flatten=22
 ///     rock1 at=(10, 30) yaw=40
+///
+/// scatter                                   # models by the thousand, drawn instanced
+///     grass-turf0 weight=3
+///     grass-turf1
+///     density=0.6 cluster=2 clusterScale=6 spacing=0.45 avoid=dirt,tiles,path margin=0.5 maxSlope=25
+///
+/// draw foliage                              # how the instanced renderer draws the group the scatter is in
+///     rings=[6, 15, 35] outline=1 shadows=1 fade=5 wind=0.05 windHeight=0.5
 /// </code>
 /// Only <c>play</c> is required: without <c>hills</c> the ground stays flat up to the edge, without <c>edge</c> the island ends at the
 /// crest, and the seed is <see cref="LevelDefinition.DefaultSeed"/>.
@@ -44,7 +52,18 @@ namespace SDFPipeline.Levels;
 /// A placement names a model as its file is named, hyphens and all (amanita-scout), then <c>at</c> (x, z), and optionally <c>yaw</c>
 /// (degrees, counter-clockwise from above), <c>scale</c>, <c>flatten</c> (the radius of level ground round it), <c>falloff</c> (metres
 /// over which that ground blends back), <c>ground</c> (a region painted under its footprint) and <c>groundMargin</c> (how far that
-/// reaches past the footprint). Later formats add sections (scatter rules) next to these, each read the same way.
+/// reaches past the footprint).
+/// </para>
+/// <para>
+/// A scatter (<see cref="ScatterLayer"/>; there may be several) lists the models it picks from below it, each named as its file is, with
+/// an optional <c>weight</c> (1 by default), and takes <c>density</c> (instances per square metre) and <c>spacing</c> (the least distance
+/// between them), and optionally <c>group</c> (the draw group, foliage by default), <c>cluster</c> and <c>clusterScale</c>, <c>avoid</c>
+/// (regions, as names separated by commas), <c>margin</c>, <c>maxSlope</c> (degrees), <c>reach</c> (metres up the hills) and
+/// <c>scale</c> (the least and greatest, like (0.85, 1.15)), on its line or on lines of their own below it. Every group a scatter
+/// draws in needs a <c>draw</c> section (<see cref="DrawGroup"/>), one per group: <c>rings</c> (where each ring of the camera's
+/// surroundings ends, nearest first), and optionally <c>outline</c>, <c>shadows</c> and <c>lowShadows</c> (how many of the nearest
+/// rings get them), <c>blend</c>, <c>fade</c>, <c>wind</c>, <c>windHeight</c>, <c>tintHeight</c>, <c>lowDensity</c> and
+/// <c>lowDistance</c>. A group may be drawn without a scatter in it, for instances that come from elsewhere.
 /// </para>
 /// </summary>
 public static class LevelFile
@@ -62,10 +81,15 @@ public static class LevelFile
     private const string Edge = "edge";
     private const string Regions = "regions";
     private const string Place = "place";
+    private const string Scatter = "scatter";
+    private const string Draw = "draw";
     private const string Ring = "ring";
     private const string Noise = "noise";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Draw];
+
+    /// <summary>The sections that may be given more than once, each time with something else: a scatter per layer, a draw per group.</summary>
+    private static readonly string[] Repeatable = [Scatter, Draw];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -94,6 +118,8 @@ public static class LevelFile
         var edge = IslandEdge.None;
         IReadOnlyList<GroundRegion> regions = [];
         IReadOnlyList<Placement> placements = [];
+        var scatters = new List<ScatterLayer>();
+        var drawGroups = new List<DrawGroup>();
         var seen = new Dictionary<string, int>();
         foreach (var line in lines.Skip(1))
         {
@@ -101,7 +127,7 @@ public static class LevelFile
             var section = cursor.ReadName($"a section: {string.Join(", ", Sections)}");
             if (!Sections.Contains(section))
                 throw cursor.Error($"A level has no section '{section}'; its sections are {string.Join(", ", Sections)}");
-            if (seen.TryGetValue(section, out var first))
+            if (seen.TryGetValue(section, out var first) && !Repeatable.Contains(section))
                 throw cursor.Error($"'{section}' is given twice, first on line {first}");
             seen[section] = line.Number;
 
@@ -125,12 +151,26 @@ public static class LevelFile
                 case Place:
                     placements = ReadPlacements(line, cursor);
                     break;
+                case Scatter:
+                    scatters.Add(ReadScatter(line, cursor));
+                    break;
+                case Draw:
+                    var group = ReadDrawGroup(line, cursor);
+                    if (drawGroups.FirstOrDefault(g => g.Name == group.Name) is { } earlier)
+                        throw cursor.Error($"Draw group '{group.Name}' is given twice, first on line {earlier.Line}");
+                    drawGroups.Add(group);
+                    break;
             }
         }
 
+        foreach (var scatter in scatters)
+            if (drawGroups.All(g => g.Name != scatter.Group))
+                throw new SdfProgramFileException(scatter.Line,
+                    $"The scatter draws in group '{scatter.Group}', which has no '{Draw} {scatter.Group}' section saying how to draw it");
+
         if (play is null)
             throw new SdfProgramFileException(lines[^1].Number, $"The level has no playable area; add a line like '{Play} size=(150, 100)'");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements };
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, DrawGroups = drawGroups };
     }
 
     private static PlayArea ReadPlay(SourceLine line, Cursor cursor)
@@ -290,6 +330,74 @@ public static class LevelFile
         return placements.Count > 0 ? placements : throw cursor.Error("Nothing is placed; indent placements below, like 'rock1 at=(10, 30)'");
     }
 
+    private static ScatterLayer ReadScatter(SourceLine line, Cursor cursor)
+    {
+        // Below it are the models it picks from, one per line, and lines of its own parameters (name=value), like any section's
+        var entries = new List<ScatterEntry>();
+        var parameterLines = new List<SourceLine>();
+        foreach (var child in line.Children)
+        {
+            var probe = new Cursor(child);
+            if (probe.TryReadName() is not null && probe.Peek() == '=')
+            {
+                parameterLines.Add(child);
+                continue;
+            }
+            var childCursor = new Cursor(child);
+            var model = childCursor.ReadFileName("a model's name, like grass-turf0, or a parameter like density=0.6");
+            if (entries.FirstOrDefault(e => e.Model == model) is { } earlier)
+                throw childCursor.Error($"Model '{model}' is given twice in this scatter, first on line {earlier.Line}; give it a larger weight instead");
+            var entry = Parameters.Read($"scatter entry {model}", child, childCursor);
+            var weight = entry.Number("weight", 1, 0, 1000, "how often it is picked against the others, 0 to 1000");
+            entry.Done("weight");
+            entries.Add(new ScatterEntry(model, weight, child.Number));
+        }
+        if (entries.Count == 0)
+            throw cursor.Error("The scatter needs the models it scatters indented below it, like 'grass-turf0 weight=3'");
+        if (entries.All(e => e.Weight <= 0))
+            throw cursor.Error("The scatter needs a model with a weight above 0");
+
+        var parameters = Parameters.Read(Scatter, line with { Children = parameterLines }, cursor);
+        var group = parameters.Name("group", ScatterLayer.DefaultGroup, null)!;
+        var density = parameters.Number("density", null, 0, 100, "instances per square metre, 0 to 100");
+        var cluster = parameters.Number("cluster", ScatterLayer.DefaultCluster, 1, 100,
+            "how many times the density the densest clusters reach, 1 (no clusters) to 100");
+        var clusterScale = parameters.Number("clusterScale", ScatterLayer.DefaultClusterScale, 0.5f, 1000, "the clusters' width in metres, 0.5 to 1000");
+        var spacing = parameters.Number("spacing", null, 0.05f, 100, "the least distance between instances in metres, 0.05 to 100");
+        var avoid = parameters.Names("avoid", "regions like dirt,tiles,path");
+        var margin = parameters.Number("margin", 0, 0, 100, "metres kept clear round the regions avoided, 0 to 100");
+        var maxSlope = parameters.Number("maxSlope", ScatterLayer.DefaultMaxSlope, 0, 90, "degrees, 0 to 90");
+        var reach = parameters.Number("reach", ScatterLayer.DefaultReach, 0, 1000, "metres up the hills from the playable area, 0 to 1000");
+        var scale = parameters.Vector2("scale", ScatterLayer.DefaultScale, "the least and greatest scale, like (0.85, 1.15)");
+        if (scale.X <= 0 || scale.Y < scale.X)
+            throw parameters.Error("scale", "The scale needs a least and a greatest above 0, the least first, like (0.85, 1.15)");
+        parameters.Done("group", "density", "cluster", "clusterScale", "spacing", "avoid", "margin", "maxSlope", "reach", "scale");
+        return new ScatterLayer(entries, group, density, cluster, clusterScale, spacing, avoid, margin, maxSlope, reach, scale, line.Number);
+    }
+
+    private static DrawGroup ReadDrawGroup(SourceLine line, Cursor cursor)
+    {
+        var name = cursor.ReadName("a draw group's name, like foliage");
+        var owner = $"draw group {name}";
+        var parameters = Parameters.Read(owner, line, cursor);
+        var rings = parameters.Numbers("rings", "the distances in metres where each ring ends, nearest first, like [6, 15, 35]");
+        if (rings.Length == 0 || rings[0] <= 0 || rings.Zip(rings.Skip(1)).Any(p => p.Second <= p.First))
+            throw parameters.Error("rings", "The rings need distances above 0, each further than the one before, like [6, 15, 35]");
+        var outline = parameters.Count("outline", 0, rings.Length, $"how many of the nearest rings get the outline, 0 to {rings.Length}");
+        var shadows = parameters.Count("shadows", 0, rings.Length, $"how many of the nearest rings cast shadows, 0 to {rings.Length}");
+        var lowShadows = parameters.Count("lowShadows", shadows, rings.Length,
+            $"how many of the nearest rings cast shadows on the integrated GPU / web preset, 0 to {rings.Length}");
+        var blend = parameters.Number("blend", DrawGroup.DefaultBlend, 0, 100, "metres over which neighbouring rings cross-fade, 0 to 100");
+        var fade = parameters.Number("fade", 0, 0, rings[^1], $"metres over which the last ring fades out, 0 to {FileSyntax.Number(rings[^1])}");
+        var wind = parameters.Number("wind", 0, 0, 10, "metres of sway at windHeight, 0 to 10");
+        var windHeight = parameters.Number("windHeight", 1, 0.01f, 1000, "the height in metres that sways the full amount, 0.01 to 1000");
+        var tintHeight = parameters.Number("tintHeight", 0, 0, 1000, "metres above the base that blend into the ground's colour, 0 to 1000");
+        var lowDensity = parameters.Number("lowDensity", 1, 0, 1, "the share of instances the integrated GPU / web preset draws, 0 to 1");
+        var lowDistance = parameters.Number("lowDistance", 1, 0.1f, 1, "what the integrated GPU / web preset multiplies the distances by, 0.1 to 1");
+        parameters.Done("rings", "outline", "shadows", "lowShadows", "blend", "fade", "wind", "windHeight", "tintHeight", "lowDensity", "lowDistance");
+        return new DrawGroup(name, rings, outline, shadows, lowShadows, blend, fade, wind, windHeight, tintHeight, lowDensity, lowDistance, line.Number);
+    }
+
     private static void NothingBelow(SourceLine line, string what)
     {
         if (line.Children.Count > 0)
@@ -347,7 +455,16 @@ public static class LevelFile
             {
                 var name = cursor.ReadName("a parameter like name=value");
                 cursor.Expect('=');
-                if (!values.TryAdd(name, (cursor.ReadValue(), cursor)))
+                var value = cursor.ReadValue();
+                // Names may be listed separated by commas, like avoid=dirt,tiles,path
+                if (value is RawName && cursor.Peek() == ',')
+                {
+                    var names = new List<RawValue> { value };
+                    while (cursor.TryConsume(','))
+                        names.Add(new RawName(cursor.ReadName("a name after ','")));
+                    value = new RawList(names.ToArray());
+                }
+                if (!values.TryAdd(name, (value, cursor)))
                     throw cursor.Error($"Parameter '{name}' of {owner} is given twice");
             }
         }
@@ -365,6 +482,9 @@ public static class LevelFile
                 ? value
                 : throw given.Cursor.Error($"'{name}' of {owner} is {number.Text}, but needs {expected}");
         }
+
+        /// <param name="fallback">The value when the parameter is left out.</param>
+        public Vector2 Vector2(string name, Vector2 fallback, string expected) => values.ContainsKey(name) ? Vector2(name, expected) : fallback;
 
         public Vector2 Vector2(string name, string expected)
         {
@@ -386,6 +506,43 @@ public static class LevelFile
             return items.Cast<RawVector>()
                 .Select(v => new Vector2(float.Parse(v.Components[0].Text, CultureInfo.InvariantCulture), float.Parse(v.Components[1].Text, CultureInfo.InvariantCulture)))
                 .ToArray();
+        }
+
+        /// <summary>A list of numbers, like rings=[6, 15, 35].</summary>
+        public float[] Numbers(string name, string expected)
+        {
+            if (!values.Remove(name, out var given))
+                throw ownerCursor.Error($"{Capitalized(owner)} is missing parameter '{name}': {expected}");
+            taken[name] = given.Cursor;
+            return given.Value is RawList { Items: var items } && items.All(i => i is RawNumber)
+                ? items.Cast<RawNumber>().Select(n => float.Parse(n.Text, CultureInfo.InvariantCulture)).ToArray()
+                : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
+        }
+
+        /// <summary>A whole number from 0 to <paramref name="max"/>, like outline=1.</summary>
+        public int Count(string name, int fallback, int max, string expected)
+        {
+            if (!values.Remove(name, out var given))
+                return fallback;
+            taken[name] = given.Cursor;
+            return given.Value is RawNumber { IsWhole: true } number
+                   && int.TryParse(number.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var count) && count <= max
+                ? count
+                : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
+        }
+
+        /// <summary>Bare names separated by commas, like avoid=dirt,tiles,path (or one name, or a list in brackets); none when left out.</summary>
+        public string[] Names(string name, string expected)
+        {
+            if (!values.Remove(name, out var given))
+                return [];
+            taken[name] = given.Cursor;
+            return given.Value switch
+            {
+                RawName single => [single.Name],
+                RawList { Items: var items } when items.All(i => i is RawName) => items.Cast<RawName>().Select(n => n.Name).ToArray(),
+                _ => throw given.Cursor.Error($"'{name}' of {owner} needs {expected}"),
+            };
         }
 
         /// <summary>A bare name, like pattern=stones.</summary>

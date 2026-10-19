@@ -14,9 +14,7 @@ public static class LevelModels
     /// <exception cref="SdfProgramFileException">The model's file cannot be read.</exception>
     public static Func<string, ModelFootprint?> In(string modelsFolder)
     {
-        var files = Directory.Exists(modelsFolder)
-            ? ModelFiles.All(modelsFolder).GroupBy(Path.GetFileNameWithoutExtension).ToDictionary(g => g.Key!, g => g.First())
-            : [];
+        var files = Files(modelsFolder);
         var footprints = new Dictionary<string, ModelFootprint?>();
         return name =>
         {
@@ -28,4 +26,16 @@ public static class LevelModels
             return footprints[name] = footprint;
         };
     }
+
+    /// <summary>Whether there is a model of that name in the folder, without reading it.</summary>
+    public static Func<string, bool> Exist(string modelsFolder)
+    {
+        var files = Files(modelsFolder);
+        return files.ContainsKey;
+    }
+
+    private static Dictionary<string, string> Files(string modelsFolder) =>
+        Directory.Exists(modelsFolder)
+            ? ModelFiles.All(modelsFolder).GroupBy(Path.GetFileNameWithoutExtension).ToDictionary(g => g.Key!, g => g.First())
+            : [];
 }
