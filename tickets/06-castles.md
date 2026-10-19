@@ -241,3 +241,21 @@ To check by hand:
 
 Step 5 (shader patterns, distance fade) and step 6's further detail pieces (window frames, shelf fungi on walls, lanterns, veils)
 are not started.
+
+## Subtickets for what is left (step 5 and step 6's further details)
+
+Shared rules: [06.0](06.0-rules.md). Order: 06.1, 06.3, 06.6 to 06.9 are independent; 06.2 and 06.4 follow 06.1; 06.5 follows
+06.2, 06.3 and 06.4; 06.10 follows 06.4 and 06.6 to 06.9; 06.11 follows 06.5 and 06.10. The IDE preview does not draw patterns (06 does
+not ask for it).
+
+- [06.1](06.1-pattern-format.md) `.sdfmat` pattern line, reader, glb extras, tests
+- [06.2](06.2-pattern-unity-data.md) pattern data into the Unity meshes (UV7)
+- [06.3](06.3-pattern-shader.md) shader pattern stage and distance fade
+- [06.4](06.4-castle-materials.md) castle materials with patterns, assigned to the parts
+- [06.5](06.5-pattern-unity-check.md) patterns in the engine: look, fade, cost
+- [06.6](06.6-detail-window-frame.md) window frame piece
+- [06.7](06.7-detail-wall-shelf.md) wall shelf fungi piece
+- [06.8](06.8-detail-lantern.md) lantern piece
+- [06.9](06.9-detail-veil.md) veil piece
+- [06.10](06.10-detail-placement.md) place the pieces in castle0
+- [06.11](06.11-detail-unity-check.md) pieces in the engine: rebuild, snapshots, budget
