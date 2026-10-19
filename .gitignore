@@ -34,3 +34,28 @@ content/**/*.png
 
 # Meshes of content models, made by `sdf mesh`
 content/**/*.glb
+
+# Unity: files the pipeline and the editor builders regenerate (sdf unity, then Unity's MushroomBuilder / LevelBuilder). Their .meta
+# files go with them, as Unity imports them anew; folder .meta files, prefabs, scenes and materials stay in the repo.
+# Models meshed by `sdf unity` / `sdf mesh --into`, with suffixed variants (_512, _fast)
+Unity/Assets/Mushrooms/Generated/**/*.glb
+Unity/Assets/Mushrooms/Generated/**/*.glb.meta
+Unity/Assets/Mushrooms/Generated/**/*.json
+Unity/Assets/Mushrooms/Generated/**/*.json.meta
+# Mesh assets MushroomBuilder writes for the prefabs
+Unity/Assets/Mushrooms/Meshes/**/*.asset
+Unity/Assets/Mushrooms/Meshes/**/*.asset.meta
+# Level bake of `sdf level`: chunks, region maps, instances, level.json
+Unity/Assets/Level/Generated/**/*.glb
+Unity/Assets/Level/Generated/**/*.glb.meta
+Unity/Assets/Level/Generated/**/*.json
+Unity/Assets/Level/Generated/**/*.json.meta
+Unity/Assets/Level/Generated/**/*.png
+Unity/Assets/Level/Generated/**/*.png.meta
+Unity/Assets/Level/Generated/**/*.bin
+Unity/Assets/Level/Generated/**/*.bin.meta
+# Mesh assets and instance data LevelBuilder writes for the level scenes (incl. Mirrored/)
+Unity/Assets/Level/Meshes/**/*.asset
+Unity/Assets/Level/Meshes/**/*.asset.meta
+Unity/Assets/Level/Meshes/**/*.bytes
+Unity/Assets/Level/Meshes/**/*.bytes.meta
