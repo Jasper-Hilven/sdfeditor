@@ -12,7 +12,8 @@ public sealed record MeshSource(string Name, SDFProgram Program, float Detail = 
 
 /// <summary>
 /// Splits a model into one program per mesh by rewriting its graph: the body is the model with its parts taken out, and each part is
-/// the model with only the branches that lead to that part (all of its uses together, placed and mirrored as in the model).
+/// the model with only the branches that lead to that part (all of its uses together, placed and mirrored as in the model). Parts used
+/// by a part are meshes of their own too, as if the model used them itself.
 /// <para>
 /// A part belongs to its own mesh where it adds to the shape: under unions, transforms, modifiers like Material or Round, and as the
 /// kept side of a subtraction. A part that only shapes something else, as the cutter of a subtraction or inside an intersection, stays
@@ -82,14 +83,24 @@ public static class PartSplitter
             Displace e => e with { primitive = Strip(e.primitive) },
             Detail e => Strip(e.primitive),
             Intersection or SmoothIntersection or Xor or SDFFunctionCall => node,
-            _ => (SDFEvaluable)EvaluableChildren.MapChildren(node, child => child is SDFEvaluable shape ? Strip(shape) : child),
+            _ => StripAround(node),
         };
+
+        /// <summary>A node around one shape (a transform or modifier) is nothing when its shape is; others keep their stripped children.</summary>
+        private SDFEvaluable StripAround(SDFEvaluable node)
+        {
+            var children = EvaluableChildren.Children(node).OfType<SDFEvaluable>().ToArray();
+            if (children is [var child] && Strip(child) is Empty)
+                return new Empty();
+            return (SDFEvaluable)EvaluableChildren.MapChildren(node, c => c is SDFEvaluable shape ? Strip(shape) : c);
+        }
 
         /// <summary>Only the branches that lead to the part, and the part itself with any parts it uses taken out; null when none lead there.</summary>
         public SDFEvaluable? Keep(SDFEvaluable node, string partId) => node switch
         {
             VariableReferenceSDF r when r.variableId == partId => Strip(Value(partId)),
-            VariableReferenceSDF r when Parts.ContainsKey(r.variableId) => null,
+            // Through another part to the parts it uses, so a model that is one part (amanita-scout, whose shape is the amanita_scout part
+            // its exploding pieces cut up) still gets that part's eyes and hands as meshes of their own
             VariableReferenceSDF r => Keep(Value(r.variableId), partId),
             Union e => Kept(e.primitives, partId, kept => new Union(kept)),
             SmoothUnion e => Kept(e.primitives, partId, kept => new SmoothUnion(e.smoothness, kept)),

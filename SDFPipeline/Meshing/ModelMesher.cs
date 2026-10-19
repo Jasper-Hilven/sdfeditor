@@ -71,11 +71,12 @@ public static class ModelMesher
         var grid = ContouringGrid.Around(bounds, options.CellsAlong(bounds.LongestSide, detail));
         var calculator = new SdfCalculatorCpu();
         var whole = calculator.Prepare(PartSplitter.Expanded(program));
+        var surface = options.SurfaceOf is { } cutFrom ? calculator.Prepare(PartSplitter.Expanded(cutFrom)) : null;
         var table = new MaterialTable(options.Materials);
         var meshes = new List<PartMesh>();
         foreach (var source in PartSplitter.Split(program))
         {
-            if (MeshOne(source, calculator, whole, GridFor(source, grid, options), table, options) is { } mesh)
+            if (MeshOne(source, calculator, whole, surface, GridFor(source, grid, options), table, options) is { } mesh)
                 meshes.Add(mesh);
         }
         return new MeshedModel(meshes, table.Materials, grid) { Detail = detail };
@@ -92,8 +93,8 @@ public static class ModelMesher
             ? modelGrid
             : ContouringGrid.Around(bounds, options.CellsAlong(bounds.LongestSide, source.Detail));
 
-    private static PartMesh? MeshOne(MeshSource source, SdfCalculatorCpu calculator, SdfCalculatorCpu.Prepared whole, ContouringGrid grid,
-        MaterialTable table, MeshingOptions options)
+    private static PartMesh? MeshOne(MeshSource source, SdfCalculatorCpu calculator, SdfCalculatorCpu.Prepared whole,
+        SdfCalculatorCpu.Prepared? surface, ContouringGrid grid, MaterialTable table, MeshingOptions options)
     {
         var stopwatch = Stopwatch.StartNew();
         var shape = calculator.Prepare(source.Program);
@@ -130,8 +131,10 @@ public static class ModelMesher
             Parallel.For(0, shaded.Positions.Length, v =>
             {
                 var position = onSurface[shaded.Source[v]];
-                thickness[v] = SurfaceAttributes.Thickness(whole.Distance, position, shaded.Normals[v], options.MaxThickness, cellSize);
-                occlusion[v] = SurfaceAttributes.Occlusion(whole.Distance, position, shaded.Normals[v]);
+                // A piece's surface where it is the shape it was cut from is measured on that shape (see MeshingOptions.SurfaceOf)
+                var measured = surface is not null && MathF.Abs(surface.Distance(position)) <= cellSize * 0.5f ? surface : whole;
+                thickness[v] = SurfaceAttributes.Thickness(measured.Distance, position, shaded.Normals[v], options.MaxThickness, cellSize);
+                occlusion[v] = SurfaceAttributes.Occlusion(measured.Distance, position, shaded.Normals[v]);
             });
 
             var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, simplified.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed);

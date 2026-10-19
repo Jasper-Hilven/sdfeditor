@@ -34,8 +34,15 @@ namespace SdfMushrooms.Editor
         /// <summary>The first scenes had a sun 50° up, which left the stems under the caps dark; it is moved to the current one.</summary>
         private static readonly Vector3 OldSunDirection = new Vector3(4, -6, -3).normalized;
 
+        /// <summary>
+        /// Groups of models that are not shown: the pieces a model bursts into and the effects' goop, which the special-effects scene
+        /// (Assets/Scenes/SpecialEffects.unity) uses instead.
+        /// </summary>
+        private static readonly string[] HiddenGroups = { "characters/exploding", "effects" };
+
         public static void Ensure(IReadOnlyList<(string group, string prefab)> models)
         {
+            models = models.Where(m => !HiddenGroups.Contains(m.group)).ToArray();
             var prefabPaths = models.Select(m => m.prefab).ToArray();
             var existing = SceneManager.GetSceneByPath(MushroomBuilder.ScenePath);
             var openedHere = false;

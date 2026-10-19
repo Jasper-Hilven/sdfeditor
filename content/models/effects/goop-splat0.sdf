@@ -1,0 +1,32 @@
+# Goop splat: a blob of the blob gun's goo flattened where it landed, a lobed puddle about 34 cm across and 3 cm high, its base on
+# the ground at y = 0 with a few droplets thrown round it. The effect lays it on the ground or on whatever was hit, along the
+# surface, and lets it shrink away.
+format 1
+
+Detail detail=0.6
+    Material material=blob_goo
+        Distort amount=0.004 frequency=7
+            Intersection
+                # Only what is above the ground, so the puddle sits flat on it
+                Plane normal=(0, -1, 0) height=0
+                Union
+                    # A thick middle with round lobes splashed out of it, each still its own bulge
+                    SmoothUnion smoothness=0.022
+                        Ellipsoid radii=(0.085, 0.032, 0.075)
+                        Translate translation=(0.1, 0, 0.05)
+                            Ellipsoid radii=(0.05, 0.022, 0.045)
+                        Translate translation=(-0.07, 0, 0.09)
+                            Ellipsoid radii=(0.045, 0.02, 0.04)
+                        Translate translation=(-0.08, 0, -0.08)
+                            Ellipsoid radii=(0.05, 0.024, 0.04)
+                        Translate translation=(0.06, 0, -0.09)
+                            Ellipsoid radii=(0.035, 0.018, 0.035)
+                    # Droplets thrown clear of the puddle
+                    Translate translation=(0.19, 0, -0.03)
+                        Sphere radius=0.016
+                    Translate translation=(-0.15, 0, 0.16)
+                        Sphere radius=0.013
+                    Translate translation=(0.03, 0, 0.18)
+                        Sphere radius=0.014
+                    Translate translation=(-0.18, 0, -0.05)
+                        Sphere radius=0.011

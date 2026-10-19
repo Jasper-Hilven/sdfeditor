@@ -59,6 +59,43 @@ public class ModelMesherTests
     }
 
     [Fact]
+    public void Split_FindsThePartsOfAPart()
+    {
+        // A model that is nothing but a part (the whole character), whose own parts are its eyes and hands
+        var parts = new Dictionary<string, string>(Parts) { ["scout"] = "format 1\n" + Scout };
+        var sources = PartSplitter.Split(Read("Translate translation=(0, 1, 0)\n    Part part=scout", name => parts.GetValueOrDefault(name)));
+
+        Assert.Equal(["eye", "hand", "scout"], sources.Select(s => s.Name));
+        float D(string name, float x, float y, float z) =>
+            new SdfCalculatorCpu().Prepare(sources.Single(s => s.Name == name).Program).Distance(new Vector3(x, y, z));
+
+        // Each in its own mesh, placed by both the model and the part
+        Assert.True(D("eye", 0.1f, 1.5f, 0.17f) < 0 && D("eye", -0.1f, 1.5f, 0.17f) < 0);
+        Assert.True(D("scout", 0.1f, 1.5f, 0.3f) > 0 && D("scout", 0, 1.3f, 0) < 0);
+        Assert.True(D("hand", 0.35f, 1.31f, 0) < 0 && D("scout", 0.35f, 1.3f, 0) > 0);
+    }
+
+    [Fact]
+    public void APieceCutFromAPart_IsMeasuredOnThePart_WhereItsSurfaceIsThePart()
+    {
+        // Half a ball, cut through its middle: along the cut its round surface is as thick as the whole ball's, not thin
+        var parts = new Dictionary<string, string> { ["ball"] = "format 1\nSphere radius=0.3" };
+        var program = Read("Intersection\n    Part part=ball\n    Plane normal=(1, 0, 0) height=0", name => parts.GetValueOrDefault(name));
+        var ball = SDFPipeline.ProgramFiles.SdfProgramFile.Read(parts["ball"]);
+        var cut = ModelMesher.Mesh(program, Options).Meshes[0];
+        var whole = ModelMesher.Mesh(program, Options with { SurfaceOf = ball }).Meshes[0];
+
+        // The round surface's vertices on the edge of the cut: measured on the piece, the ray in from them runs along the cut face
+        float[] Edge(PartMesh mesh) => Enumerable.Range(0, mesh.Positions.Length)
+            .Where(v => MathF.Abs(mesh.Positions[v].X) < 0.005f && mesh.Normals[v].X < 0.5f)
+            .Select(v => mesh.Thickness[v])
+            .ToArray();
+        Assert.NotEmpty(Edge(whole));
+        Assert.True(Edge(cut).Min() < 0.1f, $"{Edge(cut).Min()}");
+        Assert.True(Edge(whole).Min() > 0.2f, $"{Edge(whole).Min()}");
+    }
+
+    [Fact]
     public void SmallerThings_GetFewerButFinerCells()
     {
         var options = new MeshingOptions { Resolution = 128, ReferenceSize = 2 };

@@ -17,6 +17,16 @@ public class ModelSettingsTests
     }
 
     [Fact]
+    public void Read_TakesTheSurfaceLine_NextToTheCollider()
+    {
+        Assert.Equal(new ModelSettings(ColliderShape.None, null, "amanita_scout"),
+            ModelSettings.Read("format 1\nsurface part=amanita_scout\nSphere radius=1"));
+        Assert.Equal(new ModelSettings(ColliderShape.Convex, null, "rock"),
+            ModelSettings.Read("format 1\ncollider convex\nsurface part=rock\nSphere radius=1"));
+        Assert.Null(ModelSettings.Read("format 1\nSphere radius=1").SurfacePart);
+    }
+
+    [Fact]
     public void ProgramReader_LeavesTheSettingsOutOfTheShape()
     {
         var plain = SdfProgramFile.Read("format 1\nSphere radius=1");
@@ -32,6 +42,8 @@ public class ModelSettingsTests
     [InlineData("format 1\ncollider mesh\ncollider convex\nSphere radius=1", 3, "The collider is given twice, first on line 2")]
     [InlineData("format 1\ncollider capsule lod=1\nSphere radius=1", 2, "A capsule collider is not made from a mesh")]
     [InlineData("format 1\ncollider mesh level=1\nSphere radius=1", 2, "only lod= can follow")]
+    [InlineData("format 1\nsurface amanita_scout\nSphere radius=1", 2, "The surface names the part it is measured on")]
+    [InlineData("format 1\nsurface part=a\nsurface part=b\nSphere radius=1", 3, "The surface is given twice, first on line 2")]
     public void Read_ExplainsWhatIsWrongAndWhere(string text, int line, string problem)
     {
         var exception = Assert.Throws<SdfProgramFileException>(() => SdfProgramFile.Read(text));

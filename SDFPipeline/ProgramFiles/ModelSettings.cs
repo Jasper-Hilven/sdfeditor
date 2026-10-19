@@ -24,22 +24,29 @@ public enum ColliderShape
 /// format 1
 /// collider mesh lod=1
 /// </code>
-/// Only <c>collider</c> exists so far: <c>none</c> (the default), <c>convex</c>, <c>mesh</c> or <c>capsule</c>, and for the mesh shapes
-/// optionally <c>lod=</c>, the level of detail it is made from (the coarsest there is by default, or the coarsest that is meshed when the
-/// model has fewer levels). The settings do not change the shape: the IDE reads such a file as any other, and the mesh pipeline writes
-/// them into the .glb's extras (<see cref="Meshing.GlbWriter"/>).
+/// <list type="bullet">
+/// <item><c>collider</c>: <c>none</c> (the default), <c>convex</c>, <c>mesh</c> or <c>capsule</c>, and for the mesh shapes optionally
+/// <c>lod=</c>, the level of detail it is made from (the coarsest there is by default, or the coarsest that is meshed when the model has
+/// fewer levels). The mesh pipeline writes it into the .glb's extras (<see cref="Meshing.GlbWriter"/>).</item>
+/// <item><c>surface part=&lt;name&gt;</c>: for a piece cut from a part (an exploding mushroom's pieces), the part whose thickness and
+/// occlusion its surface takes where the surface is the part's own, so the piece is shaded as the whole was there and the pieces look
+/// like the whole when put together; the cut faces are measured on the piece (<see cref="Meshing.MeshingOptions.SurfaceOf"/>).</item>
+/// </list>
+/// The settings do not change the shape: the IDE reads such a file as any other.
 /// </summary>
 /// <param name="ColliderLod">The level of detail the collider is made from; null for the coarsest.</param>
-public sealed record ModelSettings(ColliderShape Collider, int? ColliderLod)
+/// <param name="SurfacePart">The part the surface is measured on, or null for the model itself.</param>
+public sealed record ModelSettings(ColliderShape Collider, int? ColliderLod, string? SurfacePart = null)
 {
     public const string ColliderKeyword = "collider";
+    public const string SurfaceKeyword = "surface";
 
     /// <summary>A convex collider round something larger than this, in metres, would block walkable ground: it gets the mesh instead.</summary>
     public const float LargestConvexSize = 3;
 
     public static readonly ModelSettings Default = new(ColliderShape.None, null);
 
-    private static readonly string[] Keywords = [ColliderKeyword];
+    private static readonly string[] Keywords = [ColliderKeyword, SurfaceKeyword];
 
     public static ModelSettings Load(string path) => Read(File.ReadAllText(path));
 
@@ -57,16 +64,24 @@ public sealed record ModelSettings(ColliderShape Collider, int? ColliderLod)
     internal static ModelSettings Read(IReadOnlyList<SourceLine> lines)
     {
         var settings = Default;
-        int? seen = null;
+        var seen = new Dictionary<string, int>();
         foreach (var line in lines.Where(IsSetting))
         {
             var cursor = new Cursor(line);
-            cursor.ReadName("a setting");
-            if (seen is { } first)
-                throw cursor.Error($"The collider is given twice, first on line {first}");
-            seen = line.Number;
+            var keyword = cursor.ReadName("a setting");
+            if (seen.TryGetValue(keyword, out var first))
+                throw cursor.Error($"The {keyword} is given twice, first on line {first}");
+            seen[keyword] = line.Number;
             if (line.Children.Count > 0)
                 throw new SdfProgramFileException(line.Children[0].Number, "Nothing can be indented below a setting");
+            if (keyword == SurfaceKeyword)
+            {
+                if (cursor.TryReadName() != "part" || !cursor.TryConsume('=') || cursor.ReadValue() is not RawName { Name: var part })
+                    throw cursor.Error("The surface names the part it is measured on, like 'surface part=amanita_scout'");
+                cursor.ExpectEnd();
+                settings = settings with { SurfacePart = part };
+                continue;
+            }
 
             var shapeName = cursor.TryReadName();
             var shape = shapeName switch
@@ -88,7 +103,7 @@ public sealed record ModelSettings(ColliderShape Collider, int? ColliderLod)
                 lod = level;
             }
             cursor.ExpectEnd();
-            settings = new ModelSettings(shape, lod);
+            settings = settings with { Collider = shape, ColliderLod = lod };
         }
         return settings;
     }

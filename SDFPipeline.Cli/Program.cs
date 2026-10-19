@@ -187,7 +187,9 @@ bool MeshOne(string input, string output, MeshingOptions options)
         var missing = ModelFiles.MaterialNames(program).Where(name => !options.Materials.Contains(name)).ToArray();
         if (missing.Length > 0)
             Console.Error.WriteLine($"{input}: no material file for {string.Join(", ", missing)}, meshed with the magenta stand-in");
-        var model = ModelMesher.Mesh(program, options) with { Settings = SdfProgramFile.LoadSettings(input) };
+        var settings = SdfProgramFile.LoadSettings(input);
+        var meshOptions = settings.SurfacePart is { } part ? options with { SurfaceOf = SdfProgramFile.LoadPart(input, part) } : options;
+        var model = ModelMesher.Mesh(program, meshOptions) with { Settings = settings };
         if (model.Meshes.Count == 0)
         {
             Console.Error.WriteLine($"{input}: there is no finite surface to mesh");
