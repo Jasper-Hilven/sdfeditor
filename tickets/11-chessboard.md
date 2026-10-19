@@ -27,15 +27,15 @@ games go on the same board in 12.
 - **Unity**: `LevelBuilder.BuildAllInBatch` builds `Chessboard.unity` (builder version 5, with the default day sky); the scene is in the
   build settings after SpecialEffects. The showcase (`Mushrooms.unity`) gained a `Chess` row; its broken `Zztest` instance (10's
   known problem 2) is gone, and `MushroomSnapshot.Capture` runs again.
-- **`LevelSnapshot`**: each camera-height shot also logs the placed models' triangles (`TrianglesInView` per level child: `Ground`,
-  `Placed`); a new `ShootCrowd` shoots the busiest 12 m spot of the placed models from camera height (front and back) and from above.
+- **`LevelSnapshot`**: each eye shot also logs the placed models' triangles (`TrianglesInView` per level child: `Ground`,
+  `Placed`); a new `ShootCrowd` shoots the busiest 12 m spot of the placed models from eye height (front and back) and from above.
 - **Test** `LevelFileTests.ContentChessboard_IsAFlatCheckerboard_WithPiecesOfBothColoursOnIt`: the squares' colours, the rim, all
   placements on the board, every kind in both colours, each model found.
 - After merging main (a3de2f8): `dotnet test` passes (533 + 317); in Unity batch mode the chessboard and meadow snapshots, the
   SpecialEffects build and snapshot and the showcase snapshot run with no `error CS` and no shader errors.
 
-Measured (high preset, camera height): the ground 12.9k–14.5k triangles per view, the placed models 30k–87k, and 143k at
-the shot from the back of the scrum (looking into it); web preset, the +x shot 8.8k ground + 68k placed.
+Measured (high preset, eye height): the ground 12.9k–14.5k triangles per view, the placed models 30k–87k, and 143k at
+`crowd_eye_back` (looking into it); web preset `eye_+x_web` 8.8k ground + 68k placed.
 
 ## Not done
 
@@ -53,11 +53,11 @@ the shot from the back of the scrum (looking into it); web preset, the +x shot 8
 
 ## Known problems
 
-1. **Square edges wobble** close up (seen in the +x close shot): the region map (`regions.png`) is sampled too coarsely for straight 8 m
-   squares at camera height. A finer region map, or analytic squares in `SdfGround.shader` for this level, would fix it.
+1. **Square edges wobble** close up (seen in `eye_+x`): the region map (`regions.png`) is sampled too coarsely for straight 8 m
+   squares at eye height. A finer region map, or analytic squares in `SdfGround.shader` for this level, would fix it.
 2. **Knight's neck** shows a thin artefact where the head meets the stem in the toon render (side view); check in Unity close up.
 3. **Snapshot views made for the meadow**: the foliage shots (`foliage_close`, `foliage_rings`, `wind`) look at the board, where
-   there is no foliage, so they show 0 instances; the corner shot sees no pieces. Point them at the hills for this level.
+   there is no foliage, so they show 0 instances; `eye_corner` sees no pieces. Point them at the hills for this level.
 4. **Placements overlap** in places (the scrum, the queens' party): pieces sink into each other. Intended as chaos, but check that no
    piece is hidden inside another or blocks the player in a way that looks wrong.
 
@@ -65,5 +65,5 @@ the shot from the back of the scrum (looking into it); web preset, the +x shot 8
 
 - The level has a sky; the game pieces of 12 are placed.
 - The web preset stays within ≤ 200 draw calls and ≈ 500k triangles from any spot on the board; the high preset within ≈ 2M.
-- Square edges are straight at camera height.
+- Square edges are straight at eye height.
 - The player can walk the board and is stopped by the pieces' colliders as they look.
