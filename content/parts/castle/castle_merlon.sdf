@@ -1,0 +1,15 @@
+# Castle merlon: a button mushroom on the parapet, a short stem and a red cap at mushroom scale, 0.76 m across.
+format 1
+collider none
+shadows near
+Detail detail=0.2
+    Union
+        Material material=amanita_stem
+            Translate translation=(0, 0.15, 0)
+                CappedCylinder radius=0.16 height=0.15
+        Material material=amanita_cap
+            Intersection
+                Translate translation=(0, 0.3, 0)
+                    Ellipsoid radii=(0.38, 0.3, 0.38)
+                Translate translation=(0, 0.6, 0)
+                    Box size=(0.4, 0.3, 0.4)

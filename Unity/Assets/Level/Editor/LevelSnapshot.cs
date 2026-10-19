@@ -21,9 +21,12 @@ namespace SdfLevel.Editor
     /// levels, and the same close view at two moments of the wind (wind_0, wind_1), logging how many pixels differ between them.
     /// </para>
     /// <para>
-    /// With placed castles it also shoots the first castle (the one at +x, the pipeline's -x) from the meadow, at its gate, from its
-    /// courtyard and from its wall-walk, the ground regions' edges close up and from above, and checks the colliders by walking a
-    /// character controller up the castle's stair, into its wall and straight at each rock, logging where each walk ends.
+    /// With placed castles it also shoots the first castle (the one at +x, the pipeline's -x) from the far end of the field, the meadow,
+    /// at its gate, from its courtyard, on its keep's stair and from its wall-walk, and close up where its parts join; it logs what the
+    /// castles cost in each of those views (draws and triangles of their GameObjects' chosen levels, and of the instanced renderer's
+    /// castle group). It shoots the ground regions' edges close up and from above, and checks the colliders by walking a character
+    /// controller through the gate into the courtyard, up the keep's stair and along the wall-walk past the towers' rings, into a wall
+    /// and a tower from outside, and straight at each rock, logging where each walk ends and how high it got.
     /// </para>
     /// <para>
     /// Without a window: <c>Unity -batchmode -quit -projectPath Unity -executeMethod SdfLevel.Editor.LevelSnapshot.Capture
@@ -123,6 +126,12 @@ namespace SdfLevel.Editor
                 Debug.Log($"SDF level: {name}: the ground draws {GroundTrianglesInView(scene, camera, position, rotation):N0} triangles{FoliageCost(scatter)}");
             }
 
+            void CastleShot(string name, Vector3 position, Quaternion rotation)
+            {
+                Shot(name, position, rotation);
+                Debug.Log($"SDF level: {name} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): {CastleCost(scene, camera, position, rotation, scatter)}");
+            }
+
             var level = QualitySettings.GetQualityLevel();
             try
             {
@@ -139,12 +148,20 @@ namespace SdfLevel.Editor
                 Shot("top", new Vector3(0, 260, 0), Quaternion.Euler(90, 0, 0), 1600, 1200);
 
                 CompareWithModels(scene, eye, directory, Shot);
-                ShootCastleAndRegions(scene, Shot, EyeShot);
+                ShootCastleAndRegions(scene, Shot, EyeShot, CastleShot);
                 if (scatter != null)
                     ShootFoliage(scene, directory, "", Shot, EyeShot);
 
                 QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
+                if (Placed(scene, "castle0").FirstOrDefault() is { } castleWeb)
+                {
+                    var up = Vector3.up * LevelBuilder.EyeHeight;
+                    var far = OnGround(ModelPoint(castleWeb, 0, 0, 110)) + up;
+                    CastleShot("castle_far_web", far, Quaternion.LookRotation(castleWeb.position + Vector3.up * 6 - far));
+                    var courtyard = OnGround(ModelPoint(castleWeb, -6, 0, 4)) + up;
+                    CastleShot("castle_courtyard_web", courtyard, Quaternion.LookRotation(ModelPoint(castleWeb, 1, 5, -5) - courtyard));
+                }
                 if (scatter != null)
                     ShootFoliage(scene, directory, "_web", Shot, EyeShot);
             }
@@ -227,7 +244,8 @@ namespace SdfLevel.Editor
         /// <summary>A direction given in a placed model's own pipeline coordinates, in Unity's world.</summary>
         private static Vector3 ModelDirection(Transform model, float x, float y, float z) => model.TransformDirection(new Vector3(-x, y, z));
 
-        private static void ShootCastleAndRegions(Scene scene, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot)
+        private static void ShootCastleAndRegions(Scene scene, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot,
+            Action<string, Vector3, Quaternion> castleShot)
         {
             var castle = Placed(scene, "castle0").FirstOrDefault();
             if (castle == null)
@@ -235,15 +253,28 @@ namespace SdfLevel.Editor
             var up = Vector3.up * LevelBuilder.EyeHeight;
             Quaternion Look(Vector3 from, Vector3 to) => Quaternion.LookRotation(to - from);
 
-            // From the meadow 25 m before the gate, at the gate, in the courtyard towards the gate and stairs, and from the wall-walk out
+            // From the far end of the field, the meadow 28 m before the gate, at the gate, in the courtyard (towards the keep and towards
+            // the gate), on the keep's stair, on the wall-walk, and close up where a wall bay meets a joint stem and a tower
+            var far = OnGround(ModelPoint(castle, 0, 0, 110)) + up;
+            castleShot("castle_far", far, Look(far, castle.position + Vector3.up * 6));
             var meadow = OnGround(ModelPoint(castle, 0, 0, 36)) + up;
-            eyeShot("castle_meadow", meadow, Look(meadow, castle.position + Vector3.up * 4));
-            var gate = OnGround(ModelPoint(castle, 1.5f, 0, 16)) + up;
-            eyeShot("castle_gate", gate, Look(gate, ModelPoint(castle, 0, 2, 9)));
-            var courtyard = OnGround(ModelPoint(castle, -4, 0, -1)) + up;
-            eyeShot("castle_courtyard", courtyard, Look(courtyard, ModelPoint(castle, 4, 2.5f, 8)));
-            var wallWalk = ModelPoint(castle, -6.6f, 5, 8.7f) + up;
-            shot("castle_wallwalk", wallWalk, Look(wallWalk, ModelPoint(castle, -6.6f, 2, 40)), 1920, 1080);
+            castleShot("castle_meadow", meadow, Look(meadow, castle.position + Vector3.up * 6));
+            var gate = OnGround(ModelPoint(castle, 1.5f, 0, 14)) + up;
+            castleShot("castle_gate", gate, Look(gate, ModelPoint(castle, 0, 2.5f, 7)));
+            var courtyard = OnGround(ModelPoint(castle, -6, 0, 4)) + up;
+            castleShot("castle_courtyard", courtyard, Look(courtyard, ModelPoint(castle, 1, 5, -5)));
+            var courtyardGate = OnGround(ModelPoint(castle, 3, 0, 0.5f)) + up;
+            castleShot("castle_courtyard_gate", courtyardGate, Look(courtyardGate, ModelPoint(castle, -2, 2.5f, 8)));
+            var stair = ModelPoint(castle, 4.3f * Mathf.Sin(0.8f), 1.25f, -5 + 4.3f * Mathf.Cos(0.8f)) + up;
+            castleShot("castle_stair", stair, Look(stair, ModelPoint(castle, 4.3f * Mathf.Sin(1.6f), 4f, -5 + 4.3f * Mathf.Cos(1.6f))));
+            var wallWalk = ModelPoint(castle, -6.4f, 5, 6.2f) + up;
+            castleShot("castle_wallwalk", wallWalk, Look(wallWalk, ModelPoint(castle, -11.6f, 6, 1.5f)));
+            var wallWalkOut = ModelPoint(castle, 6.4f, 5, 6.2f) + up;
+            castleShot("castle_wallwalk_out", wallWalkOut, Look(wallWalkOut, ModelPoint(castle, 14, 2, 40)));
+            var joint = OnGround(ModelPoint(castle, 8, 0, 11)) + up;
+            castleShot("castle_joint", joint, Look(joint, ModelPoint(castle, 9.2f, 3, 5.6f)));
+            var towerFoot = OnGround(ModelPoint(castle, 17, 0, 4)) + up;
+            castleShot("castle_tower_foot", towerFoot, Look(towerFoot, ModelPoint(castle, 12.4f, 4, 0)));
 
             // The regions' edges: the path, the dirt and the tiles round the castle, close up, at mid distance and from above
             var path = OnGround(new Vector3(36, 0, 6)) + up;
@@ -295,15 +326,78 @@ namespace SdfLevel.Editor
                     return walker.transform.position;
                 }
 
-                // The stair runs along the front wall's inside from x = 3.2 (its foot) to 10.2, up to the wall-walk at 5 m
-                var foot = OnGround(ModelPoint(castle, 2.4f, 0, 7.6f));
-                var climbed = Walk(foot, ModelDirection(castle, 1, 0, 0), 9, foot, out _);
-                Debug.Log($"SDF level: collider check: walking up the castle's stair ends {climbed.y - foot.y:0.00} m above its foot (the wall-walk is at 5 m)");
+                // Along waypoints, a little at a time, as a player steering by them would: the highest and lowest it was, and how close it
+                // came to the last
+                Vector3 Follow(Vector3 from, IReadOnlyList<Vector3> waypoints, out float lowest, out float top, out float missed, out int reached)
+                {
+                    controller.enabled = false;
+                    walker.transform.position = from + Vector3.up * 0.05f;
+                    controller.enabled = true;
+                    Physics.SyncTransforms();
+                    lowest = float.PositiveInfinity;
+                    top = float.NegativeInfinity;
+                    reached = 0;
+                    foreach (var target in waypoints)
+                    {
+                        for (var n = 0; n < 2000; n++)
+                        {
+                            var p = walker.transform.position;
+                            var flat = new Vector3(target.x - p.x, 0, target.z - p.z);
+                            if (flat.magnitude < 0.15f)
+                            {
+                                reached++;
+                                break;
+                            }
+                            controller.Move(flat.normalized * Mathf.Min(0.05f, flat.magnitude) + Vector3.down * 0.1f);
+                            lowest = Mathf.Min(lowest, walker.transform.position.y);
+                            top = Mathf.Max(top, walker.transform.position.y);
+                        }
+                    }
+                    var end = walker.transform.position;
+                    var last = waypoints[waypoints.Count - 1];
+                    missed = new Vector2(end.x - last.x, end.z - last.z).magnitude;
+                    return end;
+                }
 
-                var outside = OnGround(ModelPoint(castle, 7, 0, 15));
-                var stopped = Walk(outside, ModelDirection(castle, 0, 0, -1), 10, outside, out _);
-                var local = castle.InverseTransformPoint(stopped);
-                Debug.Log($"SDF level: collider check: walking into the castle's front wall stops at z = {local.z:0.00} in the castle (its face is at 10, plus the walker's 0.3 m)");
+                var ground = castle.position.y;
+                // What the walker stands against where a walk ended, by GameObject, for the log
+                string Against(Vector3 p) => string.Join(", ", Physics.OverlapCapsule(p + Vector3.up * 0.35f, p + Vector3.up * 1.4f, 0.4f)
+                    .Where(c => c.gameObject != walker).Select(c => c.name).Distinct());
+                // Through the gate into the courtyard, towards the keep
+                var before = OnGround(ModelPoint(castle, 0, 0, 16));
+                var inside = Walk(before, ModelDirection(castle, 0, 0, -1), 16, before, out _);
+                Debug.Log($"SDF level: collider check: walking in through the gate ends at z = {castle.InverseTransformPoint(inside).z:0.00} in the castle (the gate is at 8, the keep's foot at about -1), {inside.y - ground:0.00} m up, against {Against(inside)}");
+                // Across the courtyard from side to side
+                var west = OnGround(ModelPoint(castle, -7, 0, 2.5f));
+                var east = Follow(west, new[] { ModelPoint(castle, 7, 0, 2.5f) }, out var low, out var high, out var missed, out _);
+                Debug.Log($"SDF level: collider check: across the courtyard ends {missed:0.00} m from its goal 14 m away, between {low - ground:0.00} and {high - ground:0.00} m up");
+
+                // Up the keep's stair (the one on the castle's +x side), then round onto the rear wall-walk and along it past the small
+                // and the large tower, round their rings, to the front of the side wall
+                var stairWay = new List<Vector3>();
+                for (var i = 0; i < 20; i++)
+                {
+                    var angle = 0.42f + i * 0.078f;
+                    // On the outer half of each shelf (they reach from the stem, 3.35 m out, to 5.25 m), clear of the keep's foot
+                    stairWay.Add(ModelPoint(castle, 4.6f * Mathf.Sin(angle), 0, -5 + 4.6f * Mathf.Cos(angle)));
+                }
+                var stairFoot = OnGround(ModelPoint(castle, 4.6f * Mathf.Sin(0.15f), 0, -5 + 4.6f * Mathf.Cos(0.15f)));
+                // and off the top step onto the ring beyond the opening
+                stairWay.Add(ModelPoint(castle, 4.2f * Mathf.Sin(2.2f), 0, -5 + 4.2f * Mathf.Cos(2.2f)));
+                var stairTop = Follow(stairFoot, stairWay, out low, out high, out missed, out var reached);
+                Debug.Log($"SDF level: collider check: up the keep's stair onto its ring ends {stairTop.y - ground:0.00} m up (the ring is at 5 m), {missed:0.00} m from the last waypoint, {reached} of {stairWay.Count} reached, against {Against(stairTop)}");
+                var walkWay = CastleWalk.WayAlongTheWall().Select(p => ModelPoint(castle, p.x, 0, p.y)).ToList();
+                var walked = Follow(stairTop, walkWay, out low, out high, out missed, out reached);
+                Debug.Log($"SDF level: collider check: along the wall-walk from the keep's ring past both towers' rings ends {missed:0.00} m from its goal, {reached} of {walkWay.Count} waypoints reached, between {low - ground:0.00} and {high - ground:0.00} m up (the walk is at 5 m), against {Against(walked)}");
+
+                // Into a wall bay and into the large tower from outside
+                var outsideWall = OnGround(ModelPoint(castle, 6.2f * 1.6f, 0, 6.6f * 1.6f));
+                var atWall = Walk(outsideWall, ModelDirection(castle, -0.68f, 0, -0.73f), 10, outsideWall, out _);
+                var wallLocal = castle.InverseTransformPoint(atWall);
+                Debug.Log($"SDF level: collider check: walking into a wall bay from outside stops {new Vector2(wallLocal.x, wallLocal.z).magnitude:0.00} m from the castle's middle (the wall's outer face is about 10.5 m out there), {atWall.y - ground:0.00} m up");
+                var outsideTower = OnGround(ModelPoint(castle, 20, 0, 0));
+                var atTower = Walk(outsideTower, ModelDirection(castle, -1, 0, 0), 10, outsideTower, out _);
+                Debug.Log($"SDF level: collider check: walking at the large tower from outside stops at x = {-castle.InverseTransformPoint(atTower).x:0.00} in the castle (its stem's face is at 14.7, its foot's at 15.6), {atTower.y - ground:0.00} m up");
 
                 var rocks = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName)
                     .Cast<Transform>().Where(t => t.name.StartsWith("rock", StringComparison.Ordinal));
@@ -357,6 +451,114 @@ namespace SdfLevel.Editor
             var x = walls.Find("Wall +X").GetComponent<BoxCollider>();
             var z = walls.Find("Wall +Z").GetComponent<BoxCollider>();
             return new Vector2(x.transform.position.x - x.size.x / 2, z.transform.position.z - z.size.z / 2);
+        }
+
+        /// <summary>
+        /// What the castles draw in a view: their GameObjects (the LOD groups under each placed castle0: the level each picks, each
+        /// renderer in view a draw, its outline another) and the instanced renderer's castle group, as it drew the view just rendered.
+        /// </summary>
+        private static string CastleCost(Scene scene, Camera sceneCamera, Vector3 position, Quaternion rotation, InstancedScatterRenderer scatter)
+        {
+            var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Count Camera", HideFlags.HideAndDontSave, typeof(Camera));
+            try
+            {
+                var camera = cameraObject.GetComponent<Camera>();
+                camera.CopyFrom(sceneCamera);
+                camera.aspect = 16f / 9f;
+                camera.transform.SetPositionAndRotation(position, rotation);
+                var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+                var halfAngle = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                int draws = 0, triangles = 0;
+                foreach (var castle in Placed(scene, "castle0"))
+                foreach (var lodGroup in castle.GetComponentsInChildren<LODGroup>())
+                {
+                    var lods = lodGroup.GetLODs();
+                    var scale = lodGroup.transform.lossyScale;
+                    var size = lodGroup.size * Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                    var distance = Vector3.Distance(position, lodGroup.transform.TransformPoint(lodGroup.localReferencePoint));
+                    var height = size * 0.5f * QualitySettings.lodBias / (Mathf.Max(distance, 0.01f) * halfAngle);
+                    var level = Array.FindIndex(lods, lod => height >= lod.screenRelativeTransitionHeight);
+                    if (level < 0)
+                        continue;
+                    foreach (var renderer in lods[level].renderers)
+                        if (renderer != null && GeometryUtility.TestPlanesAABB(planes, renderer.bounds))
+                        {
+                            draws++;
+                            triangles += renderer.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3;
+                        }
+                }
+                var instanced = "";
+                var group = scatter == null ? -1 : Array.FindIndex(scatter.groups, g => g.name == LevelBuilder.PartsGroup);
+                if (group >= 0 && scatter.LastFrame.DrawsPerGroup != null)
+                    instanced = $", instanced {scatter.LastFrame.DrawsPerGroup[group]} draws and {scatter.LastFrame.TrianglesPerGroup[group]:N0} triangles";
+                return $"the castles' GameObjects {draws} draws and {triangles:N0} triangles{instanced} (outlines included, shadow casters not)";
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(cameraObject);
+            }
+        }
+
+        /// <summary>
+        /// The fly agaric castle's wall-walk as its layout (castle_kit.py, content/models/buildings/castle0.sdf) builds it: an oval of
+        /// 12 × 8 m half axes in 18 bays of equal chord, bay 0 centred on the gate (+z), with towers at some of the joints.
+        /// </summary>
+        private static class CastleWalk
+        {
+            private const float A = 12, B = 8;
+            private const int Bays = 18;
+
+            /// <summary>The joints, where bays meet, in the castle's pipeline coordinates (x, z): joint k ends bay k.</summary>
+            private static Vector2[] Joints()
+            {
+                const int samples = 20000;
+                var points = new Vector2[samples + 1];
+                var arc = new float[samples + 1];
+                for (var i = 0; i <= samples; i++)
+                {
+                    var t = 2 * Mathf.PI * i / samples;
+                    points[i] = new Vector2(A * Mathf.Sin(t), B * Mathf.Cos(t));
+                    if (i > 0)
+                        arc[i] = arc[i - 1] + Vector2.Distance(points[i], points[i - 1]);
+                }
+                var chord = arc[samples] / Bays;
+                return Enumerable.Range(0, Bays).Select(k =>
+                {
+                    var s = (k + 0.5f) * chord;
+                    var i = Array.FindIndex(arc, a => a >= s);
+                    return points[Mathf.Max(i - 1, 0)];
+                }).ToArray();
+            }
+
+            /// <summary>
+            /// From beside the keep's ring at the back, along the +x side's walk to bay 2: on the walk's middle line, and round the
+            /// inner side of each tower's ring (towers stand 0.4 m out from their joint) at 3.1 m from its axis.
+            /// </summary>
+            public static List<Vector2> WayAlongTheWall()
+            {
+                var joints = Joints();
+                var towers = new HashSet<int> { 4, 6 };
+                var way = new List<Vector2>();
+                // Joint 9 is the middle of the rear wall's +x half; down the joints to 2
+                for (var k = 8; k >= 2; k--)
+                {
+                    var a = joints[k];
+                    var outward = new Vector2(a.x / (A * A), a.y / (B * B)).normalized;
+                    if (!towers.Contains(k))
+                    {
+                        way.Add(a - outward * 0.3f);
+                        continue;
+                    }
+                    var centre = a + outward * 0.4f;
+                    var start = Mathf.Atan2(-outward.y, -outward.x);
+                    var arc = Enumerable.Range(-2, 5).Select(step => centre + new Vector2(Mathf.Cos(start + step * 0.45f), Mathf.Sin(start + step * 0.45f)) * 3.1f).ToList();
+                    // From the side of the joint behind (k + 1) round to the side of the one ahead
+                    if (Vector2.Distance(arc[0], joints[k + 1]) > Vector2.Distance(arc[arc.Count - 1], joints[k + 1]))
+                        arc.Reverse();
+                    way.AddRange(arc);
+                }
+                return way;
+            }
         }
 
         /// <summary>The point of the ground's colliders (the chunks', not the placed models') below or above a point.</summary>

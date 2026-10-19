@@ -233,9 +233,9 @@ public class GroundRegionTests
         var castle = models("castle0");
 
         Assert.NotNull(castle);
-        // About 31 × 21 m, its gate towards +z
-        Assert.InRange(castle.Size.X, 30, 36);
-        Assert.InRange(castle.Size.Y, 20, 27);
+        // About 31 × 21 m within its wall, its gate towards +z; the mycelium and young fly agarics outside the wall add a few metres
+        Assert.InRange(castle.Size.X, 30, 38);
+        Assert.InRange(castle.Size.Y, 20, 29);
         Assert.NotNull(models("amanita-scout"));
         Assert.Null(models("no-such-model"));
     }
