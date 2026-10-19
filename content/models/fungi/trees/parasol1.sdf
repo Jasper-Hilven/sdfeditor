@@ -1,0 +1,22 @@
+# Parasol 1: a taller, bent parasol mushroom tree 12 m tall, a slender stem with a ring under a broad cap 9 m across whose gills' edges
+# glow cyan-green (the part fungi_parasol_cap_glow), so the woods glimmer at night. The stem is the trunk of the collider.
+format 1
+collider capsule
+
+Detail detail=0.15
+    Union
+        Material material=ftree_stem
+            SmoothUnion smoothness=0.25
+                Intersection
+                    Ellipsoid radii=(0.85, 0.6, 0.85)
+                    Translate translation=(0, 0.5, 0)
+                        Box size=(2, 0.5, 2)
+                # The stem bows to one side as it climbs
+                ArbitraryRoundCone a=(0, 0.2, 0) b=(-0.3, 5.0, 0.4) radiusA=0.45 radiusB=0.3
+                ArbitraryRoundCone a=(-0.3, 5.0, 0.4) b=(-0.1, 10.1, -0.2) radiusA=0.3 radiusB=0.24
+        Material material=ftree_ring
+            Translate translation=(-0.32, 7.0, 0.3)
+                CappedCone height=0.5 bottomRadius=0.9 topRadius=0.32
+        Translate translation=(-0.1, 9.8, -0.2)
+            Rotate rotation=(0.06, 0, -0.05)
+                Part part=fungi_parasol_cap_glow

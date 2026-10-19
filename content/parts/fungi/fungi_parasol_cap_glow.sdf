@@ -1,0 +1,22 @@
+# Glowing parasol cap: a parasol's broad cap, 9 m across and 2.4 m tall, a little more domed than the plain one, whose gills' edges
+# glow cyan-green all round the underside of the rim (the woods' accent, drawn like the lit windows). Underside at the origin.
+format 1
+
+Union
+    Material material=ftree_parasol_cap
+        Distort amount=0.05 frequency=1.0
+            SmoothUnion smoothness=0.5
+                RadialWave amount=0.1 count=11
+                    Intersection
+                        Translate translation=(0, 0.1, 0)
+                            Ellipsoid radii=(4.5, 1.4, 4.5)
+                        Translate translation=(0, 1.2, 0)
+                            Box size=(11, 1.2, 11)
+                Translate translation=(0, 1.1, 0)
+                    Ellipsoid radii=(1.5, 0.9, 1.5)
+    # The gills, with their glowing edges: a wider glowing disc under the rim and the cream gills on top of it, so a ring of glow shows
+    Material material=ftree_glow
+        Translate translation=(0, -0.05, 0)
+            CappedCylinder radius=4.1 height=0.2
+    Material material=ftree_gills
+        CappedCylinder radius=3.6 height=0.4

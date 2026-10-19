@@ -1,0 +1,34 @@
+# Ink cap bell: the shaggy, ridged bell of an ink cap (Coprinus), 3.4 m across and 3.3 m tall, its open rim at the origin. The lowest
+# metre of it has melted to black ink, which hangs from the rim in drips. The gills' edges under it glow cyan-green. A part, so it
+# sways apart from the stem.
+format 1
+
+Union
+    # The bell: the top half of a tall ellipsoid, ridged in torn scales
+    Material material=ftree_inkcap
+        RadialWave amount=0.1 count=13
+            Intersection
+                Ellipsoid radii=(1.7, 3.3, 1.7)
+                Translate translation=(0, 1.65, 0)
+                    Box size=(5, 1.65, 5)
+    # The inked rim: the same bell a hair larger, between the rim and a metre up
+    Material material=ftree_ink
+        RadialWave amount=0.1 count=13
+            Intersection
+                Ellipsoid radii=(1.73, 3.33, 1.73)
+                Translate translation=(0, 0.45, 0)
+                    Box size=(5, 0.45, 5)
+    # Drips of ink hanging from the rim
+    Material material=ftree_ink
+        Union
+            ArbitraryRoundCone a=(1.55, 0.4, 0.3) b=(1.55, -0.9, 0.3) radiusA=0.12 radiusB=0.06
+            ArbitraryRoundCone a=(-0.6, 0.4, 1.6) b=(-0.6, -0.55, 1.6) radiusA=0.1 radiusB=0.05
+            ArbitraryRoundCone a=(-1.3, 0.4, -1.0) b=(-1.3, -1.1, -1.0) radiusA=0.12 radiusB=0.06
+            ArbitraryRoundCone a=(0.8, 0.4, -1.5) b=(0.8, -0.6, -1.5) radiusA=0.1 radiusB=0.05
+    # Gills: an ink-dark disc across the open rim with a ring of glow round it
+    Material material=ftree_glow
+        Translate translation=(0, -0.04, 0)
+            CappedCylinder radius=1.72 height=0.14
+    Material material=ftree_ink
+        Translate translation=(0, 0, 0)
+            CappedCylinder radius=1.35 height=0.3

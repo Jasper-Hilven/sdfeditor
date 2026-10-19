@@ -1,0 +1,56 @@
+# Cap cluster 2: ink cap bells among parasol caps, with a small glowing dome, 7 caps of several kinds grown into one soft mass on short stout stems, about 9 m across and 7 m tall.
+# Drawn instanced behind the hills' crest, seen from 30 m and more, so it needs no detail finer than its caps. Its stems reach 1.5 m
+# below its base, so it stands on a slope without showing its foot. The fungal counterpart of the meadow's crest clusters.
+format 1
+collider capsule
+
+# Fewer vertices than its size would give it: a big, simple form seen from far away
+Detail detail=0.25
+    Intersection
+        Translate translation=(0, 10, 0)
+            Box size=(7, 11.5, 7)
+        SmoothUnion smoothness=0.25
+            Material material=ftree_stem
+                SmoothUnion smoothness=0.3
+                    ArbitraryRoundCone a=(0.06, -1.5, 0.00) b=(0.30, 6.20, 0.00) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(0.29, -1.5, 0.51) b=(1.44, 4.68, 2.55) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.16, -1.5, 0.41) b=(-0.80, 4.70, 2.05) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.59, -1.5, 0.33) b=(-2.97, 2.39, 1.65) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.45, -1.5, -0.29) b=(-2.27, 5.57, -1.46) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.06, -1.5, -0.45) b=(-0.32, 3.45, -2.27) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(0.29, -1.5, -0.59) b=(1.46, 3.12, -2.96) radiusA=0.45 radiusB=0.16
+            Material material=ftree_inkcap
+                Translate translation=(0.30, 6.00, 0.00)
+                    Rotate rotation=(0.23, 0, -0.11)
+                        Scale scale=(1.06, 1.06, 1.06)
+                            Part part=fungi_cap_bell
+            Material material=ftree_inkcap
+                Translate translation=(1.44, 4.48, 2.55)
+                    Rotate rotation=(-0.24, 0, -0.06)
+                        Scale scale=(0.82, 0.82, 0.82)
+                            Part part=fungi_cap_bell
+            Material material=ftree_inkcap
+                Translate translation=(-0.80, 4.50, 2.05)
+                    Rotate rotation=(0.17, 0, 0.22)
+                        Scale scale=(0.86, 0.86, 0.86)
+                            Part part=fungi_cap_bell
+            Material material=ftree_parasol_cap
+                Translate translation=(-2.97, 2.19, 1.65)
+                    Rotate rotation=(0.19, 0, -0.17)
+                        Scale scale=(1.08, 1.08, 1.08)
+                            Part part=fungi_cap_flat
+            Material material=ftree_parasol_cap
+                Translate translation=(-2.27, 5.37, -1.46)
+                    Rotate rotation=(0.02, 0, 0.19)
+                        Scale scale=(0.87, 0.87, 0.87)
+                            Part part=fungi_cap_flat
+            Material material=ftree_bracket_cream
+                Translate translation=(-0.32, 3.25, -2.27)
+                    Rotate rotation=(-0.01, 0, 0.25)
+                        Scale scale=(1.13, 1.13, 1.13)
+                            Part part=fungi_cap_dome
+            Material material=ftree_glow
+                Translate translation=(1.46, 2.92, -2.96)
+                    Rotate rotation=(-0.24, 0, -0.06)
+                        Scale scale=(0.45, 0.45, 0.45)
+                            Part part=fungi_cap_dome

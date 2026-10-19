@@ -1,0 +1,22 @@
+# Bracket tower 0: a dead trunk 10 m tall, grey and split, narrowing to a broken tip, wrapped in six tiers of orange and cream shelf
+# fungi that narrow upward like a spruce's cone (the part fungi_bracket_tiers), so it takes the pine's place in the hill line. The
+# trunk is the collider's.
+format 1
+collider capsule
+
+Detail detail=0.1
+    Union
+        Material material=ftree_deadwood
+            Distort amount=0.03 frequency=2.5
+                SmoothUnion smoothness=0.2
+                    # The foot flares onto the ground
+                    Intersection
+                        Ellipsoid radii=(1.0, 0.6, 1.0)
+                        Translate translation=(0, 0.5, 0)
+                            Box size=(2.4, 0.5, 2.4)
+                    ArbitraryRoundCone a=(0, 0.2, 0) b=(0.1, 9.8, 0) radiusA=0.7 radiusB=0.14
+                    # A broken branch stub
+                    ArbitraryRoundCone a=(0.1, 7.9, 0) b=(0.9, 8.7, 0.2) radiusA=0.14 radiusB=0.08
+        # The tiers, from 1.5 m up so a stretch of bare trunk shows under the lowest
+        Translate translation=(0, 1.6, 0)
+            Part part=fungi_bracket_tiers

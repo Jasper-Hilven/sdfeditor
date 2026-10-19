@@ -1,0 +1,56 @@
+# Cap cluster 1: broad parasol caps over honey domes, 7 caps of several kinds grown into one soft mass on short stout stems, about 9 m across and 7 m tall.
+# Drawn instanced behind the hills' crest, seen from 30 m and more, so it needs no detail finer than its caps. Its stems reach 1.5 m
+# below its base, so it stands on a slope without showing its foot. The fungal counterpart of the meadow's crest clusters.
+format 1
+collider capsule
+
+# Fewer vertices than its size would give it: a big, simple form seen from far away
+Detail detail=0.25
+    Intersection
+        Translate translation=(0, 10, 0)
+            Box size=(7, 11.5, 7)
+        SmoothUnion smoothness=0.25
+            Material material=ftree_stem
+                SmoothUnion smoothness=0.3
+                    ArbitraryRoundCone a=(0.06, -1.5, 0.00) b=(0.30, 6.20, 0.01) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(0.29, -1.5, 0.55) b=(1.45, 4.66, 2.76) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.05, -1.5, 0.66) b=(-0.25, 6.19, 3.32) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.39, -1.5, 0.22) b=(-1.96, 4.22, 1.12) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.59, -1.5, -0.14) b=(-2.95, 5.65, -0.69) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.20, -1.5, -0.35) b=(-1.00, 6.02, -1.75) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(0.29, -1.5, -0.45) b=(1.43, 3.51, -2.27) radiusA=0.57 radiusB=0.26
+            Material material=ftree_parasol_cap
+                Translate translation=(0.30, 6.00, 0.01)
+                    Rotate rotation=(0.04, 0, -0.15)
+                        Scale scale=(1.05, 1.05, 1.05)
+                            Part part=fungi_cap_flat
+            Material material=ftree_parasol_cap
+                Translate translation=(1.45, 4.46, 2.76)
+                    Rotate rotation=(0.01, 0, -0.09)
+                        Scale scale=(0.86, 0.86, 0.86)
+                            Part part=fungi_cap_flat
+            Material material=ftree_parasol_cap
+                Translate translation=(-0.25, 5.99, 3.32)
+                    Rotate rotation=(0.18, 0, 0.05)
+                        Scale scale=(0.82, 0.82, 0.82)
+                            Part part=fungi_cap_flat
+            Material material=ftree_honey_cap
+                Translate translation=(-1.96, 4.02, 1.12)
+                    Rotate rotation=(0.09, 0, 0.08)
+                        Scale scale=(0.96, 0.96, 0.96)
+                            Part part=fungi_cap_dome
+            Material material=ftree_honey_cap
+                Translate translation=(-2.95, 5.45, -0.69)
+                    Rotate rotation=(0.06, 0, -0.23)
+                        Scale scale=(1.14, 1.14, 1.14)
+                            Part part=fungi_cap_dome
+            Material material=ftree_honey_cap
+                Translate translation=(-1.00, 5.82, -1.75)
+                    Rotate rotation=(-0.07, 0, 0.20)
+                        Scale scale=(0.91, 0.91, 0.91)
+                            Part part=fungi_cap_dome
+            Material material=amanita_cap
+                Translate translation=(1.43, 3.31, -2.27)
+                    Rotate rotation=(0.04, 0, 0.17)
+                        Scale scale=(0.82, 0.82, 0.82)
+                            Part part=fungi_cap_dome

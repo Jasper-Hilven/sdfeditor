@@ -1,0 +1,91 @@
+# Bracket tiers: six tiers of shelf fungus that wrap a dead trunk, 6.8 m across at the bottom, narrowing upward to 2.2 m, 7 m tall,
+# the first tier at the origin. Each tier is a wavy-edged shelf, flat-topped and pale-pored underneath (a thin pore slab hanging under it), alternately orange and cream;
+# every tier is turned against the next and sits tilted a little, so the stack is the pine's cone with a ragged edge. The shelves
+# overlap the trunk (the model's), so they grow out of it. Form and look both; a part, so it is a mesh of its own.
+format 1
+
+SmoothUnion smoothness=0.1
+    Translate translation=(0, 0.4, 0)
+        Rotate rotation=(0.05, 0.3, 0.04)
+            RadialWave amount=0.07 count=7
+                Union
+                    Material material=ftree_bracket_orange
+                        Intersection
+                            Ellipsoid radii=(3.4, 0.7, 3.4)
+                            Translate translation=(0, 0.7, 0)
+                                Box size=(8, 0.7, 8)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(3.2, 0.3, 3.2)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(3.7, 0.3, 3.7)
+    Translate translation=(0, 1.55, 0)
+        Rotate rotation=(-0.04, 1.1, 0.05)
+            RadialWave amount=0.07 count=7
+                Union
+                    Material material=ftree_bracket_cream
+                        Intersection
+                            Ellipsoid radii=(2.9, 0.62, 2.9)
+                            Translate translation=(0, 0.62, 0)
+                                Box size=(7, 0.62, 7)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(2.7, 0.3, 2.7)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(3.2, 0.3, 3.2)
+    Translate translation=(0, 2.65, 0)
+        Rotate rotation=(0.05, 0.6, -0.04)
+            RadialWave amount=0.07 count=6
+                Union
+                    Material material=ftree_bracket_orange
+                        Intersection
+                            Ellipsoid radii=(2.4, 0.55, 2.4)
+                            Translate translation=(0, 0.55, 0)
+                                Box size=(6, 0.55, 6)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(2.2, 0.3, 2.2)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(2.7, 0.3, 2.7)
+    Translate translation=(0, 3.7, 0)
+        Rotate rotation=(-0.05, 1.6, 0.04)
+            RadialWave amount=0.07 count=6
+                Union
+                    Material material=ftree_bracket_cream
+                        Intersection
+                            Ellipsoid radii=(1.95, 0.5, 1.95)
+                            Translate translation=(0, 0.5, 0)
+                                Box size=(5, 0.5, 5)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(1.8, 0.3, 1.8)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(2.3, 0.3, 2.3)
+    Translate translation=(0, 4.7, 0)
+        Rotate rotation=(0.04, 0.2, 0.05)
+            RadialWave amount=0.07 count=5
+                Union
+                    Material material=ftree_bracket_orange
+                        Intersection
+                            Ellipsoid radii=(1.5, 0.45, 1.5)
+                            Translate translation=(0, 0.45, 0)
+                                Box size=(4, 0.45, 4)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(1.4, 0.3, 1.4)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(1.9, 0.3, 1.9)
+    Translate translation=(0, 5.6, 0)
+        Rotate rotation=(-0.04, 0.9, -0.05)
+            RadialWave amount=0.07 count=5
+                Union
+                    Material material=ftree_bracket_cream
+                        Intersection
+                            Ellipsoid radii=(1.1, 0.4, 1.1)
+                            Translate translation=(0, 0.4, 0)
+                                Box size=(3, 0.4, 3)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(1.0, 0.3, 1.0)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(1.5, 0.3, 1.5)
