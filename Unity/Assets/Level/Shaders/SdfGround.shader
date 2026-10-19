@@ -339,8 +339,8 @@ Shader "SdfMushrooms/Ground"
                 n = normalize(normal);
 
                 // Dry and open: no wetness, and no baked occlusion (1)
-                float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, surface.x, surface.y, 0.0, 1.0);
-                return float4(color, 1.0);
+                float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, surface.x, surface.y, 0.0, 1.0, 0.0);
+                return float4(SkyFade(color, input.positionWS), 1.0);
             }
             ENDHLSL
         }

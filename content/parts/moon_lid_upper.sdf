@@ -1,0 +1,12 @@
+# The eye moon's upper lid: the top half of a shell round the eye (12 cm), turned back about the eye's centre by 0.8 rad, so it is open
+# and leaves the iris free. Turning it forward by that much about x closes it onto the lower lid: the engine does so to blink.
+format 1
+
+Material material=moon_lid
+    Rotate rotation=(-0.8, 0, 0)
+        Round radius=0.004
+            Intersection
+                Subtraction
+                    Sphere radius=0.136
+                    Sphere radius=0.127
+                Plane normal=(0, -1, 0) height=0.004

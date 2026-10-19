@@ -90,5 +90,13 @@ public sealed record MeshingOptions
     /// <summary>The materials the program's Material nodes refer to; unknown names become <see cref="MaterialDefinition.Missing"/>.</summary>
     public MaterialLibrary Materials { get; init; } = MaterialLibrary.Empty;
 
+    /// <summary>
+    /// The shape a piece was cut from (a model's <c>surface part=</c> setting), or null. Where the piece's surface is that shape's own,
+    /// within half a cell of it, thickness and occlusion are measured on that shape rather than on the piece, so the piece is shaded as
+    /// the whole was there: a cut does not make the surface beside it thin, or open it to the sky. The cut faces are measured on the
+    /// piece.
+    /// </summary>
+    public SDFProgram? SurfaceOf { get; init; }
+
     public static readonly MeshingOptions Default = new();
 }

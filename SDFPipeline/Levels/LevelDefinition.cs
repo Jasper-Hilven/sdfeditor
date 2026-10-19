@@ -1,4 +1,5 @@
 using System.Numerics;
+using SDFPipeline.Skies;
 
 namespace SDFPipeline.Levels;
 
@@ -22,6 +23,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 
     /// <summary>How the instanced renderer draws each group of scattered models, by the group's name.</summary>
     public IReadOnlyList<DrawGroup> DrawGroups { get; init; } = [];
+
+    /// <summary>The sky the level picks, with its overrides, resolved when it is baked; null for <see cref="SkyFile.DefaultPreset"/>.</summary>
+    public SkySection? Sky { get; init; }
 }
 
 /// <summary>

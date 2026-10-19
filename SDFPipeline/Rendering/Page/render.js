@@ -56,6 +56,7 @@ async function run() {
     renderer.setCamera(scene.camera);
     if (scene.light) renderer.setLight(scene.light);
     if (scene.style) renderer.setStyle(scene.style);
+    if (scene.sky) renderer.setSky(scene.sky);
     renderer.setQuadView(true);
     renderer.renderNow();
 

@@ -1,0 +1,23 @@
+# Floating cap 0: a small glowing mushroom cap adrift in the night sky, about 1 m across, with a ragged veil trailing under it in
+# place of a stem. Drawn far away in the sky layer, scaled up by the sky (floaters scale=), so it has no collider.
+format 1
+collider none
+
+Union
+    # The cap: the top of a flattened ellipsoid, its rim rounded, lumpy by a little
+    Material material=floating_cap
+        Distort amount=0.012 frequency=3
+            Round radius=0.02
+                Intersection
+                    Translate translation=(0, 0.6, 0)
+                        Ellipsoid radii=(0.5, 0.3, 0.5)
+                    Translate translation=(0, 0.95, 0)
+                        Box size=(0.6, 0.35, 0.6)
+    # The veil: a thin flared skirt hanging from under the cap, wavy along its length so its glowing edge flutters
+    Material material=floating_veil
+        Distort amount=0.012 frequency=6
+            Subtraction
+                Translate translation=(0, 0.28, 0)
+                    CappedCone height=0.32 bottomRadius=0.42 topRadius=0.25
+                Translate translation=(0, 0.28, 0)
+                    CappedCone height=0.36 bottomRadius=0.385 topRadius=0.215

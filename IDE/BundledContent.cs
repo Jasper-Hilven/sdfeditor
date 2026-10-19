@@ -1,5 +1,6 @@
 using System.Reflection;
 using SDFPipeline.Materials;
+using SDFPipeline.Skies;
 using SDFProject.ProgramDefinition;
 
 namespace IDE;
@@ -12,6 +13,7 @@ public static class BundledContent
 {
     private const string MaterialPrefix = "IDE.materials.";
     private const string ModelPrefix = "IDE.content.";
+    private const string SkyPrefix = "IDE.skies.";
 
     /// <summary>A model file; <see cref="Path"/> is relative to content/, like models/chanterelle-scout.sdf.</summary>
     public sealed record Model(string Name, string Path, string Text);
@@ -23,6 +25,9 @@ public static class BundledContent
     public static readonly IReadOnlyList<Model> Models = Resources(ModelPrefix)
         .Select(r => new Model(System.IO.Path.GetFileNameWithoutExtension(r.path), r.path, r.text))
         .ToArray();
+
+    /// <summary>The sky presets of content/skies/, by name (day, night), for the toon preview; those that cannot be read are left out.</summary>
+    public static readonly IReadOnlyList<(string Name, SkyDefinition Sky)> Skies = LoadSkies();
 
     /// <summary>The text of a part, content/parts/{name}.sdf, for models that use it.</summary>
     public static string? Part(string name) => Models.FirstOrDefault(m => m.Path == $"parts/{name}.sdf")?.Text;
@@ -45,6 +50,23 @@ public static class BundledContent
             }
         }
         return MaterialLibrary.Of(materials);
+    }
+
+    private static IReadOnlyList<(string Name, SkyDefinition Sky)> LoadSkies()
+    {
+        var skies = new List<(string, SkyDefinition)>();
+        foreach (var (path, text) in Resources(SkyPrefix))
+        {
+            try
+            {
+                skies.Add((SkyFile.NameOf(path), SkyFile.Read(text)));
+            }
+            catch (Exception e)
+            {
+                problems.Add($"content/skies/{path}: {e.Message}");
+            }
+        }
+        return skies;
     }
 
     private static IEnumerable<(string path, string text)> Resources(string prefix)

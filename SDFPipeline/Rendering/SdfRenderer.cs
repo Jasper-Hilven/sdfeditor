@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using SDFProject.Calculation;
 using SDFProject.ProgramDefinition;
+using SDFPipeline.Skies;
 
 namespace SDFPipeline.Rendering;
 
@@ -27,7 +28,19 @@ public sealed record RenderOptions
 
     /// <summary>The look: the IDE's realistic shading, or the cartoon look of the Unity toon shader.</summary>
     public RenderStyle Style { get; init; } = RenderStyle.Realistic;
+
+    /// <summary>
+    /// The perspective view's camera instead of the framed one: yaw and pitch in radians round the target, distance in metres, and
+    /// optionally the target (which the axis views are centred on too). Null frames the model.
+    /// </summary>
+    public RenderView? View { get; init; }
+
+    /// <summary>A sky to render the toon look under: its light, tone, background and fade, as Unity draws a level under it; null for none.</summary>
+    public SkyDefinition? Sky { get; init; }
 }
+
+/// <param name="Target">The point looked at; null keeps the middle of the model's bounds.</param>
+public sealed record RenderView(float Yaw, float Pitch, float Distance, float[]? Target = null);
 
 public enum RenderStyle
 {
@@ -50,6 +63,11 @@ public static class SdfRenderer
     {
         options ??= new RenderOptions();
         var framing = RenderFramer.Frame(program);
+        if (options.View is { } view)
+            framing = framing with
+            {
+                Camera = framing.Camera with { Yaw = view.Yaw, Pitch = view.Pitch, Distance = view.Distance, Target = view.Target ?? framing.Camera.Target },
+            };
         var scene = JsonSerializer.SerializeToUtf8Bytes(new
         {
             code = new Webgl2CodeGenerator(options.Materials).GenerateShaderCode(program),
@@ -65,6 +83,7 @@ public static class SdfRenderer
             caption = framing.Bounds is { } bounds ? Caption(bounds.Size) : null,
             light = options.LightDirection is { } light ? new[] { light.x, light.y, light.z } : null,
             style = options.Style == RenderStyle.Toon ? "toon" : "realistic",
+            sky = options.Sky is { } sky ? SkyDocument.Of(sky) : null,
         });
 
         var port = FreePort();
