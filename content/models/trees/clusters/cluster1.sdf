@@ -1,0 +1,41 @@
+# Crest cluster 1: a long, low bank of spreading broadleaf crowns, four wide umbrellas (canopy_wide) and two round crowns (canopy)
+# side by side over four trunks, like a hedge of old trees along the crest, about 12 m long, 6 m deep and 5.5 m tall.
+# Drawn instanced behind the hills' crest, seen from 30 m and more, so it needs no detail finer than its clumps. Its trunks
+# reach 1.5 m below its base, so it stands on a slope without showing its foot.
+format 1
+collider capsule
+
+# Fewer vertices than its size would give it: a big, simple form seen from far away
+Detail detail=0.3
+    # Only what is above 1.5 m below its base. Inside an intersection the crowns stay in one mesh with the trunks rather than
+    # being meshes of their own, so the whole cluster is one draw per level of detail
+    Intersection
+        Translate translation=(0, 10, 0)
+            Box size=(12, 11.5, 12)
+        SmoothUnion smoothness=0.4
+            Material material=tree_bark
+                SmoothUnion smoothness=0.3
+                    ArbitraryRoundCone a=(-4, -1.5, 0.2) b=(-3.8, 2.6, 0) radiusA=0.45 radiusB=0.3
+                    ArbitraryRoundCone a=(-1, -1.5, -0.3) b=(-1.1, 2.9, -0.2) radiusA=0.5 radiusB=0.32
+                    ArbitraryRoundCone a=(2, -1.5, 0.4) b=(2.2, 2.7, 0.3) radiusA=0.45 radiusB=0.3
+                    ArbitraryRoundCone a=(4.4, -1.5, -0.2) b=(4.3, 2.4, 0) radiusA=0.4 radiusB=0.28
+            Material material=tree_foliage
+                SmoothUnion smoothness=0.4
+                    Translate translation=(-3.9, 3.3, 0.2)
+                        Scale scale=(1.1, 1.1, 1.1)
+                            Part part=canopy_wide
+                    Translate translation=(-0.8, 3.8, -0.3)
+                        Scale scale=(1.25, 1.25, 1.25)
+                            Part part=canopy_wide
+                    Translate translation=(2.4, 3.5, 0.4)
+                        Scale scale=(1.15, 1.15, 1.15)
+                            Part part=canopy_wide
+                    Translate translation=(4.6, 3, -0.2)
+                        Scale scale=(0.95, 0.95, 0.95)
+                            Part part=canopy_wide
+                    Translate translation=(-2.3, 4.6, -1)
+                        Scale scale=(1.1, 1.1, 1.1)
+                            Part part=canopy
+                    Translate translation=(1, 4.9, 0.9)
+                        Scale scale=(1.15, 1.15, 1.15)
+                            Part part=canopy

@@ -1,0 +1,39 @@
+# Crest cluster 2: a stand of spruces, five pine canopies (pine_canopy_tall, pine_canopy, pine_canopy_squat) of different heights
+# crowded into one dark spiky mass over five slender trunks, its spires breaking the crest's line, about 8 m across and 10 m tall.
+# Drawn instanced behind the hills' crest, seen from 30 m and more, so it needs no detail finer than its clumps. Its trunks
+# reach 1.5 m below its base, so it stands on a slope without showing its foot.
+format 1
+collider capsule
+
+# Fewer vertices than its size would give it: a big, simple form seen from far away
+Detail detail=0.22
+    # Only what is above 1.5 m below its base. Inside an intersection the crowns stay in one mesh with the trunks rather than
+    # being meshes of their own, so the whole cluster is one draw per level of detail
+    Intersection
+        Translate translation=(0, 10, 0)
+            Box size=(12, 11.5, 12)
+        SmoothUnion smoothness=0.3
+            Material material=tree_bark
+                SmoothUnion smoothness=0.3
+                    ArbitraryRoundCone a=(0, -1.5, 0) b=(0, 2, 0) radiusA=0.32 radiusB=0.22
+                    ArbitraryRoundCone a=(-2.2, -1.5, 1) b=(-2.2, 1.6, 1) radiusA=0.28 radiusB=0.2
+                    ArbitraryRoundCone a=(2.1, -1.5, 0.6) b=(2.1, 1.6, 0.6) radiusA=0.28 radiusB=0.2
+                    ArbitraryRoundCone a=(0.6, -1.5, -2) b=(0.6, 1.5, -2) radiusA=0.26 radiusB=0.2
+                    ArbitraryRoundCone a=(-1.2, -1.5, -1.4) b=(-1.2, 1.2, -1.4) radiusA=0.26 radiusB=0.2
+            Material material=pine_needles
+                SmoothUnion smoothness=0.3
+                    Translate translation=(0, 1.2, 0)
+                        Scale scale=(1.2, 1.2, 1.2)
+                            Part part=pine_canopy_tall
+                    Translate translation=(-2.2, 0.8, 1)
+                        Scale scale=(1.1, 1.1, 1.1)
+                            Part part=pine_canopy
+                    Translate translation=(2.1, 0.9, 0.6)
+                        Scale scale=(1.05, 1.05, 1.05)
+                            Part part=pine_canopy
+                    Translate translation=(0.6, 0.6, -2)
+                        Scale scale=(1.2, 1.2, 1.2)
+                            Part part=pine_canopy_squat
+                    Translate translation=(-1.2, 0.5, -1.4)
+                        Scale scale=(1.1, 1.1, 1.1)
+                            Part part=pine_canopy_squat

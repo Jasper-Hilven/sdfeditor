@@ -1,0 +1,53 @@
+# Island underside: the rock the meadow's floating island is broken off from, hanging below its edge into the sky. At the top a band
+# of bare earth 6 m deep follows the island's outline exactly, a rounded rectangle 218 × 168 m round the playable area, and reaches
+# 25 cm above the ground's rim and 40 cm past the edge, so the grass ends on a lip of soil with no gap from any side. Below it the
+# rock bulges out and narrows in a lumpy, inverted mountain some 45 m deep, with a central keel and eight spurs hanging from it.
+# Made for content/levels/meadow.level (play 150 × 100 m, hills 28 m wide, edge margin 6 m, rim 3 m), which places it at the
+# origin; sdf level checks that it covers the island to its edge. Seen far off and from above, so it is coarse, and it has no ink
+# line or shadow of its own.
+format 1
+outline off
+shadows off
+
+# The island's outline: the playable rectangle's half size, and how far beyond it the edge is (hills plus margin), plus the lip
+corner = 34.4
+# The top of the soil band: the level's rim plus the lip
+top = 3.25
+
+# About a sixth of the vertices its size would give it: metre cells, enough for the lumps of a mountain seen from a castle tower
+Detail detail=0.17
+    SmoothUnion smoothness=1.5
+        # The soil band: a wall a metre thick along the outline, from the top down into the rock, hollow inside so that its top stays
+        # below the ground everywhere but at the very edge. Not distorted, so it keeps the edge's line to the centimetre
+        Material material=ground_dirt
+            Subtraction
+                Translate translation=(0, 0.25, 0)
+                    Elongate amount=(75, 0, 50)
+                        CappedCylinder radius=$corner height=3
+                Translate translation=(0, 3.25, 0)
+                    Elongate amount=(75, 0, 50)
+                        CappedCylinder radius=33.4 height=6
+        # The rock, lumpy at the scale of crags
+        Material material=rock_stone
+            Distort amount=1.6 frequency=0.06
+                SmoothUnion smoothness=6
+                    # The main mass: from the full outline just under the soil band's top, narrowing to a rounded floor 26 m down
+                    Translate translation=(0, -15, 0)
+                        Elongate amount=(62, 0, 38)
+                            CappedCone height=12 bottomRadius=20 topRadius=46
+                    # The keel along the middle, the lowest point, some 45 m down
+                    Translate translation=(0, -32, 0)
+                        Elongate amount=(34, 0, 12)
+                            CappedCone height=12 bottomRadius=3 topRadius=26
+        # Spurs of darker slate hanging from the underside, longer towards the middle
+        Material material=rock_slate
+            Distort amount=1 frequency=0.09
+                SmoothUnion smoothness=4
+                    ArbitraryRoundCone a=(-70, -18, 20) b=(-74, -38, 24) radiusA=9 radiusB=1.2
+                    ArbitraryRoundCone a=(-45, -24, -22) b=(-48, -50, -25) radiusA=10 radiusB=1.5
+                    ArbitraryRoundCone a=(-18, -30, 18) b=(-16, -58, 20) radiusA=11 radiusB=1.5
+                    ArbitraryRoundCone a=(12, -32, -10) b=(14, -64, -12) radiusA=12 radiusB=2
+                    ArbitraryRoundCone a=(40, -26, 22) b=(44, -52, 26) radiusA=10 radiusB=1.4
+                    ArbitraryRoundCone a=(72, -18, -18) b=(77, -36, -21) radiusA=8 radiusB=1
+                    ArbitraryRoundCone a=(-80, -14, -36) b=(-86, -28, -40) radiusA=7 radiusB=1
+                    ArbitraryRoundCone a=(86, -14, 34) b=(91, -26, 38) radiusA=6 radiusB=0.8
