@@ -1,46 +1,36 @@
-# Monopoly house: the board game's little house, standing on the origin with its front to +z, blown up to 3.4 m tall and grown as
-# a mushroom. Its walls are a squat block of a porcini's clean ivory stem flesh, 2.5 m wide and 2.1 m deep with soft corners; its
-# roof is a verdigris agaric's glossy blue-green cap, stretched along the ridge like the house's gable and overhanging the walls
-# all round, with cream gills under the eaves. An arched wooden door in front (+z) between two lit porthole windows, one more on
-# each side, and a tiny fly agaric sprouting from the roof for a chimney.
+# Monopoly house: the board game's little house, standing on the origin with its front to +z, blown up to 3.4 m tall. A
+# squat green block 2.5 m wide and 2.1 m deep with soft corners under a darker green gabled roof, its ridge along x and its
+# eaves overhanging the walls. A wooden arched door in front (+z) between two painted windows, one more on each side, and a
+# plain chimney on the roof.
 format 1
 
 Union
-    # The walls, with the door and window holes cut in, and the gills under the cap growing out of their top
-    SmoothUnion smoothness=0.06
-        Material material=game_porcini_flesh
-            Subtraction
-                Distort amount=0.008 frequency=3
-                    Translate translation=(0, 1, 0)
-                        RoundBox size=(1.25, 1, 1.05) roundness=0.14
-                Union
-                    # The doorway: a round-headed arch
-                    Translate translation=(0, 0.55, 1.05)
-                        Box size=(0.36, 0.55, 0.15)
-                    ArbitraryCappedCylinder a=(0, 1.1, 0.9) b=(0, 1.1, 1.2) radius=0.36
-                    # The window holes, either side of the door and one in each side wall
-                    SymmetryX
-                        Union
-                            ArbitraryCappedCylinder a=(0.8, 1.2, 0.9) b=(0.8, 1.2, 1.2) radius=0.27
-                            ArbitraryCappedCylinder a=(1.1, 1.2, 0) b=(1.4, 1.2, 0) radius=0.27
-        # The gills: a thin oval slab, cut from a rounder ellipsoid: a very flat one's distance is too poor far from it
-        Material material=game_gills
-            Translate translation=(0, 1.96, 0)
-                Intersection
-                    Ellipsoid radii=(1.68, 0.5, 1.44)
-                    Box size=(1.8, 0.08, 1.6)
+    # The walls, with the door and window recesses cut in
+    Material material=monopoly_green
+        Subtraction
+            Translate translation=(0, 1, 0)
+                RoundBox size=(1.25, 1, 1.05) roundness=0.1
+            Union
+                # The doorway: a round-headed arch
+                Translate translation=(0, 0.55, 1.05)
+                    Box size=(0.36, 0.55, 0.15)
+                ArbitraryCappedCylinder a=(0, 1.1, 0.9) b=(0, 1.1, 1.2) radius=0.36
+                # The window recesses, either side of the door and one in each side wall
+                SymmetryX
+                    Union
+                        Translate translation=(0.8, 1.25, 1.05)
+                            Box size=(0.25, 0.3, 0.15)
+                        Translate translation=(1.25, 1.25, 0)
+                            Box size=(0.15, 0.3, 0.25)
 
-    # The roof: the top of a wide, ridge-long ellipsoid, rounded at the rim
-    Material material=game_verdigris_cap
-        Distort amount=0.01 frequency=2
-            Round radius=0.03
-                Intersection
-                    Translate translation=(0, 1.85, 0)
-                        Ellipsoid radii=(1.78, 1.15, 1.52)
-                    Translate translation=(0, 2.65, 0)
-                        Box size=(2, 0.65, 1.7)
+    # The roof: a gabled prism, ridge along x, 1.4 m high, overhanging the walls front and back and at the gables
+    Material material=monopoly_green_roof
+        Translate translation=(0, 1.98, 0)
+            Rotate rotation=(0, 1.5707964, 0)
+                Extrusion height=1.55
+                    Triangle2D a=(-1.45, 0) b=(1.45, 0) c=(0, 1.42)
 
-    # The door, set 10 cm into the arch, with a knob
+    # The door, set 10 cm into the arch
     Material material=game_wood_door
         Union
             Translate translation=(0, 0.55, 0.94)
@@ -49,25 +39,27 @@ Union
             Translate translation=(0.22, 0.62, 1)
                 Sphere radius=0.055
 
-    # The windows
-    SymmetryX
-        Union
-            Translate translation=(0.8, 1.2, 1.05)
-                Part part=porthole_window
-            Translate translation=(1.25, 1.2, 0)
-                Rotate rotation=(0, 1.5707964, 0)
-                    Part part=porthole_window
-
-    # The chimney: a tiny fly agaric on the roof, its foot sunk into the cap
-    Translate translation=(0.9, 2.7, -0.35)
-        Rotate rotation=(0, 0, -0.12)
+    # The windows: painted panes flush in the recesses, crossed by thin bars
+    Material material=monopoly_window
+        SymmetryX
             Union
-                Material material=amanita_stem
-                    Translate translation=(0, 0.2, 0)
-                        CappedCone height=0.22 bottomRadius=0.11 topRadius=0.08
-                Material material=amanita_cap
-                    Intersection
-                        Translate translation=(0, 0.4, 0)
-                            Ellipsoid radii=(0.26, 0.2, 0.26)
-                        Translate translation=(0, 0.6, 0)
-                            Box size=(0.3, 0.2, 0.3)
+                Translate translation=(0.8, 1.25, 0.99)
+                    Box size=(0.25, 0.3, 0.04)
+                Translate translation=(1.2, 1.25, 0)
+                    Box size=(0.04, 0.3, 0.25)
+    Material material=monopoly_green
+        SymmetryX
+            Union
+                Translate translation=(0.8, 1.25, 1.03)
+                    Union
+                        Box size=(0.27, 0.02, 0.02)
+                        Box size=(0.02, 0.32, 0.02)
+                Translate translation=(1.24, 1.25, 0)
+                    Union
+                        Box size=(0.02, 0.02, 0.27)
+                        Box size=(0.02, 0.32, 0.02)
+
+    # The chimney: a plain block through the roof
+    Material material=monopoly_green_roof
+        Translate translation=(0.8, 3.05, -0.2)
+            RoundBox size=(0.18, 0.36, 0.18) roundness=0.02

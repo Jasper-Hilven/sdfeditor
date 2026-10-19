@@ -1,14 +1,13 @@
-# Monopoly house, toppled: the giant mushroom house (monopoly_house) knocked over onto its side, its roof towards +x. It rests on
-# the brim of its cap and on one bottom edge of its walls, so it lies a little tipped up, showing its front door (+z) sideways and
-# the cream gills under its eaves.
+# Monopoly house, toppled: the green game house (monopoly_house) knocked over onto its side, its roof towards +x. It rests on
+# the edge of its roof and on one bottom edge of its walls, so it lies a little tipped up, showing its front door (+z) sideways.
 format 1
 collider mesh
 
 # Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
 # board
 Detail detail=0.5
-    # Turned 77° about z, which brings the cap's rim and the walls' bottom edge on that side level with each other, about 1.3 m
-    # below the house's foot: lifted by that, less a few centimetres sunk into the ground
+    # Turned 77° about z, which brings the roof's eave and the walls' bottom edge on that side level with each other: lifted by
+    # the amount that rests it on the ground, less a few centimetres sunk into it
     Translate translation=(0, 1.28, 0)
         Rotate rotation=(0, 0, -1.35)
             Part part=monopoly_house
