@@ -20,6 +20,9 @@ ticket's Status says.
 | 11 | [Chessboard](done/11-chessboard.md) | Second level: a 160 m chessboard in anarchy chess, mushroom chess pieces and game pieces placed, dusk sky, straight square edges (per-region `wobble`), `Chessboard.unity` built. Left: web draw calls, triangle budget and web build (will not yet do this), a Play-mode walk |
 | 12 | [Game pieces](done/12-game-pieces.md) | Mushroom dice, Monopoly houses, dominoes, meeples, chips and cards for the chessboard level: modelled, meshed, placed, `Chessboard.unity` rebuilt (subtickets 12.1-12.7). Left: the triangle budget with the 37 pieces (will not yet do this) and a Play-mode look. After 11 |
 | 13 | [Chess without eyes](done/13-chess-no-eyes.md) | The 19 chess pieces lose their floating eyes and hands; re-meshed, prefabs and scenes rebuilt. After 11 |
+| 14 | [Chess cube](14-chess-cube.md) | The chessboard becomes one theme, board games: a closed cube of six chessboards (floor, four walls, ceiling), no hills, island, foliage or sky dome; every piece without mushrooms, eyes or hands. After 11, 12, 13 |
+| 14 | [Fungal level](14-fungal-level.md) | Third level, `fungal.level` / `Fungal.unity`: the meadow's island where everything that grows is a fungus (mushroom trees, moss, fungi tufts, mycelium ground); `castle0` fully fungal, no stone pattern, no tiles; Eye-Moon Night. Not started. After 01–09 |
+| 15 | [Meadow without fungi](15-meadow-without-fungi.md) | The meadow with no fungi: a new stone castle `castle1` on the tiles, the giant mushrooms out, the day sky. Not started. After 14.2 |
 
 ## The level
 
@@ -49,4 +52,6 @@ ticket's Status says.
 - **Instancing**: everything the level holds in quantity (grass, flowers, trees, crest clusters) is baked as instance data and drawn
   by one instanced renderer, so draw calls scale with the number of variants, not of objects. Only unique models (castles, big
   rocks) are scene objects.
+- **One theme per scene**: each scene, players aside, has exactly one theme. The meadow is mushrooms; the chessboard is board
+  games. Ground, borders, sky, props and pieces all belong to the scene's theme; only the players may come from another.
 - **Budgets** (per frame): high ≈ 2M triangles; integrated GPU / web ≈ 500k triangles, ≤ 200 draw calls.
