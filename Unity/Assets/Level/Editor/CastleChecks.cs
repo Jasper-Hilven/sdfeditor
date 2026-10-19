@@ -13,7 +13,9 @@ namespace SdfLevel.Editor
     /// <summary>
     /// The batch-mode checks of the castle's floor heights and levels of detail (ticket 09): without a window,
     /// <c>Unity -batchmode -quit -projectPath Unity -executeMethod SdfLevel.Editor.CastleChecks.Run -snapshotDir &lt;folder&gt;</c>
-    /// (without -nographics), on the meadow's first castle.
+    /// (without -nographics), on the meadow's first castle. <c>-castle castle1</c> runs the same checks on the stone castle (ticket
+    /// 15.2) instead: it is put where that castle stands, the meadow's <c>castle0</c> hidden, so floors, walks and views are the same
+    /// ones; the default is <c>castle0</c>, as before.
     /// <list type="bullet">
     /// <item><b>Height profiles</b>: a walker is dropped on the floor along a path, 2 cm at a time: at each step a ray from a step
     /// height (0.42 m) above its feet down finds the floor it stands on. It logs every jump of more than 1.5 cm (where, how
@@ -39,19 +41,44 @@ namespace SdfLevel.Editor
             var index = Array.IndexOf(args, "-snapshotDir");
             var directory = index >= 0 && index + 1 < args.Length ? args[index + 1] : Path.Combine(Path.GetTempPath(), "castle-checks");
             var only = Array.IndexOf(args, "-only") is var o && o >= 0 && o + 1 < args.Length ? args[o + 1] : "walk,zfight,lod";
+            var model = Array.IndexOf(args, "-castle") is var c && c >= 0 && c + 1 < args.Length ? args[c + 1] : "castle0";
             Directory.CreateDirectory(directory);
             var scene = EditorSceneManager.OpenScene(LevelBuilder.ScenePathOf($"{LevelBuilder.GeneratedFolder}/meadow"), OpenSceneMode.Single);
             Physics.SyncTransforms();
             var castle = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName)
                 .Cast<Transform>().Where(t => t.name == "castle0").OrderByDescending(t => t.position.x).First();
+            if (model != "castle0")
+                castle = Swap(castle, model);
             var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
             if (only.Contains("walk"))
-                Walks(castle);
+                Walks(castle, model);
             if (only.Contains("zfight"))
                 ZFighting(castle, camera, directory);
             if (only.Contains("lod"))
-                Levels(scene, camera, directory);
-            Debug.Log($"SDF castle checks: done, snapshots in {directory}");
+                Levels(scene, camera, directory, model);
+            Debug.Log($"SDF castle checks ({model}): done, snapshots in {directory}");
+        }
+
+        /// <summary>Hides the placed castle0 and puts an instance of the other castle's prefab in its place (position, turn and scale).</summary>
+        private static Transform Swap(Transform placed, string model)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{model}.prefab")
+                         ?? throw new InvalidOperationException($"There is no prefab for {model}");
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, placed.gameObject.scene);
+            instance.transform.SetParent(placed.parent, false);
+            instance.transform.SetLocalPositionAndRotation(placed.localPosition, placed.localRotation);
+            instance.transform.localScale = placed.localScale;
+            placed.gameObject.SetActive(false);
+            // castle0's repeated parts are drawn by the instanced renderer, not by the placed object: take its placements out
+            foreach (var renderer in placed.gameObject.scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<InstancedScatterRenderer>(true)))
+            {
+                var hidden = new HashSet<int>(renderer.prototypes.Select((p, i) => (p, i)).Where(e => e.p.name.StartsWith("castle0/", StringComparison.Ordinal)).Select(e => e.i));
+                renderer.placements = renderer.placements.Where(p => !hidden.Contains(p.prototype)).ToArray();
+                renderer.enabled = false;
+                renderer.enabled = true;
+            }
+            Physics.SyncTransforms();
+            return instance.transform;
         }
 
         // The castle's model coordinates (the pipeline's) to the world: Unity's x is the pipeline's -x
@@ -82,9 +109,9 @@ namespace SdfLevel.Editor
 
         // ---- floors and walks -------------------------------------------------------------------------------------------------------
 
-        private static void Walks(Transform castle)
+        private static void Walks(Transform castle, string modelName)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Mushrooms/castle0.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{modelName}.prefab");
             var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab, castle.gameObject.scene);
             model.transform.SetPositionAndRotation(castle.position, castle.rotation);
             model.transform.localScale = castle.lossyScale;
@@ -525,11 +552,13 @@ namespace SdfLevel.Editor
 
         // ---- levels of detail ---------------------------------------------------------------------------------------------------------
 
-        private static void Levels(Scene scene, Camera camera, string directory)
+        private static void Levels(Scene scene, Camera camera, string directory, string modelName)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Mushrooms/castle0.prefab");
-            Keep(scene, camera, directory, prefab);
-            foreach (var part in new[] { "castle_tower_small", "castle_tower_large", "castle_keep", "castle_amanitas", "castle_gate_turret" })
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{modelName}.prefab");
+            // castle0's parts are castle_X, castle1's stone_X (only castle0 has the young fly agarics, castle_amanitas)
+            var prefix = modelName == "castle0" ? "castle_" : "stone_";
+            Keep(scene, camera, directory, prefab, prefix + "keep");
+            foreach (var part in new[] { "tower_small", "tower_large", "keep", "amanitas", "gate_turret" }.Select(n => prefix + n))
             {
                 var use = prefab.transform.Cast<Transform>().FirstOrDefault(t => t.name.StartsWith(part, StringComparison.Ordinal) && t.GetComponent<LODGroup>() != null);
                 if (use == null)
@@ -568,30 +597,30 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>The keep is a GameObject of the castle's own LOD group (with the gate): all else is hidden, each level forced on.</summary>
-        private static void Keep(Scene scene, Camera camera, string directory, GameObject prefab)
+        private static void Keep(Scene scene, Camera camera, string directory, GameObject prefab, string keepName)
         {
             var copy = UnityEngine.Object.Instantiate(prefab, new Vector3(0, 140, 0), Quaternion.identity);
             SceneManager.MoveGameObjectToScene(copy, scene);
             try
             {
                 foreach (var child in copy.transform.Cast<Transform>().ToArray())
-                    if (!child.name.StartsWith("castle_keep", StringComparison.Ordinal))
+                    if (!child.name.StartsWith(keepName, StringComparison.Ordinal))
                         child.gameObject.SetActive(false);
                 var group = copy.GetComponent<LODGroup>();
                 var lods = group.GetLODs();
-                var keep = lods.Select(l => l.renderers.Where(r => r != null && r.name == "castle_keep").ToArray()).ToArray();
+                var keep = lods.Select(l => l.renderers.Where(r => r != null && r.name == keepName).ToArray()).ToArray();
                 var bounds = keep[0].Select(r => r.bounds).Aggregate((x, y) => { x.Encapsulate(y); return x; });
                 var fov = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
                 var distance = bounds.extents.magnitude * 1.1f / fov;
                 for (var level = 0; level < lods.Length; level++)
                 {
                     group.ForceLOD(level);
-                    foreach (var (view, name) in new[] { (new Vector3(-0.25f, 0.2f, 1), "lod_castle_keep_LOD" + level), (new Vector3(0.2f, -0.05f, 1), "lod_castle_keep_LOD" + level + "_side") })
+                    foreach (var (view, name) in new[] { (new Vector3(-0.25f, 0.2f, 1), "lod_" + keepName + "_LOD" + level), (new Vector3(0.2f, -0.05f, 1), "lod_" + keepName + "_LOD" + level + "_side") })
                     {
                         var eye = bounds.center + view.normalized * distance;
                         MushroomSnapshot.RenderView(camera, eye, Quaternion.LookRotation(bounds.center - eye), Path.Combine(directory, name + ".png"), 1400, 1400);
                     }
-                    Debug.Log($"SDF castle checks: castle_keep LOD{level}: {keep[level].Sum(r => r.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3)} triangles");
+                    Debug.Log($"SDF castle checks: {keepName} LOD{level}: {keep[level].Sum(r => r.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3)} triangles");
                 }
                 group.ForceLOD(-1);
             }
