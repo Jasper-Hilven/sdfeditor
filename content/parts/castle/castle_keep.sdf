@@ -10,7 +10,7 @@ Detail detail=0.45
             Box size=(12, 12, 12)
         Scale scale=(10, 10, 10)
             Union
-                Material material=amanita_stem
+                Material material=castle_stem
                     # The stem swells into a low foot, kept inside the stairs' first steps so they stand clear of it
                     SmoothUnion smoothness=0.05
                         ArbitraryRoundCone a=(0, 0.1, 0) b=(0, 1.52, 0) radiusA=0.34 radiusB=0.25
@@ -18,7 +18,7 @@ Detail detail=0.45
                             Ellipsoid radii=(0.37, 0.07, 0.37)
                 # The ring, with an opening on either side where the stairs come up through it (from 0.98 to 1.98 radians round from the
                 # front, the last ten steps), so they have headroom under it
-                Material material=amanita_stem
+                Material material=castle_stem
                     Subtraction
                         Union
                             Translate translation=(0, 0.522, 0)
@@ -32,7 +32,7 @@ Detail detail=0.45
                                 Plane normal=(-0.398, 0, -0.917) height=0
                                 Translate translation=(0, 0.52, 0)
                                     CappedCylinder radius=0.53 height=0.06
-                Material material=amanita_stem
+                Material material=castle_stem
                     Union
                         Translate translation=(0, 1.06, 0)
                             Round radius=0.008
