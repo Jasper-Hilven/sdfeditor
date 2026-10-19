@@ -24,6 +24,17 @@ namespace SDFPipeline.Meshing;
 /// part and level in the mesh's extras, written after all of LOD0. The levels' nodes are not in the scene, so viewers show LOD0 alone;
 /// each LOD0 node lists its levels, coarsest last, in the MSFT_lod extension, which viewers that know it use to switch between them.
 /// </para>
+/// <para>
+/// Part instances (<see cref="PartMesh.Instances"/>): a part meshed once in its own space for several uses is one mesh (with its levels),
+/// as glTF splits nodes from meshes, and each use is a node with its matrix, named part.0, part.1 and so on; the first use's node is
+/// where a mesh in place would have its node, the others follow all LOD0 nodes. Each use has its own level nodes (part_LOD1.0 ...),
+/// with the same matrix, listed by its MSFT_lod. A use whose matrix mirrors (negative determinant) is drawn with its triangles turned
+/// round, as glTF asks of viewers. Models without instances are written as before.
+/// </para>
+/// <para>
+/// Settings (<see cref="ModelSettings"/>): the model's collider, and its shadows, outline and cull where they are not the default, are in
+/// extras.sdf; a part whose file has settings of its own has them, resolved, in extras.sdf.parts under its mesh's name.
+/// </para>
 /// </summary>
 public static class GlbWriter
 {
@@ -64,6 +75,9 @@ public static class GlbWriter
 
     /// <summary>What a level of detail's mesh and node are called after the part's name, followed by the level: body_LOD1.</summary>
     public const string LodSuffix = "_LOD";
+
+    /// <summary>What separates a part's name from the number of the use in an instance's node name: eye.0, eye_LOD1.0.</summary>
+    public const char InstanceSeparator = '.';
 
     /// <summary>The glTF extension that lists a node's levels of detail (Microsoft's, which Babylon.js reads).</summary>
     public const string LodExtension = "MSFT_lod";
@@ -145,35 +159,62 @@ public static class GlbWriter
         }
 
         foreach (var mesh in model.Meshes)
-            AddMesh(mesh, mesh.Name, new { part = mesh.Name, contouredTriangles = mesh.Statistics.ContouredTriangles });
+        {
+            if (mesh.Instances.Count > 0)
+                AddMesh(mesh, mesh.Name, new { part = mesh.Part, contouredTriangles = mesh.Statistics.ContouredTriangles, instances = mesh.Instances.Count });
+            else
+                AddMesh(mesh, mesh.Name, new { part = mesh.Name, contouredTriangles = mesh.Statistics.ContouredTriangles });
+        }
+
+        // Each mesh's uses: one node in the model's space, or a node per instance of a part meshed in its own. The first use's node has
+        // the mesh's number; the other uses' nodes follow all of those
+        object Node(string nodeName, int mesh, Matrix4x4? placement, List<int>? lods = null) => new
+        {
+            name = nodeName,
+            mesh,
+            matrix = placement is { } m ? ColumnMajor(m) : null,
+            extensions = lods is null ? null : new Dictionary<string, object> { [LodExtension] = new { ids = lods } },
+        };
+        var uses = model.Meshes.Select(m => m.Instances.Count > 0 ? m.Instances.Select(p => (Matrix4x4?)p).ToArray() : [null]).ToArray();
+        string UseName(string meshName, int mesh, int use) => uses[mesh][use] is null ? meshName : $"{meshName}{InstanceSeparator}{use}";
+        var nodes = model.Meshes.Select((m, i) => Node(UseName(m.Name, i, 0), i, uses[i][0])).ToList();
+        var useNodes = model.Meshes.Select((_, i) => new List<int> { i }).ToArray();
+        for (var i = 0; i < model.Meshes.Count; i++)
+        for (var use = 1; use < uses[i].Length; use++)
+        {
+            nodes.Add(Node(UseName(model.Meshes[i].Name, i, use), i, uses[i][use]));
+            useNodes[i].Add(nodes.Count - 1);
+        }
 
         // The levels of detail come after all of LOD0, so LOD0's meshes and nodes keep their numbers. Their nodes are not in the scene:
         // MSFT_lod on each LOD0 node lists them, and viewers that do not know it show LOD0 alone
-        var nodes = model.Meshes.Select((m, i) => (object)new { name = m.Name, mesh = i }).ToList();
         for (var i = 0; i < model.Meshes.Count; i++)
         {
             var mesh = model.Meshes[i];
             if (mesh.Lods.Count == 0)
                 continue;
-            var ids = new List<int>();
-            for (var level = 1; level <= mesh.Lods.Count; level++)
+            var levelMeshes = mesh.Lods.Select((lod, l) => AddMesh(lod, LodName(mesh.Name, l + 1),
+                new { part = mesh.Name, lod = l + 1, maxError = lod.MaxError, contouredTriangles = lod.Statistics.ContouredTriangles })).ToArray();
+            for (var use = 0; use < uses[i].Length; use++)
             {
-                var lod = mesh.Lods[level - 1];
-                var lodName = LodName(mesh.Name, level);
-                var index = AddMesh(lod, lodName, new { part = mesh.Name, lod = level, maxError = lod.MaxError, contouredTriangles = lod.Statistics.ContouredTriangles });
-                nodes.Add(new { name = lodName, mesh = index });
-                ids.Add(nodes.Count - 1);
+                var ids = new List<int>();
+                for (var level = 1; level <= mesh.Lods.Count; level++)
+                {
+                    nodes.Add(Node(UseName(LodName(mesh.Name, level), i, use), levelMeshes[level - 1], uses[i][use]));
+                    ids.Add(nodes.Count - 1);
+                }
+                nodes[useNodes[i][use]] = Node(UseName(mesh.Name, i, use), i, uses[i][use], ids);
             }
-            nodes[i] = new { name = mesh.Name, mesh = i, extensions = new Dictionary<string, object> { [LodExtension] = new { ids } } };
         }
         var lodCount = 1 + model.Meshes.Select(m => m.Lods.Count).DefaultIfEmpty(0).Max();
+        var instanced = model.Meshes.Any(m => m.Instances.Count > 0);
         Pad(binary, 0);
 
         var document = new
         {
             asset = new { version = "2.0", generator = "SDFPipeline (sdf mesh)" },
             scene = 0,
-            scenes = new[] { new { name, nodes = Enumerable.Range(0, model.Meshes.Count).ToArray() } },
+            scenes = new[] { new { name, nodes = useNodes.SelectMany(u => u).Order().ToArray() } },
             nodes,
             meshes,
             // The material table, in order, so a primitive's material is its region's number; the vertex colours give the colour
@@ -210,7 +251,15 @@ public static class GlbWriter
                     },
                     // Each mesh's primitives are its material regions; the number is the material's index in materials
                     regions = "primitive material = index into materials, by the material that weighs most at the triangle",
-                    collider = Collider(model, lodCount),
+                    collider = Collider(model.Settings, ModelPositions(model), 1, lodCount),
+                    // Left out where they are the default, so such files stay as they were
+                    shadows = model.Settings.Shadows == ShadowCasting.On ? null : Lower(model.Settings.Shadows),
+                    outline = model.Settings.Outline ? (bool?)null : false,
+                    cull = model.Settings.Cull,
+                    parts = PartSettings(model, lodCount),
+                    instances = instanced
+                        ? $"a part used several times is one mesh in its own space, each use a node named part{InstanceSeparator}k with its matrix, and its levels' nodes part{LodSuffix}n{InstanceSeparator}k with the same"
+                        : null,
                     // Left out without levels of detail, so such files stay as they were
                     lods = lodCount > 1
                         ? new
@@ -229,18 +278,17 @@ public static class GlbWriter
     }
 
     /// <summary>
-    /// What the game engine gives the model to collide with (<see cref="ModelSettings"/>), resolved for this file: the level of detail a
-    /// convex or mesh collider is made from (the one asked for, or the coarsest, never beyond the levels there are), a convex one larger
-    /// than <see cref="ModelSettings.LargestConvexSize"/> made a mesh, as its hull would block walkable ground round a large outcrop, and a
-    /// capsule's axis and radius, upright through the middle of the model's bounds (in the file's coordinates). Null for none, so files
+    /// What the game engine gives the model or a part to collide with (<see cref="ModelSettings"/>), resolved for this file: the level of
+    /// detail a convex or mesh collider is made from (the one asked for, or the coarsest, never beyond the levels there are), a convex one
+    /// larger than <see cref="ModelSettings.LargestConvexSize"/> made a mesh, as its hull would block walkable ground round a large
+    /// outcrop, and a capsule's axis and radius, upright through the middle of the <paramref name="positions"/>' bounds (in the file's
+    /// coordinates, or a part instance's own). <paramref name="scale"/> is the largest a part's instances make it. Null for none, so files
     /// without a collider stay as they were.
     /// </summary>
-    private static object? Collider(MeshedModel model, int lodCount)
+    private static object? Collider(ModelSettings settings, IReadOnlyList<Vector3> positions, float scale, int lodCount)
     {
-        var settings = model.Settings;
-        if (settings.Collider == ColliderShape.None || model.Meshes.Count == 0)
+        if (settings.Collider == ColliderShape.None || positions.Count == 0)
             return null;
-        var positions = model.Meshes.SelectMany(m => m.Positions).ToArray();
         var min = positions.Aggregate(Vector3.Min);
         var max = positions.Aggregate(Vector3.Max);
         var size = max - min;
@@ -257,7 +305,7 @@ public static class GlbWriter
                     radius,
                 };
             default:
-                var largest = MathF.Max(size.X, MathF.Max(size.Y, size.Z));
+                var largest = MathF.Max(size.X, MathF.Max(size.Y, size.Z)) * scale;
                 var convex = settings.Collider == ColliderShape.Convex && largest <= ModelSettings.LargestConvexSize;
                 return new
                 {
@@ -267,6 +315,42 @@ public static class GlbWriter
                 };
         }
     }
+
+    /// <summary>Every vertex of LOD0 in the model's space, each part instance's where its use puts it.</summary>
+    private static Vector3[] ModelPositions(MeshedModel model) =>
+        model.Meshes.SelectMany(m => m.Instances.Count == 0
+            ? m.Positions
+            : m.Instances.SelectMany(placement => m.Positions.Select(p => Vector3.Transform(p, placement)))).ToArray();
+
+    /// <summary>
+    /// The resolved settings of each mesh whose part has settings of its own, by mesh name: collider (shape none when it has none, so
+    /// it does not fall back to the model's), shadows, outline and cull. Null when no part has any, so such files stay as they were.
+    /// </summary>
+    private static Dictionary<string, object>? PartSettings(MeshedModel model, int lodCount)
+    {
+        var parts = new Dictionary<string, object>();
+        foreach (var mesh in model.Meshes)
+        {
+            if (mesh.Part is not { } part || !model.PartSettings.TryGetValue(part, out var settings))
+                continue;
+            var scale = mesh.Instances.Select(m => new Vector3(m.M11, m.M12, m.M13).Length()).DefaultIfEmpty(1).Max();
+            parts[mesh.Name] = new
+            {
+                part,
+                collider = Collider(settings, mesh.Positions, scale, lodCount) ?? new { shape = "none" },
+                shadows = Lower(settings.Shadows),
+                outline = settings.Outline,
+                cull = settings.Cull,
+            };
+        }
+        return parts.Count > 0 ? parts : null;
+    }
+
+    private static string Lower(Enum value) => value.ToString().ToLowerInvariant();
+
+    /// <summary>A placement as glTF's matrix: column-major for column vectors, which is System.Numerics' row-vector matrix row by row.</summary>
+    private static float[] ColumnMajor(Matrix4x4 m) =>
+        [m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24, m.M31, m.M32, m.M33, m.M34, m.M41, m.M42, m.M43, m.M44];
 
     /// <summary>The GLB container around a glTF document and its binary buffer (already padded to four bytes).</summary>
     internal static byte[] Container(byte[] json, byte[] binary)

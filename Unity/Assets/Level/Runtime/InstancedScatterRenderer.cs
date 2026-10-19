@@ -32,13 +32,18 @@ namespace SdfLevel
         [Range(0.1f, 1)] public float lowDistance = 1;
     }
 
-    /// <summary>One mesh of a prototype at one level of detail, placed in the prototype's space; drawn with the outline when the ring has one and <see cref="outline"/> is on.</summary>
+    /// <summary>
+    /// One mesh of a prototype at one level of detail, placed in the prototype's space; drawn with the outline when the ring has one and
+    /// <see cref="outline"/> is on, casting shadows when the ring does and <see cref="shadows"/> is on (a castle part's <c>shadows</c>
+    /// setting: off, or near, which leaves it on at LOD0 only).
+    /// </summary>
     [Serializable]
     public sealed class ScatterPart
     {
         public Mesh mesh;
         public Matrix4x4 transform = Matrix4x4.identity;
         public bool outline = true;
+        public bool shadows = true;
     }
 
     [Serializable]
@@ -59,9 +64,15 @@ namespace SdfLevel
         public string group;
         public GameObject prefab;
         public ScatterLevel[] levels = Array.Empty<ScatterLevel>();
+        [Tooltip("Not drawn beyond this many metres (a detail piece's cull setting); 0 for as far as its group's rings reach")]
+        public float cull;
     }
 
-    /// <summary>An instance given in the scene rather than in instances.bin: a prototype at a position, turned and scaled (Unity's coordinates).</summary>
+    /// <summary>
+    /// An instance given in the scene rather than in instances.bin: a prototype at a position, turned and scaled (Unity's coordinates).
+    /// Give a mirror image as a mirrored mesh, not a negative scale: Graphics.RenderMeshInstanced does not turn the triangles round
+    /// for an instance whose matrix mirrors, so it would show its back faces (the culling and radii take the scale's size either way).
+    /// </summary>
     [Serializable]
     public struct ScatterPlacement
     {
@@ -129,6 +140,9 @@ namespace SdfLevel
             /// <summary>Triangles drawn into the shadow map (once per cascade they reach, which is not counted).</summary>
             public int ShadowTriangles;
             public int[] InstancesPerRing;
+            /// <summary>Per draw group (in the order of <see cref="groups"/>): draws, outlines included, and triangles, outlines included.</summary>
+            public int[] DrawsPerGroup;
+            public int[] TrianglesPerGroup;
         }
 
         public FrameStats LastFrame { get; private set; }
@@ -280,7 +294,7 @@ namespace SdfLevel
                 var x = Mathf.Clamp(Mathf.FloorToInt((positions[i].x - origin.x) / cellSize), 0, cellsX - 1);
                 var z = Mathf.Clamp(Mathf.FloorToInt((positions[i].z - origin.y) / cellSize), 0, cellsZ - 1);
                 var cell = z * cellsX + x;
-                var sphere = new Bounds(matrices[i].MultiplyPoint3x4(prototypeCentres[p]), Vector3.one * (2 * prototypeRadii[p] * scales[i]));
+                var sphere = new Bounds(matrices[i].MultiplyPoint3x4(prototypeCentres[p]), Vector3.one * (2 * prototypeRadii[p] * Mathf.Abs(scales[i])));
                 if (lists[cell] == null)
                 {
                     lists[cell] = new List<int>();
@@ -434,7 +448,10 @@ namespace SdfLevel
 
             for (var p = 0; p < prototypes.Length; p++)
                 Array.Clear(ringCounts[p], 0, ringCounts[p].Length);
-            var stats = new FrameStats { Camera = camera, InstancesPerRing = new int[8] };
+            var stats = new FrameStats
+            {
+                Camera = camera, InstancesPerRing = new int[8], DrawsPerGroup = new int[groups.Length], TrianglesPerGroup = new int[groups.Length],
+            };
             var drawn = new Bounds();
             var anyDrawn = false;
             for (var c = 0; c < cells.Length; c++)
@@ -455,11 +472,11 @@ namespace SdfLevel
                         continue;
                     var distance = Vector3.Distance(eye, positions[i]);
                     var rings = groupRings[g];
-                    if (distance > rings[rings.Length - 1].w)
+                    if (distance > rings[rings.Length - 1].w || prototypes[p].cull > 0 && distance > prototypes[p].cull)
                         continue;
                     var shadowRings = low ? group.lowShadowRings : group.shadowRings;
                     var centre = matrices[i].MultiplyPoint3x4(prototypeCentres[p]);
-                    var radius = prototypeRadii[p] * scales[i];
+                    var radius = prototypeRadii[p] * Mathf.Abs(scales[i]);
                     var margin = shadowRings > 0 && distance <= rings[Mathf.Min(shadowRings, rings.Length) - 1].w ? ShadowMargin : 0;
                     if (!InView(centre, radius + margin))
                         continue;
@@ -495,7 +512,8 @@ namespace SdfLevel
                     var count = ringCounts[p][k];
                     if (count == 0)
                         continue;
-                    var group = groups[prototypeGroups[p]];
+                    var g = prototypeGroups[p];
+                    var group = groups[g];
                     var level = levels[p][Mathf.Min(k, levels[p].Length - 1)];
                     var shadows = k < (low ? group.lowShadowRings : group.shadowRings);
                     var outlined = k < group.outlineRings && outline != null;
@@ -520,13 +538,14 @@ namespace SdfLevel
                             properties.SetVector(RingId, groupRings[prototypeGroups[p]][k]);
                             properties.SetVector(CameraId, eye);
                             properties.SetVector(WindId, new Vector4(group.wind, group.windHeight, group.tintHeight, 0));
+                            var castShadows = shadows && part.shadows;
                             var parameters = new RenderParams(surface)
                             {
                                 camera = camera,
                                 layer = gameObject.layer,
                                 worldBounds = drawn,
                                 matProps = properties,
-                                shadowCastingMode = shadows ? ShadowCastingMode.On : ShadowCastingMode.Off,
+                                shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off,
                                 receiveShadows = true,
                                 lightProbeUsage = LightProbeUsage.Off,
                                 reflectionProbeUsage = ReflectionProbeUsage.Off,
@@ -534,7 +553,9 @@ namespace SdfLevel
                             Graphics.RenderMeshInstanced(parameters, part.mesh, 0, batchMatrices, n);
                             stats.Draws++;
                             stats.Triangles += n * triangles;
-                            if (shadows)
+                            stats.DrawsPerGroup[g]++;
+                            stats.TrianglesPerGroup[g] += n * triangles;
+                            if (castShadows)
                                 stats.ShadowTriangles += n * triangles;
                             if (!outlined || !part.outline)
                                 continue;
@@ -544,6 +565,8 @@ namespace SdfLevel
                             Graphics.RenderMeshInstanced(parameters, part.mesh, 0, batchMatrices, n);
                             stats.OutlineDraws++;
                             stats.OutlineTriangles += n * triangles;
+                            stats.DrawsPerGroup[g]++;
+                            stats.TrianglesPerGroup[g] += n * triangles;
                         }
                     }
                 }

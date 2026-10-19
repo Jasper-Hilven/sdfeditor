@@ -26,11 +26,23 @@ public static class ModelFiles
 
     public const string PartsFolderName = "parts";
 
-    /// <summary>Parts are the program files in content/parts/, named after their files.</summary>
+    /// <summary>
+    /// Parts are the program files in content/parts/, named after their files. A kit of parts may have a folder of its own
+    /// (content/parts/castle/castle_tower.sdf is the part castle_tower): a file directly in content/parts/ comes first, then the
+    /// subfolders in name order.
+    /// </summary>
     public static PartSource PartsIn(string contentFolder) => name =>
-        FileSyntax.IsIdentifier(name) && Path.Combine(contentFolder, PartsFolderName, name + SdfProgramFile.Extension) is var path && File.Exists(path)
-            ? File.ReadAllText(path)
-            : null;
+    {
+        if (!FileSyntax.IsIdentifier(name))
+            return null;
+        var folder = Path.Combine(contentFolder, PartsFolderName);
+        var path = Path.Combine(folder, name + SdfProgramFile.Extension);
+        if (!File.Exists(path))
+            path = Directory.Exists(folder)
+                ? Directory.EnumerateFiles(folder, name + SdfProgramFile.Extension, SearchOption.AllDirectories).Order(StringComparer.Ordinal).FirstOrDefault() ?? path
+                : path;
+        return File.Exists(path) ? File.ReadAllText(path) : null;
+    };
 
     public static IReadOnlyList<string> All(string directory) =>
         Directory.EnumerateFiles(directory, "*" + SdfProgramFile.Extension, SearchOption.AllDirectories)
