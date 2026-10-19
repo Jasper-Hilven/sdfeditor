@@ -1,6 +1,6 @@
 # Castle mycelium: pale threads running out over the ground from a foot about 2.3 m across, six of them, each bending as it goes,
-# tapering and branching once, half sunk in the ground (cut off at y = 0). Placed round the towers' feet, turned for variety, and
-# scaled up round the keep's.
+# tapering and branching once, half sunk in the ground (cut off 3 cm below y = 0, so their flat underside never lies in the
+# ground's plane). Placed round the towers' feet, turned for variety, and scaled up round the keep's.
 format 1
 collider none
 shadows off
@@ -8,7 +8,7 @@ cull 40
 Detail detail=0.2
     Material material=amanita_gills
         Intersection
-            Translate translation=(0, 0.5, 0)
+            Translate translation=(0, 0.47, 0)
                 Box size=(8, 0.5, 8)
             Union
                 ArbitraryRoundCone a=(0.847, 0, 1.921) b=(1.174, 0, 2.863) radiusA=0.17 radiusB=0.145

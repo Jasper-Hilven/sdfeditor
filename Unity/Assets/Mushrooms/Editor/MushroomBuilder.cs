@@ -35,8 +35,9 @@ namespace SdfMushrooms.Editor
     /// <para>
     /// Part instances: a part the pipeline meshed once for several uses (the .glb has a node with a matrix per use) is a child of the
     /// root per use, named after the use's node (eye.0, eye.1), placed, turned, scaled and mirrored as the use puts it, with its own LOD
-    /// group sized to the part, so each use switches level by its own size and distance. Its levels are children of it, drawing the
-    /// part's mesh assets, which all uses share. The prefab then reads, from the root down:
+    /// group sized to the part, so each use switches level by its own size and distance, though never earlier than the whole model
+    /// would (see <see cref="AddLodGroup"/>). Its levels are children of it, drawing the part's mesh assets, which all uses share.
+    /// The prefab then reads, from the root down:
     /// <code>
     /// castle0                 LOD group over the model's own meshes (if it has any), the model's colliders
     ///   body                  LOD0 of the body, with an Outline child; and each part meshed in the model's space, as before
@@ -84,7 +85,7 @@ namespace SdfMushrooms.Editor
         /// look only, the realistic one gone. Version 9: URP instead of HDRP. Version 10: colliders from the model's collider setting.
         /// Version 11: part instances, a child with its own LOD group per use, and the shadows, outline, cull and collider settings per part.
         /// </summary>
-        public const int BuilderVersion = 11;
+        public const int BuilderVersion = 12;
 
         private static string VersionStamp
         {
@@ -258,6 +259,8 @@ namespace SdfMushrooms.Editor
                 var modelSize = Largest(BoundsInRoot(root));
                 if (levels > 1 && placed.Count > 0)
                     AddLodGroup(root, placed, lods, CullHeight(model.Cull, modelSize, LodCullHeight));
+                // Where the whole model, every mesh of it in one LOD group, would change level: a use changes no earlier
+                var modelHeights = Heights(model.Meshes, modelSize, model.LodCount, LodCullHeight);
                 foreach (var (use, part, partLods) in uses)
                 {
                     if (partLods.Length < 2)
@@ -265,7 +268,8 @@ namespace SdfMushrooms.Editor
                     // Culled where the whole model would be, unless the part says how far it shows
                     var size = Largest(BoundsInRoot(use));
                     var cull = part.Settings != null ? part.Settings.Value<float?>("cull") : model.Cull;
-                    AddLodGroup(use, new[] { part }, partLods, CullHeight(cull, size, LodCullHeight * size / Mathf.Max(modelSize, 1e-4f)));
+                    var share = size / Mathf.Max(modelSize, 1e-4f);
+                    AddLodGroup(use, new[] { part }, partLods, CullHeight(cull, size, LodCullHeight * share), modelHeights.Select(h => h * share).ToArray());
                 }
                 AddCollider(root, model, MeshOf, uses.Select(u => (u.Use, u.Part)));
 
@@ -425,8 +429,14 @@ namespace SdfMushrooms.Editor
         /// The levels cross-fade (URP dithers both for half a second, see SdfToon.shader): with only a few levels each change of
         /// triangles would otherwise pop.
         /// </para>
+        /// <para>
+        /// A use of a part meshed once changes level no earlier than the whole model would (<paramref name="atMost"/>, the model's heights
+        /// in the use's own size). Its error limits are in its own grid's cells, which are fine for a small part, so by them alone an
+        /// eye would drop to LOD2 from 4 m, where its pupil's rings, which the error does not measure, have simplified into a cross.
+        /// </para>
         /// </summary>
-        private static void AddLodGroup(GameObject owner, IReadOnlyList<SdfGlb.MeshData> parts, IReadOnlyList<List<Renderer>> renderers, float cullHeight)
+        private static void AddLodGroup(GameObject owner, IReadOnlyList<SdfGlb.MeshData> parts, IReadOnlyList<List<Renderer>> renderers, float cullHeight,
+            IReadOnlyList<float> atMost = null)
         {
             // What RecalculateBounds would give, taken from the meshes: the parts sit at the owner's origin, and the renderers of an object
             // that was only just made may not have their bounds yet
@@ -437,21 +447,33 @@ namespace SdfMushrooms.Editor
             group.localReferencePoint = bounds.center;
             group.size = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
 
-            var levels = renderers.Count;
+            var heights = Heights(parts, group.size, renderers.Count, cullHeight);
+            if (atMost != null)
+            {
+                for (var level = 0; level < heights.Length - 1 && level < atMost.Count - 1; level++)
+                    heights[level] = Mathf.Min(heights[level], atMost[level]);
+                for (var level = 1; level < heights.Length; level++)
+                    heights[level] = Mathf.Min(heights[level], heights[level - 1] / 1.5f);
+            }
+            group.SetLODs(renderers.Select((r, level) => new LOD(heights[level], r.ToArray())).ToArray());
+        }
+
+        /// <summary>The heights of <see cref="AddLodGroup"/> for <paramref name="levels"/> levels of parts of the given size.</summary>
+        private static float[] Heights(IReadOnlyList<SdfGlb.MeshData> parts, float size, int levels, float cullHeight)
+        {
             var heights = new float[levels];
             heights[levels - 1] = cullHeight;
             for (var level = levels - 2; level >= 0; level--)
             {
                 var error = parts.Max(m => m.AtLevel(level + 1).MaxError);
                 // Files that carry no error limit: halve the height with each level
-                var height = error > 0 ? group.size * LodPixelError / (error * 1080) : 0.5f / (1 << level);
+                var height = error > 0 ? size * LodPixelError / (error * 1080) : 0.5f / (1 << level);
                 heights[level] = Mathf.Max(height, heights[level + 1] * 1.5f);
             }
             heights[0] = Mathf.Min(heights[0], 0.5f);
             for (var level = 1; level < levels; level++)
                 heights[level] = Mathf.Min(heights[level], heights[level - 1] / 1.5f);
-
-            group.SetLODs(renderers.Select((r, level) => new LOD(heights[level], r.ToArray())).ToArray());
+            return heights;
         }
 
         /// <summary>

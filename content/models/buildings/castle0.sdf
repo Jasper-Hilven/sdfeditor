@@ -2,9 +2,15 @@
 # curtain wall runs round an oval about 31 x 21 m, the gate at +z: seventeen wall bays and the gate bay, each turned to follow its
 # chord of the oval, with a joint stem or a tower wherever two bays meet. Two large towers stand at the oval's ends, two small ones
 # flank the keep, and two slim gate turrets lean apart either side of the gate. Towers vary by their lean and turn, and by a scale
-# that moves them down or up by as much as their ring moved, so every ring meets the wall-walk at 5 m. The keep stands against
-# the rear wall; its ring is the balcony the rear walk runs onto, and two stairs of shelf fungi spiral up its stem to it. Merlons
-# on every bay, mycelium round the feet and young fly agarics outside the wall are detail pieces.
+# that moves them down or up by as much as their ring moved, so every ring stays at its height. The keep stands against the rear
+# wall; its ring is the balcony the rear walk runs onto, and two stairs of shelf fungi spiral up its stem to it. Merlons on every
+# bay, mycelium round the feet and young fly agarics outside the wall are detail pieces.
+# Floor heights (ticket 09): floors of parts that overlap never lie in one plane, or they would z-fight. The bays' walks are at
+# 5 m, the joints' pads at 5.15 m and the towers', gate turrets' and keep's rings at 5.3 m: joints meet bays and towers, and the
+# keep's ring meets bays and joints; it is small enough to clear the small towers' rings, which clear the large towers'.
+# Neighbouring bays overlap only under a joint's pad or a tower's ring. Every step is 15 or 30 cm. The towers
+# lean only slightly (about 1 degree for the gate turrets), as a leaning ring tilts: 5 degrees took the turrets' rings 21 cm up
+# and down where the walk meets them, through the floors next to them. Merlons sit 5 cm into the parapet.
 # Only Part uses under translates, turns, uniform scales and a symmetry, so each repeated part is meshed once and drawn per use.
 format 1
 collider mesh
@@ -15,11 +21,11 @@ Union
         Rotate rotation=(0, 0, 0)
             Union
                 Part part=castle_wall_gate
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 1, with its merlons
@@ -27,11 +33,11 @@ Union
         Rotate rotation=(0, 0.202, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 2, with its merlons
@@ -39,11 +45,11 @@ Union
         Rotate rotation=(0, 0.437, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 3, with its merlons
@@ -51,11 +57,11 @@ Union
         Rotate rotation=(0, 0.761, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 4, with its merlons
@@ -63,11 +69,11 @@ Union
         Rotate rotation=(0, 1.257, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 5, with its merlons
@@ -75,11 +81,11 @@ Union
         Rotate rotation=(0, 1.884, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 6, with its merlons
@@ -87,11 +93,11 @@ Union
         Rotate rotation=(0, 2.381, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 7, with its merlons
@@ -99,11 +105,11 @@ Union
         Rotate rotation=(0, 2.704, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 8, with its merlons
@@ -111,11 +117,11 @@ Union
         Rotate rotation=(0, 2.94, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 9, with its merlons
@@ -123,11 +129,11 @@ Union
         Rotate rotation=(0, 3.141, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 10, with its merlons
@@ -135,11 +141,11 @@ Union
         Rotate rotation=(0, -2.94, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 11, with its merlons
@@ -147,11 +153,11 @@ Union
         Rotate rotation=(0, -2.704, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 12, with its merlons
@@ -159,11 +165,11 @@ Union
         Rotate rotation=(0, -2.381, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 13, with its merlons
@@ -171,11 +177,11 @@ Union
         Rotate rotation=(0, -1.885, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 14, with its merlons
@@ -183,11 +189,11 @@ Union
         Rotate rotation=(0, -1.258, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 15, with its merlons
@@ -195,11 +201,11 @@ Union
         Rotate rotation=(0, -0.761, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 16, with its merlons
@@ -207,11 +213,11 @@ Union
         Rotate rotation=(0, -0.438, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Bay 17, with its merlons
@@ -219,17 +225,17 @@ Union
         Rotate rotation=(0, -0.202, 0)
             Union
                 Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.55, 0.85)
+                Translate translation=(-1.25, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(0, 5.55, 0.85)
+                Translate translation=(0, 5.45, 0.85)
                     Part part=castle_merlon
-                Translate translation=(1.25, 5.55, 0.85)
+                Translate translation=(1.25, 5.45, 0.85)
                     Part part=castle_merlon
 
     # Tower at joint 0
     Translate translation=(3.24, 0, 8.169)
         Rotate rotation=(0, 0.098, 0)
-            Rotate rotation=(0.02, 0, -0.09)
+            Rotate rotation=(0.01, 0, -0.018)
                 Part part=castle_gate_turret
 
     # Mycelium round its foot
@@ -256,7 +262,7 @@ Union
     # Tower at joint 4
     Translate translation=(12.4, 0, 0)
         Rotate rotation=(0, 1.571, 0)
-            Rotate rotation=(-0.02, 0, -0.035)
+            Rotate rotation=(-0.01, 0, -0.007)
                 Part part=castle_tower_large
 
     # Mycelium round its foot
@@ -273,7 +279,7 @@ Union
     # Tower at joint 6
     Translate translation=(8.613, 0, -6.052)
         Rotate rotation=(0, 2.563, 0)
-            Rotate rotation=(-0.03, 0, -0.02)
+            Rotate rotation=(-0.015, 0, -0.004)
                 Part part=castle_tower_small
 
     # Mycelium round its foot
@@ -303,9 +309,9 @@ Union
             Part part=castle_wall_joint
 
     # Tower at joint 11
-    Translate translation=(-8.61, -0.3, -6.054)
+    Translate translation=(-8.61, -0.318, -6.054)
         Rotate rotation=(0, -2.564, 0)
-            Rotate rotation=(-0.025, 0, 0.025)
+            Rotate rotation=(-0.013, 0, 0.005)
                 Scale scale=(1.06, 1.06, 1.06)
                     Part part=castle_tower_small
 
@@ -321,9 +327,9 @@ Union
             Part part=castle_wall_joint
 
     # Tower at joint 13
-    Translate translation=(-12.4, 0.4, -0.003)
+    Translate translation=(-12.4, 0.424, -0.003)
         Rotate rotation=(0, -1.571, 0)
-            Rotate rotation=(0.025, 0, 0.03)
+            Rotate rotation=(0.013, 0, 0.006)
                 Scale scale=(0.92, 0.92, 0.92)
                     Part part=castle_tower_large
 
@@ -349,9 +355,9 @@ Union
             Part part=castle_wall_joint
 
     # Tower at joint 17
-    Translate translation=(-3.244, -0.2, 8.169)
+    Translate translation=(-3.244, -0.212, 8.169)
         Rotate rotation=(0, -0.099, 0)
-            Rotate rotation=(0.02, 0, 0.09)
+            Rotate rotation=(0.01, 0, 0.018)
                 Scale scale=(1.04, 1.04, 1.04)
                     Part part=castle_gate_turret
 

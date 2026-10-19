@@ -288,6 +288,12 @@ namespace SdfEffects.Editor
                 {
                     levels.size = intactLevels.size;
                     levels.localReferencePoint = intactLevels.localReferencePoint;
+                    // and at the model's heights, which the scout's eyes and hands (uses with LOD groups of their own) also keep to
+                    var own = levels.GetLODs();
+                    var model = intactLevels.GetLODs();
+                    for (var level = 0; level < own.Length && level < model.Length; level++)
+                        own[level].screenRelativeTransitionHeight = model[level].screenRelativeTransitionHeight;
+                    levels.SetLODs(own);
                 }
                 pieces.Add(piece.transform);
                 centers.Add(bounds.center);

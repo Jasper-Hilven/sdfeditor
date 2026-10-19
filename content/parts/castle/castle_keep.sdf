@@ -1,5 +1,5 @@
-# Castle keep: the biggest fly agaric, 19 m, standing in the courtyard against the rear wall. Its flat ring at the wall-walk's 5 m
-# is a balcony 1.9 m wide that the rear walk runs onto and the two castle_stairs climb to; a second, hanging ring higher up; glowing
+# Castle keep: the biggest fly agaric, 19 m, standing in the courtyard against the rear wall. Its flat ring at 5.3 m, 30 cm above
+# the wall-walk, is a balcony 1.7 m wide that the rear walk steps up onto and the two castle_stairs climb to; a second, hanging ring higher up; glowing
 # windows and a door on the courtyard side (+z). Modelled at a tenth of its size and scaled up, like the towers.
 format 1
 collider mesh
@@ -21,16 +21,16 @@ Detail detail=0.45
                 Material material=amanita_stem
                     Subtraction
                         Union
-                            Translate translation=(0, 0.492, 0)
-                                CappedCylinder radius=0.5 height=0.008
-                            Translate translation=(0, 0.47, 0)
+                            Translate translation=(0, 0.522, 0)
+                                CappedCylinder radius=0.485 height=0.008
+                            Translate translation=(0, 0.5, 0)
                                 Round radius=0.004
-                                    CappedCone height=0.016 bottomRadius=0.49 topRadius=0.5
+                                    CappedCone height=0.016 bottomRadius=0.475 topRadius=0.485
                         SymmetryX
                             Intersection
                                 Plane normal=(-0.557, 0, 0.83) height=0
                                 Plane normal=(-0.398, 0, -0.917) height=0
-                                Translate translation=(0, 0.5, 0)
+                                Translate translation=(0, 0.52, 0)
                                     CappedCylinder radius=0.53 height=0.06
                 Material material=amanita_stem
                     Union

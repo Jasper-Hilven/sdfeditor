@@ -10,6 +10,12 @@ public sealed record TriangleMesh(Vector3[] Positions, int[] Triangles)
     public static readonly TriangleMesh Empty = new([], []);
 
     public int TriangleCount => Triangles.Length / 3;
+
+    /// <summary>
+    /// For a simplified mesh, the vertex of the contoured mesh each vertex is (the one that stayed when others merged into it), so it
+    /// keeps that vertex's region; null for any other mesh.
+    /// </summary>
+    public int[]? Sources { get; init; }
 }
 
 /// <summary>A point on the surface and the outward normal there, from the SDF: the tangent plane the mesh should keep close to.</summary>

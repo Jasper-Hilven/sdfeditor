@@ -142,6 +142,7 @@ public static class ModelMesher
                 ? simplified.Positions
                 : Evaluate(simplified.Positions, p => MaterialBorders.OntoSurface(p, shape.Distance, cellSize * 1e-3f));
             var samples = Evaluate(onSurface, shape.Surface);
+            InRegions(onSurface, samples, simplified.Sources!, regions, contoured.Mesh.Positions, shape, table, cellSize);
             var materialOfSource = samples.Select(sample => SurfaceAttributes.Material(sample, table)).ToArray();
             var materials = shaded.Source.Select(v => materialOfSource[v]).ToArray();
 
@@ -178,6 +179,47 @@ public static class ModelMesher
         }
         return levels[0] with { Lods = levels.Skip(1).ToArray(), Instances = source.Instances };
     }
+
+    /// <summary>
+    /// Gives each vertex the material of its region. Simplification keeps regions apart, but a merged vertex may come to stand where
+    /// another material is, such as a cap vertex in the corner under the cap where the stem goes in: sampled there, it would take the
+    /// stem's colour, and the faces it shares with the cap would run from white to red across the whole cap. Such a vertex is sampled
+    /// instead at the nearest point of its own region on the way back to where contouring put it, which is in its region. Only the
+    /// material is sampled there: the vertex stays where it is.
+    /// </summary>
+    private static void InRegions(Vector3[] positions, SurfaceSample[] samples, int[] sources, int[] regions, Vector3[] contouredPositions,
+        SdfCalculatorCpu.Prepared shape, MaterialTable table, float cellSize)
+    {
+        int RegionAt(Vector3 p)
+        {
+            var source = Dominant(shape.Surface(p));
+            lock (table) return table.IndexOf(source);
+        }
+
+        Parallel.For(0, positions.Length, v =>
+        {
+            var region = regions[sources[v]];
+            int sampled;
+            lock (table) sampled = table.IndexOf(Dominant(samples[v]));
+            if (sampled == region)
+                return;
+            float inside = 1, outside = 0;
+            var (from, to) = (positions[v], contouredPositions[sources[v]]);
+            for (var step = 0; step < RegionBisectionSteps; step++)
+            {
+                var middle = (inside + outside) * 0.5f;
+                if (RegionAt(MaterialBorders.OntoSurface(Vector3.Lerp(from, to, middle), shape.Distance, cellSize * 1e-3f)) == region)
+                    inside = middle;
+                else
+                    outside = middle;
+            }
+            var found = MaterialBorders.OntoSurface(Vector3.Lerp(from, to, inside), shape.Distance, cellSize * 1e-3f);
+            if (RegionAt(found) == region)
+                samples[v] = shape.Surface(found);
+        });
+    }
+
+    private const int RegionBisectionSteps = 10;
 
     private static MaterialSource Dominant(SurfaceSample sample) => sample.Materials.MaxBy(s => s.Weight).Source;
 

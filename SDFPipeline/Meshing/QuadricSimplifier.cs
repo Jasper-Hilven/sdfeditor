@@ -559,6 +559,7 @@ public static class QuadricSimplifier
             var newIndex = new int[positions.Length];
             Array.Fill(newIndex, -1);
             var kept = new List<Vector3>();
+            var keptSources = new List<int>();
             var keptTriangles = new List<int>();
             for (var t = 0; t < removedTriangle.Length; t++)
             {
@@ -570,11 +571,12 @@ public static class QuadricSimplifier
                     {
                         newIndex[vertex] = kept.Count;
                         kept.Add(positions[vertex]);
+                        keptSources.Add(vertex);
                     }
                     keptTriangles.Add(newIndex[vertex]);
                 }
             }
-            return new TriangleMesh(kept.ToArray(), keptTriangles.ToArray());
+            return new TriangleMesh(kept.ToArray(), keptTriangles.ToArray()) { Sources = keptSources.ToArray() };
         }
     }
 }

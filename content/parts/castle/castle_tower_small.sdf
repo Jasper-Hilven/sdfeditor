@@ -1,8 +1,8 @@
 # Castle tower, small: a fly agaric 9.5 m tall with a 3.3 m cap, flanking the keep.
 # Modelled at an eighth of its size and scaled up, so the cap's white flecks and the stem's fibres come out at the size they have on
-# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at the
-# wall-walk's 5 m, a balcony 1.36 m wide round the stem that the walk runs onto; the layout may scale a tower up
-# only if it sinks it by as much as the ring rose.
+# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at
+# 5.3 m, 30 cm above the wall-walk (the floor heights are in castle0.sdf), a balcony round the stem that the walk runs onto; the
+# layout may scale a tower up only if it sinks it by as much as the ring rose.
 format 1
 collider mesh
 Detail detail=0.4
@@ -20,11 +20,11 @@ Detail detail=0.4
                 # The ring (annulus): a flat balcony with the skirt of the ring hanging under its edge
                 Material material=amanita_stem
                     Union
-                        Translate translation=(0, 0.617, 0)
-                            CappedCylinder radius=0.46 height=0.008
-                        Translate translation=(0, 0.595, 0)
+                        Translate translation=(0, 0.6545, 0)
+                            CappedCylinder radius=0.44 height=0.008
+                        Translate translation=(0, 0.6325, 0)
                             Round radius=0.004
-                                CappedCone height=0.016 bottomRadius=0.45 topRadius=0.46
+                                CappedCone height=0.016 bottomRadius=0.43 topRadius=0.44
                 # Glowing round windows on the side facing out
                 Material material=flower_center
                     Union

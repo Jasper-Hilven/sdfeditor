@@ -1,5 +1,6 @@
 # Castle wall joint: where two wall bays meet, a stem stands out of the wall's outer face (+z) with a small red cap, and a round pad
-# at the walk's height fills the angle between the bays' walks. The stem hides the seam on the outside; it leaves 1.3 m of walk.
+# 15 cm above the walk (at 5.15 m) fills the angle between the bays' walks and covers where they overlap. The stem hides the seam
+# on the outside; it leaves 1.3 m of walk. The cap's flat underside sits 5 cm below the parapet's top, not level with it.
 format 1
 collider mesh
 Detail detail=0.3
@@ -14,10 +15,10 @@ Detail detail=0.3
                         ArbitraryRoundCone a=(0, 0, 0.75) b=(0, 5.5, 0.85) radiusA=1.05 radiusB=0.62
                         Translate translation=(0, 0.15, 0.6)
                             Ellipsoid radii=(1.6, 0.9, 1.5)
-                    Translate translation=(0, 4.85, -0.05)
+                    Translate translation=(0, 5, -0.05)
                         CappedCylinder radius=1.15 height=0.15
             # The cap at mushroom scale, scaled up so its flecks are a hand wide
-            Translate translation=(0, 5.4, 0.85)
+            Translate translation=(0, 5.35, 0.85)
                 Scale scale=(2.4, 2.4, 2.4)
                     Material material=amanita_cap
                         Intersection

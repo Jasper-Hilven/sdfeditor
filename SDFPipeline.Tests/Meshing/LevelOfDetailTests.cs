@@ -206,6 +206,53 @@ public class LevelOfDetailTests
     }
 
     /// <summary>
+    /// A fly agaric as the castle's towers are: a stem going up into a cap whose flat underside overhangs it, a border between the two
+    /// materials in the corner where they meet, on a circle 0.189 m round at 1.176 m up.
+    /// </summary>
+    private const string CapOverStem = """
+        Union
+            Material material=stem
+                ArbitraryRoundCone a=(0, 0.1, 0) b=(0, 1.167, 0) radiusA=0.29 radiusB=0.189
+            Material material=cap
+                Round radius=0.02
+                    Intersection
+                        Translate translation=(0, 1.167, 0)
+                            Ellipsoid radii=(0.412, 0.305, 0.412)
+                        Translate translation=(0, 1.6, 0)
+                            Box size=(0.454, 0.404, 0.454)
+        """;
+
+    [Fact]
+    public void CapOverStem_ColoursChangeOnlyAtTheBorder_OnEveryLevel()
+    {
+        var model = ModelMesher.Mesh(Read(CapOverStem), new MeshingOptions { Resolution = 128, LodCount = 3 });
+        var mesh = Assert.Single(model.Meshes);
+        var cell = model.Grid!.CellSize;
+        float FromBorder(Vector3 p) => new Vector2(new Vector2(p.X, p.Z).Length() - 0.189f, p.Y - 1.176f).Length();
+
+        // A face whose corners have different materials blends from one colour to the other across it, so its corners must all hug the
+        // border: within a row of vertices of it (two cells, or the level's error limit), not out at the cap's rim or down the stem
+        var levels = new[] { mesh }.Concat(mesh.Lods).ToArray();
+        for (var level = 0; level < levels.Length; level++)
+        {
+            var lod = levels[level];
+            var band = 2 * cell + lod.MaxError;
+            var mixed = 0;
+            for (var t = 0; t < lod.Triangles.Length; t += 3)
+            {
+                var corners = lod.Triangles[t..(t + 3)];
+                if (corners.Select(v => lod.Materials[v].Blend < 0.5f ? lod.Materials[v].First : lod.Materials[v].Second).Distinct().Count() == 1)
+                    continue;
+                mixed++;
+                foreach (var v in corners)
+                    Assert.True(FromBorder(lod.Positions[v]) <= band,
+                        $"LOD{level}: a face of both materials has a corner at {lod.Positions[v]}, {FromBorder(lod.Positions[v]) / cell:0.0} cells from the border");
+            }
+            Assert.True(mixed > 0, $"LOD{level} has no border");
+        }
+    }
+
+    /// <summary>
     /// A level is closed and faces outwards, no face faces against the surface, and its vertices and faces are within its error limit
     /// of the surface.
     /// </summary>

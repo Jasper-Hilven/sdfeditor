@@ -88,3 +88,64 @@ Check the explosion in `SpecialEffects`: the intact scout's eyes and the pieces'
 - Scripted walks as in 06: gate to courtyard, up the keep stair onto its ring, along the wall-walk round both tower kinds. They still
   pass and cross every height step without jumping.
 - Pipeline tests pass, including the new one.
+
+## Status
+
+Parts 1 to 3 are done; the walks and snapshots in Unity are not (see below). 06 step 5 is not part of this branch.
+
+- **1. Cap colour bleed: the cause** was neither simplification across borders nor the mirrored meshes, but the material sampled
+  per vertex. Simplification keeps regions apart, but a merged vertex may come to stand where another material is: a cap vertex in
+  the corner under the cap where the stem goes in. Its material was sampled at its new place, so it took the stem's colour, or a
+  stem vertex the cap's, and the faces it shares with its own region then ran from one colour to the other across the whole face:
+  on the small tower at LOD0 a white corner on red faces across the cap's 2.2 m underside, at LOD2 red faces reaching from the cap
+  down the stem to the ring at 5 m. Shared part meshes and parts used once alike; any cap over a stem.
+- **The fix** (`ModelMesher.InRegions`): a vertex whose sampled material is not its region's is sampled instead at the nearest point
+  of its own region on the way back to where contouring put it (the vertex itself does not move). `QuadricSimplifier` now hands on
+  which contoured vertex each simplified one is (`TriangleMesh.Sources`, its only change). A border band in the simplifier itself
+  (no face of two regions with a corner far from the border) was tried and made no difference, so it was left out.
+- **Test**: `LevelOfDetailTests.CapOverStem_ColoursChangeOnlyAtTheBorder_OnEveryLevel`, the small tower's fly agaric at 128 cells
+  with 3 levels: every corner of a face whose corners have different materials lies within two cells plus the level's error of the
+  border. It fails on the old code (LOD0: a corner 16.4 cells off). Measured on the castle parts after the fix: cap vertices never
+  lie below the cap's underside at any level, and faces of both materials lie along the border (on the small tower 9.32 to 9.44 m up,
+  where the stem meets the underside at 9.41 m).
+- **Re-meshed**: every model with a vertex the fix re-samples changes, by a few vertices along borders (0.1 % at LOD0 to 5 % at
+  LOD2); the others are byte-identical. At their committed settings and committed here: at 128 cells `chanterelle-scout`, `flower0`,
+  2, 3, 4, `grass-turf0` to 4, `rock1`, `rock4`, `fruit-tree0` to 2 and `castle0`; at 512 cells `amanita-scout`, the exploding
+  pieces (all but the hands, which stay identical) and the sky's `eye-moon` and `floating-cap0`. Unchanged: the other trees and
+  rocks, `flower1`, the goop. **Not re-meshed**: the weapons and the chess pieces (512 cells), which change the same way; the
+  `Pipeline to Unity` run configs re-mesh them.
+- **2. Floor heights**, from the adjacency in `castle0.sdf` (worked out with a script that, over the whole castle, finds the top two
+  floors at each point): joints' pads touch bays and towers; towers touch bays and joints, large and small towers' rings touched each
+  other, and the small towers' rings the keep's; the keep's ring touches bays and joints; neighbouring bays overlap at every joint.
+  The scheme: **bays (and the gate bay) 5.00 m, joint pads 5.15 m, tower, gate-turret and keep rings 5.30 m**, with the large and
+  small towers' rings 16 cm smaller (radius 3.52 m) and the keep's ring 15 cm smaller (4.85 m), so no two rings at 5.3 m overlap.
+  Neighbouring bays overlap only under a pad or ring. Every step between neighbours is 15 or 30 cm.
+  - **The towers' lean tilted their rings** through the floors next to them: 5 degrees on the gate turrets took their rings 21 cm up
+    and down where the walk meets them. The leans are cut (sideways to a fifth, outwards to half: the turrets now lean about 1
+    degree apart). The top two floors are then at least 10.5 cm apart anywhere (a leaning ring over a joint pad), 15 cm almost
+    everywhere; steps are at most about 33 cm.
+  - Scaled towers sink or rise by the new ring height: 11 by 0.318 m, 13 by 0.424 m, 17 by 0.212 m.
+  - **Stair**: 22 steps of 24 cm to 5.3 m over the same arc as before, 30 cm apart on the middle line (38 degrees); the keep's ring
+    openings are unchanged (the last fourteen steps come up under them).
+  - **Other overlaps**: the gate passage is cut 10 cm below the ground, so its floor is the tiled ground, not a face of its own at
+    y = 0; the mycelium is cut 3 cm below the ground; the merlons floated 5 cm above the parapet and now sit 5 cm into it; the joint
+    cap's flat underside lay 4 mm under the parapet's top and is lowered 5 cm into it. The parapets of neighbouring bays meet inside
+    the joint stems and tower stems.
+  - The parts' and the layout's comments give the new heights; the layout's header documents the scheme.
+- **3. LOD switching** (`MushroomBuilder`, version 12): a use of a part meshed once changes level no earlier than the whole model's
+  LOD group would (its heights, scaled to the use's size); a use's own error limits only make it change later. The scout's eyes now
+  change where its body does, not at 4 m. In `SpecialEffects` the exploding pieces take the intact scout's LOD heights as well as
+  its size and middle, so intact eyes and pieces' eyes change level at the same distance.
+  - For the castle's parts drawn by the instanced renderer this changes nothing (its rings decide); drawn as GameObjects, small
+    parts such as merlons now keep LOD0 out to where the castle as a whole would (about 50 m).
+- `dotnet build` is clean; `dotnet test`: 318 pipeline and 533 project tests pass.
+
+Left, to check by hand or in a later run:
+
+- **Unity**: prefabs, Meadow and Chessboard rebuilt in batch mode with no compile or shader errors, but no snapshots, walks or Play-mode
+  check yet: the walks (gate to courtyard, up the keep stair onto its 5.3 m ring, along the wall-walk past both tower kinds, every
+  step 15 or 30 cm), z-fighting at the joints and rings at several distances on both presets, and renders per level of a tower, the
+  keep and a baby amanita.
+- The explosion's frame 0 (`SpecialEffectsSnapshot`): the intact scout's eyes against the pieces'.
+- Under every cap the gills disc lies inside the rounded cap (its `Round` takes the cap 1.2 cm below the gills), so the undersides
+  are red, not striped; a modelling fix for 06's look, not for the bleed.
