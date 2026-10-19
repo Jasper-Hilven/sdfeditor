@@ -1,0 +1,42 @@
+# Crest cluster 9: the woods' edge where old trees meet young broadleaves: two old cloud-pad crowns (old_canopy, old_canopy_tall)
+# and three round ones (canopy, canopy_wide) over five trunks, uneven in height so the mass reads as several trees, about 11 m
+# across and 6 m tall.
+# Drawn instanced behind the hills' crest, seen from 30 m and more, so it needs no detail finer than its clumps. Its trunks
+# reach 1.5 m below its base, so it stands on a slope without showing its foot.
+format 1
+collider capsule
+
+# Fewer vertices than its size would give it: a big, simple form seen from far away
+Detail detail=0.35
+    # Only what is above 1.5 m below its base. Inside an intersection the crowns stay in one mesh with the trunks rather than
+    # being meshes of their own, so the whole cluster is one draw per level of detail
+    Intersection
+        Translate translation=(0, 10, 0)
+            Box size=(12, 11.5, 12)
+        SmoothUnion smoothness=0.35
+            Material material=tree_bark
+                SmoothUnion smoothness=0.3
+                    ArbitraryRoundCone a=(-3.2, -1.5, 0.2) b=(-3, 2.8, 0.1) radiusA=0.5 radiusB=0.32
+                    ArbitraryRoundCone a=(-0.8, -1.5, -0.6) b=(-0.9, 3.4, -0.4) radiusA=0.55 radiusB=0.35
+                    ArbitraryRoundCone a=(1.6, -1.5, 0.8) b=(1.7, 2.9, 0.7) radiusA=0.45 radiusB=0.3
+                    ArbitraryRoundCone a=(3.6, -1.5, -0.4) b=(3.5, 2.6, -0.3) radiusA=0.42 radiusB=0.28
+                    ArbitraryRoundCone a=(0.4, -1.5, 2.2) b=(0.4, 2.4, 2) radiusA=0.38 radiusB=0.26
+            Material material=tree_foliage
+                SmoothUnion smoothness=0.35
+                    Translate translation=(-3.1, 3.8, 0.1)
+                        Scale scale=(1.3, 1.3, 1.3)
+                            Part part=canopy
+                    Translate translation=(1.7, 3.6, 0.7)
+                        Scale scale=(1.15, 1.15, 1.15)
+                            Part part=canopy_wide
+                    Translate translation=(3.6, 3.4, -0.3)
+                        Scale scale=(1.05, 1.05, 1.05)
+                            Part part=canopy
+            Material material=old_foliage
+                SmoothUnion smoothness=0.3
+                    Translate translation=(-0.9, 4.4, -0.4)
+                        Scale scale=(1.2, 1.2, 1.2)
+                            Part part=old_canopy_tall
+                    Translate translation=(0.4, 3.2, 2)
+                        Scale scale=(1.1, 1.1, 1.1)
+                            Part part=old_canopy

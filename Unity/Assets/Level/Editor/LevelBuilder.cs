@@ -30,7 +30,11 @@ namespace SdfLevel.Editor
     /// <item>the scattered models (grass, flowers; level.json "instances", the bake's instances.bin): no GameObject each, but one
     /// <see cref="InstancedScatterRenderer"/> that draws them all instanced, in the draw groups of level.json "drawGroups", reading the
     /// prototypes' meshes from their prefabs; it is the one object besides the player that is not static, and has no colliders. Next to
-    /// it, the level's <see cref="Wind"/>;</item>
+    /// it, the level's <see cref="Wind"/>. The trees and crest clusters (the level file's trees sections) are drawn the same way, in
+    /// their own draw groups; a scattered model whose prefab has a collider (a tree's trunk capsule) gets a static, collider-only object
+    /// per instance under Level/Scatter Colliders, so trunks block the player while no tree is a rendered GameObject;</item>
+    /// <item>the island's rocky underside (level.json "edge"."underside"), a placed model at the origin, its top meeting the ground's
+    /// rim; it has no outline or shadow (its model's settings);</item>
     /// <item>the light, sky and post-processing (<see cref="MushroomScene.BuildLighting"/>) of the level's sky (level.json "sky"), and
     /// under Level/Sky its settings, far layer and spores (<see cref="LevelSky"/>); a level without one is lit like the mushroom scene;</item>
     /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>.</item>
@@ -62,9 +66,9 @@ namespace SdfLevel.Editor
         /// Raise when the way level scenes are built changes, so every level scene is rebuilt when the editor loads. Version 2: ground
         /// regions from the region map, and placed models. Version 3: the scattered models through the instanced renderer, and wind.
         /// Version 4: the placed models' repeated parts (a castle's) through the instanced renderer, in the draw group <see cref="PartsGroup"/>.
-        /// Version 5: the sky.
+        /// Version 5: the sky. Version 6: the island's underside, and collider-only objects for scattered models with colliders (trees).
         /// </summary>
-        public const int BuilderVersion = 5;
+        public const int BuilderVersion = 6;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -77,6 +81,8 @@ namespace SdfLevel.Editor
 
         public const string LevelRootName = "Level";
         public const string PlacedName = "Placed";
+        public const string UndersideName = "Underside";
+        public const string ScatterCollidersName = "Scatter Colliders";
         public const string ScatterName = "Scatter";
         public const string WindName = "Wind";
 
@@ -373,8 +379,10 @@ namespace SdfLevel.Editor
             var parts = new PartInstances(((data["drawGroups"] as JArray) ?? new JArray()).Any(g => g.Value<string>("name") == PartsGroup),
                 $"{meshFolder}/{MirroredFolder}");
             var placed = AddPlacements(levelRoot.transform, scene, data, parts);
+            AddUnderside(levelRoot.transform, scene, data);
             MarkStatic(levelRoot);
             var scattered = AddScatter(scene, level, meshFolder, data, parts);
+            var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
             AssetDatabase.SaveAssets();
             AddPlayer(scene, data);
@@ -391,7 +399,7 @@ namespace SdfLevel.Editor
             AddToBuildSettings(scenePath);
             if (openedHere)
                 EditorSceneManager.CloseScene(scene, true);
-            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered");
+            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered ({scatterColliders} with colliders)");
         }
 
         private static bool NothingWorthKeepingOpen()
@@ -535,6 +543,68 @@ namespace SdfLevel.Editor
                 parts.Take(model, instance);
                 count++;
             }
+            return count;
+        }
+
+        /// <summary>
+        /// The island's underside (level.json "edge"."underside"), under Level/<see cref="UndersideName"/>: an instance of its model's
+        /// prefab at the origin, unturned, where its top follows the island's edge at the ground's rim. Its prefab casts no shadow and
+        /// has no outline (the model's own settings). A missing prefab logs a warning.
+        /// </summary>
+        private static void AddUnderside(Transform levelRoot, Scene scene, JObject data)
+        {
+            var model = data["edge"]?.Value<string>("underside");
+            if (string.IsNullOrEmpty(model))
+                return;
+            var prefabPath = $"{MushroomBuilder.PrefabFolder}/{model}.prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"SDF level: there is no prefab {prefabPath} for the island's underside {model}; mesh content/models (sdf unity) and let the prefabs build");
+                return;
+            }
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            instance.name = UndersideName;
+            instance.transform.SetParent(levelRoot, false);
+            instance.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        }
+
+        /// <summary>
+        /// Collider-only objects for the scattered models whose prefab has colliders on its root (the trees' and crest clusters' trunk
+        /// capsules, from their models' <c>collider capsule</c>): under Level/<see cref="ScatterCollidersName"/>, one static object per
+        /// instance of instances.bin, where the renderer draws it (x mirrored, yaw turned round, scaled), with a copy of each of those
+        /// colliders and no renderer. The canopies get nothing: the capsule is the trunk's. All instances get one, whether or not the
+        /// player can reach them, so physics objects bounce off the trees on the hills too. Returns how many.
+        /// </summary>
+        private static int AddScatterColliders(Transform levelRoot, string meshFolder, JObject data)
+        {
+            var bytes = data["instances"] == null ? null : AssetDatabase.LoadAssetAtPath<TextAsset>($"{meshFolder}/{InstancesAsset}");
+            if (bytes == null)
+                return 0;
+            var file = ScatterInstances.Read(bytes.bytes);
+            var colliders = file.Prototypes.Select(model =>
+                AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{model}.prefab")?.GetComponents<Collider>()
+                ?? Array.Empty<Collider>()).ToArray();
+            if (colliders.All(c => c.Length == 0))
+                return 0;
+
+            var root = new GameObject(ScatterCollidersName);
+            root.transform.SetParent(levelRoot, false);
+            var count = 0;
+            foreach (var record in file.Records)
+            {
+                var own = colliders[record.Prototype];
+                if (own.Length == 0)
+                    continue;
+                var instance = new GameObject($"{file.Prototypes[record.Prototype]} {count}");
+                instance.transform.SetParent(root.transform, false);
+                instance.transform.SetLocalPositionAndRotation(record.Position, record.Rotation);
+                instance.transform.localScale = Vector3.one * record.Scale;
+                foreach (var collider in own)
+                    EditorUtility.CopySerialized(collider, instance.AddComponent(collider.GetType()));
+                count++;
+            }
+            MarkStatic(root);
             return count;
         }
 

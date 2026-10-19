@@ -20,7 +20,8 @@ namespace SDFPipeline.Levels;
 ///     noise amplitude=2.5 scale=18          # unevenness along the crest and on the slopes
 ///
 /// edge                                      # where the island ends, behind the hill crests
-///     margin=6
+///     margin=6 rim=3                        # the ground bends down to 3 m high at the edge, all round
+///     underside island-underside            # the rocky underside below it, from content/models/
 ///
 /// regions                                   # the ground other than grass, 2D shapes; where regions overlap, the later one wins
 ///     dirt
@@ -38,6 +39,11 @@ namespace SDFPipeline.Levels;
 ///     grass-turf0 weight=3
 ///     grass-turf1
 ///     density=0.6 cluster=2 clusterScale=6 spacing=0.45 avoid=dirt,tiles,path margin=0.5 maxSlope=25
+///
+/// trees                                     # trees on the border hills, in a band of distance from the playable rectangle
+///     tree0 weight=2
+///     pine0
+///     band=(12, 28) density=0.012 spacing=6 maxSlope=35
 ///
 /// draw foliage                              # how the instanced renderer draws the group the scatter is in
 ///     rings=[6, 15, 35] outline=1 shadows=1 fade=5 wind=0.05 windHeight=0.5
@@ -70,6 +76,15 @@ namespace SDFPipeline.Levels;
 /// <c>lowDistance</c>. A group may be drawn without a scatter in it, for instances that come from elsewhere.
 /// </para>
 /// <para>
+/// A trees section (<see cref="LevelDefinition.Trees"/>; there may be several) is written like a scatter, in group trees by default,
+/// with a <c>band</c> (the least and greatest distance from the playable rectangle's edge in metres, negative inside it) in place of
+/// <c>reach</c>.
+/// </para>
+/// <para>
+/// The edge takes a <c>margin</c>, and optionally a <c>rim</c> (the ground's height at the edge, in metres) with its <c>shoulder</c>
+/// (how far in the ground starts bending down to it) and, on a line of its own below it, the <c>underside</c> model.
+/// </para>
+/// <para>
 /// The sky names a preset in content/skies/ and may override its lines (see <see cref="SkyFile"/>); without it the level has the
 /// <see cref="SkyFile.DefaultPreset"/> sky.
 /// </para>
@@ -90,15 +105,17 @@ public static class LevelFile
     private const string Regions = "regions";
     private const string Place = "place";
     private const string Scatter = "scatter";
+    private const string Trees = "trees";
     private const string Draw = "draw";
     private const string Sky = "sky";
     private const string Ring = "ring";
     private const string Noise = "noise";
+    private const string Underside = "underside";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Draw, Sky];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky];
 
-    /// <summary>The sections that may be given more than once, each time with something else: a scatter per layer, a draw per group.</summary>
-    private static readonly string[] Repeatable = [Scatter, Draw];
+    /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
+    private static readonly string[] Repeatable = [Scatter, Trees, Draw];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -128,6 +145,7 @@ public static class LevelFile
         IReadOnlyList<GroundRegion> regions = [];
         IReadOnlyList<Placement> placements = [];
         var scatters = new List<ScatterLayer>();
+        var trees = new List<ScatterLayer>();
         var drawGroups = new List<DrawGroup>();
         SkySection? sky = null;
         var seen = new Dictionary<string, int>();
@@ -162,7 +180,10 @@ public static class LevelFile
                     placements = ReadPlacements(line, cursor);
                     break;
                 case Scatter:
-                    scatters.Add(ReadScatter(line, cursor));
+                    scatters.Add(ReadScatter(line, cursor, trees: false));
+                    break;
+                case Trees:
+                    trees.Add(ReadScatter(line, cursor, trees: true));
                     break;
                 case Draw:
                     var group = ReadDrawGroup(line, cursor);
@@ -176,14 +197,14 @@ public static class LevelFile
             }
         }
 
-        foreach (var scatter in scatters)
+        foreach (var scatter in scatters.Concat(trees))
             if (drawGroups.All(g => g.Name != scatter.Group))
                 throw new SdfProgramFileException(scatter.Line,
-                    $"The scatter draws in group '{scatter.Group}', which has no '{Draw} {scatter.Group}' section saying how to draw it");
+                    $"The {(scatter.Band is null ? "scatter" : "trees section")} draws in group '{scatter.Group}', which has no '{Draw} {scatter.Group}' section saying how to draw it");
 
         if (play is null)
             throw new SdfProgramFileException(lines[^1].Number, $"The level has no playable area; add a line like '{Play} size=(150, 100)'");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, DrawGroups = drawGroups, Sky = sky };
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky };
     }
 
     private static PlayArea ReadPlay(SourceLine line, Cursor cursor)
@@ -247,10 +268,44 @@ public static class LevelFile
 
     private static IslandEdge ReadEdge(SourceLine line, Cursor cursor)
     {
-        var parameters = Parameters.Read(Edge, line, cursor);
+        // Below it: lines of parameters, and the underside's model on a line of its own (a model's name may have hyphens, which a
+        // parameter's value may not)
+        IslandUnderside? underside = null;
+        var parameterLines = new List<SourceLine>();
+        foreach (var child in line.Children)
+        {
+            var probe = new Cursor(child);
+            if (probe.TryReadName() != Underside || probe.Peek() == '=')
+            {
+                parameterLines.Add(child);
+                continue;
+            }
+            var childCursor = new Cursor(child);
+            childCursor.ReadName(Underside);
+            if (underside is not null)
+                throw childCursor.Error($"The edge's {Underside} is given twice, first on line {underside.Line}");
+            var model = childCursor.ReadFileName("the underside's model, like island-underside");
+            childCursor.ExpectEnd();
+            if (child.Children.Count > 0)
+                throw new SdfProgramFileException(child.Children[0].Number, $"Nothing can be indented below the {Underside}");
+            underside = new IslandUnderside(model, child.Number);
+        }
+
+        var parameters = Parameters.Read(Edge, line with { Children = parameterLines }, cursor);
         var margin = parameters.Number("margin", null, 0, 1000, "metres behind the hills' crest, 0 to 1000");
-        parameters.Done("margin");
-        return new IslandEdge(margin);
+        float? rim = parameters.Has("rim") ? parameters.Number("rim", null, -1000, 1000, "the ground's height at the edge in metres, -1000 to 1000") : null;
+        var shoulderGiven = parameters.Has("shoulder");
+        var shoulder = parameters.Number("shoulder", IslandEdge.DefaultShoulder, 0.1f, 100,
+            "metres in from the edge over which the ground bends down to the rim, 0.1 to 100");
+        parameters.Done("margin", "rim", "shoulder");
+        if (rim is null && shoulderGiven)
+            throw parameters.Error("shoulder", "A shoulder bends the ground down to a rim; give the edge a rim too, like rim=3");
+        if (rim is not null && shoulder > margin)
+            throw parameters.Error(shoulderGiven ? "shoulder" : "rim",
+                $"The shoulder ({FileSyntax.Number(shoulder)} m) is wider than the margin behind the crest ({FileSyntax.Number(margin)} m)");
+        if (underside is not null && rim is null)
+            throw new SdfProgramFileException(underside.Line, "The underside meets the ground along the rim; give the edge a rim, like rim=3");
+        return new IslandEdge(margin) { Rim = rim, Shoulder = shoulder, Underside = underside };
     }
 
     private static IReadOnlyList<GroundRegion> ReadRegions(SourceLine line, Cursor cursor)
@@ -343,8 +398,10 @@ public static class LevelFile
         return placements.Count > 0 ? placements : throw cursor.Error("Nothing is placed; indent placements below, like 'rock1 at=(10, 30)'");
     }
 
-    private static ScatterLayer ReadScatter(SourceLine line, Cursor cursor)
+    /// <param name="trees">A trees section: group trees by default, and a band instead of a reach.</param>
+    private static ScatterLayer ReadScatter(SourceLine line, Cursor cursor, bool trees)
     {
+        var what = trees ? "trees section" : Scatter;
         // Below it are the models it picks from, one per line, and lines of its own parameters (name=value), like any section's
         var entries = new List<ScatterEntry>();
         var parameterLines = new List<SourceLine>();
@@ -357,21 +414,25 @@ public static class LevelFile
                 continue;
             }
             var childCursor = new Cursor(child);
-            var model = childCursor.ReadFileName("a model's name, like grass-turf0, or a parameter like density=0.6");
+            var model = childCursor.ReadFileName(trees
+                ? "a model's name, like tree0, or a parameter like density=0.01"
+                : "a model's name, like grass-turf0, or a parameter like density=0.6");
             if (entries.FirstOrDefault(e => e.Model == model) is { } earlier)
-                throw childCursor.Error($"Model '{model}' is given twice in this scatter, first on line {earlier.Line}; give it a larger weight instead");
-            var entry = Parameters.Read($"scatter entry {model}", child, childCursor);
+                throw childCursor.Error($"Model '{model}' is given twice in this {what}, first on line {earlier.Line}; give it a larger weight instead");
+            var entry = Parameters.Read($"{(trees ? Trees : Scatter)} entry {model}", child, childCursor);
             var weight = entry.Number("weight", 1, 0, 1000, "how often it is picked against the others, 0 to 1000");
             entry.Done("weight");
             entries.Add(new ScatterEntry(model, weight, child.Number));
         }
         if (entries.Count == 0)
-            throw cursor.Error("The scatter needs the models it scatters indented below it, like 'grass-turf0 weight=3'");
+            throw cursor.Error(trees
+                ? "The trees section needs the models it places indented below it, like 'tree0 weight=2'"
+                : "The scatter needs the models it scatters indented below it, like 'grass-turf0 weight=3'");
         if (entries.All(e => e.Weight <= 0))
-            throw cursor.Error("The scatter needs a model with a weight above 0");
+            throw cursor.Error($"The {what} needs a model with a weight above 0");
 
-        var parameters = Parameters.Read(Scatter, line with { Children = parameterLines }, cursor);
-        var group = parameters.Name("group", ScatterLayer.DefaultGroup, null)!;
+        var parameters = Parameters.Read(what, line with { Children = parameterLines }, cursor);
+        var group = parameters.Name("group", trees ? ScatterLayer.DefaultTreesGroup : ScatterLayer.DefaultGroup, null)!;
         var density = parameters.Number("density", null, 0, 100, "instances per square metre, 0 to 100");
         var cluster = parameters.Number("cluster", ScatterLayer.DefaultCluster, 1, 100,
             "how many times the density the densest clusters reach, 1 (no clusters) to 100");
@@ -380,12 +441,20 @@ public static class LevelFile
         var avoid = parameters.Names("avoid", "regions like dirt,tiles,path");
         var margin = parameters.Number("margin", 0, 0, 100, "metres kept clear round the regions avoided, 0 to 100");
         var maxSlope = parameters.Number("maxSlope", ScatterLayer.DefaultMaxSlope, 0, 90, "degrees, 0 to 90");
-        var reach = parameters.Number("reach", ScatterLayer.DefaultReach, 0, 1000, "metres up the hills from the playable area, 0 to 1000");
+        var reach = trees ? 0 : parameters.Number("reach", ScatterLayer.DefaultReach, 0, 1000, "metres up the hills from the playable area, 0 to 1000");
+        Vector2? band = null;
+        if (trees)
+        {
+            var range = parameters.Vector2("band", "the least and greatest distance from the playable area's edge in metres, like (12, 28)");
+            if (range.Y <= range.X)
+                throw parameters.Error("band", "The band needs its least distance first and a greatest beyond it, like (12, 28)");
+            band = range;
+        }
         var scale = parameters.Vector2("scale", ScatterLayer.DefaultScale, "the least and greatest scale, like (0.85, 1.15)");
         if (scale.X <= 0 || scale.Y < scale.X)
             throw parameters.Error("scale", "The scale needs a least and a greatest above 0, the least first, like (0.85, 1.15)");
-        parameters.Done("group", "density", "cluster", "clusterScale", "spacing", "avoid", "margin", "maxSlope", "reach", "scale");
-        return new ScatterLayer(entries, group, density, cluster, clusterScale, spacing, avoid, margin, maxSlope, reach, scale, line.Number);
+        parameters.Done("group", "density", "cluster", "clusterScale", "spacing", "avoid", "margin", "maxSlope", trees ? "band" : "reach", "scale");
+        return new ScatterLayer(entries, group, density, cluster, clusterScale, spacing, avoid, margin, maxSlope, reach, scale, line.Number) { Band = band };
     }
 
     private static DrawGroup ReadDrawGroup(SourceLine line, Cursor cursor)
@@ -570,6 +639,9 @@ public static class LevelFile
                 ? value
                 : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
         }
+
+        /// <summary>Whether the parameter is given and not taken yet.</summary>
+        public bool Has(string name) => values.ContainsKey(name);
 
         /// <summary>An error on the line of a parameter that was read.</summary>
         public SdfProgramFileException Error(string name, string problem) => taken.GetValueOrDefault(name, ownerCursor).Error(problem);

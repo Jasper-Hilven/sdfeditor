@@ -1,0 +1,39 @@
+# Crest cluster 7: an old orchard gone wild, five apple crowns (fruit_crown, fruit_crown_wide, fruit_crown_twin) with their
+# apples, grown into one low, round mass over five short trunks, about 9 m across and 5 m tall.
+# Drawn instanced behind the hills' crest, seen from 30 m and more, so it needs no detail finer than its clumps. Its trunks
+# reach 1.5 m below its base, so it stands on a slope without showing its foot.
+format 1
+collider capsule
+
+# Fewer vertices than its size would give it: a big, simple form seen from far away
+Detail detail=0.26
+    # Only what is above 1.5 m below its base. Inside an intersection the crowns stay in one mesh with the trunks rather than
+    # being meshes of their own, so the whole cluster is one draw per level of detail
+    Intersection
+        Translate translation=(0, 10, 0)
+            Box size=(12, 11.5, 12)
+        SmoothUnion smoothness=0.35
+            Material material=tree_bark
+                SmoothUnion smoothness=0.3
+                    ArbitraryRoundCone a=(-2.4, -1.5, 0) b=(-2.3, 2.2, 0) radiusA=0.38 radiusB=0.26
+                    ArbitraryRoundCone a=(0, -1.5, 0.6) b=(0.1, 2.6, 0.5) radiusA=0.4 radiusB=0.27
+                    ArbitraryRoundCone a=(2.4, -1.5, -0.3) b=(2.3, 2.3, -0.2) radiusA=0.38 radiusB=0.26
+                    ArbitraryRoundCone a=(-1, -1.5, -2) b=(-1, 2, -1.9) radiusA=0.34 radiusB=0.24
+                    ArbitraryRoundCone a=(1.3, -1.5, 2.2) b=(1.3, 2, 2.1) radiusA=0.34 radiusB=0.24
+            Material material=fruit_leaves
+                SmoothUnion smoothness=0.35
+                    Translate translation=(-2.3, 2.9, 0)
+                        Scale scale=(1.3, 1.3, 1.3)
+                            Part part=fruit_crown_wide
+                    Translate translation=(0.1, 3.6, 0.5)
+                        Scale scale=(1.5, 1.5, 1.5)
+                            Part part=fruit_crown
+                    Translate translation=(2.4, 3, -0.2)
+                        Scale scale=(1.3, 1.3, 1.3)
+                            Part part=fruit_crown_twin
+                    Translate translation=(-1, 2.8, -1.9)
+                        Scale scale=(1.3, 1.3, 1.3)
+                            Part part=fruit_crown
+                    Translate translation=(1.3, 2.7, 2.1)
+                        Scale scale=(1.2, 1.2, 1.2)
+                            Part part=fruit_crown_wide

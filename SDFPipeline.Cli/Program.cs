@@ -334,11 +334,16 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         var scattered = baked.Scattered;
         for (var layer = 0; layer < scattered.LayerCounts.Count; layer++)
         {
-            var scatter = level.Scatters[layer];
+            // The scatters, then the trees sections, each layer's instances after the one before's
+            var scatter = layer < level.Scatters.Count ? level.Scatters[layer] : level.Trees[layer - level.Scatters.Count];
+            var own = scattered.Instances.Skip(scattered.LayerCounts.Take(layer).Sum()).Take(scattered.LayerCounts[layer]).ToArray();
             var counts = scatter.Entries.Select(e => e.Model).Select(m => scattered.Prototypes.ToList().FindIndex(p => p.Model == m))
-                .Select(p => $"{scattered.Prototypes[p].Model} {LevelBaker.Count(scattered.Instances.Count(i => i.Prototype == p))}");
-            Console.WriteLine($"  scattered     {LevelBaker.Count(scattered.LayerCounts[layer])} in group {scatter.Group}: {string.Join(", ", counts)}");
+                .Select(p => $"{scattered.Prototypes[p].Model} {LevelBaker.Count(own.Count(i => i.Prototype == p))}");
+            Console.WriteLine($"  {(scatter.Band is null ? "scattered" : "trees    ")}     {LevelBaker.Count(scattered.LayerCounts[layer])} in group {scatter.Group}: {string.Join(", ", counts)}");
         }
+        if (level.Edge.Underside is { } underside)
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"  underside     {underside.Model}, meeting the ground at the rim, {level.Edge.Rim:0.##} m high"));
         if (scattered.Instances.Count > 0)
             Console.WriteLine($"  instances     {LevelBaker.Count(scattered.Instances.Count)} in {InstanceFile.FileName}");
         return true;
