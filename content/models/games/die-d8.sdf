@@ -1,0 +1,38 @@
+# Eight-sided die: a giant d8 in glossy blue, about 2 m tall, its edges softly rounded, with a white dot sunk into the middle of
+# each of its eight faces. It lies on one face, as a d8 comes to rest, the opposite face up.
+format 1
+collider convex
+
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    # Resting on a face: its inner radius, size / √3, above the board
+    Translate translation=(0, 1.03, 0)
+        # Turned so the face whose normal is (1, 1, 1) points up: a quarter turn about x brings that normal to (1, √2, 0), then
+        # atan(1 / √2) about z stands it upright
+        Rotate rotation=(-0.7853982, 0, 0.6154797)
+            Union
+                Material material=game_die_blue
+                    Subtraction
+                        Round radius=0.12
+                            Octahedron size=1.58
+                        # The dimples: a ball in the middle of each face, (size / 3)(±1, ±1, ±1)
+                        Union
+                            SymmetryXZ
+                                Translate translation=(0.5, 0.5, 0.5)
+                                    Sphere radius=0.26
+                            SymmetryXZ
+                                Translate translation=(0.5, -0.5, 0.5)
+                                    Sphere radius=0.26
+                # The white paint at the bottom of each dimple
+                Material material=game_pip_white
+                    Intersection
+                        Round radius=0.12
+                            Octahedron size=1.5
+                        Union
+                            SymmetryXZ
+                                Translate translation=(0.5, 0.5, 0.5)
+                                    Sphere radius=0.26
+                            SymmetryXZ
+                                Translate translation=(0.5, -0.5, 0.5)
+                                    Sphere radius=0.26

@@ -1,24 +1,16 @@
-# The chessboard: one huge board of 20 × 20 squares of 8 m, 160 m × 160 m, flat as a table, in a state of complete anarchy. Chess
-# pieces grown from mushrooms, of both colours and every kind, stand and lie all over it: off their squares, in heaps and scrums,
-# with far too many queens, some knocked flat, and open squares between. Round the board the island rises into grassy hills like
-# the meadow's, whose crests hide everything behind them from eye height; beyond them the island ends and there is only sky.
+# The chessboard: a closed cube of six chessboards of board-game pieces. The floor is one huge board of 20 × 20 squares of 8 m,
+# 160 m × 160 m, flat as a table, in a state of complete anarchy: board-game pieces of every kind, chess among them, stand and lie all
+# over it, off their squares, in heaps and scrums, with far too many queens, some knocked flat, and open squares between. Four
+# chessboards stand round it as walls and a sixth hangs over it as the ceiling (the room line), all one checker pattern. Nothing lies
+# outside the cube: no hills, no island edge, no foliage, no sky.
 format 1
 
 play size=(160, 160) noise=0              # the board, centred on the origin: x across, z along; no unevenness, a board is flat
 seed 2
 
-hills
-    ring width=28 height=10               # rise outside the board, crest about 8-12 m
-    noise amplitude=2.5 scale=18          # unevenness along the crest and on the slopes
-
-edge                                      # where the island ends, behind the hill crests
-    margin=6
-
 # The board, from 2D shapes; where regions overlap, the later one wins. Each is drawn in its material,
 # materials/ground/ground_<region>.sdfmat. No noise: the squares' edges are ruled straight
 regions
-    rim wobble=0                                  # a dark frame 3 m wide round the board, where the hills begin
-        Box2D center=(0, 0) size=(166, 166)
     light wobble=0                                # the whole board in the light squares' cream...
         Box2D center=(0, 0) size=(160, 160)
     dark wobble=0                                 # ...and the dark squares over it, the corner squares dark: (i + j) even, from the -x, -z corner
@@ -250,16 +242,16 @@ place
     # turned every which way, in spills and piles, knocked over. Each comment below starts a group that may touch within itself
     # (the overlap test in LevelFileTests reads the groups from these comments)
     # A dice spill
-    die-amanita at=(-46.5, -29.2) yaw=17 scale=1.2
-    die-amanita-tumbled at=(-41.3, -25.8) yaw=63 scale=1.1
-    die-porcini at=(-50.8, -23.1) yaw=-34
-    die-d8-webcap at=(-38.6, -31.7) yaw=112
+    die-red at=(-46.5, -29.2) yaw=17 scale=1.2
+    die-red-tumbled at=(-41.3, -25.8) yaw=63 scale=1.1
+    die-ivory at=(-50.8, -23.1) yaw=-34
+    die-d8 at=(-38.6, -31.7) yaw=112
     # Stray dice
-    die-amanita-tumbled at=(28.4, 51.6) yaw=-148 scale=1.4
+    die-red-tumbled at=(28.4, 51.6) yaw=-148 scale=1.4
     # A die in the east
-    die-d8-webcap at=(61.2, -12.5) yaw=41 scale=0.9
+    die-d8 at=(61.2, -12.5) yaw=41 scale=0.9
     # A die in the north
-    die-porcini at=(-12.7, 68.3) yaw=203 scale=1.3
+    die-ivory at=(-12.7, 68.3) yaw=203 scale=1.3
     # A crooked street of houses and a hotel, one house blown over
     monopoly-house at=(12.6, -54.4) yaw=8
     monopoly-house at=(19.3, -51.2) yaw=-21
@@ -302,7 +294,7 @@ place
     card-three-lying at=(-1.0, 61.5) yaw=66
     # A card soldier on guard
     card-king-stuck at=(-29.7, -63.4) yaw=-15
-    # An ace held up by invisible hands
+    # An ace propped against a king
     card-ace-held at=(58.6, -38.2) yaw=-140
     # Cards thrown into the board
     card-king-stuck at=(73.6, 9.3) yaw=-95
@@ -415,28 +407,7 @@ place
     pawn-dark at=(-4.0, 68.8) yaw=103 scale=0.89
     queen-dark at=(-51.7, -53.9) yaw=-12 scale=1.01
 
-# Grass clumps and flowers at the foot of the hills round the board, up to 12 m out from it, nothing on the board itself or its
-# rim; otherwise as the meadow's
-scatter
-    grass-turf0 weight=3
-    grass-turf1 weight=1
-    grass-turf2 weight=1.5
-    grass-turf3 weight=1
-    grass-turf4 weight=1
-    density=0.6 cluster=2 clusterScale=6 spacing=0.45 avoid=rim,light,dark margin=0.5 maxSlope=25 reach=12
-scatter
-    flower0 weight=2
-    flower1 weight=1
-    flower2 weight=0.4
-    flower3 weight=1
-    flower4 weight=1
-    density=0.12 cluster=3 clusterScale=10 spacing=0.6 avoid=rim,light,dark margin=0.8 maxSlope=20 reach=12
-
-# How the foliage is drawn round the first-person camera, as in the meadow
-draw foliage
-    rings=[6, 15, 35] outline=1 shadows=1 blend=1 fade=5
-    wind=0.04 windHeight=0.5 tintHeight=0.08
-    lowDensity=0.5 lowDistance=0.7
-
-# Dusk: a low warm sun with long shadows across the board, a violet sky, the first stars; content/skies/dusk.sky
-sky preset=dusk
+# The room: walls on the board's four edges and a ceiling at y = 160 m facing down, 160 m cube. Their squares are 8 m, all one checker
+# pattern with the floor's (RoomChecker): the colour alternates across the edges where wall meets floor and ceiling; the four
+# vertical corners cannot alternate too (three squares meet at each cube corner), so the squares there match. The floor is the board above
+room size=(160, 160, 160)

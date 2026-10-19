@@ -135,18 +135,25 @@ public class LevelFileTests
         var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "chessboard" + LevelFile.Extension));
 
         Assert.Equal((new Vector2(160, 160), 0f), (level.Play.Size, level.Play.NoiseAmplitude));
-        // 20 × 20 squares of 8 m, the corner squares dark, in a rim
+        // 20 × 20 squares of 8 m, the corner squares dark, and nothing round the board: the room's walls stand on its edges
+        Assert.Equal(["light", "dark"], level.Regions.Select(r => r.Name));
+        Assert.Equal(HillRing.None, level.Hills);
+        Assert.Equal(IslandEdge.None, level.Edge);
+        Assert.Empty(level.Scatters);
+        Assert.Empty(level.Trees);
+        Assert.Empty(level.DrawGroups);
+        Assert.Null(level.Sky);
+        Assert.Equal(new RoomSpec(new Vector3(160, 160, 160), 8), level.Room);
         var regions = new GroundRegions(level, _ => throw new InvalidOperationException("No placement paints the ground"));
         for (var i = 0; i < 20; i++)
         for (var j = 0; j < 20; j++)
         {
             var centre = new Vector2(-76 + 8 * i, -76 + 8 * j);
             Assert.Equal((i + j) % 2 == 0 ? "dark" : "light", regions.At(centre)?.Name);
-            // Just over the edge to the next square along x, or onto the rim past the last
-            Assert.Equal(i == 19 ? "rim" : (i + j) % 2 == 0 ? "light" : "dark", regions.At(centre + new Vector2(4.2f, 0))?.Name);
+            // Just over the edge to the next square along x, or off the board past the last
+            Assert.Equal(i == 19 ? null : (i + j) % 2 == 0 ? "light" : "dark", regions.At(centre + new Vector2(4.2f, 0))?.Name);
         }
-        Assert.Equal("rim", regions.At(new Vector2(81.5f, 0))?.Name);
-        Assert.Null(regions.At(new Vector2(84, 0)));
+        Assert.Null(regions.At(new Vector2(81.5f, 0)));
         // Every piece on the board, both colours of every kind among them, each model in content/models
         var models = LevelModels.In(Path.Combine(content, "models"));
         Assert.InRange(level.Placements.Count, 60, 160);
@@ -301,6 +308,8 @@ public class LevelFileTests
             var text = File.ReadAllText(file);
             Assert.False(text.Contains("part=eye", StringComparison.OrdinalIgnoreCase), Path.GetFileName(file));
             Assert.False(text.Contains("part=hand", StringComparison.OrdinalIgnoreCase), Path.GetFileName(file));
+            // board games only: no mushroom cap, stem or gills materials
+            Assert.DoesNotMatch(@"material=\S*(cap|stem|gills)\b", text);
         });
     }
 

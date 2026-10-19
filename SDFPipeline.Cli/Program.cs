@@ -361,8 +361,8 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         var content = ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(input))!);
         var models = content is null ? null : LevelModels.In(Path.Combine(content, "models"));
         var modelExists = content is null ? null : LevelModels.Exist(Path.Combine(content, "models"));
-        // The sky's presets are content/skies/; without a content folder the level is baked without a sky
-        var sky = content is null ? null : SkyFile.Resolve(level.Sky, SkyFile.PresetsIn(Path.Combine(content, SkyFile.FolderName)));
+        // The sky's presets are content/skies/; without a content folder, or without a sky line in the level, it is baked without a sky
+        var sky = content is null || level.Sky is null ? null : SkyFile.Resolve(level.Sky, SkyFile.PresetsIn(Path.Combine(content, SkyFile.FolderName)));
         var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models, modelExists, sky);
         var layout = baked.Layout;
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,

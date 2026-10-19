@@ -85,11 +85,16 @@ namespace SdfLevel.Editor
         /// <summary>Level/Sky: the sky's settings, far layer and spores, see above. Returns how many objects the sky draws.</summary>
         public static int Add(Transform levelRoot, string name, JObject data)
         {
+            if (!(data["sky"] is JObject sky))
+            {
+                // No sky data: no sky object, material or mesh. Only the identity tone and no fade on the level's own root, so the shaders'
+                // globals are known (no distance fade: a far wall is not washed toward any colour)
+                levelRoot.gameObject.AddComponent<SkySettings>();
+                return 0;
+            }
             var root = new GameObject(SkyName);
             root.transform.SetParent(levelRoot, false);
             var settings = root.AddComponent<SkySettings>();
-            if (!(data["sky"] is JObject sky))
-                return 0;
 
             var tone = sky["tone"];
             settings.brightness = tone.Value<float>("brightness");

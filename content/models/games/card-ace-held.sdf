@@ -1,6 +1,5 @@
-# Card, ace held up: the giant ace of mushrooms (card_ace), 3 m wide and 4.2 m tall, standing on its bottom edge and facing +z,
-# held upright by a pair of big floating hands gripping its sides, a pair of big floating eyes peeping over its top edge: a card
-# soldier keeping guard on the board.
+# Card, ace propped: the giant ace of spades (card_ace), 3 m wide and 4.2 m tall, standing on its bottom edge leaning back 14° with its
+# top edge resting against a king (card_king) planted upright behind it, its face to +z: a card soldier keeping guard on the board.
 format 1
 collider mesh
 
@@ -8,19 +7,12 @@ collider mesh
 # board
 Detail detail=0.5
     Union
-        # The card, its bottom edge sunk 5 cm into the ground
-        Translate translation=(0, 2.05, 0)
-            Part part=card_ace
-        # The hands, three and a half times the scouts', fingers pointing in across the card's edges (a quarter turn about y turns
-        # them from +z to -x), the left one mirrored
-        SymmetryX
-            Translate translation=(1.62, 2.1, 0)
-                Scale scale=(3.5, 3.5, 3.5)
-                    Rotate rotation=(0, -1.5707964, 0)
-                        Material material=amanita_stem
-                            Part part=hand
-        # The eyes, two and a half times the scouts', just over the top edge and a little in front of it
-        SymmetryX
-            Translate translation=(0.32, 4.3, 0.12)
-                Scale scale=(2.5, 2.5, 2.5)
-                    Part part=eye
+        # The ace, its bottom edge sunk 10 cm into the ground, leaning back towards -z (a negative turn about x)
+        Translate translation=(0, -0.1, 0)
+            Rotate rotation=(-0.2443, 0, 0)
+                Translate translation=(0, 2.1, 0)
+                    Part part=card_ace
+        # The king behind it, upright, turned round to show its face to -z, its bottom edge sunk 5 cm; the ace's top edge rests on it
+        Translate translation=(0, 2.05, -1.1)
+            Rotate rotation=(0, 3.1415927, 0)
+                Part part=card_king

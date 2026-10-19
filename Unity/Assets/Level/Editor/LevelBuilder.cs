@@ -22,7 +22,9 @@ namespace SdfLevel.Editor
     /// <list type="bullet">
     /// <item>a GameObject per ground chunk with a cross-fading LOD group over its levels (meshes Assets/Level/Meshes/&lt;level&gt;/), shadow
     /// casting and receiving, and a <see cref="MeshCollider"/> from LOD1;</item>
-    /// <item>four invisible walls round the playable rectangle, tall enough that the hills cannot be climbed;</item>
+    /// <item>four invisible walls round the playable rectangle, tall enough that the hills cannot be climbed; or, for a level with a
+    /// room (level.json "room", the chessboard cube), Level/Room (<see cref="LevelRoom"/>): drawn walls and ceiling and colliders on all
+    /// six faces, and then neither those walls nor any sky;</item>
     /// <item>the placed models (castles, big rocks; level.json "placements"): instances of the prefabs <see cref="MushroomBuilder"/>
     /// builds, static like the ground, with the colliders their prefabs bring; a placement whose prefab is missing logs a warning. When
     /// the level has a <c>draw castle</c> section, a placed model's part instances (the children of its prefab with a LOD group of their
@@ -36,7 +38,8 @@ namespace SdfLevel.Editor
     /// <item>the island's rocky underside (level.json "edge"."underside"), a placed model at the origin, its top meeting the ground's
     /// rim; it has no outline or shadow (its model's settings);</item>
     /// <item>the light, sky and post-processing (<see cref="MushroomScene.BuildLighting"/>) of the level's sky (level.json "sky"), and
-    /// under Level/Sky its settings, far layer and spores (<see cref="LevelSky"/>); a level without one is lit like the mushroom scene;</item>
+    /// under Level/Sky its settings, far layer and spores (<see cref="LevelSky"/>); a level without one is lit like the mushroom scene,
+    /// unless it has a room, which is lit by <see cref="RoomLight"/> and has no sky object, skybox or sky material at all;</item>
     /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>.</item>
     /// </list>
     /// The ground is drawn with SdfGround.shader, in the toon look of the models (the <see cref="MushroomStyle"/> settings), its material
@@ -68,7 +71,7 @@ namespace SdfLevel.Editor
         /// Version 4: the placed models' repeated parts (a castle's) through the instanced renderer, in the draw group <see cref="PartsGroup"/>.
         /// Version 5: the sky. Version 6: the island's underside, and collider-only objects for scattered models with colliders (trees).
         /// </summary>
-        public const int BuilderVersion = 7;
+        public const int BuilderVersion = 8;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -78,6 +81,27 @@ namespace SdfLevel.Editor
 
         /// <summary>Where the mirrored copies of part meshes go, below the level's meshes (see PartInstances).</summary>
         public const string MirroredFolder = "Mirrored";
+
+        /// <summary>
+        /// How a room (a closed cube with no sky) is lit, decided in ticket 14.2: light only, no lamps in the room and no dome. One
+        /// directional light hangs overhead, towards (0.3, 1, 0.35): near straight down, tilted a little so that the pieces' shadows fall
+        /// across the floor's squares and read as shapes; warm white (the sun's 5600 K tint, a lamp rather than daylight), the toon
+        /// shaders taking only its direction, hue and shadows; the ambient is the showcase's flat, dim one. The walls and the ceiling
+        /// cast no shadows of that light (the ceiling would shade the whole room) and receive none; pieces cast and receive them on the
+        /// floor. A wall only grazes an overhead light, so SdfRoomFace.shader leans the light toward each face's own normal: walls in the
+        /// lit and mid bands, the ceiling in the mid band, the floor in the lit band with the shadows in the shadow band. There is no
+        /// distance fade (no SkySettings fade amount): a far wall keeps its own colours, no fog, and the camera clears to a flat colour
+        /// it never shows.
+        /// </summary>
+        private static readonly MushroomScene.IndoorLighting RoomLight = new MushroomScene.IndoorLighting
+        {
+            lightDirection = new Vector3(0.3f, 1, 0.35f).normalized,
+            lightColor = new Color(1, 0.95f, 0.84f),
+            ambient = new Color(0.17f, 0.14f, 0.1f),
+        };
+
+        /// <summary>The far plane reaches across a room's diagonal (160 m square: 226 m on the floor, 277 m to the opposite top corner) with room to spare.</summary>
+        private const float RoomFarPlane = 450;
 
         public const string LevelRootName = "Level";
         public const string PlacedName = "Placed";
@@ -327,7 +351,8 @@ namespace SdfLevel.Editor
                 openedHere = EditorSceneManager.sceneCount > 1;
             }
 
-            MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data));
+            var hasRoom = LevelRoom.HasRoom(data);
+            MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLight : null);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -376,7 +401,10 @@ namespace SdfLevel.Editor
             AssetDatabase.SaveAssets();
             DeleteMeshesExcept(meshFolder, keptMeshes);
 
-            AddWalls(levelRoot.transform, data);
+            if (hasRoom)
+                LevelRoom.Add(levelRoot.transform, name, meshFolder, data);
+            else
+                AddWalls(levelRoot.transform, data);
             var parts = new PartInstances(((data["drawGroups"] as JArray) ?? new JArray()).Any(g => g.Value<string>("name") == PartsGroup),
                 $"{meshFolder}/{MirroredFolder}");
             var placed = AddPlacements(levelRoot.transform, scene, data, parts);
@@ -386,7 +414,7 @@ namespace SdfLevel.Editor
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
             AssetDatabase.SaveAssets();
-            AddPlayer(scene, data);
+            AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
             LevelSky.Add(levelRoot.transform, name, data);
 
             EditorSceneManager.SaveScene(scene, scenePath);
@@ -398,6 +426,8 @@ namespace SdfLevel.Editor
                 importer.SaveAndReimport();
             }
             AddToBuildSettings(scenePath);
+            if (hasRoom && LevelRoom.CheckEdges(level) > 0)
+                throw new InvalidDataException("the room's squares or edges are wrong, see above");
             if (openedHere)
                 EditorSceneManager.CloseScene(scene, true);
             Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered ({scatterColliders} with colliders)");
@@ -497,16 +527,16 @@ namespace SdfLevel.Editor
             return material;
         }
 
-        private static SdfGlb.Material MaterialOf(JObject materials, string role) =>
+        internal static SdfGlb.Material MaterialOf(JObject materials, string role) =>
             materials?[role]?["parameters"] is JObject parameters ? new SdfGlb.Material { Name = role, Parameters = parameters } : null;
 
-        private static Vector4 Color(SdfGlb.Material material, string colour, float w)
+        internal static Vector4 Color(SdfGlb.Material material, string colour, float w)
         {
             var c = material.Vector(colour);
             return new Vector4(c.x, c.y, c.z, w);
         }
 
-        private static Vector4 Surface(SdfGlb.Material material) =>
+        internal static Vector4 Surface(SdfGlb.Material material) =>
             new Vector4(material.Number("roughness"), material.Number("specular"), material.Number("colorVariation"), material.Number("detailScale"));
 
         /// <summary>
@@ -997,7 +1027,7 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>The player at the level's spawn point, looking along +x (across the long side), with the camera at eye height.</summary>
-        private static void AddPlayer(Scene scene, JObject data)
+        private static void AddPlayer(Scene scene, JObject data, bool noSky)
         {
             var spawn = data["spawn"];
             var player = new GameObject(PlayerName);
@@ -1017,6 +1047,13 @@ namespace SdfLevel.Editor
             camera.transform.localPosition = new Vector3(0, EyeHeight, 0);
             camera.nearClipPlane = 0.05f;
             camera.farClipPlane = 400;
+            if (noSky)
+            {
+                // Surrounded by walls: no skybox to clear to, a flat colour the room never shows; far enough for the whole cube
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = UnityEngine.Color.black;
+                camera.farClipPlane = RoomFarPlane;
+            }
         }
 
         private static void AddToBuildSettings(string scenePath)

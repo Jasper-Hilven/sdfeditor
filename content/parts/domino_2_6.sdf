@@ -1,39 +1,54 @@
 # Domino 2-6: a giant domino 2 m wide, 4 m tall and 0.64 m thick, centred on the origin and standing in the xy plane with its face
-# to +z: a tile of a porcini's ivory flesh with soft rounded edges, a dark groove across its middle with a little chestnut
-# mushroom-cap rivet at its centre, and its pips domed like small fly agaric caps, red: two in the top half and six in the bottom
-# one. The back is plain.
+# to +z: a plain ivory tile with soft rounded edges, a plain divider groove across its middle, and its pips sunk into the face as
+# round dimples painted black: two in the top half and six in the bottom one. The back is plain.
 format 1
 
 Union
-    # The tile, the groove cut across its face
-    Material material=game_porcini_flesh
+    # The tile, the divider groove and the pips cut into its face
+    Material material=game_ivory
         Subtraction
             RoundBox size=(1, 2, 0.32) roundness=0.14
-            Translate translation=(0, 0, 0.32)
-                Box size=(0.82, 0.04, 0.06)
-    # The groove's floor in dark ink, and the rivet
-    Material material=game_ink_brown
-        Translate translation=(0, 0, 0.27)
-            Box size=(0.82, 0.04, 0.02)
-    Material material=game_porcini_cap
-        Translate translation=(0, 0, 0.3)
-            Ellipsoid radii=(0.12, 0.12, 0.07)
-    # The pips: low domes standing 7 cm proud of the face, a one a bigger spot
-    Material material=game_cap_red
-        Union
-            Translate translation=(0.5, 1.5, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
-            Translate translation=(-0.5, 0.5, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
-            Translate translation=(0.5, -0.5, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
-            Translate translation=(-0.5, -0.5, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
-            Translate translation=(0.5, -1, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
-            Translate translation=(-0.5, -1, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
-            Translate translation=(0.5, -1.5, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
-            Translate translation=(-0.5, -1.5, 0.32)
-                Ellipsoid radii=(0.16, 0.16, 0.07)
+            Union
+                Translate translation=(0, 0, 0.32)
+                    Box size=(0.82, 0.04, 0.06)
+                Union
+                    Translate translation=(0.5, 1.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, 0.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(0.5, -0.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, -0.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(0.5, -1, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, -1, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(0.5, -1.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, -1.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+    # The divider's floor and the pips' floors in ink, a few centimetres below the face
+    Material material=game_pip_black
+        Intersection
+            RoundBox size=(1, 2, 0.29) roundness=0.14
+            Union
+                Translate translation=(0, 0, 0.27)
+                    Box size=(0.82, 0.04, 0.02)
+                Union
+                    Translate translation=(0.5, 1.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, 0.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(0.5, -0.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, -0.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(0.5, -1, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, -1, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(0.5, -1.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)
+                    Translate translation=(-0.5, -1.5, 0.32)
+                        Ellipsoid radii=(0.16, 0.16, 0.07)

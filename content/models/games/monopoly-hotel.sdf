@@ -1,8 +1,6 @@
-# Monopoly hotel: the board game's hotel blown up to 4.4 m tall and grown as a mushroom, the house's big red sister. A long,
-# two-storey block of ivory stem flesh 5 m wide and 2.5 m deep under a fly agaric's scarlet cap flecked with white, stretched
-# along the ridge and overhanging the walls all round, with cream gills under the eaves. An arched double door in front (+z) and
-# another at the back, lit porthole windows on both floors and both ends, and in the middle of the front's upper floor, where a
-# window would be, the hotel's own pair of big floating eyes keeping watch over the board.
+# Monopoly hotel: the board game's hotel blown up to 4.4 m tall, the house's big red sister. A long, two-storey red block 5 m
+# wide and 2.5 m deep under a darker red gabled roof, its ridge along x and its eaves overhanging the walls. An arched double
+# door in front (+z) and another at the back, painted windows on both floors and both ends, and a plain chimney on the roof.
 format 1
 collider mesh
 
@@ -10,84 +8,71 @@ collider mesh
 # board
 Detail detail=0.5
     Union
-        # The walls, with the door and window holes cut in, and the gills under the cap growing out of their top
-        SmoothUnion smoothness=0.06
-            Material material=game_porcini_flesh
-                Subtraction
-                    Distort amount=0.008 frequency=2
-                        Translate translation=(0, 1.45, 0)
-                            RoundBox size=(2.5, 1.45, 1.25) roundness=0.16
-                    Union
-                        # The doorways, front and back: wide round-headed arches
-                        SymmetryXZ
-                            Union
-                                Translate translation=(0, 0.65, 1.25)
-                                    Box size=(0.5, 0.65, 0.15)
-                                ArbitraryCappedCylinder a=(0, 1.3, 1.1) b=(0, 1.3, 1.4) radius=0.5
-                                # The window holes on the long sides: either side of the door on both floors, and at the outer
-                                # end of the upper floor
-                                ArbitraryCappedCylinder a=(1.55, 1, 1.1) b=(1.55, 1, 1.4) radius=0.27
-                                ArbitraryCappedCylinder a=(1.55, 2.25, 1.1) b=(1.55, 2.25, 1.4) radius=0.27
-                        # Two more upper windows in the middle of the back, where the front has its eyes
-                        Translate translation=(0, 2.25, -1.25)
-                            Rotate rotation=(1.5707964, 0, 0)
-                                CappedCylinder radius=0.27 height=0.15
-                        # The ends: a window on each floor
-                        SymmetryX
-                            Union
-                                ArbitraryCappedCylinder a=(2.35, 1, 0) b=(2.65, 1, 0) radius=0.27
-                                ArbitraryCappedCylinder a=(2.35, 2.25, 0) b=(2.65, 2.25, 0) radius=0.27
-            # The gills: a thin oval slab, cut from a rounder ellipsoid: a very flat one's distance is too poor far from it
-            Material material=game_gills
-                Translate translation=(0, 2.86, 0)
-                    Intersection
-                        Ellipsoid radii=(3.2, 0.6, 1.84)
-                        Box size=(3.3, 0.09, 2)
+        # The walls, with the door and window recesses cut in
+        Material material=monopoly_red
+            Subtraction
+                Translate translation=(0, 1.45, 0)
+                    RoundBox size=(2.5, 1.45, 1.25) roundness=0.12
+                Union
+                    SymmetryXZ
+                        Union
+                            # The doorway: a wide round-headed arch
+                            Translate translation=(0, 0.65, 1.25)
+                                Box size=(0.5, 0.65, 0.15)
+                            ArbitraryCappedCylinder a=(0, 1.3, 1.1) b=(0, 1.3, 1.4) radius=0.5
+                            # The window recesses on the long sides, either side of the door on both floors
+                            Translate translation=(1.55, 1, 1.25)
+                                Box size=(0.25, 0.3, 0.15)
+                            Translate translation=(1.55, 2.25, 1.25)
+                                Box size=(0.25, 0.3, 0.15)
+                    # The ends: a window on each floor
+                    SymmetryX
+                        Union
+                            Translate translation=(2.5, 1, 0)
+                                Box size=(0.15, 0.3, 0.25)
+                            Translate translation=(2.5, 2.25, 0)
+                                Box size=(0.15, 0.3, 0.25)
 
-        # The roof: the top of a long, wide ellipsoid, rounded at the rim
-        Material material=game_cap_warty
-            Distort amount=0.012 frequency=1.5
-                Round radius=0.03
-                    Intersection
-                        Translate translation=(0, 2.75, 0)
-                            Ellipsoid radii=(3.3, 1.6, 1.95)
-                        Translate translation=(0, 3.85, 0)
-                            Box size=(3.5, 1, 2.1)
+        # The roof: a gabled prism, ridge along x, overhanging the walls all round
+        Material material=monopoly_red_roof
+            Translate translation=(0, 2.88, 0)
+                Rotate rotation=(0, 1.5707964, 0)
+                    Extrusion height=2.7
+                        Triangle2D a=(-1.5, 0) b=(1.5, 0) c=(0, 1.5)
 
-        # The double doors, set 10 cm into the arches, a knob on each leaf
+        # The double doors, set 10 cm into the arches
         Material material=game_wood_door
             SymmetryXZ
                 Union
                     Translate translation=(0, 0.65, 1.14)
                         Box size=(0.5, 0.65, 0.04)
                     ArbitraryCappedCylinder a=(0, 1.3, 1.1) b=(0, 1.3, 1.18) radius=0.5
-                    # The seam between the leaves
-                    Translate translation=(0, 0.9, 1.18)
-                        Box size=(0.015, 0.9, 0.02)
                     Translate translation=(0.12, 0.75, 1.2)
                         Sphere radius=0.055
 
-        # The windows
-        SymmetryXZ
-            Union
-                Translate translation=(1.55, 1, 1.25)
-                    Part part=porthole_window
-                Translate translation=(1.55, 2.25, 1.25)
-                    Part part=porthole_window
-        Translate translation=(0, 2.25, -1.25)
-            Rotate rotation=(0, 3.1415927, 0)
-                Part part=porthole_window
-        SymmetryX
-            Union
-                Translate translation=(2.5, 1, 0)
-                    Rotate rotation=(0, 1.5707964, 0)
-                        Part part=porthole_window
-                Translate translation=(2.5, 2.25, 0)
-                    Rotate rotation=(0, 1.5707964, 0)
-                        Part part=porthole_window
+        # The seam between the leaves, a thin dark line
+        Material material=monopoly_red_roof
+            SymmetryXZ
+                Translate translation=(0, 0.9, 1.18)
+                    Box size=(0.015, 0.9, 0.02)
 
-        # The eyes, three times the scouts', floating a hand's breadth in front of the upper floor and looking out
-        SymmetryX
-            Translate translation=(0.45, 2.25, 1.72)
-                Scale scale=(3, 3, 3)
-                    Part part=eye
+        # The painted windows, flush in their recesses, with bars
+        Material material=monopoly_window
+            Union
+                SymmetryXZ
+                    Union
+                        Translate translation=(1.55, 1, 1.19)
+                            Box size=(0.25, 0.3, 0.04)
+                        Translate translation=(1.55, 2.25, 1.19)
+                            Box size=(0.25, 0.3, 0.04)
+                SymmetryX
+                    Union
+                        Translate translation=(2.4, 1, 0)
+                            Box size=(0.04, 0.3, 0.25)
+                        Translate translation=(2.4, 2.25, 0)
+                            Box size=(0.04, 0.3, 0.25)
+
+        # The chimney: a plain block through the roof
+        Material material=monopoly_red_roof
+            Translate translation=(1.6, 3.95, -0.3)
+                RoundBox size=(0.22, 0.45, 0.22) roundness=0.02

@@ -1,0 +1,20 @@
+# Red die: a giant six-sided die 2.2 m on a side, lacquered red with soft rounded edges, its pips (die_pips) sunk into the faces
+# and painted white, standing flat on the board with the one on top.
+format 1
+collider convex
+
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Translate translation=(0, 1.1, 0)
+        Union
+            # The body, each pip carved out of it
+            Material material=game_die_red
+                Subtraction
+                    RoundBox size=(1.1, 1.1, 1.1) roundness=0.22
+                    Part part=die_pips
+            # The paint on the floor of each dimple, a few centimetres below the face
+            Material material=game_pip_white
+                Intersection
+                    RoundBox size=(1.06, 1.06, 1.06) roundness=0.22
+                    Part part=die_pips

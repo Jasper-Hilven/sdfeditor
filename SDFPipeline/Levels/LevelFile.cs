@@ -50,9 +50,13 @@ namespace SDFPipeline.Levels;
 ///
 /// sky preset=night                          # content/skies/night.sky, with any of its lines overridden below
 ///     fade end=200
+///
+/// room size=(160, 160, 160)                 # a closed room over the playable area: walls on its edges, a ceiling at y=160 (see <see cref="RoomSpec"/>)
 /// </code>
 /// Only <c>play</c> is required: without <c>hills</c> the ground stays flat up to the edge, without <c>edge</c> the island ends at the
-/// crest, and the seed is <see cref="LevelDefinition.DefaultSeed"/>.
+/// crest (so a level with neither bakes the flat floor alone, with no hill, rim or underside), without <c>scatter</c>, <c>trees</c> and
+/// <c>draw</c> nothing is scattered or drawn instanced, without <c>sky</c> the bake holds no sky at all, and the seed is
+/// <see cref="LevelDefinition.DefaultSeed"/>.
 /// <para>
 /// A region's shapes are <c>Circle</c> (center, radius), <c>Box2D</c> (center, size, angle), <c>RoundedBox2D</c> (the same and radius)
 /// and <c>Polyline</c> (points, width), each with optional <c>noise</c> (metres the edge wobbles) and <c>noiseScale</c>. Sizes are full
@@ -86,8 +90,9 @@ namespace SDFPipeline.Levels;
 /// (how far in the ground starts bending down to it) and, on a line of its own below it, the <c>underside</c> model.
 /// </para>
 /// <para>
-/// The sky names a preset in content/skies/ and may override its lines (see <see cref="SkyFile"/>); without it the level has the
-/// <see cref="SkyFile.DefaultPreset"/> sky.
+/// The sky names a preset in content/skies/ and may override its lines (see <see cref="SkyFile"/>); without a sky line the level is
+/// baked with no sky data. The room takes a <c>size</c> (width, height, depth; across and along must be the play size) and optionally a
+/// <c>square</c> (8 m by default), the side of the checker's squares.
 /// </para>
 /// </summary>
 public static class LevelFile
@@ -109,11 +114,12 @@ public static class LevelFile
     private const string Trees = "trees";
     private const string Draw = "draw";
     private const string Sky = "sky";
+    private const string Room = "room";
     private const string Ring = "ring";
     private const string Noise = "noise";
     private const string Underside = "underside";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
     private static readonly string[] Repeatable = [Scatter, Trees, Draw];
@@ -149,6 +155,8 @@ public static class LevelFile
         var trees = new List<ScatterLayer>();
         var drawGroups = new List<DrawGroup>();
         SkySection? sky = null;
+        RoomSpec? room = null;
+        var roomLine = 0;
         var seen = new Dictionary<string, int>();
         foreach (var line in lines.Skip(1))
         {
@@ -195,6 +203,10 @@ public static class LevelFile
                 case Sky:
                     sky = SkyFile.ReadSection(line, cursor);
                     break;
+                case Room:
+                    room = ReadRoom(line, cursor);
+                    roomLine = line.Number;
+                    break;
             }
         }
 
@@ -205,7 +217,24 @@ public static class LevelFile
 
         if (play is null)
             throw new SdfProgramFileException(lines[^1].Number, $"The level has no playable area; add a line like '{Play} size=(150, 100)'");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky };
+        if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
+            throw new SdfProgramFileException(roomLine,
+                $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room };
+    }
+
+    private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Room, line, cursor);
+        var size = parameters.Vector3("size", "a size like (160, 160, 160), width, height and depth in metres");
+        var square = parameters.Number("square", RoomSpec.DefaultSquare, 0.5f, 100, "a square's side in metres, 0.5 to 100");
+        parameters.Done("size", "square");
+        if (size.X <= 0 || size.Y <= 0 || size.Z <= 0)
+            throw parameters.Error("size", "The room needs a positive width, height and depth, like size=(160, 160, 160)");
+        foreach (var length in new[] { size.X, size.Y, size.Z })
+            if (MathF.Abs(length / square - MathF.Round(length / square)) > 1e-3f)
+                throw parameters.Error("size", $"The room's sides must be whole numbers of squares of {FileSyntax.Number(square)} m");
+        return new RoomSpec(size, square);
     }
 
     private static PlayArea ReadPlay(SourceLine line, Cursor cursor)
@@ -577,6 +606,16 @@ public static class LevelFile
             taken[name] = given.Cursor;
             return given.Value is RawVector { Components: [var x, var y] }
                 ? new Vector2(float.Parse(x.Text, CultureInfo.InvariantCulture), float.Parse(y.Text, CultureInfo.InvariantCulture))
+                : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
+        }
+
+        public Vector3 Vector3(string name, string expected)
+        {
+            if (!values.Remove(name, out var given))
+                throw ownerCursor.Error($"{Capitalized(owner)} is missing parameter '{name}': {expected}");
+            taken[name] = given.Cursor;
+            return given.Value is RawVector { Components: [var x, var y, var z] }
+                ? new Vector3(float.Parse(x.Text, CultureInfo.InvariantCulture), float.Parse(y.Text, CultureInfo.InvariantCulture), float.Parse(z.Text, CultureInfo.InvariantCulture))
                 : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
         }
 
