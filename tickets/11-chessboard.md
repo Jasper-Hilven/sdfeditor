@@ -35,7 +35,7 @@ games go on the same board in 12.
   SpecialEffects build and snapshot and the showcase snapshot run with no `error CS` and no shader errors.
 
 Measured (high preset, eye height): the ground 12.9k–14.5k triangles per view, the placed models 30k–87k, and 143k at
-`crowd_eye_back` (looking into it); web preset `eye_+x_web` 8.8k ground + 68k placed.
+`crowd_eye_back` (looking into the scrum); web preset `eye_+x_web` 8.8k ground + 68k placed.
 
 ## Not done
 
