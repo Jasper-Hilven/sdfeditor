@@ -329,7 +329,8 @@ sky preset=night                         # content/skies/night.sky
 
 ## Status
 
-Done (not committed). Worktree `.claude/worktrees/sky`, branch `sky`, on 3bd0d2b.
+Done and merged with main; what is left (unverified motion, web frame time, Safari, known problems) is in
+[10 — Sky: what is left of 07](10-sky-remaining.md). Worktree `.claude/worktrees/sky`, branch `sky`, on 3bd0d2b.
 
 - **Presets**: `content/skies/day.sky` (identity tone, the showcase's sun at azimuth 38.7°/32°, a soft blue gradient, its exposure and
   bloom) and `night.sky` (Eye-Moon Night, as sketched; colours tuned darker on the snapshots, horizon kept dim, abyss spores 0.6 m).
