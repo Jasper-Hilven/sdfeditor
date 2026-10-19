@@ -34,6 +34,15 @@ public sealed record PartMesh(
     /// <summary>The detail this mesh was made with, see <see cref="MeshSource.Detail"/>.</summary>
     public float Detail { get; init; } = 1;
 
+    /// <summary>The part this mesh is of, or null for the body; see <see cref="MeshSource.Part"/>.</summary>
+    public string? Part { get; init; }
+
+    /// <summary>
+    /// For a part meshed once in its own space, where each use puts it (see <see cref="MeshSource.Instances"/>); empty for a mesh in the
+    /// model's space. Only LOD0 has them: the levels are drawn where it is.
+    /// </summary>
+    public IReadOnlyList<Matrix4x4> Instances { get; init; } = [];
+
     /// <summary>
     /// The cheaper levels of detail of this mesh, LOD1 first, each with its own vertices and per-vertex data; empty when
     /// <see cref="MeshingOptions.LodCount"/> is 1. This mesh is LOD0.
@@ -51,6 +60,15 @@ public sealed record MeshedModel(IReadOnlyList<PartMesh> Meshes, IReadOnlyList<M
 
     /// <summary>The model's own settings from its file, such as its collider, which the .glb's extras hand on to the game engine.</summary>
     public ModelSettings Settings { get; init; } = ModelSettings.Default;
+
+    /// <summary>
+    /// The settings of the parts whose files have settings lines, by part name, each read over the model's own (see
+    /// <see cref="ModelSettings.Read(string, ModelSettings)"/>); the other parts take the model's settings.
+    /// </summary>
+    public IReadOnlyDictionary<string, ModelSettings> PartSettings { get; init; } = new Dictionary<string, ModelSettings>();
+
+    /// <summary>What the mesher could not do as the model asks, such as a repeated part it had to mesh in place, one line each.</summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
 }
 
 /// <summary>
@@ -71,14 +89,16 @@ public static class ModelMesher
         var grid = ContouringGrid.Around(bounds, options.CellsAlong(bounds.LongestSide, detail));
         var calculator = new SdfCalculatorCpu();
         var whole = calculator.Prepare(PartSplitter.Expanded(program));
+        var surface = options.SurfaceOf is { } cutFrom ? calculator.Prepare(PartSplitter.Expanded(cutFrom)) : null;
         var table = new MaterialTable(options.Materials);
         var meshes = new List<PartMesh>();
-        foreach (var source in PartSplitter.Split(program))
+        var warnings = new List<string>();
+        foreach (var source in PartSplitter.Split(program, warnings))
         {
-            if (MeshOne(source, calculator, whole, GridFor(source, grid, options), table, options) is { } mesh)
+            if (MeshOne(source, calculator, whole, surface, GridFor(source, grid, options), table, options) is { } mesh)
                 meshes.Add(mesh);
         }
-        return new MeshedModel(meshes, table.Materials, grid) { Detail = detail };
+        return new MeshedModel(meshes, table.Materials, grid) { Detail = detail, Warnings = warnings };
     }
 
     /// <summary>
@@ -92,8 +112,8 @@ public static class ModelMesher
             ? modelGrid
             : ContouringGrid.Around(bounds, options.CellsAlong(bounds.LongestSide, source.Detail));
 
-    private static PartMesh? MeshOne(MeshSource source, SdfCalculatorCpu calculator, SdfCalculatorCpu.Prepared whole, ContouringGrid grid,
-        MaterialTable table, MeshingOptions options)
+    private static PartMesh? MeshOne(MeshSource source, SdfCalculatorCpu calculator, SdfCalculatorCpu.Prepared whole,
+        SdfCalculatorCpu.Prepared? surface, ContouringGrid grid, MaterialTable table, MeshingOptions options)
     {
         var stopwatch = Stopwatch.StartNew();
         var shape = calculator.Prepare(source.Program);
@@ -125,23 +145,38 @@ public static class ModelMesher
             var materialOfSource = samples.Select(sample => SurfaceAttributes.Material(sample, table)).ToArray();
             var materials = shaded.Source.Select(v => materialOfSource[v]).ToArray();
 
+            // A part meshed once for all of its uses is measured against the model where its first use puts it, and its thickness
+            // given back in its own metres
             var thickness = new float[shaded.Positions.Length];
             var occlusion = new float[shaded.Positions.Length];
+            var placement = source.Instances.Count > 0 ? source.Instances[0] : (Matrix4x4?)null;
+            var scale = placement is { } m ? new Vector3(m.M11, m.M12, m.M13).Length() : 1;
             Parallel.For(0, shaded.Positions.Length, v =>
             {
                 var position = onSurface[shaded.Source[v]];
-                thickness[v] = SurfaceAttributes.Thickness(whole.Distance, position, shaded.Normals[v], options.MaxThickness, cellSize);
-                occlusion[v] = SurfaceAttributes.Occlusion(whole.Distance, position, shaded.Normals[v]);
+                var normal = shaded.Normals[v];
+                var size = 1f;
+                if (placement is { } placed)
+                {
+                    position = Vector3.Transform(position, placed);
+                    normal = Vector3.Normalize(Vector3.TransformNormal(normal, placed));
+                    size = scale;
+                }
+                // A piece's surface where it is the shape it was cut from is measured on that shape (see MeshingOptions.SurfaceOf)
+                var measured = surface is not null && MathF.Abs(surface.Distance(position)) <= cellSize * size * 0.5f ? surface : whole;
+                thickness[v] = SurfaceAttributes.Thickness(measured.Distance, position, normal, options.MaxThickness * size, cellSize * size) / size;
+                occlusion[v] = SurfaceAttributes.Occlusion(measured.Distance, position, normal);
             });
 
             var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, simplified.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed);
             levels.Add(new PartMesh(source.Name, shaded.Positions, shaded.Normals, materials, thickness, occlusion, shaded.Triangles, maxErrors[level], statistics)
             {
                 Detail = source.Detail,
+                Part = source.Part,
             });
             stopwatch.Restart();
         }
-        return levels[0] with { Lods = levels.Skip(1).ToArray() };
+        return levels[0] with { Lods = levels.Skip(1).ToArray(), Instances = source.Instances };
     }
 
     private static MaterialSource Dominant(SurfaceSample sample) => sample.Materials.MaxBy(s => s.Weight).Source;

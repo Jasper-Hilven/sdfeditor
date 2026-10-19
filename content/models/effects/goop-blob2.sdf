@@ -1,0 +1,14 @@
+# Goop blob: a gob of the blob gun's magenta goo in flight, three blobs run together into a knobbly lump about 11 cm across, centred
+# on the origin and flying along +z.
+format 1
+
+Detail detail=0.6
+    Material material=blob_goo
+        Distort amount=0.006 frequency=10
+            SmoothUnion smoothness=0.04
+                Translate translation=(0, 0, 0.01)
+                    Sphere radius=0.045
+                Translate translation=(0.03, -0.018, -0.02)
+                    Sphere radius=0.033
+                Translate translation=(-0.028, 0.02, -0.025)
+                    Sphere radius=0.03

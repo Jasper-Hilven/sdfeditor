@@ -3,7 +3,8 @@
 // silhouette and wherever the part passes in front of something further away (eyes and hands over the body, the cap over the stem).
 // The line takes the colour of the surface under it, darkened (_OutlineTone), so each mushroom keeps its own palette.
 // It cross-fades with its part between levels of detail (URP's dither on the pixel's screen position, as SdfToon.shader); MushroomBuilder
-// leaves it off the coarsest level. It casts no shadow, and is in the depth prepasses so depth priming does not drop it.
+// leaves it off the coarsest level. Drawn by the instanced renderer it sways, takes the tint and fades exactly as its surface does
+// (SdfScatter.hlsl). It casts no shadow, and is in the depth prepasses so depth priming does not drop it.
 // Keep in step with the toon branch of the IDE's preview (IDE/wwwroot/js/sdf-renderer.js).
 Shader "SdfMushrooms/Toon Outline"
 {
@@ -22,6 +23,8 @@ Shader "SdfMushrooms/Toon Outline"
     #if defined(LOD_FADE_CROSSFADE)
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
     #endif
+    #pragma multi_compile_local _ SDF_SCATTER
+    #include "SdfScatter.hlsl"
 
     CBUFFER_START(UnityPerMaterial)
         float _OutlineWidth;
@@ -52,6 +55,8 @@ Shader "SdfMushrooms/Toon Outline"
         Varyings output;
         UNITY_SETUP_INSTANCE_ID(input);
         UNITY_TRANSFER_INSTANCE_ID(input, output);
+        SdfScatterTintColor(input.positionOS, input.color);
+        input.positionOS = SdfScatterWind(input.positionOS);
         float3 positionWS = TransformObjectToWorld(input.positionOS);
         float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
         float4 positionCS = TransformWorldToHClip(positionWS);
@@ -77,6 +82,7 @@ Shader "SdfMushrooms/Toon Outline"
     #if defined(LOD_FADE_CROSSFADE)
         LODFadeCrossFade(positionCS);
     #endif
+        SdfScatterFade(positionCS);
     }
 
     ENDHLSL

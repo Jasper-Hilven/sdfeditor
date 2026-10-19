@@ -1,0 +1,58 @@
+# Castle keep: the biggest fly agaric, 19 m, standing in the courtyard against the rear wall. Its flat ring at the wall-walk's 5 m
+# is a balcony 1.9 m wide that the rear walk runs onto and the two castle_stairs climb to; a second, hanging ring higher up; glowing
+# windows and a door on the courtyard side (+z). Modelled at a tenth of its size and scaled up, like the towers.
+format 1
+collider mesh
+Detail detail=0.45
+    # Cut off 30 cm below the ground
+    Intersection
+        Translate translation=(0, 11.7, 0)
+            Box size=(12, 12, 12)
+        Scale scale=(10, 10, 10)
+            Union
+                Material material=amanita_stem
+                    # The stem swells into a low foot, kept inside the stairs' first steps so they stand clear of it
+                    SmoothUnion smoothness=0.05
+                        ArbitraryRoundCone a=(0, 0.1, 0) b=(0, 1.52, 0) radiusA=0.34 radiusB=0.25
+                        Translate translation=(0, 0.02, 0)
+                            Ellipsoid radii=(0.37, 0.07, 0.37)
+                # The ring, with an opening on either side where the stairs come up through it (from 0.98 to 1.98 radians round from the
+                # front, the last ten steps), so they have headroom under it
+                Material material=amanita_stem
+                    Subtraction
+                        Union
+                            Translate translation=(0, 0.492, 0)
+                                CappedCylinder radius=0.5 height=0.008
+                            Translate translation=(0, 0.47, 0)
+                                Round radius=0.004
+                                    CappedCone height=0.016 bottomRadius=0.49 topRadius=0.5
+                        SymmetryX
+                            Intersection
+                                Plane normal=(-0.557, 0, 0.83) height=0
+                                Plane normal=(-0.398, 0, -0.917) height=0
+                                Translate translation=(0, 0.5, 0)
+                                    CappedCylinder radius=0.53 height=0.06
+                Material material=amanita_stem
+                    Union
+                        Translate translation=(0, 1.06, 0)
+                            Round radius=0.008
+                                CappedCone height=0.03 bottomRadius=0.4 topRadius=0.27
+                Material material=flower_center
+                    Union
+                        SymmetryX
+                            Translate translation=(0.13, 0.75, 0.27)
+                                Ellipsoid radii=(0.045, 0.065, 0.04)
+                        Translate translation=(0, 1.3, 0.26)
+                            Ellipsoid radii=(0.05, 0.07, 0.04)
+                        Translate translation=(0, 0.14, 0.33)
+                            Ellipsoid radii=(0.08, 0.12, 0.04)
+                Material material=amanita_gills
+                    Translate translation=(0, 1.535, 0)
+                        CappedCylinder radius=0.66 height=0.012
+                Material material=amanita_cap
+                    Round radius=0.02
+                        Intersection
+                            Translate translation=(0, 1.5, 0)
+                                Ellipsoid radii=(0.7, 0.52, 0.68)
+                            Translate translation=(0, 1.83, 0)
+                                Box size=(0.8, 0.29, 0.8)

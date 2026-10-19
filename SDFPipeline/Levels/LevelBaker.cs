@@ -18,6 +18,9 @@ public sealed record BakedLevel(string Folder, GroundLayout Layout, IReadOnlyLis
 
     /// <summary>The placed models where they stand, in pipeline coordinates.</summary>
     public IReadOnlyList<PlacedModel> Placements { get; init; } = [];
+
+    /// <summary>The scattered instances, as written to instances.bin.</summary>
+    public ScatteredLevel Scattered { get; init; } = ScatteredLevel.None;
 }
 
 /// <summary>A placement as baked: the model's base at <see cref="Position"/>, on the (flattened) ground.</summary>
@@ -28,13 +31,14 @@ public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, floa
 /// of <see cref="GroundLayout"/> that has ground, each with its levels of detail as separate meshes named like a model's (ground,
 /// ground_LOD1, ...), and level.json with everything else the engine needs: the extent, the chunk grid, the playable rectangle, the seed,
 /// where the player starts, the ground's materials by region, the region map (regions.png, see <see cref="RegionMap"/>), the placed
-/// models with the list of their names, and the resolved sky (<see cref="SkyDocument"/>) with where its floaters and spores are.
-/// Unity's LevelBuilder turns it into the level's scene; the ground's colliders are made there, from LOD1, and the placed models bring
-/// theirs on their prefabs.
+/// models, the scattered ones (instances.bin, see <see cref="InstanceFile"/> and <see cref="LevelScatter"/>) with their draw groups,
+/// the resolved sky (<see cref="SkyDocument"/>) with where its floaters and spores are, and the list of every model's name. Unity's
+/// LevelBuilder turns it into the level's scene; the ground's colliders are made there, from LOD1, the placed models bring theirs on
+/// their prefabs, and the scattered ones have none.
 /// <para>
 /// The output depends on the file and the materials only, never on the machine's timing: the same input bakes byte-identical files.
-/// Chunk files from an earlier bake that this one no longer makes are deleted; level.json is written last, so a watcher that sees it
-/// change knows the chunks are complete.
+/// Chunk files from an earlier bake that this one no longer makes are deleted, as is instances.bin when nothing is scattered;
+/// level.json is written last, so a watcher that sees it change knows the chunks are complete.
 /// </para>
 /// </summary>
 public static class LevelBaker
@@ -64,13 +68,18 @@ public static class LevelBaker
     /// Where each placed model stands on the ground, by name (see <see cref="LevelModels"/>); null when there is no model to be had, or
     /// when the level places none.
     /// </param>
+    /// <param name="modelExists">
+    /// Whether a model is there, by name, for the scattered models, which need no footprint (working one out samples the model's shape);
+    /// null to ask <paramref name="models"/>.
+    /// </param>
     /// <param name="sky">The level's sky, its preset and overrides resolved (<see cref="SkyFile.Resolve(SkySection?, Func{string, string?})"/>);
     /// null to bake without one, which Unity lights like the model showcase.</param>
     /// <exception cref="ProgramFiles.SdfProgramFileException">
-    /// A placement names a model that is not there or stands off the island, or the sky draws a model that is not there.
+    /// A placement or scatter names a model that is not there, a placement stands off the island, a scatter avoids a region the level
+    /// does not have, or the sky draws a model that is not there.
     /// </exception>
     public static BakedLevel Bake(LevelDefinition level, string name, MaterialLibrary materials, string folder,
-        Func<string, ModelFootprint?>? models = null, ResolvedSky? sky = null)
+        Func<string, ModelFootprint?>? models = null, Func<string, bool>? modelExists = null, ResolvedSky? sky = null)
     {
         var terrain = new LevelTerrain(level);
         var layout = GroundLayout.Around(terrain, ChunkSize);
@@ -97,6 +106,18 @@ public static class LevelBaker
         var placed = level.Placements
             .Select(p => new PlacedModel(p.Model, new Vector3(p.At.X, terrain.Height(p.At.X, p.At.Y), p.At.Y), p.Yaw, p.Scale))
             .ToArray();
+
+        // The scattered models need only be there; the ground's colour under each instance is its material's average
+        foreach (var entry in level.Scatters.SelectMany(s => s.Entries))
+            if (!(modelExists ?? (name => models?.Invoke(name) is not null))(entry.Model))
+                throw new ProgramFiles.SdfProgramFileException(entry.Line, $"There is no model '{entry.Model}' in content/models/");
+        var groundColors = regions.Regions.Select(r => r.Material).Prepend(GrassMaterial)
+            .Select(m => AverageColor(materials.Resolve(m))).ToArray();
+        var scattered = LevelScatter.Scatter(level, terrain, regions, model => footprints[model], p =>
+        {
+            var region = regions.At(p);
+            return groundColors[region is null ? 0 : regions.Regions.ToList().IndexOf(region) + 1];
+        });
 
         // Each chunk on its own, in parallel; the results go in order, so the files do not depend on which finished first
         var chunks = new GroundMesh?[layout.CountX * layout.CountZ][];
@@ -145,6 +166,22 @@ public static class LevelBaker
         var map = RegionMap.Bake(regions, -terrain.HalfExtent, terrain.HalfExtent);
         var png = map.ToPng();
         GlbWriter.SaveAtomically(Path.Combine(folder, RegionMap.FileName), png);
+
+        // The scattered instances, the same way: in a grid of cells over the island
+        var cellsX = (int)MathF.Ceiling(2 * terrain.HalfExtent.X / InstanceFile.CellSize - 1e-4f);
+        var cellsZ = (int)MathF.Ceiling(2 * terrain.HalfExtent.Y / InstanceFile.CellSize - 1e-4f);
+        var groups = level.DrawGroups.Select(g => g.Name).ToArray();
+        var instancesPath = Path.Combine(folder, InstanceFile.FileName);
+        byte[]? instances = null;
+        if (scattered.Instances.Count > 0)
+        {
+            instances = InstanceFile.Write(scattered, groups, -terrain.HalfExtent, cellsX, cellsZ);
+            GlbWriter.SaveAtomically(instancesPath, instances);
+        }
+        else if (File.Exists(instancesPath))
+        {
+            File.Delete(instancesPath);
+        }
 
         var play = level.Play;
         var hills = level.Hills;
@@ -210,14 +247,59 @@ public static class LevelBaker
             // The unique models, standing on the ground: position is the base of the model (its y = 0); yaw is in degrees about +y,
             // counter-clockwise seen from above. Unity mirrors x, so it places them at -x and turns them by -yaw
             placements = placed.Select(p => new { model = p.Model, position = new[] { p.Position.X, p.Position.Y, p.Position.Z }, yaw = p.Yaw, scale = p.Scale }).ToArray(),
+            // The models scattered by the thousand (instances.bin), drawn by the instanced renderer in draw groups, each group as its
+            // settings below say (see DrawGroup in SDFPipeline/Levels/LevelDefinition.cs); null when nothing is scattered
+            instances = instances is null ? null : new
+            {
+                file = InstanceFile.FileName,
+                encoding = "see SDFPipeline/Levels/InstanceFile.cs: header (groups, prototypes, cell grid, per-cell first record and count), then " +
+                           "32-byte records (prototype u16, flags u16, position 3 × f32, yaw f32, scale f32, tint RGBA8, hash u32), sorted by cell",
+                count = scattered.Instances.Count,
+                hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(instances))[..16].ToLowerInvariant(),
+                cellSize = InstanceFile.CellSize,
+                cellCount = new[] { cellsX, cellsZ },
+                origin = Array(-terrain.HalfExtent),
+                prototypes = scattered.Prototypes.Select((p, index) => new
+                {
+                    model = p.Model,
+                    group = p.Group,
+                    count = scattered.Instances.Count(i => i.Prototype == index),
+                }).ToArray(),
+                scatters = level.Scatters.Select((s, index) => new
+                {
+                    group = s.Group,
+                    models = s.Entries.Select(e => e.Model).ToArray(),
+                    density = s.Density,
+                    count = scattered.LayerCounts[index],
+                }).ToArray(),
+            },
+            // How the instanced renderer draws each group: rings[k] is where ring k (level of detail k) ends, in metres; the first outline
+            // rings get the ink line and the first shadows (lowShadows on the integrated GPU / web preset) cast shadows; rings cross-fade
+            // over blend metres and the last fades out over fade; wind is metres of sway at windHeight, tintHeight how high the base
+            // takes the ground's colour; the low preset draws lowDensity of the instances with the distances times lowDistance
+            drawGroups = level.DrawGroups.Select(g => new
+            {
+                name = g.Name,
+                rings = g.Rings,
+                outline = g.OutlineRings,
+                shadows = g.ShadowRings,
+                lowShadows = g.LowShadowRings,
+                blend = g.Blend,
+                fade = g.Fade,
+                wind = g.Wind,
+                windHeight = g.WindHeight,
+                tintHeight = g.TintHeight,
+                lowDensity = g.LowDensity,
+                lowDistance = g.LowDistance,
+            }).ToArray(),
             // The sky, resolved from its preset and the level's overrides, with where its floaters and spores are (seeded by the level)
             sky = sky is null ? null : SkyDocument.Of(sky.Definition, sky.Hash, SkyLayout.Of(sky.Definition, level.Seed, play.HalfSize, terrain.EdgeDistance)),
-            // Every model the level uses, once, so Unity rebuilds the level when one of their prefabs is rebuilt
-            models = placed.Select(p => p.Model).Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
+            // Every model the level uses, placed, scattered or in the sky, once, so Unity rebuilds the level when one of their prefabs is rebuilt
+            models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model)).Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
         };
         var json = JsonSerializer.SerializeToUtf8Bytes(document, JsonOptions);
         GlbWriter.SaveAtomically(Path.Combine(folder, LevelJson), [.. json, (byte)'\n']);
-        return new BakedLevel(folder, layout, files, triangles, skirts, maxErrors) { Regions = regions.Regions, Placements = placed };
+        return new BakedLevel(folder, layout, files, triangles, skirts, maxErrors) { Regions = regions.Regions, Placements = placed, Scattered = scattered };
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -228,6 +310,19 @@ public static class LevelBaker
     };
 
     private static float[] Array(Vector2 v) => [v.X, v.Y];
+
+    /// <summary>
+    /// A ground material's colour as the ground shader shows it on average (linear): its base, some of the way towards its patches'
+    /// colour (<see cref="LevelScatter.GroundVariationShare"/>). The shader's patches and speckles are not followed point by point.
+    /// </summary>
+    private static Vector3 AverageColor(MaterialDefinition material)
+    {
+        var baseColor = new Vector3(material.baseColor.x, material.baseColor.y, material.baseColor.z);
+        // Without patches (no variation scale) the shader shows the base alone
+        return material.variationScale > 0
+            ? Vector3.Lerp(baseColor, new Vector3(material.variationColor.x, material.variationColor.y, material.variationColor.z), LevelScatter.GroundVariationShare)
+            : baseColor;
+    }
 
     /// <summary>Each parameter by name, as the .glb files of models give them: a number, or [r, g, b] (linear) / [x, y, z].</summary>
     private static Dictionary<string, object> Parameters(MaterialDefinition material) =>

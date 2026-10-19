@@ -16,6 +16,9 @@ const string usage = """
       sdf render <model.sdf> [output.png] [--size <pixels>]   Renders side, top, front and perspective views to a PNG
       Options: --light <x,y,z>   direction towards the sun, e.g. --light 0,1,-2 to light the model from behind
                --style <look>    realistic (default) or toon, the cartoon look of the Unity toon shader
+               --camera <yaw,pitch,distance[,x,y,z]>
+                                 the perspective view's camera: radians round the target (yaw 0 looks from +z), metres
+                                 away, and the target, e.g. --camera 0,-0.06,40,0,4,0 for eye height 40 m in front
                --sky <preset>    the toon look under a sky preset of content/skies (day, night), as a level shows it
       sdf mesh [--resolution <cells>]                         Meshes every .sdf in the content folder to a .glb next to its file
       sdf mesh <directory> [--resolution <cells>]             Meshes every .sdf in the directory and its subdirectories
@@ -31,7 +34,8 @@ const string usage = """
                --lods <n>             levels of detail per mesh, LOD0 included, 1 to 4 (default 1); each further level
                                       has about a third of the triangles of the one before
       sdf level <level.level> --into <folder>                 Bakes the level's ground into <folder>: a .glb per 25 m chunk with
-                                                              its levels of detail, and level.json for Unity's level builder
+                                                              its levels of detail, the scattered models (instances.bin) and
+                                                              level.json for Unity's level builder
       sdf level <directory> --into <folder>                   Bakes every .level in the directory into <folder>/<level name>/
       sdf level --into <folder>                               The same for content/levels
       sdf unity [--resolution <cells>] [--lods <n>]           Updates Unity: meshes content/models into
@@ -188,7 +192,16 @@ bool MeshOne(string input, string output, MeshingOptions options)
         var missing = ModelFiles.MaterialNames(program).Where(name => !options.Materials.Contains(name)).ToArray();
         if (missing.Length > 0)
             Console.Error.WriteLine($"{input}: no material file for {string.Join(", ", missing)}, meshed with the magenta stand-in");
-        var model = ModelMesher.Mesh(program, options) with { Settings = SdfProgramFile.LoadSettings(input) };
+        var settings = SdfProgramFile.LoadSettings(input);
+        var meshOptions = settings.SurfacePart is { } part ? options with { SurfaceOf = SdfProgramFile.LoadPart(input, part) } : options;
+        var meshed = ModelMesher.Mesh(program, meshOptions);
+        var model = meshed with
+        {
+            Settings = settings,
+            PartSettings = SdfProgramFile.LoadPartSettings(input, meshed.Meshes.Select(m => m.Part).OfType<string>(), settings),
+        };
+        foreach (var warning in model.Warnings)
+            Console.Error.WriteLine($"{input}: {warning}");
         if (model.Meshes.Count == 0)
         {
             Console.Error.WriteLine($"{input}: there is no finite surface to mesh");
@@ -205,8 +218,10 @@ bool MeshOne(string input, string output, MeshingOptions options)
             var statistics = mesh.Statistics;
             // A part's own Detail multiplies the model's, so the detail is shown where it differs from the one above
             var detail = mesh.Detail != model.Detail ? string.Create(CultureInfo.InvariantCulture, $", detail {mesh.Detail:0.###}") : "";
+            // A part meshed once for several uses says how often it is drawn
+            var instances = mesh.Instances.Count > 0 ? $", {mesh.Instances.Count} instances" : "";
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}"));
+                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}{instances}"));
             // Each level of detail is simplified on from the one before, so its time is on top of that level's
             for (var level = 1; level <= mesh.Lods.Count; level++)
             {
@@ -296,9 +311,10 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         var level = LevelFile.Load(input);
         var content = ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(input))!);
         var models = content is null ? null : LevelModels.In(Path.Combine(content, "models"));
+        var modelExists = content is null ? null : LevelModels.Exist(Path.Combine(content, "models"));
         // The sky's presets are content/skies/; without a content folder the level is baked without a sky
         var sky = content is null ? null : SkyFile.Resolve(level.Sky, SkyFile.PresetsIn(Path.Combine(content, SkyFile.FolderName)));
-        var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models, sky);
+        var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models, modelExists, sky);
         var layout = baked.Layout;
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"Baked {input} into {into} in {stopwatch.Elapsed.TotalSeconds:0.0} s: {baked.ChunkFiles.Count} chunks of {layout.ChunkSize:0.#} m on a {layout.CountX} × {layout.CountZ} grid"));
@@ -315,6 +331,16 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         foreach (var placed in baked.Placements)
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"  placed        {placed.Model} at ({placed.Position.X:0.##}, {placed.Position.Y:0.##}, {placed.Position.Z:0.##}), yaw {placed.Yaw:0.#}°{(placed.Scale != 1 ? ", scale " + placed.Scale.ToString("0.##", CultureInfo.InvariantCulture) : "")}"));
+        var scattered = baked.Scattered;
+        for (var layer = 0; layer < scattered.LayerCounts.Count; layer++)
+        {
+            var scatter = level.Scatters[layer];
+            var counts = scatter.Entries.Select(e => e.Model).Select(m => scattered.Prototypes.ToList().FindIndex(p => p.Model == m))
+                .Select(p => $"{scattered.Prototypes[p].Model} {LevelBaker.Count(scattered.Instances.Count(i => i.Prototype == p))}");
+            Console.WriteLine($"  scattered     {LevelBaker.Count(scattered.LayerCounts[layer])} in group {scatter.Group}: {string.Join(", ", counts)}");
+        }
+        if (scattered.Instances.Count > 0)
+            Console.WriteLine($"  instances     {LevelBaker.Count(scattered.Instances.Count)} in {InstanceFile.FileName}");
         return true;
     }
     catch (SdfProgramFileException exception)
@@ -349,6 +375,7 @@ async Task<int> Render(string[] arguments)
     var size = RenderOptions.DefaultSize;
     V3? light = null;
     var style = RenderStyle.Realistic;
+    RenderView? view = null;
     string? skyName = null;
     var paths = new List<string>();
     for (var i = 0; i < arguments.Length; i++)
@@ -372,6 +399,15 @@ async Task<int> Render(string[] arguments)
                 return Usage($"--light takes a direction like 0,1,-2, not {arguments[i]}");
             var xyz = components.Select(c => float.Parse(c, CultureInfo.InvariantCulture)).ToArray();
             light = new V3(xyz[0], xyz[1], xyz[2]);
+            continue;
+        }
+        if (arguments[i] == "--camera" && i + 1 < arguments.Length)
+        {
+            var components = arguments[++i].Split(',');
+            if (components.Length is not (3 or 6) || !components.All(c => float.TryParse(c, NumberStyles.Float, CultureInfo.InvariantCulture, out _)))
+                return Usage($"--camera takes yaw,pitch,distance or yaw,pitch,distance,x,y,z, not {arguments[i]}");
+            var values = components.Select(c => float.Parse(c, CultureInfo.InvariantCulture)).ToArray();
+            view = new RenderView(values[0], values[1], values[2], values.Length == 6 ? values[3..] : null);
             continue;
         }
         if (arguments[i] == "--size" && i + 1 < arguments.Length)
@@ -406,7 +442,7 @@ async Task<int> Render(string[] arguments)
         }
     }
 
-    var options = new RenderOptions { Size = size, Materials = materials, LightDirection = light, Style = style, Sky = sky };
+    var options = new RenderOptions { Size = size, Materials = materials, LightDirection = light, Style = style, View = view, Sky = sky };
     switch (paths)
     {
         case []:

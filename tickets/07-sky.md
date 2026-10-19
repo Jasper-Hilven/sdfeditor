@@ -483,3 +483,14 @@ Merging:
 - **06**: step 5 rewrites the `SdfToon.shader` fragment. It should keep the `SdfToonShade(..., glow)` call with `saturate(input.uv6.a)`
   and `return float4(SkyFade(color, input.positionWS), 1.0)`. `MushroomBuilder` changes are small (`SceneModels` filter,
   `EnsureSkySettings` call in `BuildStale`).
+
+Merged with main (03, 06, GUI kit, 08, 09): conflicts resolved in `LevelFile`, `LevelDefinition`, `LevelBaker` (`Bake(..., modelExists, sky)`),
+`Program.cs`, `SdfRenderer`, `LevelBuilder` (version 5), `LevelSnapshot` (foliage cost and sky cost on one line) and `meadow.level`
+(scatter, draw and sky sections); level.json and `Meadow.unity` regenerated. After the merge:
+
+- `dotnet test`: 533 project tests and 316 pipeline tests pass.
+- The meadow builds and snapshots with no errors, foliage and the new castle under the night sky. The sky's cost is unchanged (at most
+  8 draws and 13.7k triangles).
+- The `sky_tower` shot's tower point (13, 14, −8) predates the new castle; move it onto one of its towers.
+- `MushroomSnapshot.Capture` now throws on main's `Mushrooms.unity`: it holds a stray `Zztest/settest` object, a missing-prefab
+  instance with no renderers. That object came with the merge from main, not from this ticket.

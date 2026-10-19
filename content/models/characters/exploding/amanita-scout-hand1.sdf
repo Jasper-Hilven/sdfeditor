@@ -1,0 +1,26 @@
+# Amanita scout, exploding: the hand on the -x side, whole. One of the fourteen pieces the amanita scout bursts into, each the scout (the
+# amanita_scout part, so they follow its edits) intersected with a cell; the cells split all of space with no gap or overlap, so
+# the pieces fit together exactly and together are the scout. The cell is in the scout's inner flesh, which shows on the cut faces.
+#
+# How space is cut: a plane under the gills takes the cap off the stem. The cap is a Voronoi of six seeds (a domed middle and five
+# rim wedges). Below it, the amanita_scout_core part holds the stem, bulb and ring clear of the floating eyes and hands: inside it
+# the stem breaks under the ring and above the bulb, and the bulb in two; outside it each eye and each hand is a piece of its own,
+# whole. Low detail: debris lives a few seconds. The surface is shaded as the whole scout's (its thickness and occlusion measured on
+# the scout), so the pieces put together look like the scout itself.
+format 1
+surface part=amanita_scout
+
+Detail detail=0.5
+    Intersection
+        Part part=amanita_scout
+        Material material=amanita_flesh
+            Subtraction
+                Intersection
+                    # Below the cut under the gills
+                    Plane normal=(0.03, 0.9994, 0.02) height=-1.1193
+                    # The -x side
+                    Plane normal=(1, 0, 0) height=0
+                    # Below the eyes
+                    Plane normal=(0, 1, 0) height=-0.705
+                # Outside the core: clear of the stem, bulb and ring
+                Part part=amanita_scout_core

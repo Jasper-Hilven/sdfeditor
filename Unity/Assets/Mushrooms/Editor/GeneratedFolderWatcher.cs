@@ -76,13 +76,14 @@ namespace SdfMushrooms.Editor
             repaintAfterImport = true;
         }
 
-        /// <summary>The models' .glb files, and the levels' chunks, region maps and level.json.</summary>
+        /// <summary>The models' .glb files, and the levels' chunks, region maps, instances and level.json.</summary>
         private static readonly (string Folder, string Pattern)[] Watched =
         {
             (MushroomBuilder.GeneratedFolder, "*.glb"),
             (SdfLevel.Editor.LevelBuilder.GeneratedFolder, "*.glb"),
             (SdfLevel.Editor.LevelBuilder.GeneratedFolder, "*.json"),
             (SdfLevel.Editor.LevelBuilder.GeneratedFolder, "*.png"),
+            (SdfLevel.Editor.LevelBuilder.GeneratedFolder, "*.bin"),
         };
 
         private static void Snapshot(Dictionary<string, (DateTime, long)> into)

@@ -4,8 +4,9 @@
 # stays light enough to scatter by the hundreds.
 format 1
 
-# Three quarters of the vertices its size would give it: the blades are fat enough to keep their shape on the coarser grid
-Detail detail=0.75
+# Four tenths of the vertices its size would give it: the blades are fat enough to keep their shape on the coarser grid, and
+# the turf is scattered by the thousand, so it stays at about 2k triangles
+Detail detail=0.4
     Union
         # The mound of earth the tuft grows out of, cut flat at the ground
         Material material=grass_soil

@@ -65,6 +65,12 @@ public partial class SdfCalculatorCpu
 
         public float Distance(Vector3 p) => calculator.Calculate(p, Program.scene, Functions, Context);
 
+        /// <summary>A number of the program outside any function, such as a translation's, with its variables filled in.</summary>
+        public float Value(FloatEvaluable value) => calculator.Calculate(value, Context);
+
+        /// <summary>A vector of the program outside any function, with its variables filled in.</summary>
+        public Vector3 Value(V3Evaluable value) => calculator.Calculate(value, Context);
+
         /// <summary>The distance and the material mix at <paramref name="p"/>; it mirrors the renderer's material function.</summary>
         public SurfaceSample Surface(Vector3 p)
         {

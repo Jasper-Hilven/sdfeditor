@@ -7,7 +7,8 @@
 // depth (and depth-normals) prepass. Every pass takes part in LOD cross-fade (URP's LODCrossFade.hlsl, a dither on the pixel's screen
 // position), so the levels of a model's LOD group dissolve into each other in colour, depth and shadow alike, and the outline drops
 // the same pixels as its surface. Every pass also supports GPU instancing, for meshes drawn many times with
-// Graphics.RenderMeshInstanced.
+// Graphics.RenderMeshInstanced; the instanced renderer's variant (SDF_SCATTER, see SdfScatter.hlsl) adds wind, a tint at the base and
+// a dithered fade between its rings of distance.
 Shader "SdfMushrooms/Toon"
 {
     Properties
@@ -37,6 +38,8 @@ Shader "SdfMushrooms/Toon"
     #if defined(LOD_FADE_CROSSFADE)
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
     #endif
+    #pragma multi_compile_local _ SDF_SCATTER
+    #include "SdfScatter.hlsl"
 
     // One constant buffer for every pass, so the SRP batcher can draw them
     CBUFFER_START(UnityPerMaterial)
@@ -53,12 +56,14 @@ Shader "SdfMushrooms/Toon"
         float4 _Look;
     CBUFFER_END
 
-    // Drops this pixel from one of the two levels a LOD group is fading between; nothing without the keyword
+    // Drops this pixel from one of the two levels a LOD group is fading between, or the instanced renderer's rings are; nothing without
+    // the keywords
     void SdfLodFade(float4 positionCS)
     {
     #if defined(LOD_FADE_CROSSFADE)
         LODFadeCrossFade(positionCS);
     #endif
+        SdfScatterFade(positionCS);
     }
 
     ENDHLSL
@@ -124,6 +129,8 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
+                SdfScatterTint(input.positionOS, input.color, input.uv3, input.uv4, input.uv6);
+                input.positionOS = SdfScatterWind(input.positionOS);
                 output.positionWS = TransformObjectToWorld(input.positionOS);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
@@ -212,6 +219,7 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
+                input.positionOS = SdfScatterWind(input.positionOS);
                 float3 positionWS = TransformObjectToWorld(input.positionOS);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
             #if defined(_CASTING_PUNCTUAL_LIGHT_SHADOW)
@@ -264,6 +272,7 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
+                input.positionOS = SdfScatterWind(input.positionOS);
                 output.positionCS = TransformObjectToHClip(input.positionOS);
                 return output;
             }
@@ -312,6 +321,7 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
+                input.positionOS = SdfScatterWind(input.positionOS);
                 output.positionCS = TransformObjectToHClip(input.positionOS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;

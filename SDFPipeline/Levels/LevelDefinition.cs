@@ -18,6 +18,12 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The unique models placed in the level (castles, big rocks), in the file's order.</summary>
     public IReadOnlyList<Placement> Placements { get; init; } = [];
 
+    /// <summary>The models scattered over the ground by the thousand (grass turfs, flowers), one layer per scatter section, in the file's order.</summary>
+    public IReadOnlyList<ScatterLayer> Scatters { get; init; } = [];
+
+    /// <summary>How the instanced renderer draws each group of scattered models, by the group's name.</summary>
+    public IReadOnlyList<DrawGroup> DrawGroups { get; init; } = [];
+
     /// <summary>The sky the level picks, with its overrides, resolved when it is baked; null for <see cref="SkyFile.DefaultPreset"/>.</summary>
     public SkySection? Sky { get; init; }
 }
@@ -97,4 +103,46 @@ public sealed record Placement(string Model, Vector2 At, float Yaw, float Scale,
 {
     public const float DefaultFlattenFalloff = 6;
     public const float DefaultGroundMargin = 2;
+}
+
+/// <summary>A model a scatter layer picks from, <see cref="Weight"/> times as often as one of weight 1.</summary>
+/// <param name="Line">The line of the level file it is on, for errors found while baking.</param>
+public sealed record ScatterEntry(string Model, float Weight, int Line);
+
+/// <summary>
+/// Models scattered over the ground, drawn by the instanced renderer in draw group <see cref="Group"/>. Points are spread
+/// <see cref="Spacing"/> metres apart or more (Poisson-disk sampling), and each is kept so that, on average, <see cref="Density"/>
+/// instances stand on a square metre; clustering noise <see cref="ClusterScale"/> metres wide makes that up to <see cref="Cluster"/>
+/// times as many in places and none in others. Nothing stands within <see cref="Margin"/> metres of a region in <see cref="Avoid"/>, on
+/// a placement's footprint or level ground, on ground steeper than <see cref="MaxSlope"/> degrees, or more than <see cref="Reach"/>
+/// metres up the hills from the playable rectangle.
+/// </summary>
+/// <param name="Scale">The smallest and largest scale an instance gets, at random between them.</param>
+/// <param name="Line">The line of the level file the section is on.</param>
+public sealed record ScatterLayer(IReadOnlyList<ScatterEntry> Entries, string Group, float Density, float Cluster, float ClusterScale,
+    float Spacing, IReadOnlyList<string> Avoid, float Margin, float MaxSlope, float Reach, Vector2 Scale, int Line)
+{
+    public const string DefaultGroup = "foliage";
+    public const float DefaultCluster = 1;
+    public const float DefaultClusterScale = 8;
+    public const float DefaultMaxSlope = 90;
+    public const float DefaultReach = 3;
+    public static readonly Vector2 DefaultScale = new(0.85f, 1.15f);
+}
+
+/// <summary>
+/// How the instanced renderer draws a group of scattered models: in rings round the camera, ring k (out to <see cref="Rings"/>[k]
+/// metres) with level of detail k (or the model's coarsest), nothing beyond the last. The first <see cref="OutlineRings"/> rings get the
+/// ink outline and the first <see cref="ShadowRings"/> cast shadows (<see cref="LowShadowRings"/> on the integrated GPU / web preset).
+/// Neighbouring rings cross-fade by dither over <see cref="Blend"/> metres round their border, and the last fades out over its last
+/// <see cref="Fade"/> metres. The models sway <see cref="Wind"/> metres at <see cref="WindHeight"/> metres above their base (less below,
+/// none at it), and their lowest <see cref="TintHeight"/> metres blend into the instance's tint, the ground's colour (0 for none). The
+/// integrated GPU / web preset draws <see cref="LowDensity"/> of the instances (the same ones each frame) with every distance times
+/// <see cref="LowDistance"/>.
+/// </summary>
+/// <param name="Line">The line of the level file the section is on.</param>
+public sealed record DrawGroup(string Name, IReadOnlyList<float> Rings, int OutlineRings, int ShadowRings, int LowShadowRings, float Blend,
+    float Fade, float Wind, float WindHeight, float TintHeight, float LowDensity, float LowDistance, int Line)
+{
+    public const float DefaultBlend = 1;
 }

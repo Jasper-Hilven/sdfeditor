@@ -251,8 +251,8 @@ public class SkyFileTests
             var sky = SkyFile.Resolve(level.Sky, Presets);
             var materials = MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default);
             ModelFootprint? Models(string name) => new ModelFootprint(new Vector2(-1, -1), new Vector2(1, 1));
-            LevelBaker.Bake(level, "small", materials, Path.Combine(root.FullName, "a"), Models, sky);
-            LevelBaker.Bake(level, "small", materials, Path.Combine(root.FullName, "b"), Models, sky);
+            LevelBaker.Bake(level, "small", materials, Path.Combine(root.FullName, "a"), Models, sky: sky);
+            LevelBaker.Bake(level, "small", materials, Path.Combine(root.FullName, "b"), Models, sky: sky);
 
             var json = File.ReadAllBytes(Path.Combine(root.FullName, "a", LevelBaker.LevelJson));
             Assert.Equal(json, File.ReadAllBytes(Path.Combine(root.FullName, "b", LevelBaker.LevelJson)));
@@ -279,7 +279,7 @@ public class SkyFileTests
         var materials = MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default);
 
         var exception = Assert.Throws<SdfProgramFileException>(() =>
-            LevelBaker.Bake(level, "small", materials, Path.GetTempPath(), _ => null, SkyFile.Resolve(level.Sky, Presets)));
+            LevelBaker.Bake(level, "small", materials, Path.GetTempPath(), _ => null, sky: SkyFile.Resolve(level.Sky, Presets)));
 
         Assert.Equal(3, exception.Line);
         Assert.Contains("eye-moon", exception.Problem);

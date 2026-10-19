@@ -161,3 +161,83 @@ splitting into parts**. The pick decides the part kit.
   the courtyard.
 - Courtyard, stairs and wall-walk are walkable, and the walls, towers and gate block the player.
 - Existing models that use a part only once bake as before (byte-identical glb where nothing changed).
+
+## Status
+
+Done except step 5 (shader wall patterns), which waits for the sky branch (07) to be merged into main, since 07 rewrites
+`SdfToon.shader`'s colour stage. Phase 1 is committed on `castles` (c660541) and main (03, 07) is merged in (7d4ff48); the rest is not
+committed.
+
+- **Part instances** (`PartSplitter`, `ModelMesher`, `GlbWriter`): a part used two or more times (symmetries and repetitions count
+  their copies), every use through rigid placements only, is meshed once in its own file's space; each use is a glTF node `part.k`
+  with its matrix, its level nodes `part_LODn.k` with the same. A use under a smooth union, non-uniform scale, Distort, Displace,
+  subtraction, intersection, across a mirror plane, wider than a repetition cell, or under an endless repetition keeps the part in
+  place, with a warning naming the node. Uses under different materials get a mesh each (`part@material`). A part used once is
+  meshed in place as before: of the 43 models, 40 mesh byte-identically to the old code; `amanita-scout`, `chanterelle-scout`
+  (eyes and hands, mirrored) and `birch1` (its crown twice) change. Occlusion and thickness of an instanced part are measured where
+  its first use stands.
+- **Per-part settings**: `collider`, `shadows on|off|near`, `outline on|off` and `cull <metres>` lines in a model's or a part's
+  file (`ModelSettings.cs`); a part's are read over the model's and written to `extras.sdf.parts` under its mesh's name, the
+  model's to `extras.sdf` where they differ from the default. Parts may live in a kit folder (`content/parts/castle/`).
+- **`MushroomBuilder`** (version 11): a child per use (`castle_wall_bay.3`, ...), placed, turned, scaled and mirrored as its node,
+  with its own LOD group sized to the part, its levels as children sharing the part's mesh assets, and its collider; the layout is
+  documented in the class comment. A use culls where the whole model would unless its part has a `cull`.
+- **Part kit** (`content/parts/castle/`, generated from concept A2's numbers): `castle_wall_bay`, `castle_wall_gate` (with the veil),
+  `castle_wall_joint` (stem with cap, pad at the walk), `castle_tower_large` / `castle_tower_small` / `castle_gate_turret` (flat ring
+  at 5 m as a balcony), `castle_keep` (19 m, ring at 5 m with an opening over each stair), `castle_stair` (twenty shelf fungi, 25 cm,
+  about 37° on the middle line, 1.1–1.9 m wide), and the details `castle_merlon` (shadows near), `castle_amanitas` (shadows near,
+  cull 35) and `castle_mycelium` (curving, tapering, branching threads; shadows off, cull 40). Walls, joints, towers, keep and stair
+  have `collider mesh`; details `none`. The big parts are cut off 30 cm below the ground. `castle0.sdf` is the layout: 105 `Part`
+  uses under translates, turns, uniform scales (a scaled tower is sunk by as much as its ring rose) and one `SymmetryX` (the
+  stairs). The concepts folder is deleted; the generator is `.claude/jobs/c6233055/tmp/castles/scripts/castle_kit.py`.
+- **Triangles** at the committed glbs' settings (`--resolution 128 --lods 3`), LOD0 / LOD1 / LOD2 per part: wall bay 1,138 / 262
+  / 96 (×17), gate 1,690 / 422 / 170, joint 1,370 / 306 / 126 (×12), large tower 3,358 / 722 / 296 (×2), small tower 3,970 / 810 /
+  296 (×2), gate turret 3,198 / 598 / 256 (×2), keep 6,428 / 1,056 / 450, stair 3,769 / 733 / 229 (×2), merlon 246 / 70 / 34 (×54),
+  amanitas 580 / 152 / 64 (×6), mycelium 240 / 66 / 58 (×7). The castle at LOD0: about 91k. The 512-cell run config would
+  quadruple that; it needs a per-model resolution rule (as 03 found for the turfs).
+- **Step 7**: `draw castle rings=[25, 60, 400] outline=2 shadows=3 lowShadows=1 blend=2 lowDistance=0.4` in `meadow.level`.
+  `LevelBuilder` (version 4) unpacks each placed castle, gives every use with a LOD group to `InstancedScatterRenderer` as a
+  prototype per model and part (levels read from the use's LOD group, with each level's outline and shadow casting as the prefab has
+  them) plus a `ScatterPlacement`, and keeps the use as a GameObject with its colliders only. The keep and gate bay (single uses)
+  stay GameObjects. `ScatterPart.shadows` and `ScatterPrototype.cull` are new; `FrameStats` has draws and triangles per group.
+  **`RenderMeshInstanced` does not turn the triangles round for a mirrored matrix** (the mirrored stair came out dark and inside
+  out), so a mirrored use gets a prototype with mirrored copies of the meshes (`Assets/Level/Meshes/<level>/Mirrored/`).
+
+Verified:
+
+- `dotnet build` is clean, `dotnet test`: 272 pipeline tests and 533 project tests pass (new: instance transforms for each rigid
+  placement, nested symmetries, hidden mirror images, repetition counts, ten fallback cases, material groups, glb nodes and matrices,
+  no instances without repeated parts, part settings and their errors, kit folders).
+- Unity batchmode on the worktree (Library cloned from the 02 clone): no compile or shader errors; prefabs rebuilt; Meadow rebuilt
+  with both castles on their plateaus. Collider walks (`LevelSnapshot`, CharacterController 0.3 × 1.75 m, step 0.4 m, 45°):
+  - through the gate into the courtyard and on to the keep, and across the courtyard 14 m, at ground level;
+  - up the keep's stair onto its ring: ends 4.97 m up (18 of 21 waypoints reached exactly, the rest within reach);
+  - from the ring along the rear and side wall-walk past the small and the large tower's rings to bay 2: stays between 4.94 and
+    5.12 m and ends 0.19 m from its goal;
+  - a wall bay stops the walker 10.89 m from the middle (outer face ≈ 10.5 m), the large tower at 16.05 m (foot at 15.6 m).
+- Cost per view, both castles, outlines included, shadow casters not:
+
+  | View | GameObjects (before) | After step 7: GameObjects + instanced |
+  |---|---|---|
+  | far end of the field, high | 132 draws, 33k tris | 4 + 10 draws, 3k + 20k tris |
+  | meadow 28 m before the gate, high | 189 draws, 148k | 4 + 18 draws, 16k + 36k |
+  | at the gate, high | 187 draws, 171k | 4 + 20 draws, 16k + 163k |
+  | courtyard, high | 114 draws, 123k | 2 + 20 draws, 13k + 151k |
+  | wall-walk, high | 66 draws, 70k | 2 + 18 draws, 13k + 76k |
+  | far end, web | 96 draws, 11k | 4 + 10 draws, 3k + 20k |
+  | courtyard, web | 110 draws, 117k | 2 + 30 draws, 13k + 71k |
+
+  Draws drop from 66–199 to 14–36 per view. High stays under 300–400k including the casters. Web is at 84k in the courtyard, just
+  over the 60–80k aim; `lowDistance` (0.4) or fewer outline rings on web would bring it down.
+- Snapshots (`.claude/jobs/c6233055/tmp/castles/snaps-before`, `snaps-after`): the castle reads as a castle from the far end of the
+  field; both stairs draw lit after the mirrored copies; no gaps show at the bay, joint and tower joins from 1.5 m.
+
+To check by hand:
+
+- Walking it in Play mode, in particular the tower rings' lean (up to 2°) where the walk meets them, and the stair's inner edge.
+- LOD changes by ring distance on the instanced parts: per-part screen size no longer decides, as rings are per group.
+- Shadow cascades: shadow-caster triangles for the castle group are not logged separately.
+- Looking at the courtyard from the wall-walk, and the castle's look at night once 07 is merged (glowing windows rely on it).
+
+Step 5 (shader patterns, distance fade) and step 6's further detail pieces (window frames, shelf fungi on walls, lanterns, veils)
+are not started.
