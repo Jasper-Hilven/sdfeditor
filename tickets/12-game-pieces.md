@@ -23,6 +23,54 @@ origin; merged in, with main's part instancing).
   piece of a union winning where two lie on the same surface (`Union` gives ties to the later operand).
 - `dotnet build` and `dotnet test` pass, also after merging 11 and main.
 
+## Meshed
+
+All 20 models meshed at 256 cells with 3 LODs into `Unity/Assets/Mushrooms/Generated/games/` (`sdf mesh <model> <glb> --resolution 256
+--lods 3`, each 1.9 to 5.3 s alone, no warnings left). Triangles are drawn per LOD with every instance counted; "meshes" is the
+number of different meshes in the file (an instanced part counts once). Read from the glb files. Largest: `monopoly-hotel` at
+51k, so no model is over 60k at LOD0.
+
+| Model | Meshes | LOD0 | LOD1 | LOD2 | glb |
+|---|---|---|---|---|---|
+| card-ace-held | 3 (card, eye x2, hand x2) | 18,424 | 5,526 | 3,380 | 2.09 MB |
+| card-face-down | 1 | 14,740 | 4,786 | 2,820 | 1.99 MB |
+| card-house | 2 (king, three) | 35,186 | 10,378 | 5,512 | 4.55 MB |
+| card-king-stuck | 1 | 19,886 | 6,100 | 3,070 | 2.58 MB |
+| card-three-lying | 1 | 12,624 | 4,588 | 2,738 | 1.77 MB |
+| die-amanita | 1 | 6,598 | 1,670 | 1,088 | 0.84 MB |
+| die-amanita-tumbled | 1 | 5,876 | 1,492 | 882 | 0.74 MB |
+| die-d8-webcap | 1 | 3,220 | 734 | 412 | 0.40 MB |
+| die-porcini | 1 | 8,106 | 1,956 | 996 | 0.99 MB |
+| domino-2-6-side | 1 | 4,012 | 714 | 322 | 0.48 MB |
+| domino-5-5-standing | 1 | 3,324 | 698 | 324 | 0.43 MB |
+| domino-6-3-lying | 1 | 3,238 | 704 | 316 | 0.41 MB |
+| domino-chain | 3 (three dominoes) | 11,132 | 2,036 | 872 | 1.29 MB |
+| meeple-fallen | 2 (meeple, eye x2) | 6,918 | 1,714 | 762 | 0.64 MB |
+| meeple-standing | 2 (meeple, eye x2) | 6,544 | 1,670 | 742 | 0.60 MB |
+| monopoly-hotel | 3 (body, eye x2, porthole x13) | 50,982 | 14,050 | 6,430 | 1.93 MB |
+| monopoly-house | 2 (house, porthole x4) | 19,092 | 4,838 | 2,194 | 1.38 MB |
+| monopoly-house-toppled | 2 (house, porthole x4) | 19,146 | 5,084 | 2,266 | 1.39 MB |
+| poker-chip-rolling | 1 | 9,924 | 2,894 | 1,166 | 1.24 MB |
+| poker-chip-stack | 2 (red x3, blue x2) | 47,210 | 11,640 | 4,370 | 2.25 MB |
+
+Findings of the part split check (12.4):
+
+1. **`die_pips` is not a separate mesh in any die.** In `die-amanita`, `die-amanita-tumbled` and `die-porcini` the part sits inside
+   an `Intersection` with a box under the die's `SmoothUnion`, so the mesher keeps it in the body: one body mesh per die, pips
+   filleted into the faces, nothing overlapping. A toon-style `sdf render` close-up of `die-amanita` shows the pips as smooth
+   domes grown out of the faces, not loose or doubled, so nothing was inlined. `die-d8-webcap` has no pips part.
+2. **Instanced parts.** `poker-chip-stack` meshes each chip colour once (red x3, blue x2); `monopoly-hotel` instances 13
+   portholes and 2 eyes, `monopoly-house` and `-toppled` 4 portholes each; `card-ace-held` 2 eyes and 2 hands. The portholes
+   and eyes that stand on both sides of a `SymmetryX` do not cross the mirror, so they instance. The one crossing was in the
+   `meeple` part: its eyes at x = +-0.15, scaled 1.5 (radius 0.18 m), reached over the mirror, so both meeples warned and met their
+   eyes as one mesh. Fixed by moving the eyes to x = +-0.19 in `content/parts/meeple.sdf` (the eyes now touch rather than overlap
+   by 6 cm; the render looks the same but for a hair of space between them); `meeple-standing` and `meeple-fallen` re-meshed at
+   256, no warning, eyes instanced twice.
+3. **Painted models are one mesh.** Every card model has one mesh for the card (`card-house` has two different cards, not on one
+   surface; `card-ace-held` adds eyes and hands), so no back lies on a face. Chips are one mesh per chip, as are the dominoes; the
+   chips of a stack are separate, offset pieces. No coincident second mesh anywhere.
+4. **Triangles.** Table above; no model over 60k at LOD0.
+
 ## Subtickets
 
 Run 12.1 to 12.3 in parallel, then 12.4; after it 12.5 and 12.6 in parallel; 12.7 last.
@@ -30,7 +78,7 @@ Run 12.1 to 12.3 in parallel, then 12.4; after it 12.5 and 12.6 in parallel; 12.
 - [12.1](done/12.1-mesh-cards.md) mesh four card models at 256
 - [12.2](done/12.2-mesh-dice-houses-chips.md) mesh the tumbled die, Monopoly pieces and chips at 256
 - [12.3](done/12.3-remesh-existing-at-256.md) re-mesh the ten 512 models at 256
-- [12.4](12.4-part-split-check.md) part split check and triangle table (after 12.1 to 12.3)
+- [12.4](done/12.4-part-split-check.md) part split check and triangle table (after 12.1 to 12.3)
 - [12.5](12.5-unity-check.md) Unity prefabs, showcase and colliders (after 12.4)
 - [12.6](12.6-placement.md) placement with overlap check and test (after 12.4)
 - [12.7](12.7-budget-rebuild.md) triangle budget, rebake and rebuild (after 12.5 and 12.6)
