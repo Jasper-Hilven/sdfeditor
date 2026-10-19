@@ -67,6 +67,18 @@ A height scheme in which no two parts that touch share a level, for example:
   Apply the same rule: offset one side by a few centimetres, or sink the one that should not show so it lies just below the other.
 - The parts' comments say "the wall-walk's 5 m". Update them to the new heights.
 
+## 3. Small instanced parts drop LOD too early
+
+**Seen** (found while merging 08): since 06 each part instance has its own LOD group, sized to the part. A small part like the
+amanita-scout's eye shows LOD2 from about 4 m, because the eye switches to LOD1 below 32 % of the screen's height. At LOD2 its pupil
+rings simplify into a cross. The same holds for any small instanced detail with fine colour patterns: merlon caps, baby amanitas.
+
+**Fix**: a small part's levels should switch at least as late as its model's would. Two ways:
+- an instance's LOD heights never switch earlier than the whole model's LOD group would;
+- a lower error limit, or a higher `Detail`, for parts with fine material patterns like the eye's rings.
+
+Check the explosion in `SpecialEffects`: the intact scout's eyes and the pieces' eyes must match at frame 0.
+
 ## Acceptance
 
 - No red on any stem at any level of detail, on the castle parts and on the other cap-over-stem models. Show it with renders per
