@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using SDFPipeline.ProgramFiles;
+using SDFPipeline.Skies;
 
 namespace SDFPipeline.Levels;
 
@@ -40,6 +41,9 @@ namespace SDFPipeline.Levels;
 ///
 /// draw foliage                              # how the instanced renderer draws the group the scatter is in
 ///     rings=[6, 15, 35] outline=1 shadows=1 fade=5 wind=0.05 windHeight=0.5
+///
+/// sky preset=night                          # content/skies/night.sky, with any of its lines overridden below
+///     fade end=200
 /// </code>
 /// Only <c>play</c> is required: without <c>hills</c> the ground stays flat up to the edge, without <c>edge</c> the island ends at the
 /// crest, and the seed is <see cref="LevelDefinition.DefaultSeed"/>.
@@ -65,6 +69,10 @@ namespace SDFPipeline.Levels;
 /// rings get them), <c>blend</c>, <c>fade</c>, <c>wind</c>, <c>windHeight</c>, <c>tintHeight</c>, <c>lowDensity</c> and
 /// <c>lowDistance</c>. A group may be drawn without a scatter in it, for instances that come from elsewhere.
 /// </para>
+/// <para>
+/// The sky names a preset in content/skies/ and may override its lines (see <see cref="SkyFile"/>); without it the level has the
+/// <see cref="SkyFile.DefaultPreset"/> sky.
+/// </para>
 /// </summary>
 public static class LevelFile
 {
@@ -83,10 +91,11 @@ public static class LevelFile
     private const string Place = "place";
     private const string Scatter = "scatter";
     private const string Draw = "draw";
+    private const string Sky = "sky";
     private const string Ring = "ring";
     private const string Noise = "noise";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Draw];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Draw, Sky];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter per layer, a draw per group.</summary>
     private static readonly string[] Repeatable = [Scatter, Draw];
@@ -120,6 +129,7 @@ public static class LevelFile
         IReadOnlyList<Placement> placements = [];
         var scatters = new List<ScatterLayer>();
         var drawGroups = new List<DrawGroup>();
+        SkySection? sky = null;
         var seen = new Dictionary<string, int>();
         foreach (var line in lines.Skip(1))
         {
@@ -160,6 +170,9 @@ public static class LevelFile
                         throw cursor.Error($"Draw group '{group.Name}' is given twice, first on line {earlier.Line}");
                     drawGroups.Add(group);
                     break;
+                case Sky:
+                    sky = SkyFile.ReadSection(line, cursor);
+                    break;
             }
         }
 
@@ -170,7 +183,7 @@ public static class LevelFile
 
         if (play is null)
             throw new SdfProgramFileException(lines[^1].Number, $"The level has no playable area; add a line like '{Play} size=(150, 100)'");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, DrawGroups = drawGroups };
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, DrawGroups = drawGroups, Sky = sky };
     }
 
     private static PlayArea ReadPlay(SourceLine line, Cursor cursor)

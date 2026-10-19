@@ -15,6 +15,18 @@ uniform float uOrthoScale;
 uniform vec3 uLightPosition;
 uniform int uStyle; // 0 realistic, 1 toon
 
+// The sky of the toon look (setSky), as Unity's SdfSky.hlsl takes it; the defaults change nothing. Keep in step with SdfSky.hlsl.
+uniform vec3 uSkyTone;              // x = brightness of the shaded colour, y = glowKeep, z = 1 when a sky is set
+uniform vec3 uSkyShadowTint;        // multiplier of the shadow band's tone
+uniform vec3 uSkyLight;             // the light's hue (max channel 1), with a sky; the preview's sun's without
+uniform vec3 uSkyFade;              // x = start, y = end (metres), z = amount at the end
+uniform vec3 uSkyBandColor[8];      // the gradient and abyss from the zenith down, each from its elevation up to the band above
+uniform vec2 uSkyBandFrom[8];       // x = sin of the elevation, y = half the edge's width (sin)
+uniform int uSkyBandCount;
+uniform vec2 uSkyAbyssGlow;         // x = sin of the glow's elevation, y = its half width (sin)
+uniform vec3 uSkyAbyssGlowColor;
+uniform float uExposure;            // with a sky, the toon look's exposure: EXPOSURE moved by the sky's post exposure
+
 out vec4 fragColor;
 
 #line 1
@@ -29,6 +41,7 @@ const float RENDER_PI = 3.14159265;
 const vec3 SUN_COLOR = vec3(1.0, 0.9, 0.78) * 2.4;
 const vec3 SKY_COLOR = vec3(0.45, 0.6, 0.9) * 0.55;
 const vec3 GROUND_COLOR = vec3(0.34, 0.28, 0.22) * 0.3;
+// The realistic look's exposure; the toon look's is uExposure, the same unless a sky sets its own
 const float EXPOSURE = 0.6;
 
 float map(vec3 p) { return sdf_scene(p); }
@@ -256,8 +269,8 @@ vec3 background(vec3 rd)
     return mix(vec3(0.09, 0.09, 0.11), vec3(0.22, 0.24, 0.3), clamp(rd.y * 0.5 + 0.5, 0.0, 1.0));
 }
 
-// ---- Toon style: the cartoon look of the Unity toon shader (Unity/Assets/Mushrooms/Shaders/SdfToon.hlsl, SdfToonOutline.shader).
-// Keep the two in step; these constants are the defaults of Unity's Mushroom Style asset.
+// ---- Toon style: the cartoon look of the Unity toon shader (Unity/Assets/Mushrooms/Shaders/SdfToon.hlsl, SdfToonOutline.shader,
+// SdfSky.hlsl). Keep the two in step; these constants are the defaults of Unity's Mushroom Style asset.
 const float TOON_SHADE_THRESHOLD = 0.0;       // light (-1..1, cast shadow counts as -1) below which is the shadow tone
 const float TOON_LIT_THRESHOLD = 0.45;        // and above which is the lit tone; the mid tone is between
 const float TOON_BAND_SOFTNESS = 0.03;
@@ -294,13 +307,40 @@ vec3 toonColor(SurfaceMaterial m)
     return color;
 }
 
-vec3 toonShade(vec3 albedo, vec3 n, vec3 v, vec3 l, float shadow, vec3 tint, SurfaceMaterial m, float occlusion)
+// The banded sky in a direction, the band edges anti-aliased over at least a pixel, as SkyGradient in SdfSky.hlsl
+vec3 skyGradient(vec3 direction)
+{
+    if (uSkyBandCount <= 0) return vec3(0.0);
+    float y = normalize(direction).y;
+    float pixel = fwidth(y);
+    vec3 color = uSkyBandColor[7];
+    for (int i = 7; i >= 0; i--)
+    {
+        if (i >= uSkyBandCount) continue;
+        float edge = max(uSkyBandFrom[i].y, pixel);
+        float above = i == uSkyBandCount - 1 ? 1.0 : smoothstep(uSkyBandFrom[i].x - edge, uSkyBandFrom[i].x + edge, y);
+        color = mix(color, uSkyBandColor[i], above);
+    }
+    float glow = (y - uSkyAbyssGlow.x) / max(uSkyAbyssGlow.y, 1e-4);
+    return color + uSkyAbyssGlowColor * exp(-glow * glow);
+}
+
+// A surface's colour faded toward the sky behind it with distance (SkyFade); exactly the colour without a fade
+vec3 skyFade(vec3 color, vec3 rd, float distance)
+{
+    if (uSkyFade.z <= 0.0) return color;
+    vec3 direction = vec3(rd.x, max(rd.y, -0.0349), rd.z);
+    return mix(color, skyGradient(direction), smoothstep(uSkyFade.x, uSkyFade.y, distance) * uSkyFade.z);
+}
+
+// glow: how far the albedo turned to the edge colour (the thinness), which keeps its strength under a dark sky
+vec3 toonShade(vec3 albedo, vec3 n, vec3 v, vec3 l, float shadow, vec3 tint, SurfaceMaterial m, float occlusion, float glow)
 {
     float nl = dot(n, l);
     float light = mix(-1.0, nl, shadow);
     float mid = smoothstep(TOON_SHADE_THRESHOLD - TOON_BAND_SOFTNESS, TOON_SHADE_THRESHOLD + TOON_BAND_SOFTNESS, light);
     float lit = smoothstep(TOON_LIT_THRESHOLD - TOON_BAND_SOFTNESS, TOON_LIT_THRESHOLD + TOON_BAND_SOFTNESS, light);
-    vec3 tone = mix(TOON_SHADOW_TONE, mix(TOON_MID_TONE, TOON_LIT_TONE, lit) * tint, mid);
+    vec3 tone = mix(TOON_SHADOW_TONE * uSkyShadowTint, mix(TOON_MID_TONE, TOON_LIT_TONE, lit) * tint, mid);
     vec3 color = albedo * tone * mix(1.0, occlusion, TOON_OCCLUSION);
 
     float r = mix(m.roughness, 0.1, clamp(m.wetness, 0.0, 1.0));
@@ -313,7 +353,7 @@ vec3 toonShade(vec3 albedo, vec3 n, vec3 v, vec3 l, float shadow, vec3 tint, Sur
 
     float rim = 1.0 - clamp(dot(n, v), 0.0, 1.0);
     color += smoothstep(1.0 - TOON_RIM_WIDTH - 0.02, 1.0 - TOON_RIM_WIDTH + 0.02, rim) * TOON_RIM * mid * tint * albedo;
-    return color;
+    return mix(color * uSkyTone.x, color, glow * uSkyTone.y);
 }
 
 // Metres one pixel covers at distance t along the ray
@@ -323,7 +363,9 @@ float pixelSize(float t, bool orthographic)
 }
 
 // The toon pixel. The ink line is what Unity's inverted hull draws: wherever the ray passed within the line's width of a surface
-// and went on (past the silhouette, or behind a part in front of another), it takes that surface's colour, darkened.
+// and went on (past the silhouette, or behind a part in front of another), it takes that surface's colour, darkened. With a sky, both
+// fade toward it with distance in the perspective view (the axis views are diagrams, unfaded), and the background is the sky,
+// tone mapped like the surfaces as Unity's skybox is.
 vec3 toonPixel(vec3 ro, vec3 rd, bool orthographic)
 {
     float outlinePixels = TOON_OUTLINE_WIDTH * uResolution.y / 1080.0;
@@ -350,20 +392,26 @@ vec3 toonPixel(vec3 ro, vec3 rd, bool orthographic)
     }
     if (hit < 0.0 && previous < 0.01) hit = t;
 
+    float fadeDistance = orthographic ? 0.0 : 1.0;
     if (closest < outlinePixels)
-        return sdf_material(ro + rd * closestT).baseColor * TOON_OUTLINE_TONE;
+    {
+        vec3 ink = sdf_material(ro + rd * closestT).baseColor * TOON_OUTLINE_TONE;
+        return uSkyTone.z > 0.5 ? acesToneMap(skyFade(ink, rd, closestT * fadeDistance) * uExposure) : ink;
+    }
     if (hit < 0.0)
-        return background(rd);
+        return uSkyTone.z > 0.5 ? acesToneMap(skyGradient(rd) * uExposure) : background(rd);
 
     vec3 p = ro + rd * hit;
     vec3 n = calcNormal(p);
     SurfaceMaterial m = sdf_material(p);
     vec3 l = normalize(uLightPosition);
-    vec3 albedo = mix(toonColor(m), m.edgeColor, thinness(p, n, m));
+    float glow = thinness(p, n, m);
+    vec3 albedo = mix(toonColor(m), m.edgeColor, glow);
     float shadow = softShadow(p + n * 0.002, l, 30.0);
-    vec3 tint = SUN_COLOR / max(max(SUN_COLOR.r, SUN_COLOR.g), SUN_COLOR.b);
-    // Shown as Unity shows it: HDRP's ACES tone mapping, which the preview's tone curve matches at its exposure
-    return acesToneMap(toonShade(albedo, n, -rd, l, shadow, tint, m, ambientOcclusion(p, n)) * EXPOSURE);
+    // Shown as Unity shows it: ACES tone mapping, which the preview's tone curve matches at its exposure
+    vec3 tint = uSkyTone.z > 0.5 ? uSkyLight : SUN_COLOR / max(max(SUN_COLOR.r, SUN_COLOR.g), SUN_COLOR.b);
+    vec3 color = toonShade(albedo, n, -rd, l, shadow, tint, m, ambientOcclusion(p, n), glow);
+    return acesToneMap(skyFade(color, rd, hit * fadeDistance) * (uSkyTone.z > 0.5 ? uExposure : EXPOSURE));
 }
 
 void main()
@@ -444,6 +492,7 @@ export function createRenderer(canvas) {
     const camera = { yaw: 0.7, pitch: 0.35, distance: 8, target: [0, 0, 0] };
     let lightPosition = [4, 6, 3];
     let style = 0;
+    let sky = null;
     let program = null;
     let quadView = false;
     let rotateView = false;
@@ -561,8 +610,9 @@ export function createRenderer(canvas) {
         if (!program || !orbit) return;
 
         gl.useProgram(program);
-        gl.uniform3fv(gl.getUniformLocation(program, 'uLightPosition'), lightPosition);
+        gl.uniform3fv(gl.getUniformLocation(program, 'uLightPosition'), sky ? sky.light.direction : lightPosition);
         gl.uniform1i(gl.getUniformLocation(program, 'uStyle'), style);
+        setSkyUniforms();
         if (!quadView) {
             drawView(orbitView(), 0, 0, canvas.width, canvas.height);
             return;
@@ -621,6 +671,41 @@ export function createRenderer(canvas) {
         requestRender();
     }
 
+    // The sky's uniforms, as Unity's SkySettings sets SdfSky.hlsl's globals; without a sky the identity, which changes nothing.
+    function setSkyUniforms() {
+        const set = (name, method, ...values) => gl[method](gl.getUniformLocation(program, name), ...values);
+        const degrees = Math.PI / 180;
+        const bands = sky ? sky.bands.slice(0, 8) : [];
+        const colors = new Float32Array(24);
+        const froms = new Float32Array(16);
+        bands.forEach((band, i) => {
+            colors.set(band.color, 3 * i);
+            froms.set([Math.sin(band.from * degrees), Math.cos(band.from * degrees) * sky.gradient.softness * 0.5 * degrees], 2 * i);
+        });
+        const tone = sky?.tone;
+        set('uSkyTone', 'uniform3f', tone ? tone.brightness : 1, tone ? tone.glowKeep : 0, sky ? 1 : 0);
+        set('uSkyShadowTint', 'uniform3fv', tone ? tone.shadowTint : [1, 1, 1]);
+        const color = sky ? sky.light.color : [1, 1, 1];
+        const brightest = Math.max(...color, 1e-6);
+        set('uSkyLight', 'uniform3fv', color.map(c => c / brightest));
+        set('uSkyFade', 'uniform3f', sky?.fade?.start ?? 0, sky?.fade?.end ?? 1, sky?.fade?.amount ?? 0);
+        set('uSkyBandColor', 'uniform3fv', colors);
+        set('uSkyBandFrom', 'uniform2fv', froms);
+        set('uSkyBandCount', 'uniform1i', bands.length);
+        const glow = sky?.abyss?.glow;
+        set('uSkyAbyssGlow', 'uniform2f', glow ? Math.sin(glow.elevation * degrees) : -1, glow ? Math.cos(glow.elevation * degrees) * glow.width * 0.5 * degrees : 1);
+        set('uSkyAbyssGlowColor', 'uniform3fv', glow ? glow.color : [0, 0, 0]);
+        // The preview's 0.6 is Unity's showcase at -0.26 EV; a sky's exposure moves it by as many stops
+        set('uExposure', 'uniform1f', 0.6 * Math.pow(2, (sky ? sky.post.exposure : -0.26) + 0.26));
+    }
+
+    // Lights the toon look with a sky (the "sky" object of level.json, or what sdf render --sky hands over, as an object or its JSON):
+    // its light, tone, banded background and distance fade, as Unity draws a level under it; null for none, the preview as it was.
+    function setSky(resolved) {
+        sky = typeof resolved === 'string' ? JSON.parse(resolved) : resolved ?? null;
+        requestRender();
+    }
+
     // Draws every view right away instead of on the next animation frame, for when the pixels are read back at once.
     function renderNow() {
         allChanged = true;
@@ -663,6 +748,7 @@ export function createRenderer(canvas) {
         setCamera,
         setLight,
         setStyle,
+        setSky,
         renderNow,
         dispose: () => {
             rotateView = false;

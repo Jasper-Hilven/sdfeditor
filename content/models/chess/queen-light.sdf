@@ -1,0 +1,60 @@
+# Queen, light: a tall mushroom 5 m high turned like a chess queen. A broad foot with a swollen bulb, a long slender stem with a
+# frilled skirt of gills hanging from it (the queen's collar), and on top an upturned cup of a cap holding a low dome, its rim
+# set with eight little puffballs as the queen's coronet, a button mushroom on the very top. Floating eyes and hands in front of
+# the stem.
+format 1
+collider convex
+
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
+# so its eyes and hands get half too
+Detail detail=0.5
+    Union
+        SmoothUnion smoothness=0.04
+            # The crown: the upturned cup, the dome in it, the coronet of puffballs round its rim and the button on top
+            Material material=chess_light_cap
+                SmoothUnion smoothness=0.03
+                    Translate translation=(0, 3.86, 0)
+                        Round radius=0.05
+                            CappedCone height=0.32 bottomRadius=0.36 topRadius=0.9
+                    Intersection
+                        Translate translation=(0, 3.92, 0)
+                            Sphere radius=0.72
+                        Translate translation=(0, 4.5, 0)
+                            Box size=(0.8, 0.4, 0.8)
+                    # Eight puffballs: two in each quarter, mirrored round
+                    SymmetryXZ
+                        Union
+                            Translate translation=(0.84, 4.27, 0.35)
+                                Sphere radius=0.19
+                            Translate translation=(0.35, 4.27, 0.84)
+                                Sphere radius=0.19
+                    Translate translation=(0, 4.82, 0)
+                        Sphere radius=0.21
+            # The skirt: a frilled ring of gills flaring down from high on the stem
+            Material material=chess_light_gills
+                Translate translation=(0, 3.0, 0)
+                    RadialWave amount=0.06 count=10
+                        Round radius=0.03
+                            CappedCone height=0.14 bottomRadius=0.84 topRadius=0.34
+            # Foot, bulb and stem, all of one flesh and grown into each other
+            Material material=chess_light_stem
+                SmoothUnion smoothness=0.07
+                    Translate translation=(0, 0.13, 0)
+                        RoundedCylinder radius=1.12 roundness=0.1 height=0.13
+                    Translate translation=(0, 0.36, 0)
+                        Torus innerRadius=0.5 outerRadius=1.02
+                    Translate translation=(0, 1.88, 0)
+                        CappedCone height=1.5 bottomRadius=0.55 topRadius=0.3
+                    Translate translation=(0, 3.45, 0)
+                        CappedCone height=0.12 bottomRadius=0.3 topRadius=0.36
+
+        # Floating eyes, mirrored, in front of the stem, and floating hands either side of it in the stem's flesh
+        SymmetryX
+            Translate translation=(0.24, 2.0, 0.6)
+                Scale scale=(2.4, 2.4, 2.4)
+                    Part part=eye
+        SymmetryX
+            Translate translation=(0.88, 1.55, 0.28)
+                Material material=chess_light_stem
+                    Scale scale=(2.6, 2.6, 2.6)
+                        Part part=hand

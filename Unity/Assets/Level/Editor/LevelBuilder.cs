@@ -24,12 +24,15 @@ namespace SdfLevel.Editor
     /// casting and receiving, and a <see cref="MeshCollider"/> from LOD1;</item>
     /// <item>four invisible walls round the playable rectangle, tall enough that the hills cannot be climbed;</item>
     /// <item>the placed models (castles, big rocks; level.json "placements"): instances of the prefabs <see cref="MushroomBuilder"/>
-    /// builds, static like the ground, with the colliders their prefabs bring; a placement whose prefab is missing logs a warning;</item>
+    /// builds, static like the ground, with the colliders their prefabs bring; a placement whose prefab is missing logs a warning. When
+    /// the level has a <c>draw castle</c> section, a placed model's part instances (the children of its prefab with a LOD group of their
+    /// own, a castle's repeated parts) are drawn by the instanced renderer in that group instead, and keep only their colliders here;</item>
     /// <item>the scattered models (grass, flowers; level.json "instances", the bake's instances.bin): no GameObject each, but one
     /// <see cref="InstancedScatterRenderer"/> that draws them all instanced, in the draw groups of level.json "drawGroups", reading the
     /// prototypes' meshes from their prefabs; it is the one object besides the player that is not static, and has no colliders. Next to
     /// it, the level's <see cref="Wind"/>;</item>
-    /// <item>the sun, sky and post-processing of the mushroom scene (<see cref="MushroomScene.BuildLighting"/>);</item>
+    /// <item>the light, sky and post-processing (<see cref="MushroomScene.BuildLighting"/>) of the level's sky (level.json "sky"), and
+    /// under Level/Sky its settings, far layer and spores (<see cref="LevelSky"/>); a level without one is lit like the mushroom scene;</item>
     /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>.</item>
     /// </list>
     /// The ground is drawn with SdfGround.shader, in the toon look of the models (the <see cref="MushroomStyle"/> settings), its material
@@ -58,8 +61,19 @@ namespace SdfLevel.Editor
         /// <summary>
         /// Raise when the way level scenes are built changes, so every level scene is rebuilt when the editor loads. Version 2: ground
         /// regions from the region map, and placed models. Version 3: the scattered models through the instanced renderer, and wind.
+        /// Version 4: the placed models' repeated parts (a castle's) through the instanced renderer, in the draw group <see cref="PartsGroup"/>.
+        /// Version 5: the sky.
         /// </summary>
-        public const int BuilderVersion = 3;
+        public const int BuilderVersion = 5;
+
+        /// <summary>
+        /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
+        /// towers, merlons, ...): their renderers leave the scene, and only each use's colliders stay as a GameObject.
+        /// </summary>
+        public const string PartsGroup = "castle";
+
+        /// <summary>Where the mirrored copies of part meshes go, below the level's meshes (see PartInstances).</summary>
+        public const string MirroredFolder = "Mirrored";
 
         public const string LevelRootName = "Level";
         public const string PlacedName = "Placed";
@@ -306,7 +320,7 @@ namespace SdfLevel.Editor
                 openedHere = EditorSceneManager.sceneCount > 1;
             }
 
-            MushroomScene.BuildLighting(scene);
+            MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data));
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -356,10 +370,15 @@ namespace SdfLevel.Editor
             DeleteMeshesExcept(meshFolder, keptMeshes);
 
             AddWalls(levelRoot.transform, data);
-            var placed = AddPlacements(levelRoot.transform, scene, data);
+            var parts = new PartInstances(((data["drawGroups"] as JArray) ?? new JArray()).Any(g => g.Value<string>("name") == PartsGroup),
+                $"{meshFolder}/{MirroredFolder}");
+            var placed = AddPlacements(levelRoot.transform, scene, data, parts);
             MarkStatic(levelRoot);
-            var scattered = AddScatter(scene, level, meshFolder, data);
+            var scattered = AddScatter(scene, level, meshFolder, data, parts);
+            parts.DeleteUnused();
+            AssetDatabase.SaveAssets();
             AddPlayer(scene, data);
+            LevelSky.Add(levelRoot.transform, name, data);
 
             EditorSceneManager.SaveScene(scene, scenePath);
             var importer = AssetImporter.GetAtPath(scenePath);
@@ -482,7 +501,7 @@ namespace SdfLevel.Editor
         /// yaw turned round for Unity's coordinates, scaled. They bring the colliders their prefabs have; a convex one that the scale makes
         /// larger than <see cref="LargestConvexSize"/> is made concave, as the pipeline does for models that large. Returns how many.
         /// </summary>
-        private static int AddPlacements(Transform levelRoot, Scene scene, JObject data)
+        private static int AddPlacements(Transform levelRoot, Scene scene, JObject data, PartInstances parts)
         {
             var placements = data["placements"] as JArray;
             if (placements == null || placements.Count == 0)
@@ -513,6 +532,7 @@ namespace SdfLevel.Editor
                     if (collider.convex && Mathf.Max(size.x, Mathf.Max(size.y, size.z)) * scale > LargestConvexSize)
                         collider.convex = false;
                 }
+                parts.Take(model, instance);
                 count++;
             }
             return count;
@@ -525,7 +545,7 @@ namespace SdfLevel.Editor
         /// static batching would merge the meshes it draws. The level's <see cref="Wind"/> is its own root object. Returns how many
         /// instances there are; a level without any gets neither the renderer nor the copy.
         /// </summary>
-        private static int AddScatter(Scene scene, string level, string meshFolder, JObject data)
+        private static int AddScatter(Scene scene, string level, string meshFolder, JObject data, PartInstances parts)
         {
             var assetPath = $"{meshFolder}/{InstancesAsset}";
             var instances = data["instances"] as JObject;
@@ -584,11 +604,203 @@ namespace SdfLevel.Editor
                     Debug.LogWarning($"SDF level: there is no prefab {prefabPath} for the scattered model {model}; mesh content/models (sdf unity) and let the prefabs build");
                 return new ScatterPrototype { name = model, group = p.Value<string>("group"), prefab = prefab };
             }).ToArray();
+            // The placed models' part instances after the scattered ones
+            var offset = renderer.prototypes.Length;
+            renderer.prototypes = renderer.prototypes.Concat(parts.Prototypes).ToArray();
+            renderer.placements = parts.Placements.Select(p => { p.prototype += offset; return p; }).ToArray();
 
             var wind = new GameObject(WindName);
             SceneManager.MoveGameObjectToScene(wind, scene);
             wind.AddComponent<Wind>();
             return instances?.Value<int?>("count") ?? 0;
+        }
+
+        /// <summary>
+        /// The part instances of the placed models, for the instanced renderer: a prototype per model and part (castle0/castle_merlon), its
+        /// levels read from a use's LOD group (each level's surface renderers, with their outline and shadow settings as MushroomBuilder
+        /// left them, so a part's <c>outline off</c> and <c>shadows near</c> carry over), and a placement per use. What is taken leaves
+        /// the scene: the placed prefab is unpacked, and each use keeps its GameObject with its colliders only. A part with a
+        /// <c>cull</c> setting keeps its distance (worked out back from its LOD group's last height). Nothing is taken when the level has
+        /// no <see cref="PartsGroup"/> group.
+        /// <para>
+        /// A mirrored use (a negative x scale under its castle) gets a prototype of its own with mirrored copies of the part's meshes
+        /// (Assets/Level/Meshes/&lt;level&gt;/Mirrored/), placed with the turn and scale only: Graphics.RenderMeshInstanced turns no
+        /// triangles round for an instance whose matrix mirrors, so drawn from the part's own meshes it would show its back faces (seen
+        /// on the keep's mirrored stair: dark and inside out).
+        /// </para>
+        /// </summary>
+        private sealed class PartInstances
+        {
+            private readonly bool enabled;
+            private readonly string mirroredFolder;
+            private readonly Dictionary<string, int> index = new Dictionary<string, int>();
+            private readonly Dictionary<Mesh, Mesh> mirroredMeshes = new Dictionary<Mesh, Mesh>();
+            public readonly List<ScatterPrototype> Prototypes = new List<ScatterPrototype>();
+            public readonly List<ScatterPlacement> Placements = new List<ScatterPlacement>();
+
+            public PartInstances(bool enabled, string mirroredFolder)
+            {
+                this.enabled = enabled;
+                this.mirroredFolder = mirroredFolder;
+            }
+
+            public void Take(string model, GameObject instance)
+            {
+                if (!enabled)
+                    return;
+                var uses = instance.transform.Cast<Transform>().Where(t => t.GetComponent<LODGroup>() != null).ToArray();
+                if (uses.Length == 0)
+                    return;
+                PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                foreach (var use in uses)
+                {
+                    var group = use.GetComponent<LODGroup>();
+                    var lods = group.GetLODs();
+                    var surfaces = lods.Select(lod => lod.renderers.Where(r => r != null && r.name != MushroomBuilder.OutlineObjectName).ToArray()).ToArray();
+                    if (surfaces.Length == 0 || surfaces[0].Length == 0)
+                        continue;
+                    var world = use.localToWorldMatrix;
+                    var mirrored = world.determinant < 0;
+                    var key = $"{model}/{surfaces[0][0].GetComponent<MeshFilter>().sharedMesh.name}{(mirrored ? " (mirrored)" : "")}";
+                    if (!index.TryGetValue(key, out var prototype))
+                    {
+                        index[key] = prototype = Prototypes.Count;
+                        var toUse = use.worldToLocalMatrix;
+                        var flip = Matrix4x4.Scale(new Vector3(-1, 1, 1));
+                        Prototypes.Add(new ScatterPrototype
+                        {
+                            name = key,
+                            group = PartsGroup,
+                            levels = surfaces.Select(renderers => new ScatterLevel
+                            {
+                                parts = renderers.Select(r =>
+                                {
+                                    var mesh = r.GetComponent<MeshFilter>().sharedMesh;
+                                    var transform = toUse * r.transform.localToWorldMatrix;
+                                    return new ScatterPart
+                                    {
+                                        mesh = mirrored ? Mirrored(mesh) : mesh,
+                                        transform = mirrored ? flip * transform * flip : transform,
+                                        outline = r.transform.Find(MushroomBuilder.OutlineObjectName) != null,
+                                        shadows = r.shadowCastingMode != ShadowCastingMode.Off,
+                                    };
+                                }).ToArray(),
+                            }).ToArray(),
+                            cull = CullDistance(group, lods),
+                        });
+                    }
+                    Placements.Add(Placement(prototype, mirrored ? world * Matrix4x4.Scale(new Vector3(-1, 1, 1)) : world));
+
+                    // The use keeps its colliders; its renderers and LOD group go
+                    UnityEngine.Object.DestroyImmediate(group);
+                    foreach (var child in use.Cast<Transform>().ToArray())
+                        UnityEngine.Object.DestroyImmediate(child.gameObject);
+                }
+            }
+
+            /// <summary>A use's world matrix (a turn and a uniform scale; a mirror is in the mesh) as a placement.</summary>
+            private static ScatterPlacement Placement(int prototype, Matrix4x4 world)
+            {
+                Vector3 y = world.GetColumn(1), z = world.GetColumn(2);
+                var scale = y.magnitude;
+                return new ScatterPlacement
+                {
+                    prototype = prototype,
+                    position = world.GetColumn(3),
+                    rotation = Quaternion.LookRotation(z / scale, y / scale),
+                    scale = scale,
+                };
+            }
+
+            /// <summary>
+            /// A copy of the mesh mirrored in x, with its triangles turned round so they face out again, saved next to the level's meshes
+            /// (updated in place on a rebuild, so its GUID stays).
+            /// </summary>
+            private Mesh Mirrored(Mesh mesh)
+            {
+                if (mirroredMeshes.TryGetValue(mesh, out var copy))
+                    return copy;
+                var path = $"{mirroredFolder}/{mesh.name}.asset";
+                copy = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+                if (copy == null)
+                {
+                    MushroomBuilder.EnsureFolder(mirroredFolder);
+                    copy = new Mesh();
+                    AssetDatabase.CreateAsset(copy, path);
+                }
+                // Every attribute as it is, in the same layout, but x and the normals' x negated and each triangle turned round
+                var vertices = mesh.vertices;
+                var normals = mesh.normals;
+                for (var v = 0; v < vertices.Length; v++)
+                {
+                    vertices[v].x = -vertices[v].x;
+                    normals[v].x = -normals[v].x;
+                }
+                var triangles = mesh.triangles;
+                for (var t = 0; t < triangles.Length; t += 3)
+                    (triangles[t + 1], triangles[t + 2]) = (triangles[t + 2], triangles[t + 1]);
+                copy.Clear();
+                copy.name = mesh.name;
+                copy.indexFormat = mesh.indexFormat;
+                copy.SetVertexBufferParams(mesh.vertexCount, mesh.GetVertexAttributes());
+                copy.SetVertices(vertices);
+                copy.SetNormals(normals);
+                if (mesh.HasVertexAttribute(VertexAttribute.Color))
+                    copy.SetColors(mesh.colors);
+                for (var channel = 0; channel < 8; channel++)
+                {
+                    var attribute = VertexAttribute.TexCoord0 + channel;
+                    if (!mesh.HasVertexAttribute(attribute))
+                        continue;
+                    switch (mesh.GetVertexAttributeDimension(attribute))
+                    {
+                        case 2:
+                            var uv2 = new List<Vector2>();
+                            mesh.GetUVs(channel, uv2);
+                            copy.SetUVs(channel, uv2);
+                            break;
+                        case 3:
+                            var uv3 = new List<Vector3>();
+                            mesh.GetUVs(channel, uv3);
+                            copy.SetUVs(channel, uv3);
+                            break;
+                        default:
+                            var uv4 = new List<Vector4>();
+                            mesh.GetUVs(channel, uv4);
+                            copy.SetUVs(channel, uv4);
+                            break;
+                    }
+                }
+                copy.subMeshCount = 1;
+                copy.SetTriangles(triangles, 0, calculateBounds: true);
+                copy.RecalculateBounds();
+                EditorUtility.SetDirty(copy);
+                return mirroredMeshes[mesh] = copy;
+            }
+
+            /// <summary>Deletes the mirrored copies this build made no use of.</summary>
+            public void DeleteUnused()
+            {
+                if (!AssetDatabase.IsValidFolder(mirroredFolder))
+                    return;
+                var kept = new HashSet<string>(mirroredMeshes.Values.Select(AssetDatabase.GetAssetPath));
+                foreach (var path in AssetDatabase.FindAssets("t:Mesh", new[] { mirroredFolder }).Select(AssetDatabase.GUIDToAssetPath))
+                    if (!kept.Contains(path))
+                        AssetDatabase.DeleteAsset(path);
+            }
+
+            /// <summary>
+            /// The distance at which a LOD group culls, in metres, for the first-person camera's 60° field of view: its world size over
+            /// its last level's relative height. 0 (no cull of its own) beyond the furthest a level can be seen from.
+            /// </summary>
+            private static float CullDistance(LODGroup group, LOD[] lods)
+            {
+                var height = lods[lods.Length - 1].screenRelativeTransitionHeight;
+                var scale = group.transform.lossyScale;
+                var size = group.size * Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                var distance = size / (2 * height * Mathf.Tan(30 * Mathf.Deg2Rad));
+                return distance > 400 ? 0 : distance;
+            }
         }
 
         private static Mesh MeshAsset(string path)
@@ -672,8 +884,9 @@ namespace SdfLevel.Editor
         {
             if (!AssetDatabase.IsValidFolder(folder))
                 return;
+            // The mirrored copies of placed models' parts have their own clean-up (PartInstances)
             foreach (var path in AssetDatabase.FindAssets("t:Mesh", new[] { folder }).Select(AssetDatabase.GUIDToAssetPath).Distinct())
-                if (!kept.Contains(path))
+                if (!kept.Contains(path) && !path.StartsWith($"{folder}/{MirroredFolder}/", StringComparison.Ordinal))
                     AssetDatabase.DeleteAsset(path);
         }
 

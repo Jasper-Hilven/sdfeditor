@@ -60,3 +60,13 @@ draw foliage
     rings=[6, 15, 35] outline=1 shadows=1 blend=1 fade=5
     wind=0.04 windHeight=0.5 tintHeight=0.08
     lowDensity=0.5 lowDistance=0.7
+
+# How the castles' repeated parts (walls, towers, merlons, stairs, mycelium) are drawn: instanced, without wind, each use at LOD0 up
+# to 25 m, LOD1 to 60 m and LOD2 out past the far castle, with the ink outline on the nearer two rings (as their prefabs have it)
+# and shadows on all three. The integrated GPU / web preset casts them from the nearest ring only and ends each ring at 0.4 times
+# the distance (LOD0 to 10 m, LOD1 to 24 m, LOD2 to 160 m, past the far castle). Details cull at their own distance (their parts'
+# cull setting). Without this section the castles are drawn as GameObjects.
+draw castle
+    rings=[25, 60, 400] outline=2 shadows=3 lowShadows=1 blend=2 lowDistance=0.4
+
+sky preset=night                          # Eye-Moon Night, content/skies/night.sky

@@ -36,8 +36,32 @@ public static class SdfProgramFile
             ? ModelFiles.PartsIn(content)
             : null);
 
+    /// <summary>Loads a part by name from content/parts/ of the content folder the model at <paramref name="path"/> is in.</summary>
+    /// <exception cref="InvalidOperationException">There is no such part.</exception>
+    public static SDFProgram LoadPart(string path, string name)
+    {
+        var content = ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(path))!)
+                      ?? throw new InvalidOperationException($"Part '{name}' cannot be found, because {path} is not in a content folder");
+        var parts = ModelFiles.PartsIn(content);
+        return Read(parts(name) ?? throw new InvalidOperationException($"There is no part '{name}' in {Path.Combine(content, ModelFiles.PartsFolderName)}"), parts);
+    }
+
     /// <summary>The model's settings, like its collider (<see cref="ModelSettings"/>), which are not part of its shape.</summary>
     public static ModelSettings LoadSettings(string path) => ModelSettings.Load(path);
+
+    /// <summary>
+    /// The settings of each of <paramref name="parts"/> whose file has settings lines, read over the model's <paramref name="settings"/>;
+    /// the parts are found in content/parts/ of the content folder the model is in.
+    /// </summary>
+    public static IReadOnlyDictionary<string, ModelSettings> LoadPartSettings(string path, IEnumerable<string> parts, ModelSettings settings)
+    {
+        var source = ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(path))!) is { } content ? ModelFiles.PartsIn(content) : null;
+        var result = new Dictionary<string, ModelSettings>();
+        foreach (var part in parts.Distinct())
+            if (source?.Invoke(part) is { } text && ModelSettings.HasSettings(text))
+                result[part] = ModelSettings.Read(text, settings);
+        return result;
+    }
 
     public static void Save(string path, SDFProgram program) => File.WriteAllText(path, Write(program));
 }

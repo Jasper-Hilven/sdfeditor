@@ -1,11 +1,11 @@
-# 08 — Game pieces: meshing, Unity check and placement
+# 12 — Game pieces: meshing, Unity check and placement
 
 Giant mushroom-themed pieces from other games (dice, Monopoly houses and hotels, dominoes, meeples, poker chips, playing cards)
 for the chessboard level, an "anarchy chess" board in chaos. The models and materials are written and checked in the toon render;
 what is left is to mesh them into Unity at a bearable cost, check them there, and place them in the level.
 
-Depends on: the chessboard level (`content/levels/chessboard.level`, 20 × 20 cells of 8 m, 160 m square, centred on the origin),
-made separately.
+Depends on: 11 (the chessboard level, `content/levels/chessboard.level`: 20 × 20 squares of 8 m, 160 m square, centred on the
+origin; merged in, with main's part instancing).
 
 ## Done
 
@@ -21,7 +21,7 @@ made separately.
 - 13 materials in `materials/games/` (`game_*.sdfmat`); the models also use `amanita_cap`, `amanita_stem` and the eye materials.
 - Card faces, chip faces and card backs are painted flush, no textures: the shape cut to a half-space and to 2D shapes, the later
   piece of a union winning where two lie on the same surface (`Union` gives ties to the later operand).
-- `dotnet build` and `dotnet test` pass.
+- `dotnet build` and `dotnet test` pass, also after merging 11 and main.
 
 ## To do
 
@@ -32,17 +32,29 @@ made separately.
    - Time each model alone (`sdf mesh <model.sdf> <out.glb> --resolution 512 --lods 3`) and find the slow phase.
    - Likely fixes: a root `Detail` below 1 on the big flat models (cards, card house, dominoes, hotel), which are simple forms with
      many material borders; fewer 2D primitives in the card faces (the king has about 60).
-2. **Check the part split.** `PartSplitter` meshes every `Part` that is unioned in as its own mesh. Consequences:
-   - `die_pips` and the domino and chip parts are separate meshes. The dice's fillet between body and pips (`SmoothUnion`) is lost,
-     and the separate meshes overlap. Check this looks right in Unity; if not, inline the pips.
+2. **Check the part split.** `PartSplitter` meshes every `Part` that adds to the shape as its own mesh. Since main's part instances
+   (merged with 11), a part used more than once in a model through rigid placements only (Translate, Rotate, uniform Scale,
+   SymmetryX/XZ with the part on its side of the mirror) is meshed once in its own file's space and drawn per use as an instance; a
+   part used once is still meshed in place, as before. What that means here (from the rules, not yet seen in a mesh log):
+   - `die_pips` is used once per die, inside a `SmoothUnion`, so it is still a separate mesh made in place: the fillet between body
+     and pips is lost and the two meshes overlap. Check this looks right in Unity; if not, inline the pips.
+   - The domino parts and the cards' parts are each used once per model (`domino-chain` uses three different dominoes), so they mesh
+     in place, as before.
+   - `poker-chip-stack` uses `poker_chip_red` three times and `poker_chip_blue` twice under Translate and Rotate only: each chip
+     becomes one mesh with instances. `porthole_window` (eight uses in `monopoly-hotel`, four in `monopoly_house`) and the hotel's
+     eyes go the same way, unless a use crosses its SymmetryX mirror: then the mesher warns and meshes all uses in place as one mesh
+     (the chess pieces' eyes do this, see 11). Read the warnings in the mesh log.
    - The cards were first built on `card_blank` and `card_back` parts. That split the white back into its own mesh with the painted
      face lying on the same surface, so it would z-fight. Now fixed: the blank is written out in every painted layer. The two .glb
      files meshed before the fix were deleted. Check every other painted model is one mesh too (chips: yes, no nested parts).
 3. **Mesh** into `Unity/Assets/Mushrooms/Generated/games` and record the triangle counts per model and LOD.
-4. **Unity check.** Run batch mode on this worktree's `Unity/` folder (`MushroomSnapshot.Capture`). Read the log for errors, look at
-   the close-ups and the Mushrooms showcase, and check the colliders (`convex` above 3 m becomes a mesh).
-5. **Place them** in `content/levels/chessboard.level`, in its `place` block. The block below is untested: check what it
-   overlaps (chess pieces, each other) and the triangle budget (≈ 2M high, 500k web), and drop or rescale pieces as needed.
+4. **Unity check.** Run batch mode on the `Unity/` folder (`SdfMushrooms.Editor.MushroomSnapshot.Capture`, which runs again since
+   11). Read the log for errors, look at the close-ups and the Mushrooms showcase, and check the colliders (`convex` above 3 m
+   becomes a mesh).
+5. **Place them** in `content/levels/chessboard.level`, in its `place` block, where the comment about the game elements marks the
+   spot. The block below is untested: check what it overlaps (chess pieces, each other) and the triangle budget (≈ 2M high, 500k
+   web; the 93 chess pieces already draw up to 143k at eye height, see 11), and drop or rescale pieces as needed. Then re-bake the
+   level and rebuild `Chessboard.unity` (`SdfLevel.Editor.LevelBuilder.BuildAllInBatch`).
 
 ```
     # The game pieces from other games, strewn over the board as if the players had flipped the table: off the squares,

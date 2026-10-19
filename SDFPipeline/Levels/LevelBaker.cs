@@ -4,6 +4,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SDFPipeline.Meshing;
+using SDFPipeline.Skies;
 using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.Levels;
@@ -30,9 +31,10 @@ public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, floa
 /// of <see cref="GroundLayout"/> that has ground, each with its levels of detail as separate meshes named like a model's (ground,
 /// ground_LOD1, ...), and level.json with everything else the engine needs: the extent, the chunk grid, the playable rectangle, the seed,
 /// where the player starts, the ground's materials by region, the region map (regions.png, see <see cref="RegionMap"/>), the placed
-/// models, the scattered ones (instances.bin, see <see cref="InstanceFile"/> and <see cref="LevelScatter"/>) with their draw groups, and
-/// the list of every model's name. Unity's LevelBuilder turns it into the level's scene; the ground's colliders are made there, from
-/// LOD1, the placed models bring theirs on their prefabs, and the scattered ones have none.
+/// models, the scattered ones (instances.bin, see <see cref="InstanceFile"/> and <see cref="LevelScatter"/>) with their draw groups,
+/// the resolved sky (<see cref="SkyDocument"/>) with where its floaters and spores are, and the list of every model's name. Unity's
+/// LevelBuilder turns it into the level's scene; the ground's colliders are made there, from LOD1, the placed models bring theirs on
+/// their prefabs, and the scattered ones have none.
 /// <para>
 /// The output depends on the file and the materials only, never on the machine's timing: the same input bakes byte-identical files.
 /// Chunk files from an earlier bake that this one no longer makes are deleted, as is instances.bin when nothing is scattered;
@@ -70,12 +72,14 @@ public static class LevelBaker
     /// Whether a model is there, by name, for the scattered models, which need no footprint (working one out samples the model's shape);
     /// null to ask <paramref name="models"/>.
     /// </param>
+    /// <param name="sky">The level's sky, its preset and overrides resolved (<see cref="SkyFile.Resolve(SkySection?, Func{string, string?})"/>);
+    /// null to bake without one, which Unity lights like the model showcase.</param>
     /// <exception cref="ProgramFiles.SdfProgramFileException">
-    /// A placement or scatter names a model that is not there, a placement stands off the island, or a scatter avoids a region the level
-    /// does not have.
+    /// A placement or scatter names a model that is not there, a placement stands off the island, a scatter avoids a region the level
+    /// does not have, or the sky draws a model that is not there.
     /// </exception>
     public static BakedLevel Bake(LevelDefinition level, string name, MaterialLibrary materials, string folder,
-        Func<string, ModelFootprint?>? models = null, Func<string, bool>? modelExists = null)
+        Func<string, ModelFootprint?>? models = null, Func<string, bool>? modelExists = null, ResolvedSky? sky = null)
     {
         var terrain = new LevelTerrain(level);
         var layout = GroundLayout.Around(terrain, ChunkSize);
@@ -92,6 +96,9 @@ public static class LevelBaker
             if (!terrain.OnIsland(placement.At.X, placement.At.Y))
                 throw new ProgramFiles.SdfProgramFileException(placement.Line, $"{placement.Model} at ({placement.At.X}, {placement.At.Y}) is beyond the island's edge");
         }
+        foreach (var model in sky?.Definition.Models ?? [])
+            if (models?.Invoke(model) is null)
+                throw new ProgramFiles.SdfProgramFileException(level.Sky?.Line ?? 1, $"The sky draws the model '{model}', but there is none in content/models/");
         var regions = new GroundRegions(level, model => footprints[model]);
         foreach (var region in regions.Regions)
             if (!materials.Contains(region.Material))
@@ -285,8 +292,10 @@ public static class LevelBaker
                 lowDensity = g.LowDensity,
                 lowDistance = g.LowDistance,
             }).ToArray(),
-            // Every model the level uses, placed or scattered, once, so Unity rebuilds the level when one of their prefabs is rebuilt
-            models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model)).Distinct().Order(StringComparer.Ordinal).ToArray(),
+            // The sky, resolved from its preset and the level's overrides, with where its floaters and spores are (seeded by the level)
+            sky = sky is null ? null : SkyDocument.Of(sky.Definition, sky.Hash, SkyLayout.Of(sky.Definition, level.Seed, play.HalfSize, terrain.EdgeDistance)),
+            // Every model the level uses, placed, scattered or in the sky, once, so Unity rebuilds the level when one of their prefabs is rebuilt
+            models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model)).Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
         };
         var json = JsonSerializer.SerializeToUtf8Bytes(document, JsonOptions);
         GlbWriter.SaveAtomically(Path.Combine(folder, LevelJson), [.. json, (byte)'\n']);

@@ -126,6 +126,37 @@ public class LevelFileTests
         Assert.Equal([6f, 15f, 35f], level.DrawGroups.Single(g => g.Name == "foliage").Rings);
     }
 
+    [Fact]
+    public void ContentChessboard_IsAFlatCheckerboard_WithPiecesOfBothColoursOnIt()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "chessboard" + LevelFile.Extension));
+
+        Assert.Equal((new Vector2(160, 160), 0f), (level.Play.Size, level.Play.NoiseAmplitude));
+        // 20 × 20 squares of 8 m, the corner squares dark, in a rim
+        var regions = new GroundRegions(level, _ => throw new InvalidOperationException("No placement paints the ground"));
+        for (var i = 0; i < 20; i++)
+        for (var j = 0; j < 20; j++)
+        {
+            var centre = new Vector2(-76 + 8 * i, -76 + 8 * j);
+            Assert.Equal((i + j) % 2 == 0 ? "dark" : "light", regions.At(centre)?.Name);
+            // Just over the edge to the next square along x, or onto the rim past the last
+            Assert.Equal(i == 19 ? "rim" : (i + j) % 2 == 0 ? "light" : "dark", regions.At(centre + new Vector2(4.2f, 0))?.Name);
+        }
+        Assert.Equal("rim", regions.At(new Vector2(81.5f, 0))?.Name);
+        Assert.Null(regions.At(new Vector2(84, 0)));
+        // Every piece on the board, both colours of every kind among them, each model in content/models
+        var models = LevelModels.In(Path.Combine(content, "models"));
+        Assert.InRange(level.Placements.Count, 60, 120);
+        Assert.All(level.Placements, p => Assert.True(MathF.Abs(p.At.X) < 80 && MathF.Abs(p.At.Y) < 80, $"{p.Model} on line {p.Line}"));
+        Assert.All(level.Placements, p => Assert.NotNull(models(p.Model)));
+        foreach (var piece in new[] { "pawn", "rook", "knight", "bishop", "queen", "king" })
+        foreach (var colour in new[] { "light", "dark" })
+            Assert.Contains(level.Placements, p => p.Model == $"{piece}-{colour}");
+    }
+
     [Theory]
     [InlineData("", 1, "The file is empty")]
     [InlineData("play size=(1, 1)", 1, "must start with 'format 1'")]

@@ -1,0 +1,54 @@
+# Bishop, dark: a shaggy ink cap 4.5 m tall turned like a chess bishop. A broad foot with a swollen bulb, a slender stem up to a
+# flared ring, and on top the ink cap's tall egg of a cap, still closed: the bishop's mitre, with the mitre's slanting slit cut
+# across it and a little button of a cap on its tip. Gills show under its rim. Floating eyes and hands in front of the stem.
+format 1
+collider convex
+
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
+# so its eyes and hands get half too
+Detail detail=0.5
+    Union
+        SmoothUnion smoothness=0.04
+            # The mitre: a tall egg, flat underneath, with a thin slanting slot cut into its upper half, and the button on top
+            Material material=chess_dark_cap
+                Union
+                    Subtraction
+                        Intersection
+                            Translate translation=(0, 3.4, 0)
+                                Ellipsoid radii=(0.64, 0.98, 0.64)
+                            Translate translation=(0, 3.6, 0)
+                                Box size=(0.8, 0.98, 0.8)
+                        Translate translation=(0.2, 3.78, 0)
+                            Rotate rotation=(0, 0, 0.75)
+                                Box size=(0.7, 0.05, 0.9)
+                    Translate translation=(0, 4.42, 0)
+                        Sphere radius=0.17
+            Material material=chess_dark_gills
+                Translate translation=(0, 2.63, 0)
+                    CappedCylinder radius=0.56 height=0.03
+            # Foot, bulb, stem and collar, all of one flesh and grown into each other
+            Material material=chess_dark_stem
+                SmoothUnion smoothness=0.07
+                    Translate translation=(0, 0.12, 0)
+                        RoundedCylinder radius=1.0 roundness=0.09 height=0.12
+                    Translate translation=(0, 0.33, 0)
+                        Torus innerRadius=0.46 outerRadius=0.9
+                    Translate translation=(0, 1.38, 0)
+                        CappedCone height=0.98 bottomRadius=0.5 topRadius=0.28
+                    Translate translation=(0, 2.5, 0)
+                        CappedCone height=0.14 bottomRadius=0.27 topRadius=0.25
+                    # The collar: a flared ring, the mushroom's annulus
+                    Translate translation=(0, 2.36, 0)
+                        Round radius=0.03
+                            CappedCone height=0.06 bottomRadius=0.72 topRadius=0.42
+
+        # Floating eyes, mirrored, in front of the stem, and floating hands either side of it in the stem's flesh
+        SymmetryX
+            Translate translation=(0.21, 1.62, 0.56)
+                Scale scale=(2.2, 2.2, 2.2)
+                    Part part=eye
+        SymmetryX
+            Translate translation=(0.78, 1.25, 0.25)
+                Material material=chess_dark_stem
+                    Scale scale=(2.4, 2.4, 2.4)
+                        Part part=hand

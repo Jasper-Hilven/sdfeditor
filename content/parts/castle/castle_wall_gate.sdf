@@ -1,0 +1,40 @@
+# Castle gate bay: a castle_wall_bay with the gate cut through it, a passage 3.2 m wide under a round arch 4.6 m high, and the
+# partial veil of a young mushroom hanging over the opening on the outer side. Two castle_gate_turrets frame it in the layout.
+format 1
+collider mesh
+Detail detail=0.3
+    # Cut off 30 cm below the ground
+    Intersection
+        Translate translation=(0, 11.7, 0)
+            Box size=(12, 12, 12)
+        Union
+            Material material=amanita_stem
+                Subtraction
+                    Union
+                        # The core, the walk on top of it and the parapet on its outer edge
+                        Translate translation=(0, 2.4, 0)
+                            Box size=(1.9, 2.4, 0.6)
+                        Translate translation=(0, 4.85, -0.05)
+                            Box size=(1.9, 0.15, 1.05)
+                        Translate translation=(0, 5.25, 0.85)
+                            Box size=(1.9, 0.25, 0.15)
+                        # The foot swells out like a stem's bulb on both sides
+                        Translate translation=(0, 0.2, 0)
+                            Ellipsoid radii=(2.1, 1.5, 1.3)
+                        # Stems packed along the outer face, thick at the foot and tapering up
+                        ArbitraryRoundCone a=(-1.25, 0, 0.6) b=(-1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+                        ArbitraryRoundCone a=(0, 0, 0.6) b=(0, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+                        ArbitraryRoundCone a=(1.25, 0, 0.6) b=(1.25, 4.3, 0.5) radiusA=0.72 radiusB=0.42
+                    Union
+                        Translate translation=(0, 1.5, 0)
+                            Box size=(1.6, 1.5, 2)
+                        ArbitraryCappedCylinder a=(0, 3, -2) b=(0, 3, 2) radius=1.6
+            # The veil: a cream band under the walk with a fringe of folds hanging from it
+            Material material=amanita_gills
+                Union
+                    Translate translation=(0, 4.45, 1.05)
+                        Round radius=0.03
+                            Box size=(1.75, 0.12, 0.2)
+                    Translate translation=(0, 4.05, 1.12)
+                        LimitedRepetition spacing=0.55 limits=(3, 0, 0)
+                            Ellipsoid radii=(0.3, 0.45, 0.1)

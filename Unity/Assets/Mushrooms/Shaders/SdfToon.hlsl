@@ -6,10 +6,13 @@
 // the material, so every mushroom shares one: the edge colour, which the realistic look takes per region, is worked out per vertex
 // by MushroomBuilder (UV6 rgb = edge colour of the vertex's materials, a = how far it has turned to it). The light is the
 // scene's main light (URP's: the sun source of the lighting settings, else the brightest directional light), with its cascaded
-// shadows, reduced to its hue: a toon surface shows the same flat tones at any light intensity.
+// shadows, reduced to its hue: a toon surface shows the same flat tones at any light intensity. The sky (SdfSky.hlsl) tints the shadow
+// band and scales the result by its brightness, all but the glowing edges.
 
 #ifndef SDF_TOON_INCLUDED
 #define SDF_TOON_INCLUDED
+
+#include "Assets/Mushrooms/Shaders/SdfSky.hlsl"
 
 // x = shade threshold (light below it is the shadow tone), y = lit threshold (light above it is the lit tone),
 // z = softness of the band edges (in the same units, -1 to 1), w = how much the baked ambient occlusion darkens (0 to 1)
@@ -34,9 +37,10 @@ float3 SdfToonColor(float4 VertexColor, float4 UV1, float4 UV2, float4 UV3, floa
     return color;
 }
 
-// n, v, l: unit normal, direction to the eye and to the light; shadow 1 = in the light; tint = the light's hue (max channel 1)
+// n, v, l: unit normal, direction to the eye and to the light; shadow 1 = in the light; tint = the light's hue (max channel 1);
+// glow = how far the albedo turned to the glowing edge colour (UV6.a), which keeps its strength under a dark sky (SkyTone)
 float3 SdfToonShade(float3 albedo, float3 n, float3 v, float3 l, float shadow, float3 tint, float roughness, float specular,
-    float wetness, float occlusion)
+    float wetness, float occlusion, float glow)
 {
     float nl = dot(n, l);
     // Cast shadow counts as facing away, so it falls in the shadow band with a crisp edge
@@ -44,7 +48,7 @@ float3 SdfToonShade(float3 albedo, float3 n, float3 v, float3 l, float shadow, f
     float soft = max(_ToonBands.z, 1e-4);
     float mid = smoothstep(_ToonBands.x - soft, _ToonBands.x + soft, light);
     float lit = smoothstep(_ToonBands.y - soft, _ToonBands.y + soft, light);
-    float3 tone = lerp(_ToonShadowTone.rgb, lerp(_ToonMidTone.rgb, _ToonLitTone.rgb, lit) * tint, mid);
+    float3 tone = lerp(_ToonShadowTone.rgb * SkyShadowTint(), lerp(_ToonMidTone.rgb, _ToonLitTone.rgb, lit) * tint, mid);
     float3 color = albedo * tone * lerp(1.0, occlusion, _ToonBands.w);
 
     // Hard highlight: Blinn-Phong as sharp as the surface is smooth (wet is glossy), cut at a threshold; none on rough surfaces
@@ -61,7 +65,7 @@ float3 SdfToonShade(float3 albedo, float3 n, float3 v, float3 l, float shadow, f
     float rim = 1.0 - saturate(dot(n, v));
     float rimEdge = max(fwidth(rim), 1e-3);
     color += smoothstep(1.0 - _ToonRim.y - rimEdge, 1.0 - _ToonRim.y + rimEdge, rim) * _ToonRim.x * mid * tint * albedo;
-    return color;
+    return SkyTone(color, glow);
 }
 
 #endif
