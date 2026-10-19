@@ -1,11 +1,10 @@
 # King, light: the tallest mushroom, 5.6 m, turned like a chess king. A broad foot with a swollen bulb, a long stem up to a
 # flared ring, and on top a round penny-bun cap ringed with eight pointed tines like a crown, gills under its rim, and a cross of
-# stem flesh standing on its crown. Floating eyes and hands in front of the stem.
+# stem flesh standing on its crown.
 format 1
 collider convex
 
-# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
-# so its eyes and hands get half too
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Union
         SmoothUnion smoothness=0.04
@@ -44,14 +43,3 @@ Detail detail=0.5
                     # The cross on the crown
                     Capsule a=(0, 4.8, 0) b=(0, 5.48, 0) radius=0.12
                     Capsule a=(-0.3, 5.2, 0) b=(0.3, 5.2, 0) radius=0.11
-
-        # Floating eyes, mirrored, in front of the stem, and floating hands either side of it in the stem's flesh
-        SymmetryX
-            Translate translation=(0.25, 2.1, 0.64)
-                Scale scale=(2.5, 2.5, 2.5)
-                    Part part=eye
-        SymmetryX
-            Translate translation=(0.94, 1.65, 0.3)
-                Material material=chess_light_stem
-                    Scale scale=(2.7, 2.7, 2.7)
-                        Part part=hand
