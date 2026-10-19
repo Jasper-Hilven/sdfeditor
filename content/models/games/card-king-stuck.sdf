@@ -3,6 +3,9 @@
 format 1
 collider mesh
 
-Translate translation=(0, 1.55, 0)
-    Rotate rotation=(-0.44, 0.25, 0.3)
-        Part part=card_king
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Translate translation=(0, 1.55, 0)
+        Rotate rotation=(-0.44, 0.25, 0.3)
+            Part part=card_king

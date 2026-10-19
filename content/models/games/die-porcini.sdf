@@ -4,53 +4,59 @@
 format 1
 collider convex
 
-Union
-    Translate translation=(0, 1.1, 0)
-        SmoothUnion smoothness=0.03
-            Material material=game_porcini_flesh
-                RoundBox size=(1.1, 1.1, 1.1) roundness=0.22
-            # Upside down, so the six is on top
-            Material material=game_porcini_cap
-                Rotate rotation=(3.1415927, 0, 0)
-                    Part part=die_pips
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Union
+        Translate translation=(0, 1.1, 0)
+            SmoothUnion smoothness=0.03
+                Material material=game_porcini_flesh
+                    RoundBox size=(1.1, 1.1, 1.1) roundness=0.22
+                # Upside down, so the six is on top
+                Material material=game_porcini_cap
+                    Rotate rotation=(3.1415927, 0, 0)
+                        # Inside an intersection with a box round the die, the pips stay in the die's own mesh, filleted
+                        Intersection
+                            Box size=(1.3, 1.3, 1.3)
+                            Part part=die_pips
 
-    # The porcini on top, in the bare strip between the two rows of pips, half again their modelled size: stems swelling at the
-    # foot, set into the die's top face
-    Translate translation=(0, 2.18, -0.25)
-        Scale scale=(1.5, 1.5, 1.5)
-            Union
-                SmoothUnion smoothness=0.04
-                    Material material=game_porcini_flesh
-                        SmoothUnion smoothness=0.08
-                            Translate translation=(0, 0.28, 0)
-                                CappedCone height=0.26 bottomRadius=0.17 topRadius=0.12
-                            Translate translation=(0, 0.1, 0)
-                                Ellipsoid radii=(0.2, 0.14, 0.2)
-                            # The small ones: short stems tilted outwards
-                            Translate translation=(0.3, 0.1, 0.22)
-                                Rotate rotation=(0.35, 0, -0.45)
-                                    CappedCone height=0.12 bottomRadius=0.09 topRadius=0.06
-                            Translate translation=(-0.22, 0.08, 0.3)
-                                Rotate rotation=(0.5, 0, 0.4)
-                                    CappedCone height=0.09 bottomRadius=0.07 topRadius=0.05
-                    Material material=game_porcini_cap
-                        Union
-                            # The big one's cap: a fat bun
-                            Intersection
-                                Translate translation=(0, 0.5, 0)
-                                    Ellipsoid radii=(0.44, 0.3, 0.44)
-                                Translate translation=(0, 0.9, 0)
-                                    Box size=(0.5, 0.36, 0.5)
-                            # The small ones' caps
-                            Translate translation=(0.36, 0.22, 0.27)
-                                Rotate rotation=(0.35, 0, -0.45)
-                                    Intersection
-                                        Ellipsoid radii=(0.16, 0.12, 0.16)
-                                        Translate translation=(0, 0.2, 0)
-                                            Box size=(0.2, 0.2, 0.2)
-                            Translate translation=(-0.26, 0.16, 0.36)
-                                Rotate rotation=(0.5, 0, 0.4)
-                                    Intersection
-                                        Ellipsoid radii=(0.12, 0.09, 0.12)
-                                        Translate translation=(0, 0.15, 0)
-                                            Box size=(0.15, 0.15, 0.15)
+        # The porcini on top, in the bare strip between the two rows of pips, half again their modelled size: stems swelling at the
+        # foot, set into the die's top face
+        Translate translation=(0, 2.18, -0.25)
+            Scale scale=(1.5, 1.5, 1.5)
+                Union
+                    SmoothUnion smoothness=0.04
+                        Material material=game_porcini_flesh
+                            SmoothUnion smoothness=0.08
+                                Translate translation=(0, 0.28, 0)
+                                    CappedCone height=0.26 bottomRadius=0.17 topRadius=0.12
+                                Translate translation=(0, 0.1, 0)
+                                    Ellipsoid radii=(0.2, 0.14, 0.2)
+                                # The small ones: short stems tilted outwards
+                                Translate translation=(0.3, 0.1, 0.22)
+                                    Rotate rotation=(0.35, 0, -0.45)
+                                        CappedCone height=0.12 bottomRadius=0.09 topRadius=0.06
+                                Translate translation=(-0.22, 0.08, 0.3)
+                                    Rotate rotation=(0.5, 0, 0.4)
+                                        CappedCone height=0.09 bottomRadius=0.07 topRadius=0.05
+                        Material material=game_porcini_cap
+                            Union
+                                # The big one's cap: a fat bun
+                                Intersection
+                                    Translate translation=(0, 0.5, 0)
+                                        Ellipsoid radii=(0.44, 0.3, 0.44)
+                                    Translate translation=(0, 0.9, 0)
+                                        Box size=(0.5, 0.36, 0.5)
+                                # The small ones' caps
+                                Translate translation=(0.36, 0.22, 0.27)
+                                    Rotate rotation=(0.35, 0, -0.45)
+                                        Intersection
+                                            Ellipsoid radii=(0.16, 0.12, 0.16)
+                                            Translate translation=(0, 0.2, 0)
+                                                Box size=(0.2, 0.2, 0.2)
+                                Translate translation=(-0.26, 0.16, 0.36)
+                                    Rotate rotation=(0.5, 0, 0.4)
+                                        Intersection
+                                            Ellipsoid radii=(0.12, 0.09, 0.12)
+                                            Translate translation=(0, 0.15, 0)
+                                                Box size=(0.15, 0.15, 0.15)

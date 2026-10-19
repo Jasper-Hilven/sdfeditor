@@ -3,7 +3,10 @@
 format 1
 collider mesh
 
-Translate translation=(0, 0.36, 0)
-    # A quarter turn about x the other way lays the face down, and a little tilt rests it on its pips at one end
-    Rotate rotation=(1.5307964, 0, 0)
-        Part part=domino_2_6
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Translate translation=(0, 0.36, 0)
+        # A quarter turn about x the other way lays the face down, and a little tilt rests it on its pips at one end
+        Rotate rotation=(1.5307964, 0, 0)
+            Part part=domino_2_6

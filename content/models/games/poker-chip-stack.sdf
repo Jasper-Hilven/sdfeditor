@@ -3,19 +3,22 @@
 format 1
 collider mesh
 
-Union
-    Translate translation=(0, 0.16, 0)
-        Part part=poker_chip_red
-    Translate translation=(0.09, 0.48, -0.06)
-        Rotate rotation=(0, 0.7, 0)
-            Part part=poker_chip_blue
-    Translate translation=(-0.05, 0.8, 0.1)
-        Rotate rotation=(0, 2.1, 0)
+# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
+# board
+Detail detail=0.5
+    Union
+        Translate translation=(0, 0.16, 0)
             Part part=poker_chip_red
-    Translate translation=(0.14, 1.12, 0.04)
-        Rotate rotation=(0, -1.2, 0)
-            Part part=poker_chip_red
-    # The top one, slid 0.45 m off and tipped down at its overhanging side
-    Translate translation=(0.55, 1.44, -0.05)
-        Rotate rotation=(0, 0.4, -0.1)
-            Part part=poker_chip_blue
+        Translate translation=(0.09, 0.48, -0.06)
+            Rotate rotation=(0, 0.7, 0)
+                Part part=poker_chip_blue
+        Translate translation=(-0.05, 0.8, 0.1)
+            Rotate rotation=(0, 2.1, 0)
+                Part part=poker_chip_red
+        Translate translation=(0.14, 1.12, 0.04)
+            Rotate rotation=(0, -1.2, 0)
+                Part part=poker_chip_red
+        # The top one, slid 0.45 m off and tipped down at its overhanging side
+        Translate translation=(0.55, 1.44, -0.05)
+            Rotate rotation=(0, 0.4, -0.1)
+                Part part=poker_chip_blue
