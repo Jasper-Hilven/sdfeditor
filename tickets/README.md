@@ -11,6 +11,7 @@ the one before.
 | 03 | [Foliage and the instanced renderer](03-foliage.md) | Grass turfs and flowers scattered and drawn instanced, with wind; the renderer is general |
 | 04 | [Hills and island](04-hills-and-island.md) | Instanced tree line on the border hills, crest clusters, the island's rocky underside |
 | 05 | [Tuning](05-tuning.md) | Budgets met on the high and integrated-GPU/web presets |
+| 06 | [Castles](06-castles.md) | Castle split into instanced parts with LODs per part, shader wall detail, mushroom theme. After 02, **in parallel with 03**, before 04 |
 
 ## The level
 

@@ -86,6 +86,12 @@ namespace SdfMushrooms.Editor
         public List<Material> Materials = new List<Material>();
         public float CellSize;
 
+        /// <summary>
+        /// What the model collides with, extras.sdf.collider: shape convex or mesh with the lod it is made from, or capsule with its base,
+        /// top and radius (in the file's coordinates); null for none.
+        /// </summary>
+        public JObject Collider;
+
         /// <summary>Levels of detail, LOD0 included: 1 for a file without levels.</summary>
         public int LodCount => 1 + Meshes.Select(m => m.Lods.Count).DefaultIfEmpty(0).Max();
 
@@ -198,6 +204,7 @@ namespace SdfMushrooms.Editor
             if (sdf == null)
                 throw new InvalidDataException($"{name} was not written by the SDF pipeline: it has no extras.sdf");
             result.CellSize = sdf.Value<float?>("cellSize").GetValueOrDefault();
+            result.Collider = sdf["collider"] as JObject;
             foreach (var material in (JArray)sdf["materials"])
                 result.Materials.Add(new Material { Name = material.Value<string>("name"), Parameters = (JObject)material["parameters"] });
             return result;

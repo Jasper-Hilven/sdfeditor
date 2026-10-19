@@ -2,7 +2,8 @@
 // same mesh; it draws only the back faces, pushed out along the normal by a fixed number of pixels, so they peek out around the
 // silhouette and wherever the part passes in front of something further away (eyes and hands over the body, the cap over the stem).
 // The line takes the colour of the surface under it, darkened (_OutlineTone), so each mushroom keeps its own palette.
-// It cross-fades with its part between levels of detail (SdfLodFade.hlsl); MushroomBuilder leaves it off the coarsest level.
+// It cross-fades with its part between levels of detail (URP's dither on the pixel's screen position, as SdfToon.shader); MushroomBuilder
+// leaves it off the coarsest level. It casts no shadow, and is in the depth prepasses so depth priming does not drop it.
 // Keep in step with the toon branch of the IDE's preview (IDE/wwwroot/js/sdf-renderer.js).
 Shader "SdfMushrooms/Toon Outline"
 {
@@ -14,15 +15,13 @@ Shader "SdfMushrooms/Toon Outline"
 
     HLSLINCLUDE
 
-    #pragma target 4.5
-    #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch switch2
+    // WebGL 2 and up: no compute, no geometry shaders
+    #pragma target 3.5
 
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-    #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPass.cs.hlsl"
-    // Both passes only transform the mesh; neither depends on the pass
-    #define SHADERPASS SHADERPASS_FORWARD_UNLIT
-    #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-    #include "SdfLodFade.hlsl"
+    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+    #if defined(LOD_FADE_CROSSFADE)
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
+    #endif
 
     CBUFFER_START(UnityPerMaterial)
         float _OutlineWidth;
@@ -34,22 +33,27 @@ Shader "SdfMushrooms/Toon Outline"
         float3 positionOS : POSITION;
         float3 normalOS : NORMAL;
         float4 color : COLOR;
+        UNITY_VERTEX_INPUT_INSTANCE_ID
     };
 
     struct Varyings
     {
         float4 positionCS : SV_POSITION;
         float3 color : TEXCOORD0;
+        float3 normalWS : TEXCOORD1;
+        UNITY_VERTEX_INPUT_INSTANCE_ID
     };
 
     // Pushes the vertex out along its normal as seen on screen, by the same number of pixels at any distance
-    // (scaled with the screen height so lines keep their weight at any resolution)
+    // (scaled with the screen height so lines keep their weight at any resolution or render scale)
     Varyings OutlineVert(Attributes input)
     {
         Varyings output;
-        float3 positionRWS = TransformObjectToWorld(input.positionOS);
+        UNITY_SETUP_INSTANCE_ID(input);
+        UNITY_TRANSFER_INSTANCE_ID(input, output);
+        float3 positionWS = TransformObjectToWorld(input.positionOS);
         float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
-        float4 positionCS = TransformWorldToHClip(positionRWS);
+        float4 positionCS = TransformWorldToHClip(positionWS);
         float2 normalCS = mul((float3x3)UNITY_MATRIX_VP, normalWS).xy;
         float2 normalPixels = normalCS * _ScreenSize.xy;
         float length2 = dot(normalPixels, normalPixels);
@@ -60,71 +64,37 @@ Shader "SdfMushrooms/Toon Outline"
         }
         output.positionCS = positionCS;
         output.color = input.color.rgb;
+        output.normalWS = normalWS;
         return output;
+    }
+
+    // Drops this pixel from one of the two levels a LOD group is fading between, the same pixels as the surface's; nothing without
+    // the keyword
+    void SdfLodFade(float4 positionCS)
+    {
+    #if defined(LOD_FADE_CROSSFADE)
+        LODFadeCrossFade(positionCS);
+    #endif
     }
 
     ENDHLSL
 
     SubShader
     {
-        Tags { "RenderPipeline" = "HDRenderPipeline" "RenderType" = "Opaque" "Queue" = "Geometry" }
-
-        Pass
-        {
-            Name "DepthForwardOnly"
-            Tags { "LightMode" = "DepthForwardOnly" }
-
-            Stencil
-            {
-                WriteMask 8
-                Ref 0
-                Comp Always
-                Pass Replace
-            }
-            Cull Front
-            ZWrite On
-
-            HLSLPROGRAM
-            #pragma multi_compile_fragment _ WRITE_MSAA_DEPTH
-            #pragma multi_compile _ LOD_FADE_CROSSFADE
-            #pragma vertex Vert
-            #pragma fragment Frag
-
-            Varyings Vert(Attributes input) { return OutlineVert(input); }
-
-            #ifdef WRITE_MSAA_DEPTH
-            float4 Frag(Varyings input) : SV_Target0
-            {
-                SdfLodFade(input.positionCS);
-                return float4(input.positionCS.z, input.positionCS.z, input.positionCS.z, 1.0);
-            }
-            #else
-            void Frag(Varyings input)
-            {
-                SdfLodFade(input.positionCS);
-            }
-            #endif
-            ENDHLSL
-        }
+        Tags { "RenderPipeline" = "UniversalPipeline" "RenderType" = "Opaque" "Queue" = "Geometry" }
 
         Pass
         {
             Name "ForwardOnly"
-            Tags { "LightMode" = "ForwardOnly" }
+            Tags { "LightMode" = "UniversalForwardOnly" }
 
-            Stencil
-            {
-                WriteMask 3
-                Ref 0
-                Comp Always
-                Pass Replace
-            }
             Cull Front
             ZWrite On
             ZTest LEqual
 
             HLSLPROGRAM
             #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #pragma multi_compile_instancing
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -132,8 +102,67 @@ Shader "SdfMushrooms/Toon Outline"
 
             float4 Frag(Varyings input) : SV_Target0
             {
+                UNITY_SETUP_INSTANCE_ID(input);
                 SdfLodFade(input.positionCS);
-                return float4(input.color * _OutlineTone.rgb * _DeExposureMultiplier, 1.0);
+                return float4(input.color * _OutlineTone.rgb, 1.0);
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+
+            Cull Front
+            ZWrite On
+            ColorMask R
+
+            HLSLPROGRAM
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #pragma multi_compile_instancing
+            #pragma vertex Vert
+            #pragma fragment Frag
+
+            Varyings Vert(Attributes input) { return OutlineVert(input); }
+
+            float Frag(Varyings input) : SV_Target0
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                SdfLodFade(input.positionCS);
+                return input.positionCS.z;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            Cull Front
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #pragma multi_compile_instancing
+            #pragma vertex Vert
+            #pragma fragment Frag
+
+            Varyings Vert(Attributes input) { return OutlineVert(input); }
+
+            // The back faces' normals turned round, towards the camera like the surface's
+            float4 Frag(Varyings input) : SV_Target0
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                SdfLodFade(input.positionCS);
+                float3 normalWS = -normalize(input.normalWS);
+            #if defined(_GBUFFER_NORMALS_OCT)
+                return float4(PackFloat2To888(saturate(PackNormalOctQuadEncode(normalWS) * 0.5 + 0.5)), 0.0);
+            #else
+                return float4(normalWS, 0.0);
+            #endif
             }
             ENDHLSL
         }

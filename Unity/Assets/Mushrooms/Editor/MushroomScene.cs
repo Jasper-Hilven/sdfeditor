@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace SdfMushrooms.Editor
@@ -13,14 +13,15 @@ namespace SdfMushrooms.Editor
     /// <summary>
     /// The default scene, Assets/Scenes/Mushrooms.unity: one instance of each model (its best variant, see
     /// <see cref="MushroomBuilder.SceneModels"/>) on a forest floor, a row per group (characters, rocks, trees, weapons) with the lower
-    /// rows in front, under a physically based sky and sun with fixed exposure, framed by the camera. Created the first time; after
+    /// rows in front, under a procedural sky and a sun, with ACES tone mapping, framed by the camera. Created the first time; after
     /// that only touched when what it should show or where changes, because the instances follow their prefabs by themselves.
     /// </summary>
     public static class MushroomScene
     {
         public const string MushroomsRootName = "Mushrooms";
-        private const string VolumeProfilePath = "Assets/Scenes/Mushrooms/Sky and Exposure.asset";
+        private const string VolumeProfilePath = "Assets/Scenes/Mushrooms/Post Processing.asset";
         private const string GroundMaterialPath = "Assets/Mushrooms/Materials/Forest Floor.mat";
+        private const string SkyMaterialPath = "Assets/Mushrooms/Materials/Sky.mat";
         private const float Gap = 0.35f;
         private const float RowGap = 0.8f;
 
@@ -248,6 +249,48 @@ namespace SdfMushrooms.Editor
 
         private static void BuildEnvironment(Scene scene)
         {
+            // Camera: a moderate telephoto like a product shot
+            CreateCamera(scene, "Main Camera", 28);
+            BuildLighting(scene);
+
+            // Forest floor: a dark, rough, earthy ground that takes the shadows
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "Ground";
+            SceneManager.MoveGameObjectToScene(ground, scene);
+            Object.DestroyImmediate(ground.GetComponent<Collider>());
+            ground.transform.localScale = new Vector3(6, 1, 6);
+            ground.GetComponent<MeshRenderer>().sharedMaterial = GroundMaterial();
+        }
+
+        /// <summary>
+        /// A camera tagged as the main one, with post-processing (tone mapping) and the quality level's anti-aliasing
+        /// (<see cref="QualityPresetCamera"/>); at the scene's root, or under <paramref name="parent"/>.
+        /// </summary>
+        public static Camera CreateCamera(Scene scene, string name, float fieldOfView, Transform parent = null)
+        {
+            var cameraObject = new GameObject(name);
+            if (parent != null)
+                cameraObject.transform.SetParent(parent, false);
+            else
+                SceneManager.MoveGameObjectToScene(cameraObject, scene);
+            cameraObject.tag = "MainCamera";
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.fieldOfView = fieldOfView;
+            camera.nearClipPlane = 0.05f;
+            camera.farClipPlane = 500;
+            var cameraData = camera.GetUniversalAdditionalCameraData();
+            cameraData.renderPostProcessing = true;
+            cameraData.antialiasingQuality = AntialiasingQuality.High;
+            cameraObject.AddComponent<QualityPresetCamera>();
+            return camera;
+        }
+
+        /// <summary>
+        /// The light of the toon world, shared by the mushroom scene and the level scenes: the sun, a procedural sky with a flat dim
+        /// ambient, and the post-processing volume (tone mapping, a faint bloom).
+        /// </summary>
+        public static Light BuildLighting(Scene scene)
+        {
             GameObject Create(string name)
             {
                 var gameObject = new GameObject(name);
@@ -255,30 +298,35 @@ namespace SdfMushrooms.Editor
                 return gameObject;
             }
 
-            // Camera: a moderate telephoto like a product shot; temporal anti-aliasing also settles the grain of subsurface scattering
-            var cameraObject = Create("Main Camera");
-            cameraObject.tag = "MainCamera";
-            var camera = cameraObject.AddComponent<Camera>();
-            camera.fieldOfView = 28;
-            camera.nearClipPlane = 0.05f;
-            camera.farClipPlane = 500;
-            var cameraData = cameraObject.AddComponent<HDAdditionalCameraData>();
-            cameraData.antialiasing = HDAdditionalCameraData.AntialiasingMode.TemporalAntialiasing;
-            cameraData.TAAQuality = HDAdditionalCameraData.TAAQualityLevel.High;
-
-            // Sun from the front, above and to the side
+            // Sun from the front, above and to the side. The toon look takes only its direction, hue and shadows; its intensity lights
+            // the ground. The filter stands in for the atmosphere HDRP's physically based sky put between the sun and the scene, which
+            // warmed its 5600 K (fitted to the HDRP snapshots)
             var sunObject = Create("Sun");
-            var sun = sunObject.AddHDLight(LightType.Directional);
-            var light = sunObject.GetComponent<Light>();
-            light.lightUnit = LightUnit.Lux;
-            light.intensity = 100000;
+            var light = sunObject.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.intensity = 1.5f;
             light.useColorTemperature = true;
             light.colorTemperature = 5600;
+            light.color = new Color(1, 0.94f, 0.83f);
             light.shadows = LightShadows.Soft;
-            sun.SetShadowResolution(4096);
+            light.shadowStrength = 1;
             sunObject.transform.rotation = Quaternion.LookRotation(SunDirection);
 
-            // Sky, exposure for a sunny day, tone mapping like the preview's ACES, sharp sun shadows nearby
+            // A procedural sky, whose ground colour fills the background below the horizon, and a flat dim ambient for the ground's
+            // shadows (no lighting to bake); no fog. Lighting settings belong to the active scene
+            var active = SceneManager.GetActiveScene();
+            SceneManager.SetActiveScene(scene);
+            RenderSettings.sun = light;
+            RenderSettings.skybox = SkyMaterial();
+            RenderSettings.ambientMode = AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.17f, 0.14f, 0.1f);
+            RenderSettings.fog = false;
+            if (active.IsValid() && active != scene)
+                SceneManager.SetActiveScene(active);
+
+            // Tone mapping like the preview's ACES, and the faint glow HDRP's default bloom gave. HDRP blended 15% of the blurred image
+            // in (2^0.2 - 1), which also dimmed bright models over the dark ground; URP adds it, so the sum is scaled back by the rest
+            // (-0.23 EV, a little more for the brighter tone curve; fitted to the HDRP snapshots)
             var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumeProfilePath);
             if (profile == null)
             {
@@ -292,36 +340,22 @@ namespace SdfMushrooms.Editor
                     AssetDatabase.AddObjectToAsset(component, profile);
                     return component;
                 }
-                var environment = Add<VisualEnvironment>();
-                environment.skyType.value = (int)SkyType.PhysicallyBased;
-                environment.skyAmbientMode.value = SkyAmbientMode.Dynamic;
-                Add<PhysicallyBasedSky>();
-                var exposure = Add<Exposure>();
-                exposure.mode.value = ExposureMode.Fixed;
-                exposure.fixedExposure.value = 14f;
                 var tonemapping = Add<Tonemapping>();
                 tonemapping.mode.value = TonemappingMode.ACES;
-                var fog = Add<Fog>();
-                fog.enabled.value = false;
-                var shadows = Add<HDShadowSettings>();
-                shadows.maxShadowDistance.value = 25;
-                var contactShadows = Add<ContactShadows>();
-                contactShadows.enable.value = true;
+                var bloom = Add<Bloom>();
+                bloom.threshold.value = 0;
+                bloom.intensity.value = 0.175f;
+                bloom.scatter.value = 0.7f;
+                var adjustments = Add<ColorAdjustments>();
+                adjustments.postExposure.value = -0.26f;
                 EditorUtility.SetDirty(profile);
                 AssetDatabase.SaveAssets();
             }
-            var volumeObject = Create("Sky and Exposure");
+            var volumeObject = Create("Post Processing");
             var volume = volumeObject.AddComponent<Volume>();
             volume.isGlobal = true;
             volume.sharedProfile = profile;
-
-            // Forest floor: a dark, rough, earthy ground that takes the shadows
-            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            ground.name = "Ground";
-            SceneManager.MoveGameObjectToScene(ground, scene);
-            Object.DestroyImmediate(ground.GetComponent<Collider>());
-            ground.transform.localScale = new Vector3(6, 1, 6);
-            ground.GetComponent<MeshRenderer>().sharedMaterial = GroundMaterial();
+            return light;
         }
 
         private static Material GroundMaterial()
@@ -329,13 +363,28 @@ namespace SdfMushrooms.Editor
             var material = AssetDatabase.LoadAssetAtPath<Material>(GroundMaterialPath);
             if (material != null)
                 return material;
-            material = new Material(Shader.Find("HDRP/Lit")) { name = "Forest Floor" };
-            material.SetColor("_BaseColor", new Color(0.2f, 0.16f, 0.11f));
+            material = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Forest Floor" };
+            material.SetColor("_BaseColor", new Color(0.22f, 0.17f, 0.1f));
             material.SetFloat("_Smoothness", 0.15f);
             material.SetFloat("_Metallic", 0);
-            HDMaterial.ValidateMaterial(material);
             MushroomBuilder.EnsureFolder(Path.GetDirectoryName(GroundMaterialPath));
             AssetDatabase.CreateAsset(material, GroundMaterialPath);
+            return material;
+        }
+
+        private static Material SkyMaterial()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(SkyMaterialPath);
+            if (material != null)
+                return material;
+            material = new Material(Shader.Find("Skybox/Procedural")) { name = "Sky" };
+            material.SetFloat("_SunSize", 0.03f);
+            material.SetFloat("_AtmosphereThickness", 1);
+            material.SetColor("_SkyTint", new Color(0.5f, 0.5f, 0.5f));
+            material.SetColor("_GroundColor", new Color(0.32f, 0.26f, 0.21f));
+            material.SetFloat("_Exposure", 1);
+            MushroomBuilder.EnsureFolder(Path.GetDirectoryName(SkyMaterialPath));
+            AssetDatabase.CreateAsset(material, SkyMaterialPath);
             return material;
         }
 

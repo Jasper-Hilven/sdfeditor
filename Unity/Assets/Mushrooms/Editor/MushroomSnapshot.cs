@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace SdfMushrooms.Editor
@@ -26,8 +26,11 @@ namespace SdfMushrooms.Editor
     /// covers in a 1080p frame, enlarged without smoothing; &lt;model&gt;_crossfade&lt;k&gt;.png shows the close-up well into the
     /// cross-fade from level k to k+1 without anti-aliasing, so the dithered LOD_FADE_CROSSFADE variants are drawn (and compiled,
     /// synchronously) and their pattern shows. These use a hidden copy of the model whose LOD group is changed at will; the scene's own
-    /// instances are only kept from drawing meanwhile.
+    /// instances are only kept from drawing meanwhile. Without a window: as above, with -executeMethod
+    /// SdfMushrooms.Editor.MushroomSnapshot.CaptureLevelsOfDetail.
     /// </para>
+    /// The renders are drawn at the current quality level, with its anti-aliasing (MSAA samples or FXAA, see
+    /// <see cref="QualityPresetCamera"/>).
     /// </summary>
     public static class MushroomSnapshot
     {
@@ -38,11 +41,21 @@ namespace SdfMushrooms.Editor
 
         public static void Capture()
         {
+            MushroomBuilder.BuildStale();
+            Shoot(EditorSceneManager.OpenScene(MushroomBuilder.ScenePath, OpenSceneMode.Single), DirectoryArgument());
+        }
+
+        public static void CaptureLevelsOfDetail()
+        {
+            MushroomBuilder.BuildStale();
+            ShootLevelsOfDetail(EditorSceneManager.OpenScene(MushroomBuilder.ScenePath, OpenSceneMode.Single), DirectoryArgument());
+        }
+
+        private static string DirectoryArgument()
+        {
             var args = Environment.GetCommandLineArgs();
             var index = Array.IndexOf(args, "-snapshotDir");
-            var directory = index >= 0 && index + 1 < args.Length ? args[index + 1] : Path.Combine(Path.GetTempPath(), "mushroom-snapshots");
-            MushroomBuilder.BuildStale();
-            Shoot(EditorSceneManager.OpenScene(MushroomBuilder.ScenePath, OpenSceneMode.Single), directory);
+            return index >= 0 && index + 1 < args.Length ? args[index + 1] : Path.Combine(Path.GetTempPath(), "mushroom-snapshots");
         }
 
         public static void CaptureOpenScene(string directory, bool levelsOfDetail = false)
@@ -72,13 +85,13 @@ namespace SdfMushrooms.Editor
             Directory.CreateDirectory(directory);
             var sceneCamera = scene.GetRootGameObjects().Select(g => g.GetComponentInChildren<Camera>()).First(c => c != null);
             var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Snapshot Camera", HideFlags.HideAndDontSave, typeof(Camera));
+            var asyncCompilation = ShaderUtil.allowAsyncCompilation;
             try
             {
+                // Variants compiled in the background are drawn as placeholders until they are ready; the renders must show the real ones
+                ShaderUtil.allowAsyncCompilation = false;
                 var camera = cameraObject.GetComponent<Camera>();
-                camera.CopyFrom(sceneCamera);
-                var data = cameraObject.AddComponent<HDAdditionalCameraData>();
-                if (sceneCamera.TryGetComponent<HDAdditionalCameraData>(out var sceneData))
-                    sceneData.CopyTo(data);
+                CopyCamera(sceneCamera, camera);
                 camera.transform.SetPositionAndRotation(sceneCamera.transform.position, sceneCamera.transform.rotation);
                 Render(camera, Path.Combine(directory, "scene.png"), 1920, 1080);
 
@@ -96,6 +109,7 @@ namespace SdfMushrooms.Editor
             }
             finally
             {
+                ShaderUtil.allowAsyncCompilation = asyncCompilation;
                 UnityEngine.Object.DestroyImmediate(cameraObject);
             }
             Debug.Log($"SDF mushrooms: snapshots written to {directory}");
@@ -115,10 +129,8 @@ namespace SdfMushrooms.Editor
                 // Variants compiled in the background are drawn as placeholders until they are ready; these renders must show the real ones
                 ShaderUtil.allowAsyncCompilation = false;
                 var camera = cameraObject.GetComponent<Camera>();
-                camera.CopyFrom(sceneCamera);
-                var data = cameraObject.AddComponent<HDAdditionalCameraData>();
-                if (sceneCamera.TryGetComponent<HDAdditionalCameraData>(out var sceneData))
-                    sceneData.CopyTo(data);
+                CopyCamera(sceneCamera, camera);
+                var data = camera.GetUniversalAdditionalCameraData();
                 var halfAngle = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
                 var direction = new Vector3(-0.25f, 0.35f, 1).normalized;
 
@@ -171,11 +183,10 @@ namespace SdfMushrooms.Editor
 
                     // Well into each cross-fade, seen close up: without the animation the fade follows the camera across the whole of the
                     // level's range, and the group's size is scaled so the close-up sits in its middle (in log, a little over a third of the
-                    // way along both in relative height and in distance, whichever of them the fade follows). Temporal
-                    // anti-aliasing would average the two levels' dither patterns into a blend, as it does in the game; without it the
-                    // pattern itself shows, so each level's share of the pixels can be checked
+                    // way along both in relative height and in distance, whichever of them the fade follows). Without anti-aliasing
+                    // (neither FXAA nor MSAA samples) the dither pattern itself shows, so each level's share of the pixels can be checked
                     var antialiasing = data.antialiasing;
-                    data.antialiasing = HDAdditionalCameraData.AntialiasingMode.None;
+                    data.antialiasing = AntialiasingMode.None;
                     group.animateCrossFading = false;
                     camera.transform.position = bounds.center + direction * close;
                     camera.transform.LookAt(bounds.center);
@@ -187,7 +198,7 @@ namespace SdfMushrooms.Editor
                         var target = Mathf.Sqrt(lods[level].screenRelativeTransitionHeight * Upper(level));
                         group.size *= target / (size * 0.5f * QualitySettings.lodBias / (closeDistance * halfAngle));
                         size = group.size * copy.transform.lossyScale.y;
-                        Render(camera, Path.Combine(directory, $"{model.name}_crossfade{level}.png"), 1200, 1200);
+                        Render(camera, Path.Combine(directory, $"{model.name}_crossfade{level}.png"), 1200, 1200, multisampled: false);
                     }
                     data.antialiasing = antialiasing;
 
@@ -207,13 +218,35 @@ namespace SdfMushrooms.Editor
             Debug.Log($"SDF mushrooms: LOD snapshots written to {directory}");
         }
 
+        /// <summary>
+        /// Renders one view to a PNG through a hidden copy of a scene's camera (its settings, post-processing and the quality level's
+        /// anti-aliasing) at another place, with every shader variant compiled first; for other scenes' snapshots, like the levels'.
+        /// </summary>
+        public static void RenderView(Camera sceneCamera, Vector3 position, Quaternion rotation, string path, int width, int height)
+        {
+            var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Snapshot Camera", HideFlags.HideAndDontSave, typeof(Camera));
+            var asyncCompilation = ShaderUtil.allowAsyncCompilation;
+            try
+            {
+                ShaderUtil.allowAsyncCompilation = false;
+                var camera = cameraObject.GetComponent<Camera>();
+                CopyCamera(sceneCamera, camera);
+                camera.transform.SetPositionAndRotation(position, rotation);
+                Render(camera, path, width, height);
+            }
+            finally
+            {
+                ShaderUtil.allowAsyncCompilation = asyncCompilation;
+                UnityEngine.Object.DestroyImmediate(cameraObject);
+            }
+        }
+
         /// <summary>Renders a frame and returns the square of <paramref name="crop"/> pixels at its centre, enlarged to <paramref name="tile"/> pixels without smoothing.</summary>
         private static Texture2D RenderCrop(Camera camera, int width, int height, int crop, int tile)
         {
-            var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 1 };
+            var target = Target(width, height, true);
             camera.targetTexture = target;
-            for (var frame = 0; frame < 48; frame++)
-                camera.Render();
+            camera.Render();
             var active = RenderTexture.active;
             RenderTexture.active = target;
             var small = new Texture2D(crop, crop, TextureFormat.RGB24, false);
@@ -251,13 +284,33 @@ namespace SdfMushrooms.Editor
             UnityEngine.Object.DestroyImmediate(strip);
         }
 
-        private static void Render(Camera camera, string path, int width, int height)
+        /// <summary>
+        /// The snapshot camera as the scene's: its settings, post-processing (tone mapping, bloom) and the quality level's
+        /// anti-aliasing.
+        /// </summary>
+        private static void CopyCamera(Camera sceneCamera, Camera camera)
         {
-            var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 1 };
+            camera.CopyFrom(sceneCamera);
+            var sceneData = sceneCamera.GetUniversalAdditionalCameraData();
+            var data = camera.GetUniversalAdditionalCameraData();
+            data.renderPostProcessing = sceneData.renderPostProcessing;
+            data.antialiasingQuality = sceneData.antialiasingQuality;
+            data.renderShadows = sceneData.renderShadows;
+            QualityPresetCamera.Apply(camera);
+        }
+
+        /// <summary>A render target with as many samples per pixel as the quality level's MSAA, or one.</summary>
+        private static RenderTexture Target(int width, int height, bool multisampled)
+        {
+            var samples = multisampled && UniversalRenderPipeline.asset != null ? Mathf.Max(1, UniversalRenderPipeline.asset.msaaSampleCount) : 1;
+            return new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = samples };
+        }
+
+        private static void Render(Camera camera, string path, int width, int height, bool multisampled = true)
+        {
+            var target = Target(width, height, multisampled);
             camera.targetTexture = target;
-            // Many frames: the sky and its ambient light settle over the first ones, temporal anti-aliasing over the rest
-            for (var frame = 0; frame < 48; frame++)
-                camera.Render();
+            camera.Render();
             var active = RenderTexture.active;
             RenderTexture.active = target;
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);

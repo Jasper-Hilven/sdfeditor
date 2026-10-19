@@ -36,5 +36,8 @@ public static class SdfProgramFile
             ? ModelFiles.PartsIn(content)
             : null);
 
+    /// <summary>The model's settings, like its collider (<see cref="ModelSettings"/>), which are not part of its shape.</summary>
+    public static ModelSettings LoadSettings(string path) => ModelSettings.Load(path);
+
     public static void Save(string path, SDFProgram program) => File.WriteAllText(path, Write(program));
 }

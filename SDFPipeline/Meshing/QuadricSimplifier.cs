@@ -52,9 +52,13 @@ public static class QuadricSimplifier
     /// <param name="cellSize">The grid's cell size: each tangent plane stands for about a cell's area of surface.</param>
     /// <param name="creaseAngleDegrees">Cells whose tangent planes differ by more than this hold a crease or corner.</param>
     /// <param name="regions">Optional region of each vertex, such as its material; vertices of different regions are never merged.</param>
+    /// <param name="locked">
+    /// Optional: the vertices that must stay exactly where they are, such as the border of a terrain chunk, which has to keep meeting its
+    /// neighbours. A free vertex may merge into a locked one, which keeps its place; two locked vertices never merge.
+    /// </param>
     public static TriangleMesh Simplify(ContouredMesh mesh, Func<Vector3, float> sdf, float maxError, float cellSize, float creaseAngleDegrees,
-        int[]? regions = null) =>
-        new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions).Run(maxError, coarse: false);
+        int[]? regions = null, bool[]? locked = null) =>
+        new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked).Run(maxError, coarse: false);
 
     /// <summary>
     /// The mesh at each error limit in turn, for levels of detail: the first exactly as <see cref="Simplify"/> gives it, each further one
@@ -73,7 +77,7 @@ public static class QuadricSimplifier
     public static IEnumerable<TriangleMesh> SimplifyInSteps(ContouredMesh mesh, Func<Vector3, float> sdf, IReadOnlyList<float> maxErrors,
         float cellSize, float creaseAngleDegrees, int[]? regions = null)
     {
-        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions);
+        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked: null);
         for (var level = 0; level < maxErrors.Count; level++)
             yield return simplification.Run(maxErrors[level], coarse: level > 0);
     }
@@ -140,6 +144,7 @@ public static class QuadricSimplifier
         private readonly Vector3[] outward;
         private readonly int[]? regions;
         private readonly bool[] regionBorder;
+        private readonly bool[]? locked;
         private readonly int[] version;
         private readonly bool[] removedVertex;
 
@@ -152,7 +157,8 @@ public static class QuadricSimplifier
         private float maxVertexDistance;
         private float maxFaceDistance;
 
-        public Simplification(ContouredMesh contoured, Func<Vector3, float> sdf, float cellSize, float creaseAngleDegrees, int[]? regions)
+        public Simplification(ContouredMesh contoured, Func<Vector3, float> sdf, float cellSize, float creaseAngleDegrees, int[]? regions,
+            bool[]? locked)
         {
             this.sdf = sdf;
             gradientStep = cellSize * 1e-3f;
@@ -241,6 +247,14 @@ public static class QuadricSimplifier
                         creaseQuadrics[v] += Quadric.Plane(Vector3.Normalize(across[v]), positions[v], area);
             }
 
+            if (locked is not null)
+            {
+                // A welded vertex is locked when any of the vertices it stands for is
+                this.locked = new bool[vertexCount];
+                for (var v = 0; v < vertexCount; v++)
+                    this.locked[welded[v]] |= locked[v];
+            }
+
             version = new int[vertexCount];
             removedVertex = new bool[vertexCount];
         }
@@ -282,7 +296,20 @@ public static class QuadricSimplifier
 
         private Vector3 FaceNormal(int a, int b, int c) => Vector3.Cross(positions[b] - positions[a], positions[c] - positions[a]);
 
-        private readonly record struct Candidate(int U, int V, int VersionU, int VersionV, Vector3 Target);
+        private readonly record struct Candidate(int U, int V, int VersionU, int VersionV, Vector3 Target, double Cost);
+
+        /// <summary>
+        /// The order candidates are taken in: cheapest first, and among those that cost the same, the shortest edge first. On a large
+        /// flat face, such as a castle wall, every collapse costs exactly nothing; taken in the order the queue happens to hold them, one
+        /// vertex would swallow its neighbours one after the other and grow a fan of thousands of faces, which every further collapse at
+        /// it walks (that took minutes). Shortest first spreads them evenly over the face, as merging in rounds would.
+        /// </summary>
+        private readonly record struct Priority(double Cost, float LengthSquared) : IComparable<Priority>
+        {
+            public int CompareTo(Priority other) => Cost != other.Cost ? Cost.CompareTo(other.Cost) : LengthSquared.CompareTo(other.LengthSquared);
+        }
+
+        private Priority PriorityOf(double cost, int u, int v) => new(cost, Vector3.DistanceSquared(positions[u], positions[v]));
 
         public TriangleMesh Run(float maxError, bool coarse)
         {
@@ -300,12 +327,13 @@ public static class QuadricSimplifier
             for (var pass = 0; pass < MaxPasses; pass++)
             {
                 var collapsed = 0;
-                var queue = new PriorityQueue<Candidate, double>();
+                var queue = new PriorityQueue<Candidate, Priority>();
                 foreach (var (u, v) in Edges())
                     Push(queue, u, v);
 
-                while (queue.TryDequeue(out var candidate, out var cost))
+                while (queue.TryDequeue(out var candidate, out _))
                 {
+                    var cost = candidate.Cost;
                     if (cost > maxSquaredError)
                         break;
                     var (u, v) = (candidate.U, candidate.V);
@@ -329,12 +357,25 @@ public static class QuadricSimplifier
             }
         }
 
-        private void Push(PriorityQueue<Candidate, double> queue, int u, int v)
+        private void Push(PriorityQueue<Candidate, Priority> queue, int u, int v)
         {
             // Region borders stay put: border vertices merge only along the border, and never with another region. On coarse levels a
             // vertex beside the border may merge into it and take its place, or the row beside every border would stay as dense as it is
             if (regions is not null && (regions[u] != regions[v] || regionBorder[u] != regionBorder[v] && !coarse))
                 return;
+            // A locked vertex stays: the free one merges into it, which CollapseInto does when the locked one comes first
+            if (locked is not null && (locked[u] || locked[v]))
+            {
+                if (locked[u] && locked[v])
+                    return;
+                if (locked[v])
+                    (u, v) = (v, u);
+                var merged = quadrics[u] + quadrics[v];
+                var mergedCrease = creaseQuadrics[u] + creaseQuadrics[v];
+                var lockedCost = Math.Max(merged.Error(positions[u]), mergedCrease.Error(positions[u]));
+                queue.Enqueue(new Candidate(u, v, version[u], version[v], positions[u], lockedCost), PriorityOf(lockedCost, u, v));
+                return;
+            }
 
             var quadric = quadrics[u] + quadrics[v];
             var crease = creaseQuadrics[u] + creaseQuadrics[v];
@@ -343,7 +384,8 @@ public static class QuadricSimplifier
                 : (quadric.Averaged() + crease.Averaged()).Optimum((positions[u] + positions[v]) * 0.5f);
             if (!float.IsFinite(target.X + target.Y + target.Z))
                 return;
-            queue.Enqueue(new Candidate(u, v, version[u], version[v], target), Math.Max(quadric.Error(target), crease.Error(target)));
+            var cost = Math.Max(quadric.Error(target), crease.Error(target));
+            queue.Enqueue(new Candidate(u, v, version[u], version[v], target, cost), PriorityOf(cost, u, v));
         }
 
         private HashSet<int> Neighbours(int vertex)

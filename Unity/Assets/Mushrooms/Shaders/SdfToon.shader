@@ -1,11 +1,13 @@
-// Cartoon shading of a meshed SDF model for HDRP: flat colour in three bands (shadow, mid, lit) from the sun and its cascaded
-// shadows, a hard highlight and a rim light. The outline is a second renderer with SdfToonOutline.shader. The vertex data is the same
-// as for the realistic SdfSurface.shadergraph (see SdfSurface.hlsl), so MushroomBuilder can give a prefab either look.
+// Cartoon shading of a meshed SDF model for URP: flat colour in three bands (shadow, mid, lit) from the sun and its cascaded shadows,
+// a hard highlight and a rim light. The outline is a second renderer with SdfToonOutline.shader. The vertex data is packed as
+// SdfSurface.hlsl describes, the same as the IDE's preview reads it.
 //
-// Written by hand rather than as a Shader Graph because HDRP's graphs cannot replace its lighting. It draws like HDRP's own Unlit
-// (ForwardOnly, colour not scaled by exposure) but lights itself, and has the passes HDRP needs to put it in the depth prepass and in
-// shadow maps. Every pass takes part in LOD cross-fade (SdfLodFade.hlsl), so the levels of a mushroom's LOD group dissolve into
-// each other in colour, depth and shadow alike.
+// Written by hand rather than as a Shader Graph so it can light itself: it draws in URP's forward pass whichever path the renderer
+// takes (UniversalForwardOnly), reads the main light and its shadows, and has the passes URP needs to put it in shadow maps and in the
+// depth (and depth-normals) prepass. Every pass takes part in LOD cross-fade (URP's LODCrossFade.hlsl, a dither on the pixel's screen
+// position), so the levels of a model's LOD group dissolve into each other in colour, depth and shadow alike, and the outline drops
+// the same pixels as its surface. Every pass also supports GPU instancing, for meshes drawn many times with
+// Graphics.RenderMeshInstanced.
 Shader "SdfMushrooms/Toon"
 {
     Properties
@@ -28,11 +30,13 @@ Shader "SdfMushrooms/Toon"
 
     HLSLINCLUDE
 
-    #pragma target 4.5
-    #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch switch2
+    // WebGL 2 and up: no compute, no geometry shaders
+    #pragma target 3.5
 
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-    #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPass.cs.hlsl"
+    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+    #if defined(LOD_FADE_CROSSFADE)
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
+    #endif
 
     // One constant buffer for every pass, so the SRP batcher can draw them
     CBUFFER_START(UnityPerMaterial)
@@ -49,95 +53,38 @@ Shader "SdfMushrooms/Toon"
         float4 _Look;
     CBUFFER_END
 
+    // Drops this pixel from one of the two levels a LOD group is fading between; nothing without the keyword
+    void SdfLodFade(float4 positionCS)
+    {
+    #if defined(LOD_FADE_CROSSFADE)
+        LODFadeCrossFade(positionCS);
+    #endif
+    }
+
     ENDHLSL
 
     SubShader
     {
-        Tags { "RenderPipeline" = "HDRenderPipeline" "RenderType" = "Opaque" "Queue" = "Geometry" }
-
-        // Depth (and, with MSAA, depth as colour) for HDRP's prepass, which every opaque forward-only object must be in
-        Pass
-        {
-            Name "DepthForwardOnly"
-            Tags { "LightMode" = "DepthForwardOnly" }
-
-            // As HDRP's Unlit: clear the "trace reflection ray" bit
-            Stencil
-            {
-                WriteMask 8
-                Ref 0
-                Comp Always
-                Pass Replace
-            }
-            Cull Back
-            ZWrite On
-
-            HLSLPROGRAM
-            #pragma multi_compile_fragment _ WRITE_MSAA_DEPTH
-            #pragma multi_compile _ LOD_FADE_CROSSFADE
-            #define SHADERPASS SHADERPASS_DEPTH_ONLY
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-            #include "SdfLodFade.hlsl"
-            #pragma vertex Vert
-            #pragma fragment Frag
-
-            struct Attributes { float3 positionOS : POSITION; };
-            struct Varyings { float4 positionCS : SV_POSITION; };
-
-            Varyings Vert(Attributes input)
-            {
-                Varyings output;
-                output.positionCS = TransformWorldToHClip(TransformObjectToWorld(input.positionOS));
-                return output;
-            }
-
-            #ifdef WRITE_MSAA_DEPTH
-            float4 Frag(Varyings input) : SV_Target0
-            {
-                SdfLodFade(input.positionCS);
-                return float4(input.positionCS.z, input.positionCS.z, input.positionCS.z, 1.0);
-            }
-            #else
-            void Frag(Varyings input)
-            {
-                SdfLodFade(input.positionCS);
-            }
-            #endif
-            ENDHLSL
-        }
+        Tags { "RenderPipeline" = "UniversalPipeline" "RenderType" = "Opaque" "Queue" = "Geometry" }
 
         Pass
         {
             Name "ForwardOnly"
-            Tags { "LightMode" = "ForwardOnly" }
+            Tags { "LightMode" = "UniversalForwardOnly" }
 
-            // As HDRP's Unlit: no deferred lighting or subsurface scattering on these pixels
-            Stencil
-            {
-                WriteMask 3
-                Ref 0
-                Comp Always
-                Pass Replace
-            }
             Cull Back
             ZWrite On
             ZTest LEqual
 
             HLSLPROGRAM
-            #pragma multi_compile_fragment DIRECTIONAL_SHADOW_LOW DIRECTIONAL_SHADOW_MEDIUM DIRECTIONAL_SHADOW_HIGH
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile _ LOD_FADE_CROSSFADE
-            // Only the sun's shadows are sampled; these just satisfy HDRP's shadow code
-            #define PUNCTUAL_SHADOW_MEDIUM
-            #define AREA_SHADOW_MEDIUM
-            #define LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
-            #define SHADERPASS SHADERPASS_FORWARD_UNLIT
+            #pragma multi_compile_instancing
 
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/HDShadow.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "SdfSurface.hlsl"
             #include "SdfToon.hlsl"
-            #include "SdfLodFade.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -153,12 +100,13 @@ Shader "SdfMushrooms/Toon"
                 float4 uv4 : TEXCOORD4;
                 float2 uv5 : TEXCOORD5;
                 float4 uv6 : TEXCOORD6;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                float3 positionRWS : TEXCOORD0;
+                float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
                 float4 color : TEXCOORD2;
                 float4 uv0 : TEXCOORD3;
@@ -168,13 +116,16 @@ Shader "SdfMushrooms/Toon"
                 float4 uv4 : TEXCOORD7;
                 float2 uv5 : TEXCOORD8;
                 float4 uv6 : TEXCOORD9;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             Varyings Vert(Attributes input)
             {
                 Varyings output;
-                output.positionRWS = TransformObjectToWorld(input.positionOS);
-                output.positionCS = TransformWorldToHClip(output.positionRWS);
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                output.positionWS = TransformObjectToWorld(input.positionOS);
+                output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.color = input.color;
                 output.uv0 = input.uv0;
@@ -189,33 +140,32 @@ Shader "SdfMushrooms/Toon"
 
             float4 Frag(Varyings input) : SV_Target0
             {
+                UNITY_SETUP_INSTANCE_ID(input);
                 SdfLodFade(input.positionCS);
                 float3 n = normalize(input.normalWS);
-                float3 v = GetWorldSpaceNormalizeViewDir(input.positionRWS);
+                float3 v = GetWorldSpaceNormalizeViewDir(input.positionWS);
 
-                // The main directional light: the one with shadows, else the first; a white light from above without any
+                // The main light (the sun) with its cascaded shadows, faded out towards the shadow distance; a white light from above
+                // without any
                 float3 l = float3(0, 1, 0);
                 float3 tint = float3(1, 1, 1);
                 float shadow = 1.0;
-                if (_DirectionalLightCount > 0)
+                float brightest = Max3(_MainLightColor.r, _MainLightColor.g, _MainLightColor.b);
+                if (brightest > 0.0)
                 {
-                    uint index = _DirectionalShadowIndex >= 0 ? (uint)_DirectionalShadowIndex : 0;
-                    DirectionalLightData light = _DirectionalLightDatas[index];
-                    l = -light.forward;
-                    tint = light.color / max(Max3(light.color.r, light.color.g, light.color.b), 1e-6);
-                    if (_DirectionalShadowIndex >= 0 && light.shadowDimmer > 0.0 && dot(n, l) > 0.0)
+                    l = _MainLightPosition.xyz;
+                    tint = _MainLightColor.rgb / brightest;
+                    if (dot(n, l) > 0.0)
                     {
-                        HDShadowContext shadowContext = InitShadowContext();
-                        float attenuation = GetDirectionalShadowAttenuation(shadowContext, input.positionCS.xy, input.positionRWS, n,
-                            light.shadowIndex, l);
-                        shadow = lerp(1.0, attenuation, light.shadowDimmer);
+                        Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS), input.positionWS, half4(1, 1, 1, 1));
+                        shadow = light.shadowAttenuation;
                     }
                 }
 
                 float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5, 0, 0), input.uv6);
                 float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, input.uv0.x, input.uv0.y, input.color.a, saturate(input.uv0.w));
-                // Like HDRP's Unlit: the colour is shown as it is, not scaled by the exposure
-                return float4(color * _DeExposureMultiplier, 1.0);
+                // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows
+                return float4(color, 1.0);
             }
             ENDHLSL
         }
@@ -226,32 +176,155 @@ Shader "SdfMushrooms/Toon"
             Tags { "LightMode" = "ShadowCaster" }
 
             Cull Back
-            ZClip [_ZClip]
             ZWrite On
             ZTest LEqual
             ColorMask 0
 
             HLSLPROGRAM
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
             #pragma multi_compile _ LOD_FADE_CROSSFADE
-            #define SHADERPASS SHADERPASS_SHADOWS
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-            #include "SdfLodFade.hlsl"
+            #pragma multi_compile_instancing
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
-            struct Attributes { float3 positionOS : POSITION; };
-            struct Varyings { float4 positionCS : SV_POSITION; };
+            // Set by URP for the light being rendered: the normal bias pushes the surface in along its normal, away from the light
+            float3 _LightDirection;
+            float3 _LightPosition;
+
+            struct Attributes
+            {
+                float3 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
 
             Varyings Vert(Attributes input)
             {
                 Varyings output;
-                output.positionCS = TransformWorldToHClip(TransformObjectToWorld(input.positionOS));
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                float3 positionWS = TransformObjectToWorld(input.positionOS);
+                float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
+            #if defined(_CASTING_PUNCTUAL_LIGHT_SHADOW)
+                float3 lightDirection = normalize(_LightPosition - positionWS);
+            #else
+                float3 lightDirection = _LightDirection;
+            #endif
+                output.positionCS = ApplyShadowClamping(TransformWorldToHClip(ApplyShadowBias(positionWS, normalWS, lightDirection)));
                 return output;
             }
 
             void Frag(Varyings input)
             {
+                UNITY_SETUP_INSTANCE_ID(input);
                 SdfLodFade(input.positionCS);
+            }
+            ENDHLSL
+        }
+
+        // Depth for URP's prepass (when the camera needs a depth texture or the renderer primes depth)
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+
+            Cull Back
+            ZWrite On
+            ColorMask R
+
+            HLSLPROGRAM
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #pragma multi_compile_instancing
+            #pragma vertex Vert
+            #pragma fragment Frag
+
+            struct Attributes
+            {
+                float3 positionOS : POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            Varyings Vert(Attributes input)
+            {
+                Varyings output;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                output.positionCS = TransformObjectToHClip(input.positionOS);
+                return output;
+            }
+
+            float Frag(Varyings input) : SV_Target0
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                SdfLodFade(input.positionCS);
+                return input.positionCS.z;
+            }
+            ENDHLSL
+        }
+
+        // Depth and normals for URP's prepass when an effect needs them (screen-space ambient occlusion, for one)
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            Cull Back
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
+            #pragma multi_compile_instancing
+            #pragma vertex Vert
+            #pragma fragment Frag
+
+            struct Attributes
+            {
+                float3 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 normalWS : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            Varyings Vert(Attributes input)
+            {
+                Varyings output;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_TRANSFER_INSTANCE_ID(input, output);
+                output.positionCS = TransformObjectToHClip(input.positionOS);
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                return output;
+            }
+
+            float4 Frag(Varyings input) : SV_Target0
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                SdfLodFade(input.positionCS);
+                float3 normalWS = normalize(input.normalWS);
+            #if defined(_GBUFFER_NORMALS_OCT)
+                return float4(PackFloat2To888(saturate(PackNormalOctQuadEncode(normalWS) * 0.5 + 0.5)), 0.0);
+            #else
+                return float4(normalWS, 0.0);
+            #endif
             }
             ENDHLSL
         }

@@ -5,8 +5,8 @@
 // its variation patches (toned down by _ToonVariation.x), speckles and the edge colour where the material is thin. Nothing comes from
 // the material, so every mushroom shares one: the edge colour, which the realistic look takes per region, is worked out per vertex
 // by MushroomBuilder (UV6 rgb = edge colour of the vertex's materials, a = how far it has turned to it). The light is the
-// scene's main directional light (the one that casts shadows, else the first), with its cascaded shadows, reduced to its hue:
-// a toon surface shows the same flat tones in any exposure.
+// scene's main light (URP's: the sun source of the lighting settings, else the brightest directional light), with its cascaded
+// shadows, reduced to its hue: a toon surface shows the same flat tones at any light intensity.
 
 #ifndef SDF_TOON_INCLUDED
 #define SDF_TOON_INCLUDED

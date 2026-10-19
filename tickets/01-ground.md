@@ -108,3 +108,73 @@ New editor script, e.g. `Unity/Assets/Level/Editor/LevelBuilder.cs`, modelled on
 - Hills read as hills from 1.5 m eye height and hide what is behind them.
 - Ground looks like part of the same toon world as the models (compare next to a tree and a mushroom).
 - Triangle count of all ground chunks at LOD0 reported by the bake; on screen the ground costs < 100k triangles.
+
+## Status
+
+Done (not committed):
+
+- **Level file**: `content/levels/meadow.level` (sections `play`, `seed`, `hills` with `ring`/`noise`, `edge`; parameters on the section's
+  line or on `name=value` lines indented below it, so 02/03's settings lines fit). Reader `SDFPipeline/Levels/LevelFile.cs` on the
+  program files' tokenizer, with line-numbered errors (unknown or repeated section/parameter, missing `play`, ranges such as play noise
+  ≤ 0.3 m). Records in `LevelDefinition.cs`.
+- **Height**: `LevelTerrain.cs`: play-area noise (default 0.2 m at 14 m), smoothstep rise to the crest at the ring width, noise growing
+  with the rise, back slope falling 35 % of the height to the edge; island = rounded rectangle at ring width + margin. Seeded integer-hash
+  value noise (`ValueNoise`), so output is machine-independent.
+- **Chunks**: `GroundMesher.cs`, 9 × 7 chunks of 25 m on global grid lines (neighbours compute shared borders identically). Grid
+  points beyond the island edge are moved onto it; triangles with no corner on the island are dropped, so the edge is a smooth curve.
+  `QuadricSimplifier` got a `locked` vertex option (open-edge vertices: chunk borders and the island edge never move); simplified
+  vertices are put back on h(x, z). LOD0/1/2 from 0.5 m / 1 m / 2.083 m grids (25/12; 12.5 cells is not whole) at 0.8 / 3 / 10 cm
+  simplification error; 0.5 m outward-facing skirts on chunk borders. Normals from the height function.
+- **Bake**: `LevelBaker.cs` writes `chunk_<i>_<j>.glb` (meshes `ground`, `ground_LOD1`, `ground_LOD2` with POSITION + NORMAL, MSFT_lod,
+  `maxError` per mesh) and `level.json` (play, hills, edge, extent, spawn, chunk grid and per-chunk triangles, LOD stats, collider LOD,
+  grass material parameters from `materials/ground/ground_grass.sdfmat`). Stale chunk files are deleted; level.json is written last.
+- **CLI**: `sdf level <file|directory> --into <folder>` (and `sdf level --into` for content/levels), and `sdf unity [--resolution]
+  [--lods]` = `sdf mesh content/models` into `Unity/Assets/Mushrooms/Generated`, then `sdf level content/levels` into
+  `Unity/Assets/Level/Generated`. The three `Pipeline to Unity` run configs are now one line each: `unity --resolution 512 --lods 3`,
+  `128 / 2`, `64 / 2`.
+- **Unity**: `Assets/Level/Editor/LevelBuilder.cs` (rebuilds a level's scene when its generated folder changes, after a quiet second
+  and after stale model prefabs are built; on `MushroomBuilder.Built` for levels whose level.json lists those models in `"models"`; on
+  editor load if stale, stamped with a hash of level.json; menu *Tools > SDF Level > Rebuild*; batch
+  `SdfLevel.Editor.LevelBuilder.BuildAllInBatch`). `Meadow.unity` holds the lighting from `MushroomScene.BuildLighting` (factored out
+  of the mushroom scene with `CreateCamera`), static chunk objects with cross-fading LOD groups (heights from each level's measured
+  error, 2 px at 1080p, coarsest never culled) and a LOD1 `MeshCollider`, four 25 m walls, and the player (`Assets/Level/Runtime/
+  FirstPersonController.cs`, CharacterController, camera at 1.5 m, 60° FOV). Added to the build settings after Mushrooms.
+  `GeneratedFolderWatcher` also polls `Assets/Level/Generated`. `Assets/Level/Shaders/SdfGround.shader`: URP, same passes, instancing
+  and cross-fade as SdfToon, `SdfToonShade` with the Mushroom Style; colour from the material in world space; rim set to 0 on the
+  ground (from eye height almost all ground is at a grazing angle, so the rim lit the field beyond ~5 m in a ring).
+- **Snapshots**: `Assets/Level/Editor/LevelSnapshot.cs`: batch `SdfLevel.Editor.LevelSnapshot.Capture -snapshotDir <dir>`, menu, or
+  `Unity/Temp/sdf-level-snapshot.txt` in a running editor. Eye-height views in four directions, the corner, from above, next to a tree,
+  mushroom and rock, and on the web preset; logs the ground triangles each eye view draws.
+
+Verified:
+
+- `dotnet build` clean; `dotnet test`: 177 pipeline tests (43 new: reader, height, chunk borders shared exactly at every LOD, skirts
+  facing out, island edge, byte-identical bake) and 533 project tests pass.
+- `sdf level content/levels/meadow.level --into …` bakes 63 chunks in about 1 s, byte-identical across runs. LOD0 over all chunks:
+  51,182 triangles (21,056 of them skirts; flat play chunks ≈ 270 + 200 skirt, hill chunks ≈ 700 + 200), within 9.7 cm of h
+  (play area ≈ 1–3 cm); LOD1 21,377; LOD2 9,216. `sdf unity --resolution 64 --lods 2` checked in a scratch copy of content.
+- The open editor rebuilt `Meadow.unity` by itself after each bake (no compile or shader errors); a byte-identical re-bake does not
+  rebuild. Batch mode could not open the project while the editor was open, so `BuildAllInBatch` and `LevelSnapshot.Capture` were run
+  on an APFS clone of the project: both succeed with no errors.
+- Snapshots (high and web presets): hills read as hills from 1.5 m and hide everything behind them; the ground sits with tree0,
+  amanita-scout and rock1 in the same toon look; no cracks seen between chunks from above. The ground draws 12.7–15.3k triangles
+  per eye-height view (10.1k on the web preset), far under 100k.
+- Walking (CharacterController moved in script, on the clone): straight and diagonal runs from the centre stay grounded and stop at
+  ±74.6 m / ±49.6 m, the walls.
+
+To check by hand:
+
+- Walk in Play mode (mouse look, run, jump), especially up to the walls and along the hill foot.
+- LOD cross-fades in motion and cracks at chunk borders when neighbours are at different levels, from the play area.
+- The look of the ground over time (speckle size and the green against the turfs once 03 scatters them), and the web build.
+- Seen from outside the island, the back slopes of the hills show coarse-triangle shapes in the shadow band; never visible from inside.
+
+Notes for the next tickets:
+
+- Coordinates: level.json and the .glb files are in pipeline coordinates; Unity mirrors x (as for models). Placements (02) must use
+  `-x` in Unity, and yaw flips sign.
+- `LevelBuilder` rebuilds on `MushroomBuilder.Built` only for models listed in level.json's `"models"` array: 02 must write it.
+- The reader rejects unknown sections, so 02–04 add theirs to `LevelFile.Sections`. Model names in 03's scatter (`grass-turf0`) have
+  hyphens, which the tokenizer's `ReadName` does not take: those entry lines need their own name reader.
+- `sdf level` loads the materials library, so 02's `ground_dirt` etc. go to `materials/ground/` and into level.json's `"materials"` by role.
+- Vertices are exactly on h(x, z); faces are within the logged error. Sample h (`LevelTerrain.Height`) for scatter heights.

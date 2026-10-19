@@ -25,6 +25,19 @@ public class SimplificationTests
     }
 
     [Fact]
+    public void LargeFlatWalls_SimplifyToTheirCorners_Quickly()
+    {
+        // A ring of wall, a castle's in miniature: tens of thousands of contoured triangles on flat faces, where every collapse costs
+        // nothing. Taken in no particular order they once grew fans of thousands of faces and took over a minute
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var mesh = Simplified("Subtraction\n    Box size=(1.5, 0.25, 1)\n    Box size=(1.34, 0.5, 0.84)", 300, out _);
+
+        Assert.Equal(32, mesh.TriangleCount);
+        AssertClosedAndOriented(mesh);
+        Assert.InRange(stopwatch.Elapsed.TotalSeconds, 0, 20);
+    }
+
+    [Fact]
     public void RotatedBox_BecomesEightCornersAndTwelveTriangles()
     {
         var mesh = Simplified("Rotate rotation=(0.3, 0.5, 0.2)\n    Box size=(0.5, 0.3, 0.2)", 24, out var grid);

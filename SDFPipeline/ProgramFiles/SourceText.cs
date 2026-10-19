@@ -117,6 +117,25 @@ internal sealed partial class Cursor(SourceLine line)
         return null;
     }
 
+    /// <summary>
+    /// A name that may also hold '-' after its first letter or digit, like the model grass-turf0: the name of a file in content/, which
+    /// <see cref="ReadName"/> (the identifiers of programs) does not take. Quoted names are read as there.
+    /// </summary>
+    public string ReadFileName(string what)
+    {
+        if (Peek() == '"')
+            return ReadQuoted();
+
+        var start = position;
+        while (position < text.Length && (char.IsAsciiLetterOrDigit(text[position]) || text[position] is '_' or '-'))
+            position++;
+        if (position > start && char.IsAsciiLetterOrDigit(text[start]))
+            return text[start..position];
+
+        position = start;
+        throw Error($"Expected {what}{Found()}");
+    }
+
     public RawValue ReadValue()
     {
         switch (Peek())

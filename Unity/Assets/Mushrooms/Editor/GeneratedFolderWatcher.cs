@@ -7,10 +7,12 @@ using UnityEditorInternal;
 namespace SdfMushrooms.Editor
 {
     /// <summary>
-    /// Unity looks for changed files only when it gets focus. This polls the generated folder twice a second, also while the editor is in
-    /// the background, and imports a model as soon as the pipeline has replaced it (the pipeline writes to a hidden temporary file and
-    /// renames it, so the file is always complete); the import rebuilds the prefab, and the views are repainted to show it.
-    /// It also takes snapshot requests (see <see cref="MushroomSnapshot.RequestPath"/> and <see cref="MushroomSnapshot.LodRequestPath"/>).
+    /// Unity looks for changed files only when it gets focus. This polls the generated folders twice a second, also while the editor is
+    /// in the background, and imports a model or level file as soon as the pipeline has replaced it (the pipeline writes to a hidden
+    /// temporary file and renames it, so the file is always complete); the import rebuilds the prefab or the level's scene
+    /// (SdfLevel.Editor.LevelBuilder), and the views are repainted to show it.
+    /// It also takes snapshot requests (see <see cref="MushroomSnapshot.RequestPath"/>, <see cref="MushroomSnapshot.LodRequestPath"/> and
+    /// SdfLevel.Editor.LevelSnapshot.RequestPath).
     /// </summary>
     [InitializeOnLoad]
     public static class GeneratedFolderWatcher
@@ -56,6 +58,9 @@ namespace SdfMushrooms.Editor
                 MushroomSnapshot.CaptureOpenScene(directory, levelsOfDetail: true);
             }
 
+            if (File.Exists(SdfLevel.Editor.LevelSnapshot.RequestPath))
+                SdfLevel.Editor.LevelSnapshot.CaptureRequested();
+
             var now = new Dictionary<string, (DateTime, long)>();
             Snapshot(now);
             var changed = now.Count != known.Count;
@@ -71,11 +76,25 @@ namespace SdfMushrooms.Editor
             repaintAfterImport = true;
         }
 
+        /// <summary>The models' .glb files, and the levels' chunks, region maps and level.json.</summary>
+        private static readonly (string Folder, string Pattern)[] Watched =
+        {
+            (MushroomBuilder.GeneratedFolder, "*.glb"),
+            (SdfLevel.Editor.LevelBuilder.GeneratedFolder, "*.glb"),
+            (SdfLevel.Editor.LevelBuilder.GeneratedFolder, "*.json"),
+            (SdfLevel.Editor.LevelBuilder.GeneratedFolder, "*.png"),
+        };
+
         private static void Snapshot(Dictionary<string, (DateTime, long)> into)
         {
-            if (!Directory.Exists(MushroomBuilder.GeneratedFolder))
-                return;
-            foreach (var path in Directory.GetFiles(MushroomBuilder.GeneratedFolder, "*.glb", SearchOption.AllDirectories))
+            foreach (var (folder, pattern) in Watched)
+                if (Directory.Exists(folder))
+                    Snapshot(into, Directory.GetFiles(folder, pattern, SearchOption.AllDirectories));
+        }
+
+        private static void Snapshot(Dictionary<string, (DateTime, long)> into, IEnumerable<string> paths)
+        {
+            foreach (var path in paths)
             {
                 try
                 {

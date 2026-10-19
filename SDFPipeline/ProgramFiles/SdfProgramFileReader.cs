@@ -54,13 +54,19 @@ internal sealed class SdfProgramFileReader
         return SDFProgramNormalizePointers.Pointerify(new SDFProgram(definitions, pointers, sceneVariables, scene));
     }
 
-    private (SDFFunctionDefinition[] functions, VariableDeclaration[] variables, SDFEvaluable scene) ReadFile()
+    /// <param name="part">Whether the file is a part, which has no settings of its own: the model it is in has them.</param>
+    private (SDFFunctionDefinition[] functions, VariableDeclaration[] variables, SDFEvaluable scene) ReadFile(bool part = false)
     {
         if (lines.Count == 0)
             throw new SdfProgramFileException(1, $"The file is empty, it must start with '{FormatKeyword} {SdfProgramFile.FormatVersion}'");
         ReadFormat(lines[0]);
 
+        // The model's settings (collider ...) do not change its shape; ModelSettings reads them, checked here so a bad one is an error
         var rest = lines.Skip(1).ToList();
+        ModelSettings.Read(rest);
+        if (part && rest.FirstOrDefault(ModelSettings.IsSetting) is { } setting)
+            throw new SdfProgramFileException(setting.Number, "A part has no settings of its own; give the model that uses it its collider");
+        rest = rest.Where(line => !ModelSettings.IsSetting(line)).ToList();
         foreach (var line in rest.Where(IsFunction))
         {
             var header = ReadHeader(line);
@@ -103,7 +109,7 @@ internal sealed class SdfProgramFileReader
         parts.Loading.Add(name);
         try
         {
-            var (functionsOfPart, variables, scene) = new SdfProgramFileReader(text, parts).ReadFile();
+            var (functionsOfPart, variables, scene) = new SdfProgramFileReader(text, parts).ReadFile(part: true);
             if (functionsOfPart.Length > 0)
                 throw new SdfProgramFileException(1, "Parts cannot declare functions yet");
 

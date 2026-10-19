@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Unity Web Build" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="unity=&quot;/Applications/Unity/Hub/Editor/$(sed -n 's/^m_EditorVersion: //p' Unity/ProjectSettings/ProjectVersion.txt)/Unity.app/Contents/MacOS/Unity&quot;; &quot;$unity&quot; -batchmode -quit -projectPath Unity -buildTarget WebGL -executeMethod SdfMushrooms.Editor.WebBuild.Build -logFile - &amp;&amp; { (sleep 1; open http://localhost:8642) &amp; python3 -m http.server 8642 -d Unity/Builds/Web; }" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="/bin/zsh" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="true" />
+    <option name="EXECUTE_SCRIPT_FILE" value="false" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

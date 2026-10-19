@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using SDFPipeline.ProgramFiles;
 using SDFPipeline.Rendering;
 using SDFProject.Calculation;
 using SDFProject.ProgramDefinition;
@@ -47,6 +48,9 @@ public sealed record MeshedModel(IReadOnlyList<PartMesh> Meshes, IReadOnlyList<M
 
     /// <summary>The detail the model sets for all of its meshes, see <see cref="MeshSource.Detail"/>; parts may multiply it with their own.</summary>
     public float Detail { get; init; } = 1;
+
+    /// <summary>The model's own settings from its file, such as its collider, which the .glb's extras hand on to the game engine.</summary>
+    public ModelSettings Settings { get; init; } = ModelSettings.Default;
 }
 
 /// <summary>

@@ -26,6 +26,11 @@ namespace SdfMushrooms.Editor
     /// The coarsest level is also the cheapest to draw: no ink outline. A plain LOD group with baked levels rather than Unity's Mesh
     /// LOD, as the browser renderer draws the same levels. Models without levels are built as before, without a LOD group.
     /// </para>
+    /// <para>
+    /// Colliders: a model whose file asks for one (a <c>collider</c> line in the .sdf, handed on in the .glb's extras) gets it on the
+    /// prefab's root: a <see cref="MeshCollider"/> per part from the level of detail the extras name, convex or not, or an upright
+    /// <see cref="CapsuleCollider"/>. Without one the prefab has no collider.
+    /// </para>
     /// Rebuilding keeps every asset's GUID: meshes and materials are updated in place and prefabs are saved over the old ones, so the
     /// scene's instances follow along.
     /// </summary>
@@ -35,9 +40,6 @@ namespace SdfMushrooms.Editor
         public const string PrefabFolder = "Assets/Mushrooms";
         public const string MeshFolder = "Assets/Mushrooms/Meshes";
         public const string MaterialFolder = "Assets/Mushrooms/Materials";
-        /// <summary>Where builder version 7 and older also put a realistic look, on HDRP Lit with subsurface scattering; see <see cref="DeleteRealisticLook"/>.</summary>
-        private const string RealisticShaderPath = "Assets/Mushrooms/Shaders/SdfSurface.shadergraph";
-        private const string RealisticProfileFolder = "Assets/Mushrooms/Materials/DiffusionProfiles";
         public const string ToonShaderPath = "Assets/Mushrooms/Shaders/SdfToon.shader";
         public const string ToonOutlineShaderPath = "Assets/Mushrooms/Shaders/SdfToonOutline.shader";
         public const string ToonMaterialFolder = "Assets/Mushrooms/Materials/Toon";
@@ -53,9 +55,9 @@ namespace SdfMushrooms.Editor
         /// everything, the edge colour per vertex (UV6) and toon meshes as a single submesh. Version 6: levels of detail, a cross-fading
         /// LOD group over the parts' levels with a mesh asset per level, no outline and a cheaper realistic material on the coarsest.
         /// Version 7: diffusion profiles per snapped look instead of per material group, so they fit HDRP's list. Version 8: the toon
-        /// look only, the realistic one gone.
+        /// look only, the realistic one gone. Version 9: URP instead of HDRP. Version 10: colliders from the model's collider setting.
         /// </summary>
-        public const int BuilderVersion = 8;
+        public const int BuilderVersion = 10;
 
         private static string VersionStamp
         {
@@ -156,7 +158,7 @@ namespace SdfMushrooms.Editor
             var prefabs = new List<string>();
             try
             {
-                HdrpProjectSetup.Ensure();
+                RenderPipelineSetup.Ensure();
                 foreach (var glb in glbPaths)
                 {
                     try
@@ -169,7 +171,6 @@ namespace SdfMushrooms.Editor
                     }
                 }
                 AssetDatabase.SaveAssets();
-                DeleteRealisticLook();
                 DeleteOldToonMaterials();
                 MushroomScene.Ensure(SceneModels());
             }
@@ -212,6 +213,7 @@ namespace SdfMushrooms.Editor
                 }
                 if (levels > 1)
                     AddLodGroup(root, model, lods);
+                AddCollider(root, model, parts);
 
                 var prefabPath = PrefabPathOf(glbPath);
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath, out var saved);
@@ -286,7 +288,7 @@ namespace SdfMushrooms.Editor
         /// coarsest level lasts down to <see cref="LodCullHeight"/>. Each height is kept at least half again the next one, so no level
         /// is squeezed out, and LOD0 is left at half the screen at the latest. Quality levels scale all of it with their LOD bias.
         /// <para>
-        /// The levels cross-fade (HDRP dithers both for half a second, see SdfLodFade.hlsl): with only a few levels each change of
+        /// The levels cross-fade (URP dithers both for half a second, see SdfToon.shader): with only a few levels each change of
         /// triangles would otherwise pop.
         /// </para>
         /// </summary>
@@ -316,6 +318,40 @@ namespace SdfMushrooms.Editor
                 heights[level] = Mathf.Min(heights[level], heights[level - 1] / 1.5f);
 
             group.SetLODs(renderers.Select((r, level) => new LOD(heights[level], r.ToArray())).ToArray());
+        }
+
+        /// <summary>
+        /// The collider the model's extras ask for, on the root: for convex and mesh a <see cref="MeshCollider"/> per part, from the mesh
+        /// asset of the part at the level the extras name (the pipeline has already chosen it, and made a convex one round a large
+        /// outcrop a mesh); for capsule an upright <see cref="CapsuleCollider"/> (x mirrored like the meshes). None without the extras.
+        /// </summary>
+        private static void AddCollider(GameObject root, SdfGlb model, Dictionary<SdfGlb.MeshData, Renderer[]> parts)
+        {
+            var collider = model.Collider;
+            switch (collider?.Value<string>("shape"))
+            {
+                case "convex":
+                case "mesh":
+                    var level = collider.Value<int?>("lod") ?? model.LodCount - 1;
+                    foreach (var part in model.Meshes)
+                    {
+                        var mesh = parts[part.AtLevel(level)][0].GetComponent<MeshFilter>().sharedMesh;
+                        var meshCollider = root.AddComponent<MeshCollider>();
+                        meshCollider.sharedMesh = mesh;
+                        meshCollider.convex = collider.Value<string>("shape") == "convex";
+                    }
+                    break;
+                case "capsule":
+                    var bottom = collider["base"].ToObject<float[]>();
+                    var top = collider["top"].ToObject<float[]>();
+                    var radius = collider.Value<float>("radius");
+                    var capsule = root.AddComponent<CapsuleCollider>();
+                    capsule.direction = 1;
+                    capsule.radius = radius;
+                    capsule.height = Mathf.Max(top[1] - bottom[1], 2 * radius);
+                    capsule.center = new Vector3(-(bottom[0] + top[0]) / 2, (bottom[1] + top[1]) / 2, (bottom[2] + top[2]) / 2);
+                    break;
+            }
         }
 
         private static Mesh MeshAsset(string path)
@@ -500,24 +536,6 @@ namespace SdfMushrooms.Editor
                 EditorUtility.SetDirty(material);
             }
             AssetDatabase.SaveAssets();
-        }
-
-        /// <summary>
-        /// What builder version 7 and older made for the realistic look, gone with it: the per-region materials on the SdfSurface graph
-        /// (their _far versions too), the diffusion profiles, and HDRP's list of them.
-        /// </summary>
-        private static void DeleteRealisticLook()
-        {
-            var shader = AssetDatabase.LoadAssetAtPath<Shader>(RealisticShaderPath);
-            if (shader != null && AssetDatabase.IsValidFolder(MaterialFolder))
-                foreach (var path in AssetDatabase.FindAssets("t:Material", new[] { MaterialFolder }).Select(AssetDatabase.GUIDToAssetPath).ToArray())
-                    if (AssetDatabase.LoadAssetAtPath<Material>(path)?.shader == shader)
-                        AssetDatabase.DeleteAsset(path);
-            if (AssetDatabase.IsValidFolder(RealisticProfileFolder))
-            {
-                HdrpProjectSetup.ClearDiffusionProfiles();
-                AssetDatabase.DeleteAsset(RealisticProfileFolder);
-            }
         }
 
         /// <summary>Toon materials other than the shared one and the outline, e.g. the per-region ones builder version 4 made.</summary>

@@ -1,6 +1,7 @@
-// The surface of a meshed SDF model, as the IDE's raymarched preview (IDE/wwwroot/js/sdf-renderer.js) shades it, for HDRP Lit.
-// Called from SdfSurface.shadergraph. Every material parameter comes per vertex, blended exactly as the preview blends materials,
-// packed by SdfGlbImporter.cs into the vertex colour and the first four UV channels:
+// The surface of a meshed SDF model, as the IDE's raymarched preview (IDE/wwwroot/js/sdf-renderer.js) shades it. The toon look
+// (SdfToon.hlsl) takes its colour functions; SdfSurface_float is what the realistic look's Shader Graph called, kept with the packing
+// it documents. Every material parameter comes per vertex, blended exactly as the preview blends materials, packed by
+// MushroomBuilder.Fill into the vertex colour and the UV channels:
 //
 //   colour  rgb = base colour (linear), a = wetness
 //   UV0     x = roughness, y = specular, z = subsurfaceRadius (m), w = ambient occlusion (0 closed in to 1 open)
@@ -18,7 +19,7 @@
 #ifndef SDF_SURFACE_INCLUDED
 #define SDF_SURFACE_INCLUDED
 
-// Graph properties, declared by the Shader Graph (in the material's constant buffer):
+// Material properties, declared by the shader that includes this (in the material's constant buffer):
 //   _Subsurface  x = the region's subsurfaceRadius (m), y = thickness (m) that maps to the profile's thickest
 //   _DetailAxis  xyz = the axis fibres run out from and along, in the shape's own coordinates
 //   _EdgeColor   rgb = colour of thin material (linear), a = edgeThickness (m), 0 is off
@@ -152,7 +153,7 @@ void SdfSurface_float(float4 VertexColor, float4 UV0, float4 UV1, float4 UV2, fl
     Thickness = saturate(thickness / max(_Subsurface.y, 1e-4));
 }
 
-// Half precision variant, for graphs set to half precision
+// Half precision variant, for Shader Graphs set to half precision
 void SdfSurface_half(half4 VertexColor, half4 UV0, half4 UV1, half4 UV2, half4 UV3, half4 UV4, half4 UV5, half3 PositionWS, half3 NormalWS,
     out half3 BaseColor, out half3 Normal, out half Smoothness, out half Occlusion, out half CoatMask, out half SubsurfaceMask,
     out half Thickness)

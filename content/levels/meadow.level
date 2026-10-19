@@ -1,0 +1,36 @@
+# The meadow: the first level. A 150 m × 100 m grass field on a floating island, walled in by hills whose crests, 8 to 12 m high,
+# hide everything behind them from eye height; beyond them the island ends and there is only sky.
+format 1
+
+play size=(150, 100)                      # the playable rectangle, centred on the origin: x across, z along
+seed 1
+
+hills
+    ring width=28 height=10               # rise outside the rectangle, crest about 8-12 m
+    noise amplitude=2.5 scale=18          # unevenness along the crest and on the slopes
+
+edge                                      # where the island ends, behind the hill crests (the underside comes later)
+    margin=6
+
+# The ground other than grass, from 2D shapes; where regions overlap, the later one wins. Each is drawn in its material,
+# materials/ground/ground_<region>.sdfmat; the tiles also get the castles' footprints (ground=tiles below)
+regions
+    dirt                                  # trodden earth round each castle
+        Circle center=(-60, 0) radius=27 noise=2 noiseScale=7
+        Circle center=(60, 0) radius=27 noise=2 noiseScale=7
+    path                                  # a footpath wandering from gate to gate
+        Polyline points=[(-49, 0), (-36, 4), (-18, 7), (0, 2), (16, -5), (34, -5), (49, 0)] width=2.6 noise=0.5 noiseScale=4
+    tiles stone=0.6 grout=0.05            # flagstones: an apron before each gate, and the castles' courtyards and surrounds
+        RoundedBox2D center=(-48, 0) size=(5, 7) radius=1.5
+        RoundedBox2D center=(48, 0) size=(5, 7) radius=1.5
+
+# The unique models, each from content/models/ by name, its base on the ground at (x, z), turned yaw degrees (counter-clockwise
+# from above, so yaw=90 turns a model's front, +z, to +x). The castles face each other across the meadow, standing on level
+# plateaus of tiles; a few big rocks break up the open field
+place
+    castle0 at=(-62, 0) yaw=90 ground=tiles groundMargin=2.5 flatten=22
+    castle0 at=(62, 0) yaw=-90 ground=tiles groundMargin=2.5 flatten=22
+    rock1 at=(10, 30) yaw=40 scale=2.2                # a mossy outcrop, too big for a convex collider
+    rock3 at=(-20, -35) yaw=0 scale=1.5
+    rock4 at=(30, -32) yaw=125
+    rock2 at=(-32, 30) yaw=200 scale=1.3

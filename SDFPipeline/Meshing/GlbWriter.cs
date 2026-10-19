@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Text.Json;
+using SDFPipeline.ProgramFiles;
 using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.Meshing;
@@ -209,6 +210,7 @@ public static class GlbWriter
                     },
                     // Each mesh's primitives are its material regions; the number is the material's index in materials
                     regions = "primitive material = index into materials, by the material that weighs most at the triangle",
+                    collider = Collider(model, lodCount),
                     // Left out without levels of detail, so such files stay as they were
                     lods = lodCount > 1
                         ? new
@@ -223,8 +225,54 @@ public static class GlbWriter
         };
 
         var json = JsonSerializer.SerializeToUtf8Bytes(document, new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
+        return Container(json, binary.ToArray());
+    }
+
+    /// <summary>
+    /// What the game engine gives the model to collide with (<see cref="ModelSettings"/>), resolved for this file: the level of detail a
+    /// convex or mesh collider is made from (the one asked for, or the coarsest, never beyond the levels there are), a convex one larger
+    /// than <see cref="ModelSettings.LargestConvexSize"/> made a mesh, as its hull would block walkable ground round a large outcrop, and a
+    /// capsule's axis and radius, upright through the middle of the model's bounds (in the file's coordinates). Null for none, so files
+    /// without a collider stay as they were.
+    /// </summary>
+    private static object? Collider(MeshedModel model, int lodCount)
+    {
+        var settings = model.Settings;
+        if (settings.Collider == ColliderShape.None || model.Meshes.Count == 0)
+            return null;
+        var positions = model.Meshes.SelectMany(m => m.Positions).ToArray();
+        var min = positions.Aggregate(Vector3.Min);
+        var max = positions.Aggregate(Vector3.Max);
+        var size = max - min;
+        switch (settings.Collider)
+        {
+            case ColliderShape.Capsule:
+                var radius = MathF.Max(size.X, size.Z) / 2;
+                var centre = (min + max) / 2;
+                return new
+                {
+                    shape = "capsule",
+                    @base = new[] { centre.X, min.Y, centre.Z },
+                    top = new[] { centre.X, max.Y, centre.Z },
+                    radius,
+                };
+            default:
+                var largest = MathF.Max(size.X, MathF.Max(size.Y, size.Z));
+                var convex = settings.Collider == ColliderShape.Convex && largest <= ModelSettings.LargestConvexSize;
+                return new
+                {
+                    shape = convex ? "convex" : "mesh",
+                    lod = Math.Min(settings.ColliderLod ?? lodCount - 1, lodCount - 1),
+                    asked = settings.Collider.ToString().ToLowerInvariant(),
+                };
+        }
+    }
+
+    /// <summary>The GLB container around a glTF document and its binary buffer (already padded to four bytes).</summary>
+    internal static byte[] Container(byte[] json, byte[] binary)
+    {
         var jsonLength = Align(json.Length);
-        var binaryLength = (int)binary.Length;
+        var binaryLength = binary.Length;
         var total = 12 + 8 + jsonLength + 8 + binaryLength;
 
         var glb = new byte[total];
@@ -239,7 +287,7 @@ public static class GlbWriter
         var binaryStart = 20 + jsonLength;
         BinaryPrimitives.WriteUInt32LittleEndian(span[binaryStart..], (uint)binaryLength);
         BinaryPrimitives.WriteUInt32LittleEndian(span[(binaryStart + 4)..], BinaryChunk);
-        binary.ToArray().CopyTo(span[(binaryStart + 8)..]);
+        binary.CopyTo(span[(binaryStart + 8)..]);
         return glb;
     }
 
@@ -253,10 +301,17 @@ public static class GlbWriter
     public static void Save(string path, MeshedModel model)
     {
         var full = Path.GetFullPath(path);
+        SaveAtomically(full, Write(model, Path.GetFileNameWithoutExtension(full)));
+    }
+
+    /// <summary>Writes the bytes to a hidden file next to the path that then replaces it, as <see cref="Save"/> does.</summary>
+    internal static void SaveAtomically(string path, byte[] bytes)
+    {
+        var full = Path.GetFullPath(path);
         var directory = Path.GetDirectoryName(full)!;
         Directory.CreateDirectory(directory);
         var temporary = Path.Combine(directory, $".{Path.GetFileName(full)}.tmp");
-        File.WriteAllBytes(temporary, Write(model, Path.GetFileNameWithoutExtension(full)));
+        File.WriteAllBytes(temporary, bytes);
         File.Move(temporary, full, overwrite: true);
     }
 
@@ -324,7 +379,7 @@ public static class GlbWriter
 
     private static float[] Flatten(Vector3[] vectors) => vectors.SelectMany(v => new[] { v.X, v.Y, v.Z }).ToArray();
 
-    private static float[] Bound(float[] values, int components, Func<float, float, float> pick)
+    internal static float[] Bound(float[] values, int components, Func<float, float, float> pick)
     {
         var result = new float[components];
         for (var c = 0; c < components; c++)
@@ -337,7 +392,7 @@ public static class GlbWriter
         return result;
     }
 
-    private static byte[] Bytes(float[] values)
+    internal static byte[] Bytes(float[] values)
     {
         var bytes = new byte[values.Length * 4];
         for (var i = 0; i < values.Length; i++)
@@ -345,7 +400,7 @@ public static class GlbWriter
         return bytes;
     }
 
-    private static byte[] Bytes(uint[] values)
+    internal static byte[] Bytes(uint[] values)
     {
         var bytes = new byte[values.Length * 4];
         for (var i = 0; i < values.Length; i++)
@@ -355,7 +410,7 @@ public static class GlbWriter
 
     private static int Align(int length) => (length + 3) & ~3;
 
-    private static void Pad(MemoryStream stream, byte value)
+    internal static void Pad(MemoryStream stream, byte value)
     {
         while (stream.Length % 4 != 0)
             stream.WriteByte(value);

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using SDFPipeline.Levels;
 using SDFPipeline.Materials;
 using SDFPipeline.Meshing;
 using SDFPipeline.ProgramFiles;
@@ -27,8 +28,19 @@ const string usage = """
                --suffix <text>        add this to each .glb's name, e.g. --suffix _512 for chanterelle-scout_512.glb
                --lods <n>             levels of detail per mesh, LOD0 included, 1 to 4 (default 1); each further level
                                       has about a third of the triangles of the one before
+      sdf level <level.level> --into <folder>                 Bakes the level's ground into <folder>: a .glb per 25 m chunk with
+                                                              its levels of detail, and level.json for Unity's level builder
+      sdf level <directory> --into <folder>                   Bakes every .level in the directory into <folder>/<level name>/
+      sdf level --into <folder>                               The same for content/levels
+      sdf unity [--resolution <cells>] [--lods <n>]           Updates Unity: meshes content/models into
+                                                              Unity/Assets/Mushrooms/Generated (as sdf mesh, with these options),
+                                                              then bakes content/levels into Unity/Assets/Level/Generated
       sdf examples <directory>                                Writes the IDE's examples as .sdf files
     """;
+
+// Where `sdf unity` puts what it makes, below the folder that holds content/
+const string unityModelsFolder = "Unity/Assets/Mushrooms/Generated";
+const string unityLevelsFolder = "Unity/Assets/Level/Generated";
 
 // Each render runs its own headless Chrome; a few at a time keeps the machine responsive.
 var parallelRenders = Math.Clamp(Environment.ProcessorCount / 3, 1, 4);
@@ -37,6 +49,8 @@ return args switch
 {
     ["render", .. var rest] => await Render(rest),
     ["mesh", .. var rest] => Mesh(rest),
+    ["level", .. var rest] => Level(rest),
+    ["unity", .. var rest] => Unity(rest),
     ["examples", var directory] => Examples(directory),
     _ => Usage(),
 };
@@ -172,7 +186,7 @@ bool MeshOne(string input, string output, MeshingOptions options)
         var missing = ModelFiles.MaterialNames(program).Where(name => !options.Materials.Contains(name)).ToArray();
         if (missing.Length > 0)
             Console.Error.WriteLine($"{input}: no material file for {string.Join(", ", missing)}, meshed with the magenta stand-in");
-        var model = ModelMesher.Mesh(program, options);
+        var model = ModelMesher.Mesh(program, options) with { Settings = SdfProgramFile.LoadSettings(input) };
         if (model.Meshes.Count == 0)
         {
             Console.Error.WriteLine($"{input}: there is no finite surface to mesh");
@@ -211,6 +225,117 @@ bool MeshOne(string input, string output, MeshingOptions options)
         Console.Error.WriteLine($"{input}: {exception.Message}");
         return false;
     }
+}
+
+int Level(string[] arguments)
+{
+    string? into = null;
+    var paths = new List<string>();
+    for (var i = 0; i < arguments.Length; i++)
+    {
+        if (arguments[i] == "--into" && i + 1 < arguments.Length)
+        {
+            into = arguments[++i];
+            continue;
+        }
+        if (arguments[i].StartsWith("--"))
+            return Usage($"Unknown or invalid option {arguments[i]}, sdf level takes --into <folder>");
+        paths.Add(arguments[i]);
+    }
+    if (into is null)
+        return Usage("sdf level needs --into <folder>, where the baked level goes");
+
+    if (LoadMaterials() is not { } materials)
+        return 1;
+    switch (paths)
+    {
+        case []:
+            var content = ModelFiles.FindContentFolder(Directory.GetCurrentDirectory());
+            return content is null
+                ? Usage($"No '{ModelFiles.ContentFolderName}' folder was found here or in a folder above; pass a level or directory")
+                : BakeAll(Path.Combine(content, LevelFile.FolderName), into, materials);
+        case [var directory] when Directory.Exists(directory):
+            return BakeAll(directory, into, materials);
+        case [var input]:
+            return BakeOne(input, into, materials) ? 0 : 1;
+        default:
+            return Usage();
+    }
+}
+
+int BakeAll(string directory, string into, MaterialLibrary materials)
+{
+    var levels = Directory.Exists(directory) ? LevelFile.All(directory) : [];
+    if (levels.Count == 0)
+    {
+        Console.WriteLine($"There are no {LevelFile.Extension} files in {directory}");
+        return 0;
+    }
+    var names = levels.GroupBy(LevelFile.NameOf).FirstOrDefault(g => g.Count() > 1);
+    if (names is not null)
+    {
+        Console.Error.WriteLine($"Two levels are named '{names.Key}' ({string.Join(", ", names)}); level names must be unique");
+        return 1;
+    }
+
+    var stopwatch = Stopwatch.StartNew();
+    var failed = levels.Count(level => !BakeOne(level, Path.Combine(into, LevelFile.NameOf(level)), materials));
+    Console.WriteLine(failed == 0
+        ? $"Baked all {levels.Count} levels in {stopwatch.Elapsed.TotalSeconds:0.0} s"
+        : $"{failed} of {levels.Count} levels failed, see above ({stopwatch.Elapsed.TotalSeconds:0.0} s)");
+    return failed == 0 ? 0 : 1;
+}
+
+bool BakeOne(string input, string into, MaterialLibrary materials)
+{
+    try
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var level = LevelFile.Load(input);
+        var content = ModelFiles.FindContentFolder(Path.GetDirectoryName(Path.GetFullPath(input))!);
+        var models = content is null ? null : LevelModels.In(Path.Combine(content, "models"));
+        var baked = LevelBaker.Bake(level, LevelFile.NameOf(input), materials, into, models);
+        var layout = baked.Layout;
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"Baked {input} into {into} in {stopwatch.Elapsed.TotalSeconds:0.0} s: {baked.ChunkFiles.Count} chunks of {layout.ChunkSize:0.#} m on a {layout.CountX} × {layout.CountZ} grid"));
+        for (var lod = 0; lod < baked.Triangles.Length; lod++)
+        {
+            var detail = LevelBaker.Details[lod];
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"  {GlbWriter.LodName(LevelBaker.GroundMeshName, lod),-12}  {layout.ChunkSize / detail.Cells:0.###} m grid  → {LevelBaker.Count(baked.Triangles[lod]),9} triangles over all chunks ({LevelBaker.Count(baked.SkirtTriangles[lod])} in skirts), within {baked.MaxErrors[lod] * 100:0.#} cm"));
+        }
+        if (baked.Regions.Count > 0)
+            Console.WriteLine($"  regions       {string.Join(", ", baked.Regions.Select(r => $"{r.Name} ({r.Shapes.Count} shape{(r.Shapes.Count == 1 ? "" : "s")})"))} in {RegionMap.FileName}");
+        foreach (var placed in baked.Placements)
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"  placed        {placed.Model} at ({placed.Position.X:0.##}, {placed.Position.Y:0.##}, {placed.Position.Z:0.##}), yaw {placed.Yaw:0.#}°{(placed.Scale != 1 ? ", scale " + placed.Scale.ToString("0.##", CultureInfo.InvariantCulture) : "")}"));
+        return true;
+    }
+    catch (SdfProgramFileException exception)
+    {
+        Console.Error.WriteLine($"{input}:{exception.Line}: {exception.Problem}");
+        return false;
+    }
+    catch (Exception exception) when (exception is IOException or InvalidOperationException or UnauthorizedAccessException)
+    {
+        Console.Error.WriteLine($"{input}: {exception.Message}");
+        return false;
+    }
+}
+
+int Unity(string[] arguments)
+{
+    var content = ModelFiles.FindContentFolder(Directory.GetCurrentDirectory());
+    if (content is null)
+        return Usage($"No '{ModelFiles.ContentFolderName}' folder was found here or in a folder above");
+    var root = Path.GetDirectoryName(content)!;
+    if (arguments.FirstOrDefault(a => a.StartsWith("--") && a is not ("--resolution" or "--lods")) is { } unknown)
+        return Usage($"sdf unity takes --resolution and --lods, not {unknown}");
+
+    // Models first: the levels place model prefabs, which Unity builds from the meshes before it builds the level scenes
+    var models = Mesh([Path.Combine(content, "models"), "--into", Path.Combine(root, unityModelsFolder), .. arguments]);
+    var levels = Level([Path.Combine(content, LevelFile.FolderName), "--into", Path.Combine(root, unityLevelsFolder)]);
+    return models != 0 ? models : levels;
 }
 
 async Task<int> Render(string[] arguments)

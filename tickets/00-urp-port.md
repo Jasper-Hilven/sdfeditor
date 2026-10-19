@@ -77,3 +77,52 @@ lights itself in hand-written HLSL, so it depends little on the pipeline; what i
 
 - Take the "before" snapshots on HDRP before changing anything.
 - Keep the per-vertex data layout (`SdfSurface.hlsl`, `MushroomBuilder.Fill`) untouched; it is shared with the IDE's preview.
+
+## Status
+
+Done (not committed):
+
+- Packages: HDRP replaced by `com.unity.render-pipelines.universal` 17.3.0. HDRP assets, `HDRPProjectSettings.asset`, the HDRP volume
+  profile, `SdfSurface.shadergraph` and `SdfLodFade.hlsl` deleted. `Mushrooms.unity` and `Forest Floor.mat` were regenerated
+  by the builder, not hand-edited (the scene kept its GUID).
+- `SdfToon.shader`: URP passes `UniversalForwardOnly`, `ShadowCaster`, `DepthOnly`, `DepthNormals`; sun from `_MainLight*` plus
+  `GetMainLight(shadowCoord, positionWS, 1)` (cascades, soft shadows, distance fade); instancing in every pass; cross-fade through URP's
+  `LODFadeCrossFade` (dither on the screen position, so outline, surface, depth and shadow drop the same pixels); target 3.5 (WebGL 2).
+  `SdfToonShade` is called with unchanged inputs. `SdfToonOutline.shader` works the same way, with front-face culling, no shadow
+  caster, and depth/depth-normals passes so depth priming keeps it.
+- `RenderPipelineSetup.cs` (was `HdrpProjectSetup.cs`): one forward `Universal Renderer`, `URP High` / `URP Integrated GPU and Web`
+  assets and exactly two quality levels with the ticket's values. Standalone starts on High; WebGL, iOS and Android start on the low
+  preset. The presets are code: they are put back on every editor load.
+- `QualityPresetCamera` (runtime, `Assets/Mushrooms/Runtime/`): FXAA on the camera when the active asset has no MSAA.
+- `MushroomScene.cs`: URP camera (post-processing on), a plain directional sun at 1.5 and 5600 K with a warm filter, `Skybox/Procedural`,
+  flat ambient, and a volume `Post Processing.asset` with ACES, bloom 0.175 (threshold 0) and post exposure -0.26 EV. HDRP's bloom
+  *lerped* 15 % of the blur in and its physically based sky warmed the sun; the filter, bloom and exposure values were fitted to the
+  HDRP snapshots. Ground is on URP Lit.
+- `MushroomSnapshot.cs`: no HDRP camera data; copies the URP camera settings and the preset's anti-aliasing (MSAA samples on the render
+  target). A new batch entry `CaptureLevelsOfDetail` runs without the editor window.
+- `MushroomBuilder.BuilderVersion` 9; the HDRP-only realistic-look cleanup is gone; comments updated.
+- Web: `WebBuild.cs` (Tools > SDF Mushrooms > Build Web / Build and Run Web; batch `SdfMushrooms.Editor.WebBuild.Build`), WebGL 2 only,
+  gzip with decompression fallback, output `Unity/Builds/Web` (git-ignored). Run config `.run/Unity Web Build.run.xml` builds, serves on
+  :8642 and opens the browser.
+
+Verified (batchmode, M4 Max):
+
+- Project opens with no `error CS` and no shader errors for the toon shaders; prefabs rebuilt; scene built.
+- HDRP "before" snapshots taken first. URP "after" lit-band colour per channel is within about 1–4 % of HDRP; mean absolute difference
+  is about 1.5–3 sRGB levels per close-up. Bands, highlight, rim, outline, speckles and variation match by eye. The willow glow is
+  slightly different: URP's bloom is additive, HDRP's was a blend.
+- LOD snapshots: cross-fade captures show both levels' pixels (dithered).
+- Sun shadows land on the models and the ground on High. On the web preset the close-ups have shadows; the overview camera is beyond
+  the 30 m shadow distance, so it shows none.
+- `Graphics.RenderMeshInstanced` of the amanita's meshes (64 instances, toon + outline) renders correctly, with shadows.
+- WebGL build succeeds (23 MB, about 2 min) and runs in headless Chrome (WebGL 2). Console: only URP's "shader not supported" for
+  `CoreCopy`, `StencilDitherMaskSeed` (unused: cross-fade uses blue noise) and `HDRDebugView`, which are expected on WebGL.
+
+To check by hand:
+
+- A side-by-side look in the editor's Game view (snapshots only compared headless renders), in particular the sky, which the scene
+  camera barely shows.
+- LOD cross-fade *in motion*: no popping, and the outline fading with its surface.
+- The web build in desktop Chrome and in Safari, with frame rate.
+- Batch builds with `-buildTarget WebGL` leave the project on WebGL. The verification run switched it back to macOS. After using the
+  run config, expect one platform switch when the editor next opens.
