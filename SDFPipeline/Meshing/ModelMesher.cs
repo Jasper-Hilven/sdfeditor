@@ -90,16 +90,37 @@ public static class ModelMesher
         var calculator = new SdfCalculatorCpu();
         var whole = calculator.Prepare(PartSplitter.Expanded(program));
         var surface = options.SurfaceOf is { } cutFrom ? calculator.Prepare(PartSplitter.Expanded(cutFrom)) : null;
+        var warnings = new List<string>();
+        var sources = PartSplitter.Split(program, warnings).ToArray();
+
+        // The meshes are made at the same time, as simplifying one runs on a single core. Each numbers its materials in a table of its
+        // own; they are merged in mesh order afterwards, which numbers them as meshing one after the other would
+        var tables = sources.Select(_ => new MaterialTable(options.Materials)).ToArray();
+        var made = new PartMesh?[sources.Length];
+        Parallel.For(0, sources.Length, new ParallelOptions { MaxDegreeOfParallelism = MeshesAtOnce }, s =>
+            made[s] = MeshOne(sources[s], calculator, whole, surface, GridFor(sources[s], grid, options), tables[s], options));
         var table = new MaterialTable(options.Materials);
         var meshes = new List<PartMesh>();
-        var warnings = new List<string>();
-        foreach (var source in PartSplitter.Split(program, warnings))
+        for (var s = 0; s < sources.Length; s++)
         {
-            if (MeshOne(source, calculator, whole, surface, GridFor(source, grid, options), table, options) is { } mesh)
-                meshes.Add(mesh);
+            var numbers = tables[s].Materials.Select(m => table.IndexOf(m.Source)).ToArray();
+            if (made[s] is { } mesh)
+                meshes.Add(Renumbered(mesh, numbers) with { Lods = mesh.Lods.Select(lod => Renumbered(lod, numbers)).ToArray() });
         }
         return new MeshedModel(meshes, table.Materials, grid) { Detail = detail, Warnings = warnings };
     }
+
+    /// <summary>
+    /// How many of a model's meshes are made at the same time: each holds its contour and simplification in memory, and its own
+    /// contouring is already parallel.
+    /// </summary>
+    private const int MeshesAtOnce = 4;
+
+    /// <summary>The mesh with its vertices' material numbers changed from its own table's to the model's.</summary>
+    private static PartMesh Renumbered(PartMesh mesh, int[] numbers) => mesh with
+    {
+        Materials = mesh.Materials.Select(m => m with { First = numbers[m.First], Second = numbers[m.Second] }).ToArray(),
+    };
 
     /// <summary>
     /// The body is meshed on the model's grid. A part, being a mesh of its own that overlaps the body rather than joining it, gets a grid
