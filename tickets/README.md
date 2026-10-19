@@ -18,6 +18,7 @@ the one before.
 | 10 | [Sky: remaining](10-sky-remaining.md) | What is left of 07: web frame time and Safari, the sky's motion checked in Play mode, the tower snapshot on the new castle, the showcase snapshot's stray object. After 07 |
 | 11 | [Chessboard](11-chessboard.md) | Second level: a 160 m chessboard in anarchy chess, 19 mushroom chess pieces placed, `Chessboard.unity` built. Left: sky, web draw calls and budget, straight square edges, Play-mode check. After 03 and 07 |
 | 12 | [Game pieces](12-game-pieces.md) | Mushroom dice, Monopoly houses, dominoes, meeples, chips and cards for the chessboard level: modelled; meshing (too slow so far), Unity check and placement left. After 11 |
+| 13 | [Chess without eyes](13-chess-no-eyes.md) | The 19 chess pieces lose their floating eyes and hands; re-meshed, prefabs and scenes rebuilt. After 11 |
 
 ## The level
 
@@ -39,6 +40,8 @@ the one before.
   that Unity reads. Unity never holds hand-made level data.
 - **The level is its own static Unity scene** (`Assets/Scenes/Meadow.unity`), next to the `Mushrooms.unity` model showcase, rebuilt
   from the baked data. The `Pipeline to Unity` run configs (all three) update it along with the models.
+- **Generated files are not in git**: the `.glb` meshes, mesh `.asset`s, level bake output and their `.meta` files are ignored. A fresh
+  clone runs `sdf unity` (the `Update to Unity (256)` run config) before opening Unity, which then rebuilds prefabs and scenes.
 - **Procedural only**: heights and ground masks come from 2D SDF shapes and noise, no hand-painted maps.
 - **Presets**: *high* (dev machine, M4 Max) and *integrated GPU / web* (min-spec). There is no integrated-GPU test machine; the low
   preset is profiled on the M4 Max and in the web build.

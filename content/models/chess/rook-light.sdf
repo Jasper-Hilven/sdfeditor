@@ -1,11 +1,10 @@
 # Rook, light: a stout bolete 3.4 m tall turned like a chess rook. A broad foot with a swollen bulb, a thick column of a stem up
 # to a flared ring, and on top a flat drum of a cap, its top hollowed and its rim cut into eight merlons like a tower's
-# battlements, gills under its overhanging edge. Floating eyes and hands in front of the stem.
+# battlements, gills under its overhanging edge.
 format 1
 collider convex
 
-# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
-# so its eyes and hands get half too
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Union
         SmoothUnion smoothness=0.04
@@ -43,14 +42,3 @@ Detail detail=0.5
                     Translate translation=(0, 1.92, 0)
                         Round radius=0.03
                             CappedCone height=0.07 bottomRadius=0.94 topRadius=0.7
-
-        # Floating eyes, mirrored, in front of the column, and floating hands either side of it in the stem's flesh
-        SymmetryX
-            Translate translation=(0.25, 1.36, 0.82)
-                Scale scale=(2.4, 2.4, 2.4)
-                    Part part=eye
-        SymmetryX
-            Translate translation=(0.98, 1.0, 0.3)
-                Material material=chess_light_stem
-                    Scale scale=(2.6, 2.6, 2.6)
-                        Part part=hand

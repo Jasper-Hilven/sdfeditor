@@ -1,12 +1,11 @@
-# Queen, light, fallen: the light queen (queen-light.sdf) knocked over in the board's chaos and lying on its back, its eyes to the sky,
+# Queen, light, fallen: the light queen (queen-light.sdf) knocked over in the board's chaos and lying on its back,
 # its head end a little lower than its foot so both rest on the ground. Placements only turn a model about the vertical, so the
 # fall is in the model: the upright piece below, tipped over and lifted until it rests on the ground. Keep the shape in step
 # with queen-light.sdf.
 format 1
 collider convex
 
-# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board,
-# so its eyes and hands get half too
+# Half the vertices its size would give it: the piece is big, smooth turned forms, and dozens of pieces stand on the board.
 Detail detail=0.5
     Translate translation=(0, 1.14, 0)
         Rotate rotation=(-1.6008, 0, 0)
@@ -49,14 +48,3 @@ Detail detail=0.5
                                 CappedCone height=1.5 bottomRadius=0.55 topRadius=0.3
                             Translate translation=(0, 3.45, 0)
                                 CappedCone height=0.12 bottomRadius=0.3 topRadius=0.36
-
-                # Floating eyes, mirrored, in front of the stem, and floating hands either side of it in the stem's flesh
-                SymmetryX
-                    Translate translation=(0.24, 2.0, 0.6)
-                        Scale scale=(2.4, 2.4, 2.4)
-                            Part part=eye
-                SymmetryX
-                    Translate translation=(0.88, 1.55, 0.28)
-                        Material material=chess_light_stem
-                            Scale scale=(2.6, 2.6, 2.6)
-                                Part part=hand
