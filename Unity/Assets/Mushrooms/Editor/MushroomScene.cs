@@ -11,9 +11,10 @@ using UnityEngine.SceneManagement;
 namespace SdfMushrooms.Editor
 {
     /// <summary>
-    /// The default scene, Assets/Scenes/Mushrooms.unity: an instance of every mushroom prefab side by side on a forest floor, under a
-    /// physically based sky and sun with fixed exposure, framed by the camera. Created the first time; after that only touched when a
-    /// prefab appears or disappears, because the instances follow their prefabs by themselves.
+    /// The default scene, Assets/Scenes/Mushrooms.unity: one instance of each model (its best variant, see
+    /// <see cref="MushroomBuilder.SceneModels"/>) on a forest floor, a row per group (characters, rocks, trees, weapons) with the lower
+    /// rows in front, under a physically based sky and sun with fixed exposure, framed by the camera. Created the first time; after
+    /// that only touched when what it should show or where changes, because the instances follow their prefabs by themselves.
     /// </summary>
     public static class MushroomScene
     {
@@ -21,6 +22,7 @@ namespace SdfMushrooms.Editor
         private const string VolumeProfilePath = "Assets/Scenes/Mushrooms/Sky and Exposure.asset";
         private const string GroundMaterialPath = "Assets/Mushrooms/Materials/Forest Floor.mat";
         private const float Gap = 0.35f;
+        private const float RowGap = 0.8f;
 
         /// <summary>
         /// Where the sun shines, from the front, the side and about 32° up: low enough to reach under the caps, so the stem below a
@@ -31,8 +33,9 @@ namespace SdfMushrooms.Editor
         /// <summary>The first scenes had a sun 50° up, which left the stems under the caps dark; it is moved to the current one.</summary>
         private static readonly Vector3 OldSunDirection = new Vector3(4, -6, -3).normalized;
 
-        public static void Ensure(IReadOnlyList<string> prefabPaths)
+        public static void Ensure(IReadOnlyList<(string group, string prefab)> models)
         {
+            var prefabPaths = models.Select(m => m.prefab).ToArray();
             var existing = SceneManager.GetSceneByPath(MushroomBuilder.ScenePath);
             var openedHere = false;
             Scene scene;
@@ -55,7 +58,7 @@ namespace SdfMushrooms.Editor
                 BuildEnvironment(scene);
             }
 
-            var changed = UpdateMushrooms(scene, prefabPaths) | UpdateSun(scene);
+            var changed = UpdateMushrooms(scene, models) | UpdateSun(scene);
             if (changed || string.IsNullOrEmpty(scene.path))
             {
                 FrameCamera(scene);
@@ -74,15 +77,23 @@ namespace SdfMushrooms.Editor
             return string.IsNullOrEmpty(active.path) && !active.isDirty;
         }
 
-        /// <summary>Whether the saved scene lacks an instance of a prefab, or has one of a prefab that is gone, without opening it.</summary>
+        /// <summary>
+        /// Whether the saved scene lacks an instance of a prefab, or has one of a prefab it should not show (gone, or a worse variant),
+        /// without opening it. A model that only moved to another group is placed the next time the scene is open or changes.
+        /// </summary>
         private static bool NeedsChange(IReadOnlyList<string> prefabPaths)
         {
             var dependencies = AssetDatabase.GetDependencies(MushroomBuilder.ScenePath, false);
             var used = dependencies.Where(d => d.EndsWith(".prefab")).ToHashSet();
-            return prefabPaths.Any(p => !used.Contains(p)) || used.Any(u => u.StartsWith(MushroomBuilder.PrefabFolder + "/") && !File.Exists(u));
+            return prefabPaths.Any(p => !used.Contains(p)) || used.Any(u => u.StartsWith(MushroomBuilder.PrefabFolder + "/") && !prefabPaths.Contains(u));
         }
 
-        private static bool UpdateMushrooms(Scene scene, IReadOnlyList<string> prefabPaths)
+        /// <summary>
+        /// Makes the root hold an object per group with an instance of each of its prefabs, and lays them out: each group a row from
+        /// left to right in name order, centred on x = 0, the rows one behind the other from the lowest at the front to the tallest at
+        /// the back, so nothing hides behind something taller. Returns whether anything changed.
+        /// </summary>
+        private static bool UpdateMushrooms(Scene scene, IReadOnlyList<(string group, string prefab)> models)
         {
             var root = scene.GetRootGameObjects().FirstOrDefault(g => g.name == MushroomsRootName);
             if (root == null)
@@ -92,44 +103,108 @@ namespace SdfMushrooms.Editor
             }
 
             var changed = false;
+            var wanted = models.Select(m => m.prefab).ToHashSet();
             var instances = new Dictionary<string, GameObject>();
-            foreach (Transform child in root.transform.Cast<Transform>().ToArray())
+            foreach (var child in root.GetComponentsInChildren<Transform>(true).Select(t => t.gameObject).Where(PrefabUtility.IsOutermostPrefabInstanceRoot).ToArray())
             {
-                var source = PrefabUtility.GetCorrespondingObjectFromSource(child.gameObject);
+                var source = PrefabUtility.GetCorrespondingObjectFromSource(child);
                 var path = source != null ? AssetDatabase.GetAssetPath(source) : null;
-                if (path == null || !prefabPaths.Contains(path))
+                if (path == null || !wanted.Contains(path) || instances.ContainsKey(path))
                 {
-                    Object.DestroyImmediate(child.gameObject);
+                    Object.DestroyImmediate(child);
                     changed = true;
                 }
                 else
                 {
-                    instances[path] = child.gameObject;
+                    instances[path] = child;
                 }
             }
-            foreach (var path in prefabPaths.Where(p => !instances.ContainsKey(p)))
+            foreach (var path in wanted.Where(p => !instances.ContainsKey(p)))
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
-                instance.transform.SetParent(root.transform, false);
-                instances[path] = instance;
+                instances[path] = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
                 changed = true;
             }
-            if (!changed)
-                return false;
 
-            // Side by side in name order, left to right as the camera sees them, centred on the origin
-            var ordered = prefabPaths.Select(p => instances[p]).ToArray();
-            var widths = ordered.Select(o => Bounds(o).size.x).ToArray();
-            var total = widths.Sum() + Gap * (ordered.Length - 1);
-            var x = total / 2;
-            for (var i = 0; i < ordered.Length; i++)
+            // An object per group, at the origin, holding its instances in name order
+            var groups = models.GroupBy(m => m.group).ToArray();
+            var rows = new List<GameObject[]>();
+            for (var g = 0; g < groups.Length; g++)
             {
-                // The camera looks down -z, so its left is +x
-                ordered[i].transform.localPosition = new Vector3(x - widths[i] / 2 - Bounds(ordered[i]).center.x + ordered[i].transform.position.x, 0, 0);
-                ordered[i].transform.SetSiblingIndex(i);
-                x -= widths[i] + Gap;
+                var name = GroupObjectName(groups[g].Key);
+                var groupObject = root.transform.Cast<Transform>().FirstOrDefault(t => t.name == name && !PrefabUtility.IsPartOfPrefabInstance(t))?.gameObject;
+                if (groupObject == null)
+                {
+                    groupObject = new GameObject(name);
+                    groupObject.transform.SetParent(root.transform, false);
+                    changed = true;
+                }
+                changed |= Place(groupObject.transform, Vector3.zero);
+                if (groupObject.transform.GetSiblingIndex() != g)
+                {
+                    groupObject.transform.SetSiblingIndex(g);
+                    changed = true;
+                }
+                var row = groups[g].Select(m => instances[m.prefab]).ToArray();
+                for (var i = 0; i < row.Length; i++)
+                {
+                    if (row[i].transform.parent != groupObject.transform)
+                    {
+                        row[i].transform.SetParent(groupObject.transform, false);
+                        changed = true;
+                    }
+                    if (row[i].transform.GetSiblingIndex() != i)
+                    {
+                        row[i].transform.SetSiblingIndex(i);
+                        changed = true;
+                    }
+                }
+                rows.Add(row);
             }
+            // Group objects left without instances, e.g. after a group was renamed
+            foreach (var empty in root.transform.Cast<Transform>().Where(t => t.childCount == 0 && !PrefabUtility.IsPartOfPrefabInstance(t)).ToArray())
+            {
+                Object.DestroyImmediate(empty.gameObject);
+                changed = true;
+            }
+
+            // Rows from the front (+z, towards the camera) to the back, lowest first
+            var z = 0f;
+            var first = true;
+            foreach (var row in rows.OrderBy(r => r.Max(o => Bounds(o).size.y)))
+            {
+                var depth = row.Max(o => Bounds(o).size.z);
+                z -= first ? 0 : depth / 2;
+                first = false;
+                var widths = row.Select(o => Bounds(o).size.x).ToArray();
+                var x = (widths.Sum() + Gap * (row.Length - 1)) / 2;
+                for (var i = 0; i < row.Length; i++)
+                {
+                    // The camera looks down -z, so its left is +x; each model's own centre goes on the row's line
+                    var bounds = Bounds(row[i]);
+                    var position = row[i].transform.position;
+                    changed |= Place(row[i].transform, new Vector3(x - widths[i] / 2 - bounds.center.x + position.x, 0, z - bounds.center.z + position.z));
+                    x -= widths[i] + Gap;
+                }
+                z -= depth / 2 + RowGap;
+            }
+            return changed;
+        }
+
+        /// <summary>The model instances under the root, row by row: the children of its group objects.</summary>
+        public static IEnumerable<Transform> Instances(GameObject root) =>
+            root.transform.Cast<Transform>().SelectMany(group => group.Cast<Transform>());
+
+        /// <summary>"weapons" is shown as Weapons; models straight in the Generated folder go under Other.</summary>
+        private static string GroupObjectName(string group) =>
+            group.Length == 0 ? "Other" : char.ToUpperInvariant(group[0]) + group.Substring(1).Replace('/', ' ');
+
+        /// <summary>Moves the object to a local position unless it is already there, so an unchanged scene is not saved again.</summary>
+        private static bool Place(Transform transform, Vector3 localPosition)
+        {
+            if ((transform.localPosition - localPosition).sqrMagnitude < 1e-6f)
+                return false;
+            transform.localPosition = localPosition;
             return true;
         }
 
@@ -153,7 +228,7 @@ namespace SdfMushrooms.Editor
             return bounds;
         }
 
-        /// <summary>Points the camera at all the mushrooms from the front and a little above, close enough that they fill the view.</summary>
+        /// <summary>Points the camera at all the rows from the front and above, close enough that they fill the view.</summary>
         private static void FrameCamera(Scene scene)
         {
             var camera = scene.GetRootGameObjects().Select(g => g.GetComponentInChildren<Camera>()).FirstOrDefault(c => c != null);
@@ -163,9 +238,10 @@ namespace SdfMushrooms.Editor
             var bounds = Bounds(root);
             var target = bounds.center;
             var aspect = 16f / 9f;
-            var halfHeight = Mathf.Max(bounds.extents.y, bounds.extents.x / aspect) * 1.12f;
+            // From higher up than for a single row, so the rows behind show over the ones in front
+            var direction = new Vector3(0, 0.45f, 1).normalized;
+            var halfHeight = Mathf.Max(bounds.extents.y * direction.z + bounds.extents.z * direction.y, bounds.extents.x / aspect) * 1.12f;
             var distance = halfHeight / Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) + bounds.extents.z;
-            var direction = new Vector3(0, 0.22f, 1).normalized;
             camera.transform.position = target + direction * distance;
             camera.transform.LookAt(target);
         }

@@ -1,0 +1,29 @@
+# Tree 2: a broad, spreading broadleaf tree about 4.1 m tall and 5.3 m across, a short, thick trunk on a wide flared foot that
+# splits low into four limbs reaching out nearly level, under a low, wide umbrella of blob clumps. Squat and shady where the tree
+# is round and the tall tree upright.
+format 1
+
+# Under half the vertices its size would give it: the widest of the broadleaf trees, but all big, simple forms
+Detail detail=0.45
+    Union
+        Material material=tree_bark
+            Distort amount=0.01 frequency=4
+                SmoothUnion smoothness=0.14
+                    # The trunk, short and thick, on a broad foot flat on the ground
+                    SmoothUnion smoothness=0.3
+                        ArbitraryRoundCone a=(0, 0.3, 0) b=(0.04, 1.2, 0) radiusA=0.32 radiusB=0.24
+                        Intersection
+                            Ellipsoid radii=(0.55, 0.32, 0.52)
+                            # The ground: only the half above it
+                            Translate translation=(0, 0.4, 0)
+                                Box size=(0.7, 0.4, 0.7)
+                    # Four limbs from the top of the trunk, out and gently up, each ending inside a clump of the ring
+                    ArbitraryRoundCone a=(0.04, 1.1, 0) b=(1.55, 2.35, 0.45) radiusA=0.17 radiusB=0.09
+                    ArbitraryRoundCone a=(0.04, 1.1, 0) b=(-1.5, 2.3, 0.55) radiusA=0.17 radiusB=0.09
+                    ArbitraryRoundCone a=(0.04, 1.15, 0) b=(0.4, 2.4, -1.45) radiusA=0.16 radiusB=0.09
+                    ArbitraryRoundCone a=(0.04, 1.15, 0) b=(-0.6, 2.45, -1) radiusA=0.14 radiusB=0.08
+
+        # The crown, low over the short trunk, its ring of clumps catching the ends of the limbs
+        Translate translation=(0, 2.75, 0)
+            Material material=tree_foliage
+                Part part=canopy_wide

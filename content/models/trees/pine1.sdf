@@ -1,0 +1,23 @@
+# Pine 1: a tall, slender spruce about 9.3 m tall, a straight, thin trunk on a small flared foot carrying a narrow spire of eight
+# stacked tiers that barely widen towards the bottom, with a longer stretch of bare trunk beneath them than the pine has. Reads
+# as the old, lanky one in a stand of pines.
+format 1
+
+# Half the vertices its height would give it, like the pine
+Detail detail=0.5
+    Union
+        Material material=tree_bark
+            Distort amount=0.008 frequency=4
+                # The trunk, straight and tapering, from a broad foot flat on the ground up into the tip of the spire
+                SmoothUnion smoothness=0.2
+                    ArbitraryRoundCone a=(0, 0.2, 0) b=(0, 8.2, 0) radiusA=0.22 radiusB=0.06
+                    Intersection
+                        Ellipsoid radii=(0.38, 0.26, 0.38)
+                        # The ground: only the half above it
+                        Translate translation=(0, 0.4, 0)
+                            Box size=(0.5, 0.4, 0.5)
+
+        # The needles, from 1.7 m up
+        Translate translation=(0, 1.7, 0)
+            Material material=pine_needles
+                Part part=pine_canopy_tall

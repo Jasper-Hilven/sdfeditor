@@ -1,0 +1,23 @@
+# Flower 1: a stylized red tulip about 0.56 m tall, a straight, sturdy stem between two long, upright, pointed leaves, topped by
+# a closed cup of six fat petals in two rings, their pointed tips just parting at the top. Glossy cartoon red against the green.
+format 1
+
+# Twice the vertices its size would give it: the stem is thin next to the flower's height
+Detail detail=2
+    Union
+        Material material=flower_stem
+            SmoothUnion smoothness=0.012
+                # The stem, straight and a little leaning
+                Capsule a=(0, 0.005, 0) b=(0.02, 0.4, 0) radius=0.012
+                # Two long leaves from the foot, upright and arching outwards
+                VesicaSegment a=(0, 0, 0) b=(0.1, 0.3, 0.04) width=0.03
+                VesicaSegment a=(0, 0, 0) b=(-0.08, 0.26, -0.06) width=0.028
+        # The cup: an inner ring of three petals and an outer ring of three between them, a little lower and wider
+        Material material=tulip_petal
+            SmoothUnion smoothness=0.008
+                VesicaSegment a=(0.032, 0.395, 0) b=(0.062, 0.55, 0) width=0.03
+                VesicaSegment a=(0.029, 0.395, 0.016) b=(0.045, 0.535, 0.043) width=0.032
+                VesicaSegment a=(0.014, 0.395, 0.01) b=(-0.001, 0.55, 0.036) width=0.03
+                VesicaSegment a=(0.002, 0.395, 0) b=(-0.03, 0.535, 0) width=0.032
+                VesicaSegment a=(0.014, 0.395, -0.01) b=(-0.001, 0.55, -0.036) width=0.03
+                VesicaSegment a=(0.029, 0.395, -0.016) b=(0.045, 0.535, -0.043) width=0.032

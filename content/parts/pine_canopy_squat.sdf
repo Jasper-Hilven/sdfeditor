@@ -1,0 +1,37 @@
+# Pine canopy squat: the needles of a young, bushy fir, a broad, squat cone of four deep tiers about 3 m across at the bottom and
+# 3.2 m tall, its base at the origin: fewer, wider tiers than the pine canopy's, with more scallops round their rims, so the little
+# tree reads full and round-shouldered. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness, shallow next to the tiers
+Distort amount=0.025 frequency=1.4
+    # The tiers run into each other where they overlap
+    SmoothUnion smoothness=0.09
+        # A hidden core inside the tiers, filling the deep hollows under their rims that would otherwise show as dark holes
+        Translate translation=(0, 1.525, 0)
+            CappedCone height=1.375 bottomRadius=0.9 topRadius=0.08
+        # Four tiers, broadest at the bottom, each turned against the last so the scallops do not line up
+        Translate translation=(0, 0.45, 0)
+            Rotate rotation=(0, 0.4, 0)
+                RadialWave amount=0.035 count=9
+                    Round radius=0.15
+                        CappedCone height=0.38 bottomRadius=1.4 topRadius=0.32
+        Translate translation=(0, 1.15, 0)
+            Rotate rotation=(0, 1.3, 0)
+                RadialWave amount=0.04 count=8
+                    Round radius=0.14
+                        CappedCone height=0.36 bottomRadius=1.08 topRadius=0.26
+        Translate translation=(0, 1.8, 0)
+            Rotate rotation=(0, 0.7, 0)
+                RadialWave amount=0.05 count=7
+                    Round radius=0.12
+                        CappedCone height=0.34 bottomRadius=0.78 topRadius=0.2
+        Translate translation=(0, 2.4, 0)
+            Rotate rotation=(0, 1.9, 0)
+                RadialWave amount=0.05 count=6
+                    Round radius=0.1
+                        CappedCone height=0.31 bottomRadius=0.5 topRadius=0.14
+        # The tip, short and blunt
+        Translate translation=(0, 2.95, 0)
+            Round radius=0.08
+                CappedCone height=0.32 bottomRadius=0.24 topRadius=0.03

@@ -1,0 +1,39 @@
+# Birch 1: a tall, twin-stemmed silver birch about 7.7 m tall, two slender pale trunks growing out of one flared foot and
+# splaying apart in a narrow V, the taller one leaning to -x under the full narrow oval crown, the shorter one leaning to +x under a
+# smaller copy of it, so the pair reads as one tree with two heads. Bark marks are painted on by the material, as on the other
+# birches.
+format 1
+
+# Half the vertices its 7.7 m would give it, like the single birch: slender trunks and simple, smooth crowns
+Detail detail=0.5
+    Union
+        Material material=birch_bark
+            Distort amount=0.006 frequency=4
+                SmoothUnion smoothness=0.04
+                    # The two lower lengths and the foot they share, all cut flat at the ground
+                    Intersection
+                        SmoothUnion smoothness=0.15
+                            ArbitraryRoundCone a=(-0.04, 0, 0) b=(-0.36, 3, 0.05) radiusA=0.15 radiusB=0.1
+                            ArbitraryRoundCone a=(0.06, 0, 0) b=(0.5, 2.6, -0.05) radiusA=0.14 radiusB=0.09
+                            Ellipsoid radii=(0.36, 0.16, 0.3)
+                        # The ground: only what is above it. A box rather than a plane, so the trunks count towards the bounds
+                        Translate translation=(0, 1.5, 0)
+                            Box size=(1.2, 1.5, 1)
+                    # The upper lengths, each bending a little further out, of the same radius where they meet the lower ones
+                    ArbitraryRoundCone a=(-0.36, 3, 0.05) b=(-0.6, 6.3, 0.1) radiusA=0.1 radiusB=0.05
+                    ArbitraryRoundCone a=(0.5, 2.6, -0.05) b=(0.92, 5, -0.1) radiusA=0.09 radiusB=0.045
+                    # A short branch off each trunk, up into its crown
+                    ArbitraryRoundCone a=(-0.42, 3.8, 0.06) b=(-0.95, 4.7, 0.25) radiusA=0.055 radiusB=0.035
+                    ArbitraryRoundCone a=(0.62, 3.3, -0.06) b=(1.2, 4, 0.15) radiusA=0.05 radiusB=0.035
+
+        # The taller crown, high on the taller trunk, so a long stretch of white shows beneath it
+        Translate translation=(-0.6, 5.9, 0.1)
+            Rotate rotation=(0, 0, 0.05)
+                Material material=birch_leaves
+                    Part part=birch_crown
+        # The smaller crown, three quarters the size and turned so its clumps do not repeat the taller one's
+        Translate translation=(0.95, 4.65, -0.1)
+            Rotate rotation=(0, 1.9, -0.06)
+                Scale scale=(0.72, 0.72, 0.72)
+                    Material material=birch_leaves
+                        Part part=birch_crown

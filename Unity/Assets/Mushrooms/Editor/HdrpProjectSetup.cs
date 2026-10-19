@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -19,7 +20,7 @@ namespace SdfMushrooms.Editor
         public const string PipelineAssetPath = "Assets/Settings/HDRenderPipelineAsset.asset";
 
         /// <summary>HDRP's limit: 16 slots, one of them taken by the neutral profile.</summary>
-        private const int MaxDiffusionProfiles = 15;
+        public const int MaxDiffusionProfiles = 15;
 
         static HdrpProjectSetup()
         {
@@ -81,10 +82,10 @@ namespace SdfMushrooms.Editor
         }
 
         /// <summary>
-        /// Adds the profile to the diffusion profile list of HDRP's default volume profile, which every scene uses, so a prefab dragged
-        /// into any scene scatters light. HDRP allows 15 profiles.
+        /// Makes the diffusion profile list of HDRP's default volume profile, which every scene uses, hold exactly these profiles, so a
+        /// prefab dragged into any scene scatters light and profiles no longer used make room. HDRP allows 15.
         /// </summary>
-        public static void RegisterDiffusionProfile(DiffusionProfileSettings profile)
+        public static void SetDiffusionProfiles(IEnumerable<DiffusionProfileSettings> profiles)
         {
             if (!GraphicsSettings.TryGetRenderPipelineSettings<HDRPDefaultVolumeProfileSettings>(out var settings) || settings.volumeProfile == null)
             {
@@ -97,21 +98,16 @@ namespace SdfMushrooms.Editor
                 list = volumeProfile.Add<DiffusionProfileList>(true);
                 AssetDatabase.AddObjectToAsset(list, volumeProfile);
             }
-            var profiles = (list.diffusionProfiles.value ?? new DiffusionProfileSettings[0]).Where(p => p != null).ToList();
-            if (profiles.Contains(profile) && list.diffusionProfiles.overrideState)
+            var wanted = profiles.ToArray();
+            if (wanted.Length > MaxDiffusionProfiles)
+                Debug.LogWarning($"SDF mushrooms: HDRP's diffusion profile list is full; {string.Join(", ", wanted.Skip(MaxDiffusionProfiles).Select(p => p.name))} are left out");
+            wanted = wanted.Take(MaxDiffusionProfiles).ToArray();
+            var current = list.diffusionProfiles.value ?? new DiffusionProfileSettings[0];
+            if (list.active && list.diffusionProfiles.overrideState && current.SequenceEqual(wanted))
                 return;
-            if (!profiles.Contains(profile))
-            {
-                if (profiles.Count >= MaxDiffusionProfiles)
-                {
-                    Debug.LogWarning($"SDF mushrooms: HDRP's diffusion profile list is full; {profile.name} is left out");
-                    return;
-                }
-                profiles.Add(profile);
-            }
             list.active = true;
             list.diffusionProfiles.overrideState = true;
-            list.diffusionProfiles.value = profiles.ToArray();
+            list.diffusionProfiles.value = wanted;
             EditorUtility.SetDirty(list);
             EditorUtility.SetDirty(volumeProfile);
         }

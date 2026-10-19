@@ -1,0 +1,26 @@
+# Fruit tree 2: a young apple tree about 3 m tall, a thin trunk leaning to -x that forks low into two branches spreading in a wide
+# V, each carrying its own round lobe of leaves, the left one bigger and lower, hung with eight red apples. Smaller and more
+# lopsided than the other fruit trees.
+format 1
+
+# Half the vertices its size would give it, like the other fruit trees
+Detail detail=0.5
+    Union
+        Material material=tree_bark
+            Distort amount=0.008 frequency=4
+                SmoothUnion smoothness=0.08
+                    # The trunk, leaning, flaring into the ground, cut flat at it
+                    Intersection
+                        SmoothUnion smoothness=0.12
+                            ArbitraryRoundCone a=(0, 0, 0) b=(-0.22, 0.9, 0.04) radiusA=0.13 radiusB=0.1
+                            Ellipsoid radii=(0.25, 0.13, 0.23)
+                        # The ground
+                        Translate translation=(0, 1, 0)
+                            Box size=(0.6, 1, 0.6)
+                    # The two branches of the fork, one into each lobe
+                    ArbitraryRoundCone a=(-0.22, 0.85, 0.04) b=(-0.7, 1.8, 0.05) radiusA=0.085 radiusB=0.05
+                    ArbitraryRoundCone a=(-0.22, 0.85, 0.04) b=(0.3, 2, -0.02) radiusA=0.08 radiusB=0.05
+
+        # The crown, its two lobes over the two branches
+        Translate translation=(-0.05, 2.15, 0)
+            Part part=fruit_crown_twin

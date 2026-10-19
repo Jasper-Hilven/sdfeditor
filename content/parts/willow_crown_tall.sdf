@@ -1,0 +1,31 @@
+# Willow crown tall: the leaves of a tall, narrow weeping willow, a high, rounded dome about 2.8 m across, the dome's centre at
+# the origin, from which two rings of seven thick, tapering curtains hang: long ones, their tips 2.7 to 3.1 m below the centre, and
+# shorter ones over the gaps between them. Fewer, longer curtains than the willow crown, falling nearly straight, so the tree
+# reads tall and narrow. Each tip is a round blob. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness, shallow next to the curtains
+Distort amount=0.03 frequency=1.5
+    # Soft creases where the curtains leave the dome
+    SmoothUnion smoothness=0.16
+        # The dome, taller than wide, with a smaller clump on top
+        Ellipsoid radii=(1.15, 1.0, 1.15)
+        Translate translation=(-0.1, 0.75, 0.1)
+            Ellipsoid radii=(0.75, 0.5, 0.7)
+        Union
+            # The long ring
+                ArbitraryRoundCone a=(0.207, -0.25, 0.92) b=(0.297, -2.96, 1.324) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-0.591, -0.25, 0.735) b=(-0.85, -3.004, 1.058) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-0.943, -0.25, -0.003) b=(-1.357, -3.024, -0.005) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-0.585, -0.25, -0.739) b=(-0.842, -3.079, -1.064) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(0.213, -0.25, -0.919) b=(0.307, -3.003, -1.322) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(0.851, -0.25, -0.406) b=(1.225, -3.071, -0.584) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(0.848, -0.25, 0.412) b=(1.22, -2.739, 0.593) radiusA=0.45 radiusB=0.23
+            # The shorter ring, over the gaps
+                ArbitraryRoundCone a=(-0.161, 0.3, 0.695) b=(-0.317, -1.748, 1.367) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-0.644, 0.3, 0.307) b=(-1.266, -1.884, 0.604) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-0.641, 0.3, -0.312) b=(-1.262, -1.8, -0.613) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-0.156, 0.3, -0.696) b=(-0.307, -1.872, -1.369) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(0.447, 0.3, -0.556) b=(0.879, -1.647, -1.094) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(0.713, 0.3, 0.003) b=(1.403, -1.749, 0.005) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(0.443, 0.3, 0.559) b=(0.871, -1.685, 1.1) radiusA=0.4 radiusB=0.24

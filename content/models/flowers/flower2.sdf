@@ -1,0 +1,48 @@
+# Flower 2: a stylized sunflower about 1.2 m tall, a thick green stem with three broad, pointed leaves, nodding at the top into a
+# big head that faces the front and a little down: a domed chocolate-brown seed disc ringed by eighteen long golden petals, with a
+# green cup behind it. The tallest of the flowers.
+format 1
+
+# Twice the vertices its size would give it, like the other flowers
+Detail detail=2
+    Union
+        Material material=flower_stem
+            SmoothUnion smoothness=0.015
+                # The stem in two lengths of the same radius, a plain union so the joint does not swell, bending forward under the head
+                Union
+                    Capsule a=(0, 0.01, 0) b=(0.025, 0.55, 0) radius=0.021
+                    Capsule a=(0.025, 0.55, 0) b=(0, 0.98, 0.02) radius=0.021
+                # Three broad leaves out of the stem, reaching out and drooping
+                VesicaSegment a=(0.02, 0.32, 0) b=(0.24, 0.26, 0.06) width=0.05
+                VesicaSegment a=(0.02, 0.52, 0) b=(-0.22, 0.48, -0.05) width=0.05
+                VesicaSegment a=(0.015, 0.74, 0.01) b=(0.12, 0.68, -0.2) width=0.045
+                # The green cup behind the head, joining it to the stem
+                Translate translation=(0, 1.01, 0.032)
+                    Rotate rotation=(-0.35, 0, 0)
+                        Ellipsoid radii=(0.1, 0.1, 0.04)
+        # The petals, two rings of nine, the longer ones a little behind the shorter ones
+        Material material=sunflower_petal
+            Union
+                VesicaSegment a=(0.085, 1.016, 0.049) b=(0.2, 1.016, 0.049) width=0.028
+                VesicaSegment a=(0.08, 1.046, 0.046) b=(0.169, 1.076, 0.035) width=0.028
+                VesicaSegment a=(0.065, 1.067, 0.03) b=(0.153, 1.137, 0.005) width=0.028
+                VesicaSegment a=(0.043, 1.088, 0.031) b=(0.09, 1.165, 0.003) width=0.028
+                VesicaSegment a=(0.015, 1.095, 0.02) b=(0.035, 1.201, -0.019) width=0.028
+                VesicaSegment a=(-0.015, 1.097, 0.028) b=(-0.031, 1.185, -0.005) width=0.028
+                VesicaSegment a=(-0.042, 1.085, 0.023) b=(-0.1, 1.179, -0.011) width=0.028
+                VesicaSegment a=(-0.065, 1.07, 0.038) b=(-0.138, 1.127, 0.017) width=0.028
+                VesicaSegment a=(-0.08, 1.043, 0.039) b=(-0.188, 1.08, 0.025) width=0.028
+                VesicaSegment a=(-0.085, 1.019, 0.056) b=(-0.18, 1.019, 0.056) width=0.028
+                VesicaSegment a=(-0.08, 0.989, 0.059) b=(-0.188, 0.952, 0.072) width=0.028
+                VesicaSegment a=(-0.065, 0.967, 0.075) b=(-0.138, 0.91, 0.096) width=0.028
+                VesicaSegment a=(-0.043, 0.947, 0.074) b=(-0.1, 0.853, 0.108) width=0.028
+                VesicaSegment a=(-0.015, 0.94, 0.085) b=(-0.031, 0.852, 0.117) width=0.028
+                VesicaSegment a=(0.015, 0.937, 0.077) b=(0.035, 0.831, 0.116) width=0.028
+                VesicaSegment a=(0.042, 0.949, 0.081) b=(0.09, 0.872, 0.11) width=0.028
+                VesicaSegment a=(0.065, 0.965, 0.067) b=(0.153, 0.895, 0.093) width=0.028
+                VesicaSegment a=(0.08, 0.991, 0.066) b=(0.169, 0.961, 0.077) width=0.028
+        # The seed disc, domed towards the front
+        Material material=sunflower_seeds
+            Translate translation=(0, 1.022, 0.065)
+                Rotate rotation=(-0.35, 0, 0)
+                    Ellipsoid radii=(0.1, 0.1, 0.035)

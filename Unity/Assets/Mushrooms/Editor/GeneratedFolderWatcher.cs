@@ -75,7 +75,7 @@ namespace SdfMushrooms.Editor
         {
             if (!Directory.Exists(MushroomBuilder.GeneratedFolder))
                 return;
-            foreach (var path in Directory.GetFiles(MushroomBuilder.GeneratedFolder, "*.glb"))
+            foreach (var path in Directory.GetFiles(MushroomBuilder.GeneratedFolder, "*.glb", SearchOption.AllDirectories))
             {
                 try
                 {

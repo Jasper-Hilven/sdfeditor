@@ -1,0 +1,43 @@
+# Willow crown double: the leaves of a broad, two-headed weeping willow, two low domes side by side about 5 m across, centred on
+# the origin, the left one bigger, each with its own two rings of thick, tapering curtains hanging 1.4 to 2.6 m below it, long ones
+# round the rim and shorter ones over their gaps. Where the domes meet, curtains of both cross and run together into one mass.
+# Each tip is a round blob. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness, shallow next to the curtains
+Distort amount=0.03 frequency=1.5
+    # Soft creases where the curtains leave the domes, and a saddle where the domes meet
+    SmoothUnion smoothness=0.16
+        # The two domes, the left one bigger, the right one a little higher
+        Translate translation=(-0.95, 0, 0)
+            Ellipsoid radii=(1.25, 0.75, 1.2)
+        Translate translation=(1.0, 0.15, 0.1)
+            Ellipsoid radii=(1.12, 0.7, 1.08)
+        Union
+            # The left dome's curtains, long ring then short
+                ArbitraryRoundCone a=(-0.066, -0.25, 0.179) b=(0.322, -2.313, 0.258) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-0.539, -0.25, 0.803) b=(-0.358, -2.538, 1.155) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-1.321, -0.25, 0.822) b=(-1.484, -2.283, 1.183) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-1.824, -0.25, 0.222) b=(-2.208, -2.46, 0.32) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-1.669, -0.25, -0.545) b=(-1.984, -2.27, -0.784) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-0.972, -0.25, -0.902) b=(-0.982, -2.32, -1.298) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-0.259, -0.25, -0.579) b=(0.045, -2.55, -0.834) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(-0.439, 0.3, 0.452) b=(0.056, -1.41, 0.889) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-1.085, 0.3, 0.668) b=(-1.217, -1.514, 1.315) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-1.597, 0.3, 0.217) b=(-2.222, -1.47, 0.427) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-1.461, 0.3, -0.452) b=(-1.956, -1.469, -0.889) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-0.815, 0.3, -0.668) b=(-0.683, -1.479, -1.315) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(-0.303, 0.3, -0.217) b=(0.322, -1.406, -0.427) radiusA=0.4 radiusB=0.24
+            # The right dome's curtains, long ring then short
+                ArbitraryRoundCone a=(1.627, -0.25, 0.628) b=(1.903, -2.199, 0.86) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(0.856, -0.25, 0.907) b=(0.793, -2.173, 1.262) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(0.229, -0.25, 0.379) b=(-0.11, -2.107, 0.502) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(0.373, -0.25, -0.428) b=(0.097, -2.312, -0.66) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(1.144, -0.25, -0.707) b=(1.207, -2.07, -1.062) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(1.771, -0.25, -0.179) b=(2.11, -2.21, -0.302) radiusA=0.45 radiusB=0.23
+                ArbitraryRoundCone a=(1.211, 0.3, 0.683) b=(1.415, -1.477, 1.247) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(0.601, 0.3, 0.574) b=(0.214, -1.293, 1.033) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(0.39, 0.3, -0.009) b=(-0.201, -1.4, -0.114) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(0.789, 0.3, -0.483) b=(0.585, -1.414, -1.047) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(1.399, 0.3, -0.374) b=(1.786, -1.284, -0.833) radiusA=0.4 radiusB=0.24
+                ArbitraryRoundCone a=(1.61, 0.3, 0.209) b=(2.201, -1.36, 0.314) radiusA=0.4 radiusB=0.24

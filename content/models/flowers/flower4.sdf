@@ -1,0 +1,159 @@
+# Flower 4: a stylized lupin about 0.72 m tall, a straight, sturdy stem rising from two palmate leaves of seven pointed leaflets
+# each, carrying a tall tapering spike of purple-pink florets: little round blobs in rings round the stem, eleven rings from fat at
+# the bottom to small at the rounded tip.
+format 1
+
+# Twice the vertices its size would give it, like the other flowers
+Detail detail=2
+    Union
+        Material material=flower_stem
+            SmoothUnion smoothness=0.008
+                # The stem, up into the tip of the spike
+                Capsule a=(0, 0.005, 0) b=(0, 0.66, 0) radius=0.013
+                # Two palmate leaves on short stalks, their leaflets spread like hands
+                Capsule a=(0, 0.01, 0) b=(0.1, 0.13, 0.06) radius=0.006
+                VesicaSegment a=(0.1, 0.13, 0.06) b=(0.166, 0.142, 0.096) width=0.014
+                VesicaSegment a=(0.1, 0.13, 0.06) b=(0.113, 0.142, 0.134) width=0.014
+                VesicaSegment a=(0.1, 0.13, 0.06) b=(0.05, 0.142, 0.116) width=0.014
+                VesicaSegment a=(0.1, 0.13, 0.06) b=(0.025, 0.142, 0.056) width=0.014
+                VesicaSegment a=(0.1, 0.13, 0.06) b=(0.056, 0.142, -0.001) width=0.014
+                VesicaSegment a=(0.1, 0.13, 0.06) b=(0.12, 0.142, -0.012) width=0.014
+                VesicaSegment a=(0.1, 0.13, 0.06) b=(0.169, 0.142, 0.031) width=0.014
+                Capsule a=(0, 0.01, 0) b=(-0.09, 0.1, -0.07) radius=0.006
+                VesicaSegment a=(-0.09, 0.1, -0.07) b=(-0.022, 0.112, -0.103) width=0.014
+                VesicaSegment a=(-0.09, 0.1, -0.07) b=(-0.022, 0.112, -0.038) width=0.014
+                VesicaSegment a=(-0.09, 0.1, -0.07) b=(-0.073, 0.112, 0.003) width=0.014
+                VesicaSegment a=(-0.09, 0.1, -0.07) b=(-0.137, 0.112, -0.011) width=0.014
+                VesicaSegment a=(-0.09, 0.1, -0.07) b=(-0.165, 0.112, -0.07) width=0.014
+                VesicaSegment a=(-0.09, 0.1, -0.07) b=(-0.137, 0.112, -0.129) width=0.014
+                VesicaSegment a=(-0.09, 0.1, -0.07) b=(-0.073, 0.112, -0.143) width=0.014
+        # The spike of florets, ring above ring, a plain union so each floret keeps its own round bulge
+        Material material=lupin_petal
+            Union
+                Translate translation=(0.075, 0.36, 0)
+                    Sphere radius=0.032
+                Translate translation=(0.038, 0.36, 0.065)
+                    Sphere radius=0.032
+                Translate translation=(-0.037, 0.36, 0.065)
+                    Sphere radius=0.032
+                Translate translation=(-0.075, 0.36, 0)
+                    Sphere radius=0.032
+                Translate translation=(-0.038, 0.36, -0.065)
+                    Sphere radius=0.032
+                Translate translation=(0.038, 0.36, -0.065)
+                    Sphere radius=0.032
+                Translate translation=(0.059, 0.392, 0.036)
+                    Sphere radius=0.03
+                Translate translation=(-0.002, 0.392, 0.069)
+                    Sphere radius=0.03
+                Translate translation=(-0.061, 0.392, 0.033)
+                    Sphere radius=0.03
+                Translate translation=(-0.059, 0.392, -0.036)
+                    Sphere radius=0.03
+                Translate translation=(0.002, 0.392, -0.069)
+                    Sphere radius=0.03
+                Translate translation=(0.061, 0.392, -0.033)
+                    Sphere radius=0.03
+                Translate translation=(0.029, 0.424, 0.057)
+                    Sphere radius=0.028
+                Translate translation=(-0.035, 0.424, 0.054)
+                    Sphere radius=0.028
+                Translate translation=(-0.064, 0.424, -0.003)
+                    Sphere radius=0.028
+                Translate translation=(-0.029, 0.424, -0.057)
+                    Sphere radius=0.028
+                Translate translation=(0.035, 0.424, -0.054)
+                    Sphere radius=0.028
+                Translate translation=(0.064, 0.424, 0.003)
+                    Sphere radius=0.028
+                Translate translation=(-0.005, 0.456, 0.058)
+                    Sphere radius=0.026
+                Translate translation=(-0.053, 0.456, 0.025)
+                    Sphere radius=0.026
+                Translate translation=(-0.048, 0.456, -0.033)
+                    Sphere radius=0.026
+                Translate translation=(0.005, 0.456, -0.058)
+                    Sphere radius=0.026
+                Translate translation=(0.053, 0.456, -0.025)
+                    Sphere radius=0.026
+                Translate translation=(0.048, 0.456, 0.033)
+                    Sphere radius=0.026
+                Translate translation=(-0.031, 0.488, 0.043)
+                    Sphere radius=0.024
+                Translate translation=(-0.053, 0.488, -0.006)
+                    Sphere radius=0.024
+                Translate translation=(-0.022, 0.488, -0.048)
+                    Sphere radius=0.024
+                Translate translation=(0.031, 0.488, -0.043)
+                    Sphere radius=0.024
+                Translate translation=(0.053, 0.488, 0.006)
+                    Sphere radius=0.024
+                Translate translation=(0.022, 0.488, 0.048)
+                    Sphere radius=0.024
+                Translate translation=(-0.044, 0.52, 0.018)
+                    Sphere radius=0.022
+                Translate translation=(-0.038, 0.52, -0.029)
+                    Sphere radius=0.022
+                Translate translation=(0.006, 0.52, -0.047)
+                    Sphere radius=0.022
+                Translate translation=(0.044, 0.52, -0.018)
+                    Sphere radius=0.022
+                Translate translation=(0.038, 0.52, 0.029)
+                    Sphere radius=0.022
+                Translate translation=(-0.006, 0.52, 0.047)
+                    Sphere radius=0.022
+                Translate translation=(-0.041, 0.552, -0.007)
+                    Sphere radius=0.02
+                Translate translation=(-0.015, 0.552, -0.039)
+                    Sphere radius=0.02
+                Translate translation=(0.026, 0.552, -0.033)
+                    Sphere radius=0.02
+                Translate translation=(0.041, 0.552, 0.007)
+                    Sphere radius=0.02
+                Translate translation=(0.015, 0.552, 0.039)
+                    Sphere radius=0.02
+                Translate translation=(-0.026, 0.552, 0.033)
+                    Sphere radius=0.02
+                Translate translation=(-0.028, 0.584, -0.024)
+                    Sphere radius=0.018
+                Translate translation=(0.014, 0.584, -0.034)
+                    Sphere radius=0.018
+                Translate translation=(0.036, 0.584, 0.003)
+                    Sphere radius=0.018
+                Translate translation=(0.008, 0.584, 0.036)
+                    Sphere radius=0.018
+                Translate translation=(-0.031, 0.584, 0.019)
+                    Sphere radius=0.018
+                Translate translation=(-0.01, 0.616, -0.029)
+                    Sphere radius=0.016
+                Translate translation=(0.025, 0.616, -0.018)
+                    Sphere radius=0.016
+                Translate translation=(0.025, 0.616, 0.018)
+                    Sphere radius=0.016
+                Translate translation=(-0.01, 0.616, 0.029)
+                    Sphere radius=0.016
+                Translate translation=(-0.031, 0.616, 0)
+                    Sphere radius=0.016
+                Translate translation=(0.006, 0.648, -0.025)
+                    Sphere radius=0.014
+                Translate translation=(0.025, 0.648, -0.002)
+                    Sphere radius=0.014
+                Translate translation=(0.01, 0.648, 0.024)
+                    Sphere radius=0.014
+                Translate translation=(-0.019, 0.648, 0.017)
+                    Sphere radius=0.014
+                Translate translation=(-0.022, 0.648, -0.013)
+                    Sphere radius=0.014
+                Translate translation=(0.014, 0.68, -0.014)
+                    Sphere radius=0.012
+                Translate translation=(0.018, 0.68, 0.009)
+                    Sphere radius=0.012
+                Translate translation=(-0.003, 0.68, 0.02)
+                    Sphere radius=0.012
+                Translate translation=(-0.02, 0.68, 0.003)
+                    Sphere radius=0.012
+                Translate translation=(-0.009, 0.68, -0.018)
+                    Sphere radius=0.012
+                # The rounded tip
+                Translate translation=(0, 0.7, 0)
+                    Sphere radius=0.014

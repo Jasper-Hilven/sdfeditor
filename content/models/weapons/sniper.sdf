@@ -1,0 +1,76 @@
+# Sniper rifle: a long barrel with a slotted muzzle brake pointing along +z, a walnut stock with a pistol grip and rubber butt pad,
+# a scope on two mounts above the receiver, a bolt handle on the right and a bipod folded down at the front, its feet on the ground.
+format 1
+
+Union
+    # The stock: forend, wrist, pistol grip and butt in one piece of wood
+    Material material=sniper_wood
+        SmoothUnion smoothness=0.025
+            Translate translation=(0, 0.145, 0.04)
+                RoundBox size=(0.025, 0.026, 0.2) roundness=0.012
+            ArbitraryRoundCone a=(0, 0.14, -0.15) b=(0, 0.125, -0.32) radiusA=0.026 radiusB=0.03
+            Translate translation=(0, 0.12, -0.42)
+                RoundBox size=(0.022, 0.058, 0.09) roundness=0.016
+            Translate translation=(0, 0.09, -0.2)
+                Rotate rotation=(0.35, 0, 0)
+                    RoundBox size=(0.017, 0.04, 0.022) roundness=0.01
+
+    Material material=sniper_rubber
+        Union
+            # Butt pad
+            Translate translation=(0, 0.12, -0.512)
+                RoundBox size=(0.024, 0.06, 0.008) roundness=0.005
+            # Bipod feet
+            SymmetryX
+                Translate translation=(0.075, 0.011, 0.24)
+                    Sphere radius=0.011
+
+    Material material=sniper_steel
+        Union
+            # Receiver, magazine, trigger guard and trigger
+            ArbitraryCappedCylinder a=(0, 0.172, -0.17) b=(0, 0.172, 0.05) radius=0.024
+            Translate translation=(0, 0.125, -0.07)
+                RoundBox size=(0.016, 0.04, 0.034) roundness=0.005
+            Translate translation=(0, 0.11, -0.15)
+                Rotate rotation=(0, 0, 1.5707964)
+                    Torus innerRadius=0.02 outerRadius=0.027
+            Capsule a=(0, 0.125, -0.15) b=(0, 0.108, -0.155) radius=0.003
+            # The bolt handle, out to the right with a round knob
+            Capsule a=(0.02, 0.18, -0.1) b=(0.058, 0.158, -0.11) radius=0.005
+            Translate translation=(0.06, 0.157, -0.11)
+                Sphere radius=0.011
+            # The barrel, thinning towards the muzzle
+            ArbitraryCappedCone a=(0, 0.172, 0.05) b=(0, 0.172, 0.62) radiusA=0.015 radiusB=0.011
+            # Muzzle brake, with the bore through it and slots out to the sides
+            Subtraction
+                ArbitraryCappedCylinder a=(0, 0.172, 0.6) b=(0, 0.172, 0.68) radius=0.019
+                Union
+                    ArbitraryCappedCylinder a=(0, 0.172, 0.6) b=(0, 0.172, 0.69) radius=0.007
+                    SymmetryX
+                        Union
+                            Translate translation=(0.02, 0.172, 0.625)
+                                Box size=(0.012, 0.008, 0.007)
+                            Translate translation=(0.02, 0.172, 0.655)
+                                Box size=(0.012, 0.008, 0.007)
+            # The scope: tube, eyepiece, objective bell, and turrets on top and to the right
+            ArbitraryCappedCylinder a=(0, 0.238, -0.14) b=(0, 0.238, 0.1) radius=0.018
+            ArbitraryCappedCone a=(0, 0.238, -0.14) b=(0, 0.238, -0.19) radiusA=0.018 radiusB=0.024
+            ArbitraryCappedCone a=(0, 0.238, 0.1) b=(0, 0.238, 0.17) radiusA=0.018 radiusB=0.03
+            ArbitraryCappedCylinder a=(0, 0.25, -0.02) b=(0, 0.27, -0.02) radius=0.012
+            ArbitraryCappedCylinder a=(0.012, 0.238, -0.02) b=(0.032, 0.238, -0.02) radius=0.011
+            # Scope mounts
+            Translate translation=(0, 0.205, -0.1)
+                RoundBox size=(0.011, 0.02, 0.011) roundness=0.003
+            Translate translation=(0, 0.205, 0.02)
+                RoundBox size=(0.011, 0.02, 0.011) roundness=0.003
+            # The bipod: a clamp under the forend and two legs splayed down to the ground
+            Translate translation=(0, 0.115, 0.22)
+                RoundBox size=(0.022, 0.01, 0.014) roundness=0.004
+            SymmetryX
+                Capsule a=(0.015, 0.11, 0.22) b=(0.075, 0.02, 0.24) radius=0.006
+
+    # The scope's lenses, standing just proud of the eyepiece and the bell
+    Material material=sniper_lens
+        Union
+            ArbitraryCappedCylinder a=(0, 0.238, 0.165) b=(0, 0.238, 0.173) radius=0.026
+            ArbitraryCappedCylinder a=(0, 0.238, -0.185) b=(0, 0.238, -0.193) radius=0.02

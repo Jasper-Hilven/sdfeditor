@@ -1,0 +1,27 @@
+# Willow 2: a broad, squat weeping willow about 3.8 m tall and 5 m across, a short, very thick trunk on a broad foot that forks
+# low into two heavy limbs, one to each side, each under its own low dome of leaves, the two domes meeting over the fork and their
+# curtains hanging all round nearly to the ground. Wider and lower than the other willows.
+format 1
+
+# Under half the vertices its size would give it, like the other willows
+Detail detail=0.4
+    Union
+        Material material=tree_bark
+            Distort amount=0.012 frequency=3
+                SmoothUnion smoothness=0.15
+                    # The trunk, short and very thick, flaring into the ground, cut flat at it
+                    Intersection
+                        SmoothUnion smoothness=0.25
+                            ArbitraryRoundCone a=(0, 0, 0) b=(0.05, 1.2, 0) radiusA=0.42 radiusB=0.34
+                            Ellipsoid radii=(0.66, 0.3, 0.6)
+                        # The ground
+                        Translate translation=(0, 1, 0)
+                            Box size=(1, 1, 1)
+                    # The two heavy limbs of the fork, one into each dome
+                    ArbitraryRoundCone a=(0.05, 1.1, 0) b=(-0.95, 2.75, 0.05) radiusA=0.26 radiusB=0.15
+                    ArbitraryRoundCone a=(0.05, 1.1, 0) b=(1, 2.85, 0.1) radiusA=0.25 radiusB=0.15
+
+        # The crown, its domes over the two limbs, the curtains' tips stopping just above the ground
+        Translate translation=(0, 2.9, 0)
+            Material material=willow_leaves
+                Part part=willow_crown_double

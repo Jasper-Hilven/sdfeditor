@@ -1,0 +1,53 @@
+# Blob gun: a chunky yellow toy-like shell with a wobbly magenta goo reservoir bulging out of a purple ring on top, a ringed
+# barrel and a flared, open muzzle. Points along +z; the bottom of the grip rests on the ground.
+format 1
+
+Union
+    # The shell: a round body, the barrel swelling out of it, and the flared bell of the muzzle, hollow at the front
+    Material material=blob_shell
+        Union
+            SmoothUnion smoothness=0.03
+                Translate translation=(0, 0.135, -0.05)
+                    Ellipsoid radii=(0.065, 0.07, 0.14)
+                ArbitraryRoundCone a=(0, 0.135, 0.05) b=(0, 0.135, 0.19) radiusA=0.046 radiusB=0.034
+            Subtraction
+                ArbitraryCappedCone a=(0, 0.135, 0.18) b=(0, 0.135, 0.24) radiusA=0.034 radiusB=0.054
+                ArbitraryCappedCone a=(0, 0.135, 0.19) b=(0, 0.135, 0.25) radiusA=0.022 radiusB=0.044
+            Translate translation=(0, 0.075, -0.06)
+                Rotate rotation=(0, 0, 1.5707964)
+                    Torus innerRadius=0.022 outerRadius=0.032
+
+    Material material=blob_trim
+        Union
+            # The grip
+            Translate translation=(0, 0.055, -0.1)
+                Rotate rotation=(0.28, 0, 0)
+                    RoundBox size=(0.022, 0.05, 0.027) roundness=0.016
+            # A fat trigger
+            Capsule a=(0, 0.09, -0.052) b=(0, 0.07, -0.058) radius=0.006
+            # Rings around the barrel and on the muzzle's lip
+            Translate translation=(0, 0.135, 0.11)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Torus innerRadius=0.034 outerRadius=0.058
+            Translate translation=(0, 0.135, 0.24)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Torus innerRadius=0.042 outerRadius=0.066
+            # The ring the reservoir sits in
+            Translate translation=(0, 0.195, -0.08)
+                Torus innerRadius=0.042 outerRadius=0.07
+            # A round gauge on each side
+            SymmetryX
+                ArbitraryCappedCylinder a=(0.04, 0.135, -0.03) b=(0.084, 0.135, -0.03) radius=0.017
+
+    # The goo: a lumpy reservoir on top
+    Material material=blob_goo
+        Union
+            SmoothUnion smoothness=0.012
+                Translate translation=(0, 0.225, -0.08)
+                    Sphere radius=0.048
+                Translate translation=(0.032, 0.248, -0.055)
+                    Sphere radius=0.026
+                Translate translation=(-0.03, 0.245, -0.11)
+                    Sphere radius=0.028
+                Translate translation=(0.008, 0.272, -0.095)
+                    Sphere radius=0.02

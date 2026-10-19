@@ -1,0 +1,47 @@
+# Rock 3: a cluster of four stones about 1.9 m across and 0.85 m tall, a big faceted stone at the back with a middling one leaning
+# on it at the front right, a small one at the front left and a pebble off to the side, each flat on the ground and touching or
+# nearly touching its neighbour, so the group reads as one scattered heap.
+format 1
+
+Material material=rock_stone
+    # Large lumps first, then a finer roughness over them, both shallow next to the stones' sizes
+    Distort amount=0.008 frequency=9
+        Distort amount=0.025 frequency=3
+            # The stones join where they touch in small fillets, as if settled into each other
+            SmoothUnion smoothness=0.04
+                # The biggest stone, at the back
+                SmoothIntersection smoothness=0.04
+                    Translate translation=(-0.15, 0.3, -0.2)
+                        Rotate rotation=(0.1, 0.4, -0.05)
+                            Ellipsoid radii=(0.62, 0.55, 0.5)
+                    Plane normal=(0, -1, 0) height=0
+                    Plane normal=(0.148, 0.984, 0.098) height=-0.673
+                    Plane normal=(0.905, 0.302, 0.302) height=-0.344
+                    Plane normal=(-0.833, 0.364, -0.416) height=-0.738
+                    Plane normal=(0, 0.287, -0.958) height=-0.658
+                # A middling stone leaning on it at the front right
+                SmoothIntersection smoothness=0.04
+                    Translate translation=(0.5, 0.18, 0.3)
+                        Rotate rotation=(0.2, -0.3, 0.25)
+                            Ellipsoid radii=(0.38, 0.32, 0.34)
+                    Plane normal=(0, -1, 0) height=0
+                    Plane normal=(0.282, 0.941, 0.188) height=-0.607
+                    Plane normal=(0.962, 0.192, 0.192) height=-0.874
+                    Plane normal=(0.188, 0.282, 0.941) height=-0.687
+                # A small one at the front left
+                SmoothIntersection smoothness=0.04
+                    Translate translation=(-0.45, 0.1, 0.42)
+                        Rotate rotation=(0, 0.8, 0.1)
+                            Ellipsoid radii=(0.26, 0.2, 0.24)
+                    Plane normal=(0, -1, 0) height=0
+                    Plane normal=(-0.188, 0.941, 0.282) height=-0.437
+                    Plane normal=(-0.941, 0.282, 0.188) height=-0.731
+                    Plane normal=(0.365, 0.183, 0.913) height=-0.417
+                # And a pebble off to the side
+                SmoothIntersection smoothness=0.04
+                    Translate translation=(0.95, 0.07, -0.25)
+                        Rotate rotation=(0.3, 0.2, 0)
+                            Ellipsoid radii=(0.16, 0.13, 0.15)
+                    Plane normal=(0, -1, 0) height=0
+                    Plane normal=(0.196, 0.981, 0) height=-0.345
+                    Plane normal=(0.941, 0.188, -0.282) height=-1.097

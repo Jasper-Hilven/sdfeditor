@@ -1,0 +1,27 @@
+# Tree 1: a tall broadleaf tree about 6.5 m tall, a long, straight trunk on a flared foot forking high into three branches that reach
+# up into an upright egg-shaped crown of stacked blob clumps. Taller and narrower than the tree, with more bare trunk showing.
+format 1
+
+# Half the vertices its size would give it, like the tree
+Detail detail=0.5
+    Union
+        Material material=tree_bark
+            Distort amount=0.01 frequency=4
+                SmoothUnion smoothness=0.12
+                    # The trunk, long and tapering, on a broad foot flat on the ground
+                    SmoothUnion smoothness=0.25
+                        ArbitraryRoundCone a=(0, 0.3, 0) b=(0.06, 2.5, 0.02) radiusA=0.24 radiusB=0.15
+                        Intersection
+                            Ellipsoid radii=(0.42, 0.28, 0.4)
+                            # The ground: only the half above it
+                            Translate translation=(0, 0.4, 0)
+                                Box size=(0.6, 0.4, 0.6)
+                    # Three branches out of the fork, steeply up into the crown
+                    ArbitraryRoundCone a=(0.06, 2.4, 0.02) b=(0.6, 3.7, 0.25) radiusA=0.12 radiusB=0.07
+                    ArbitraryRoundCone a=(0.06, 2.45, 0.02) b=(-0.5, 3.75, 0.15) radiusA=0.12 radiusB=0.07
+                    ArbitraryRoundCone a=(0.06, 2.5, 0.02) b=(0.05, 3.85, -0.5) radiusA=0.1 radiusB=0.06
+
+        # The crown, low enough that the branches end inside its bottom clumps
+        Translate translation=(0.05, 4.65, 0)
+            Material material=tree_foliage
+                Part part=canopy_tall

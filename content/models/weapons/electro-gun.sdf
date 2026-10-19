@@ -1,0 +1,66 @@
+# Electro gun: a teal casing with a glowing glass core along its top, a copper rod out the front wound with coils that shrink
+# towards the tip, and three prongs around a charged orb at the muzzle. Points along +z; the bottom of the grip rests on the ground.
+format 1
+
+Union
+    # The casing: a bulbous body with a collar where the rod leaves it, grown into the grip below
+    Material material=electro_casing
+        Union
+            SmoothUnion smoothness=0.015
+                Translate translation=(0, 0.13, -0.1)
+                    Ellipsoid radii=(0.06, 0.065, 0.14)
+                ArbitraryCappedCylinder a=(0, 0.13, 0) b=(0, 0.13, 0.05) radius=0.042
+                Translate translation=(0, 0.06, -0.15)
+                    Rotate rotation=(0.28, 0, 0)
+                        RoundBox size=(0.02, 0.05, 0.026) roundness=0.01
+            # The trigger guard, its top half in the casing
+            Translate translation=(0, 0.078, -0.085)
+                Rotate rotation=(0, 0, 1.5707964)
+                    Torus innerRadius=0.021 outerRadius=0.03
+
+    # Rubber grip panels, and insulating ribs on each side of the casing
+    Material material=electro_grip
+        Union
+            SymmetryX
+                Translate translation=(0.008, 0.055, -0.152)
+                    Rotate rotation=(0.28, 0, 0)
+                        RoundBox size=(0.015, 0.038, 0.02) roundness=0.007
+            SymmetryX
+                Union
+                    Capsule a=(0.058, 0.1, -0.16) b=(0.058, 0.16, -0.16) radius=0.007
+                    Capsule a=(0.06, 0.1, -0.12) b=(0.06, 0.16, -0.12) radius=0.007
+                    Capsule a=(0.058, 0.1, -0.08) b=(0.058, 0.16, -0.08) radius=0.007
+            Union
+                Capsule a=(0, 0.09, -0.078) b=(0, 0.075, -0.08) radius=0.004
+                Capsule a=(0, 0.075, -0.08) b=(0, 0.066, -0.088) radius=0.004
+
+    # The rod, its coils, the collars that hold the core, and the prongs around the orb
+    Material material=electro_copper
+        Union
+            ArbitraryCappedCylinder a=(0, 0.13, 0.04) b=(0, 0.13, 0.31) radius=0.013
+            Translate translation=(0, 0.13, 0.08)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Torus innerRadius=0.016 outerRadius=0.048
+            Translate translation=(0, 0.13, 0.14)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Torus innerRadius=0.016 outerRadius=0.043
+            Translate translation=(0, 0.13, 0.2)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Torus innerRadius=0.016 outerRadius=0.038
+            Translate translation=(0, 0.13, 0.255)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Torus innerRadius=0.016 outerRadius=0.033
+            # Collars at both ends of the core
+            ArbitraryCappedCylinder a=(0, 0.205, -0.19) b=(0, 0.205, -0.17) radius=0.028
+            ArbitraryCappedCylinder a=(0, 0.205, -0.03) b=(0, 0.205, -0.01) radius=0.028
+            # Three prongs reaching forward and out from the end of the rod
+            SymmetryX
+                Capsule a=(0.006, 0.124, 0.3) b=(0.032, 0.11, 0.35) radius=0.0055
+            Capsule a=(0, 0.138, 0.3) b=(0, 0.165, 0.35) radius=0.0055
+
+    # The charged core: a glowing glass tube along the top, and the orb between the prongs
+    Material material=electro_core
+        Union
+            Capsule a=(0, 0.205, -0.18) b=(0, 0.205, -0.02) radius=0.022
+            Translate translation=(0, 0.13, 0.34)
+                Sphere radius=0.02

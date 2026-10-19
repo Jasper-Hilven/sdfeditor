@@ -1,0 +1,44 @@
+# Old tree 1: an ancient hollow tree about 5.6 m tall, a squat, thick trunk barely leaning, split open at the foot into a dark
+# hollow facing the front, on six short roots gripping the ground, with two stout limbs rising into a tall bonsai crown of cloud pads
+# stepping up at four heights. More upright and stockier than the twisted old tree.
+format 1
+
+# Half the vertices its size would give it, like the other old tree
+Detail detail=0.5
+    Union
+        Material material=old_bark
+            Distort amount=0.018 frequency=3
+                # The hollow is cut out of the trunk and roots together, so no root fills it again
+                Subtraction
+                    SmoothUnion smoothness=0.12
+                        # The trunk, thick and squat, cut flat at the ground
+                        Intersection
+                            SmoothUnion smoothness=0.2
+                                ArbitraryRoundCone a=(0, 0, 0) b=(0.1, 2.5, 0.02) radiusA=0.46 radiusB=0.32
+                                Ellipsoid radii=(0.66, 0.3, 0.62)
+                            # The ground
+                            Translate translation=(0, 1.5, 0)
+                                Box size=(1.5, 1.5, 1.5)
+                        # Six short roots arching out of the foot, their ends sinking into the ground
+                        Intersection
+                            SmoothUnion smoothness=0.08
+                                ArbitraryRoundCone a=(0.132, 0.65, 0.123) b=(0.805, -0.08, 0.75) radiusA=0.22 radiusB=0.12
+                                ArbitraryRoundCone a=(-0.04, 0.65, 0.175) b=(-0.277, -0.08, 1.203) radiusA=0.22 radiusB=0.12
+                                ArbitraryRoundCone a=(-0.172, 0.65, 0.053) b=(-0.881, -0.08, 0.27) radiusA=0.22 radiusB=0.12
+                                ArbitraryRoundCone a=(-0.132, 0.65, -0.123) b=(-0.881, -0.08, -0.821) radiusA=0.22 radiusB=0.12
+                                ArbitraryRoundCone a=(0.04, 0.65, -0.175) b=(0.256, -0.08, -1.111) radiusA=0.22 radiusB=0.12
+                                ArbitraryRoundCone a=(0.172, 0.65, -0.053) b=(0.901, -0.08, -0.276) radiusA=0.22 radiusB=0.12
+                            # The ground
+                            Translate translation=(0, 1, 0)
+                                Box size=(2, 1, 2)
+                        # Two stout limbs from the top of the trunk up into the crown's core, ending well inside it
+                        ArbitraryRoundCone a=(0.08, 2.3, 0.02) b=(0.45, 3.75, 0.12) radiusA=0.26 radiusB=0.16
+                        ArbitraryRoundCone a=(0.08, 2.3, 0.02) b=(-0.35, 3.9, -0.15) radiusA=0.24 radiusB=0.15
+                    # The hollow: a tall pocket opening to +z between two roots, deep enough to read dark inside
+                    Translate translation=(0.02, 0.5, 0.45)
+                        Ellipsoid radii=(0.22, 0.52, 0.3)
+
+        # The crown, its low pads just above the top of the trunk, so the limbs show beneath them
+        Translate translation=(0.1, 4.1, 0)
+            Material material=old_foliage
+                Part part=old_canopy_tall

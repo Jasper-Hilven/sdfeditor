@@ -1,0 +1,32 @@
+# Canopy wide: the crown of a broad, spreading broadleaf tree, a low, wide umbrella of soft blob clumps about 5.3 m across and
+# 1.9 m tall, centred on the origin: a hidden flat core joining a ring of seven big clumps round the rim, a broad clump over the
+# middle and two small ones on top. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness over the clumps, shallow next to their size
+Distort amount=0.03 frequency=1.4
+    # Soft creases between the clumps, each keeping its own bulge in the outline
+    SmoothUnion smoothness=0.14
+        # The hidden core, wide and flat, joining the ring
+        Ellipsoid radii=(1.7, 0.45, 1.6)
+        # The broad middle clump, the ring of seven round the rim, and two small ones on top
+        Translate translation=(0, 0.35, 0)
+            Ellipsoid radii=(1.15, 0.6, 1.05)
+        Translate translation=(1.612, -0.1, 0.681)
+            Ellipsoid radii=(0.85, 0.58, 0.8)
+        Translate translation=(0.512, 0.004, 1.828)
+            Ellipsoid radii=(0.85, 0.58, 0.8)
+        Translate translation=(-1.001, -0.205, 1.389)
+            Ellipsoid radii=(0.85, 0.58, 0.8)
+        Translate translation=(-1.609, -0.098, 0.079)
+            Ellipsoid radii=(0.85, 0.58, 0.8)
+        Translate translation=(-1.206, 0.003, -1.369)
+            Ellipsoid radii=(0.85, 0.58, 0.8)
+        Translate translation=(0.327, -0.206, -1.841)
+            Ellipsoid radii=(0.85, 0.58, 0.8)
+        Translate translation=(1.446, -0.096, -0.785)
+            Ellipsoid radii=(0.85, 0.58, 0.8)
+        Translate translation=(0.7, 0.75, 0.3)
+            Ellipsoid radii=(0.6, 0.42, 0.55)
+        Translate translation=(-0.6, 0.7, -0.45)
+            Ellipsoid radii=(0.55, 0.4, 0.52)

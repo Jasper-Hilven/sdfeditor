@@ -1,0 +1,39 @@
+# Old tree 2: an old windswept tree about 4.1 m tall and 6 m long, a thick trunk that leaves the ground leaning hard to -x, bends
+# nearly level and rises again at its end, on big roots bracing it on the windward (+x) side, under a long, flat crown of pads all
+# streaming out downwind. The model's origin is at the foot of the trunk; the crown hangs out well past it.
+format 1
+
+# Half the vertices its size would give it, like the other old trees
+Detail detail=0.5
+    Union
+        Material material=old_bark
+            Distort amount=0.015 frequency=3
+                SmoothUnion smoothness=0.12
+                    # The trunk in three lengths of the same radius where they meet: leaning, nearly level, then rising. The
+                    # first is cut flat at the ground
+                    Intersection
+                        SmoothUnion smoothness=0.2
+                            ArbitraryRoundCone a=(0, 0, 0) b=(-0.6, 1.2, 0) radiusA=0.34 radiusB=0.27
+                            Ellipsoid radii=(0.6, 0.28, 0.55)
+                        # The ground
+                        Translate translation=(0, 1.5, 0)
+                            Box size=(1.5, 1.5, 1.5)
+                    ArbitraryRoundCone a=(-0.6, 1.2, 0) b=(-1.6, 1.85, 0.08) radiusA=0.27 radiusB=0.21
+                    ArbitraryRoundCone a=(-1.6, 1.85, 0.08) b=(-2.1, 2.75, 0.1) radiusA=0.21 radiusB=0.16
+                    # Roots bracing the trunk against the wind, out to +x and the sides, their ends sinking into the ground
+                    Intersection
+                        SmoothUnion smoothness=0.08
+                            ArbitraryRoundCone a=(0.05, 0.6, 0) b=(1.3, -0.1, 0.15) radiusA=0.24 radiusB=0.13
+                            ArbitraryRoundCone a=(0.05, 0.6, 0) b=(0.7, -0.1, 0.95) radiusA=0.22 radiusB=0.12
+                            ArbitraryRoundCone a=(0.05, 0.6, 0) b=(0.65, -0.1, -0.95) radiusA=0.22 radiusB=0.12
+                            ArbitraryRoundCone a=(-0.1, 0.55, 0) b=(-0.75, -0.1, 0.7) radiusA=0.2 radiusB=0.11
+                        # The ground
+                        Translate translation=(0, 1, 0)
+                            Box size=(2, 1, 2)
+                    # A limb off the bend, reaching downwind into the long pad
+                    ArbitraryRoundCone a=(-1.3, 1.7, 0.06) b=(-2.9, 2.55, 0.25) radiusA=0.16 radiusB=0.1
+
+        # The crown, its windward pad over the rising end of the trunk, streaming out to -x
+        Translate translation=(-2.6, 2.95, 0.1)
+            Material material=old_foliage
+                Part part=old_canopy_windswept

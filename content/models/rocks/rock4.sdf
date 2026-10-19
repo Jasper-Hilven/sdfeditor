@@ -1,0 +1,40 @@
+# Rock 4: a tall standing shard of slate about 2.1 m tall, a narrow, leaning wedge of stone broken into long, flat faces that
+# run up its length, with a slanted, broken top and a wider foot settled into the ground among a few moss patches at its base.
+format 1
+
+Union
+    Material material=rock_slate
+        # A shallow lumpiness and a finer roughness over the long faces
+        Distort amount=0.01 frequency=6
+            Distort amount=0.02 frequency=1.8
+                SmoothIntersection smoothness=0.035
+                    # The shard: a tall lump, leaning a little to +x and wider at the foot
+                    Translate translation=(0, 1.0, 0)
+                        Rotate rotation=(0.05, 0.3, -0.1)
+                            SmoothUnion smoothness=0.25
+                                Ellipsoid radii=(0.6, 1.4, 0.45)
+                                Translate translation=(0, -0.85, 0)
+                                    Ellipsoid radii=(0.8, 0.55, 0.6)
+                    # The underside, flat on the ground
+                    Plane normal=(0, -1, 0) height=0
+                    # The broken top, slanting down to -x
+                    Plane normal=(-0.42, 0.9, 0.1) height=-1.72
+                    # Long flat faces running up its length
+                    Plane normal=(0.95, 0.08, 0.3) height=-0.3
+                    Plane normal=(-0.92, 0.05, 0.38) height=-0.27
+                    Plane normal=(0.2, 0.05, 0.98) height=-0.19
+                    Plane normal=(-0.35, 0.05, -0.94) height=-0.21
+    # Low cushions of moss at the foot, half sunk into the ground and the stone
+    Material material=rock_moss
+        Distort amount=0.03 frequency=3
+            Intersection
+                SmoothUnion smoothness=0.08
+                    Translate translation=(0.35, 0, 0.25)
+                        Ellipsoid radii=(0.3, 0.17, 0.25)
+                    Translate translation=(-0.3, 0, 0.3)
+                        Ellipsoid radii=(0.22, 0.14, 0.2)
+                    Translate translation=(-0.1, 0, -0.38)
+                        Ellipsoid radii=(0.28, 0.15, 0.2)
+                # The ground: only what is above it
+                Translate translation=(0, 0.5, 0)
+                    Box size=(1, 0.5, 1)

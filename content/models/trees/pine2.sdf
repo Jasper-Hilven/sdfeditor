@@ -1,0 +1,22 @@
+# Pine 2: a young, bushy fir about 3.8 m tall, a short trunk on a small flared foot under a broad, squat cone of four deep,
+# scalloped tiers whose lowest one sweeps out nearly 3 m wide just above the ground. Short and full where the other pines are tall.
+format 1
+
+# Half the vertices its height would give it, like the other pines
+Detail detail=0.5
+    Union
+        Material material=tree_bark
+            Distort amount=0.008 frequency=4
+                # The trunk, short and tapering, from a broad foot flat on the ground up into the cone
+                SmoothUnion smoothness=0.15
+                    ArbitraryRoundCone a=(0, 0.15, 0) b=(0, 3, 0) radiusA=0.16 radiusB=0.05
+                    Intersection
+                        Ellipsoid radii=(0.3, 0.2, 0.3)
+                        # The ground: only the half above it
+                        Translate translation=(0, 0.4, 0)
+                            Box size=(0.5, 0.4, 0.5)
+
+        # The needles, from 0.5 m up, so just the foot shows
+        Translate translation=(0, 0.5, 0)
+            Material material=pine_needles
+                Part part=pine_canopy_squat

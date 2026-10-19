@@ -22,7 +22,8 @@ const string usage = """
       Options: --resolution <cells>   grid cells along the longest side of a 2 m model, 16 to 1024 (default 128); smaller
                                       models and parts get fewer cells, so fewer triangles
                --reference-size <m>   the size that gets --resolution cells (default 2)
-               --into <folder>        write the .glb files into this folder instead of next to each model
+               --into <folder>        write the .glb files into this folder instead of next to each model, keeping the
+                                      subfolders they are in below the directory, e.g. <folder>/weapons/pistol.glb
                --suffix <text>        add this to each .glb's name, e.g. --suffix _512 for chanterelle-scout_512.glb
                --lods <n>             levels of detail per mesh, LOD0 included, 1 to 4 (default 1); each further level
                                       has about a third of the triangles of the one before
@@ -88,15 +89,24 @@ int Mesh(string[] arguments)
             suffix = arguments[++i];
             continue;
         }
-        if (arguments[i] == "--resolution" && i + 1 < arguments.Length
-            && int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out resolution) && resolution is >= 16 and <= 1024)
+        if (arguments[i] == "--resolution" && i + 1 < arguments.Length)
+        {
+            if (!int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out resolution) || resolution is < 16 or > 1024)
+                return Usage($"--resolution takes 16 to 1024 cells, not {arguments[i]}");
             continue;
-        if (arguments[i] == "--lods" && i + 1 < arguments.Length
-            && int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out lods) && lods is >= 1 and <= MeshingOptions.MaxLodCount)
+        }
+        if (arguments[i] == "--lods" && i + 1 < arguments.Length)
+        {
+            if (!int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out lods) || lods is < 1 or > MeshingOptions.MaxLodCount)
+                return Usage($"--lods takes 1 to {MeshingOptions.MaxLodCount} levels, not {arguments[i]}");
             continue;
-        if (arguments[i] == "--reference-size" && i + 1 < arguments.Length
-            && float.TryParse(arguments[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out referenceSize) && referenceSize > 0)
+        }
+        if (arguments[i] == "--reference-size" && i + 1 < arguments.Length)
+        {
+            if (!float.TryParse(arguments[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out referenceSize) || referenceSize <= 0)
+                return Usage($"--reference-size takes a size in metres, not {arguments[i]}");
             continue;
+        }
         if (arguments[i].StartsWith("--"))
             return Usage($"Unknown or invalid option {arguments[i]}, --resolution takes 16 to 1024 cells, --reference-size a size in metres, --lods 1 to {MeshingOptions.MaxLodCount} levels");
         paths.Add(arguments[i]);
@@ -105,20 +115,27 @@ int Mesh(string[] arguments)
     if (LoadMaterials() is not { } materials)
         return 1;
     var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Materials = materials };
-    // Where each model's mesh goes: next to it, or into the --into folder, with the --suffix after its name
-    string OutputOf(string model) =>
-        Path.Combine(into ?? Path.GetDirectoryName(model) ?? "", Path.GetFileNameWithoutExtension(model) + suffix + GlbWriter.Extension);
+    // Where each model's mesh goes: next to it, or into the --into folder under the same subfolder it has below the meshed directory
+    // (content/models/weapons/pistol.sdf meshed from content/models goes to <into>/weapons/), with the --suffix after its name
+    Func<string, string> OutputsUnder(string? directory) => model =>
+    {
+        var folder = Path.GetDirectoryName(model) ?? "";
+        var target = into is null ? folder
+            : directory is null ? into
+            : Path.GetRelativePath(directory, folder) is var below && below != "." ? Path.Combine(into, below) : into;
+        return Path.Combine(target, Path.GetFileNameWithoutExtension(model) + suffix + GlbWriter.Extension);
+    };
     switch (paths)
     {
         case []:
             var content = ModelFiles.FindContentFolder(Directory.GetCurrentDirectory());
             return content is null
                 ? Usage($"No '{ModelFiles.ContentFolderName}' folder was found here or in a folder above; pass a model or directory")
-                : MeshAll(content, options, OutputOf);
+                : MeshAll(content, options, OutputsUnder(content));
         case [var directory] when Directory.Exists(directory):
-            return MeshAll(directory, options, OutputOf);
+            return MeshAll(directory, options, OutputsUnder(directory));
         case [var input]:
-            return MeshOne(input, OutputOf(input), options) ? 0 : 1;
+            return MeshOne(input, OutputsUnder(null)(input), options) ? 0 : 1;
         case [var input, var output]:
             return MeshOne(input, output, options) ? 0 : 1;
         default:
@@ -219,9 +236,12 @@ async Task<int> Render(string[] arguments)
             light = new V3(xyz[0], xyz[1], xyz[2]);
             continue;
         }
-        if (arguments[i] == "--size" && i + 1 < arguments.Length
-            && int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out size) && size is >= 64 and <= 4096)
+        if (arguments[i] == "--size" && i + 1 < arguments.Length)
+        {
+            if (!int.TryParse(arguments[++i], NumberStyles.None, CultureInfo.InvariantCulture, out size) || size is < 64 or > 4096)
+                return Usage($"--size takes 64 to 4096 pixels, not {arguments[i]}");
             continue;
+        }
         if (arguments[i].StartsWith("--"))
             return Usage($"Unknown or invalid option {arguments[i]}, --size takes 64 to 4096 pixels");
         paths.Add(arguments[i]);

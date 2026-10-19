@@ -83,7 +83,7 @@ namespace SdfMushrooms.Editor
                 Render(camera, Path.Combine(directory, "scene.png"), 1920, 1080);
 
                 var root = scene.GetRootGameObjects().First(g => g.name == MushroomScene.MushroomsRootName);
-                foreach (Transform mushroom in root.transform)
+                foreach (var mushroom in MushroomScene.Instances(root))
                 {
                     var bounds = mushroom.GetComponentsInChildren<Renderer>().Select(r => r.bounds).Aggregate((a, b) => { a.Encapsulate(b); return a; });
                     // The cap and face, from the front and a little above
@@ -122,7 +122,7 @@ namespace SdfMushrooms.Editor
                 var halfAngle = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
                 var direction = new Vector3(-0.25f, 0.35f, 1).normalized;
 
-                foreach (Transform model in root.transform)
+                foreach (var model in MushroomScene.Instances(root))
                 {
                     if (!model.TryGetComponent<LODGroup>(out var original))
                         continue;

@@ -1,0 +1,52 @@
+# Flower 3: a stylized bluebell about 0.4 m tall, a thin stem that rises from a tuft of three strap leaves and arches over to
+# +x, hanging five violet-blue bells off one side on short stalks, getting smaller towards the drooping tip. Each bell is open at
+# the mouth. The smallest and most delicate of the flowers.
+format 1
+
+# Three times the vertices its size would give it: stalks and bells are small next to the flower's height
+Detail detail=3
+    Union
+        Material material=flower_stem
+            Union
+                # The arching stem and the short stalks the bells hang from, a plain union so the joints do not swell
+                Capsule a=(0, 0.005, 0) b=(0, 0.22, 0) radius=0.009
+                Capsule a=(0, 0.22, 0) b=(0.04, 0.33, 0) radius=0.009
+                Capsule a=(0.04, 0.33, 0) b=(0.12, 0.38, 0) radius=0.007
+                Capsule a=(0.12, 0.38, 0) b=(0.21, 0.35, 0) radius=0.007
+                Capsule a=(0.03, 0.31, 0) b=(0.03, 0.275, 0.025) radius=0.005
+                Capsule a=(0.08, 0.365, 0) b=(0.08, 0.332, -0.025) radius=0.005
+                Capsule a=(0.13, 0.38, 0) b=(0.13, 0.349, 0.02) radius=0.005
+                Capsule a=(0.18, 0.365, 0) b=(0.18, 0.337, -0.015) radius=0.005
+                Capsule a=(0.215, 0.345, 0) b=(0.215, 0.32, 0) radius=0.005
+                # Three strap leaves from the foot, upright and splaying
+                VesicaSegment a=(0, 0, 0) b=(0.03, 0.25, 0.07) width=0.016
+                VesicaSegment a=(0, 0, 0) b=(-0.07, 0.22, 0.03) width=0.015
+                VesicaSegment a=(0, 0, 0) b=(-0.02, 0.2, -0.08) width=0.015
+        # The bells, hollowed from below so their mouths open
+        Material material=bluebell_petal
+            Union
+                Subtraction
+                    Translate translation=(0.03, 0.245, 0.025)
+                        Ellipsoid radii=(0.026, 0.036, 0.026)
+                    Translate translation=(0.03, 0.215, 0.025)
+                        Ellipsoid radii=(0.017, 0.028, 0.017)
+                Subtraction
+                    Translate translation=(0.08, 0.303, -0.025)
+                        Ellipsoid radii=(0.025, 0.034, 0.025)
+                    Translate translation=(0.08, 0.275, -0.025)
+                        Ellipsoid radii=(0.016, 0.027, 0.016)
+                Subtraction
+                    Translate translation=(0.13, 0.323, 0.02)
+                        Ellipsoid radii=(0.023, 0.032, 0.023)
+                    Translate translation=(0.13, 0.296, 0.02)
+                        Ellipsoid radii=(0.015, 0.025, 0.015)
+                Subtraction
+                    Translate translation=(0.18, 0.313, -0.015)
+                        Ellipsoid radii=(0.021, 0.029, 0.021)
+                    Translate translation=(0.18, 0.289, -0.015)
+                        Ellipsoid radii=(0.014, 0.022, 0.014)
+                Subtraction
+                    Translate translation=(0.215, 0.299, 0)
+                        Ellipsoid radii=(0.018, 0.025, 0.018)
+                    Translate translation=(0.215, 0.278, 0)
+                        Ellipsoid radii=(0.012, 0.02, 0.012)

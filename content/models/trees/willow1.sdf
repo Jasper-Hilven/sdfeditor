@@ -1,0 +1,29 @@
+# Willow 1: a tall weeping willow about 5.9 m tall, a thick trunk leaning to +x on a broad foot and splitting into three limbs,
+# under a high, narrow dome whose long curtains fall nearly straight down to just above the ground. Taller, narrower and more
+# lopsided than the willow.
+format 1
+
+# Under half the vertices its size would give it, like the willow
+Detail detail=0.4
+    Union
+        Material material=tree_bark
+            Distort amount=0.012 frequency=3
+                SmoothUnion smoothness=0.15
+                    # The trunk, leaning, in two lengths of the same radius where they meet, the lower one cut flat at the ground
+                    Intersection
+                        SmoothUnion smoothness=0.25
+                            ArbitraryRoundCone a=(0, 0, 0) b=(0.45, 1.6, 0) radiusA=0.34 radiusB=0.26
+                            Ellipsoid radii=(0.58, 0.28, 0.52)
+                        # The ground
+                        Translate translation=(0, 1, 0)
+                            Box size=(1, 1, 1)
+                    ArbitraryRoundCone a=(0.45, 1.6, 0) b=(0.65, 2.7, 0.04) radiusA=0.26 radiusB=0.21
+                    # Three limbs out of the top of the trunk, up into the dome
+                    ArbitraryRoundCone a=(0.65, 2.6, 0.04) b=(1.15, 4, 0.2) radiusA=0.17 radiusB=0.1
+                    ArbitraryRoundCone a=(0.65, 2.6, 0.04) b=(0.2, 4.05, 0.3) radiusA=0.17 radiusB=0.1
+                    ArbitraryRoundCone a=(0.65, 2.65, 0.04) b=(0.7, 4.1, -0.55) radiusA=0.16 radiusB=0.1
+
+        # The crown, high over the leaning trunk, its curtains' tips stopping just above the ground
+        Translate translation=(0.65, 4.25, 0.04)
+            Material material=willow_leaves
+                Part part=willow_crown_tall

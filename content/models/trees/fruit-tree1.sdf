@@ -1,0 +1,27 @@
+# Fruit tree 1: a grown, standard apple tree about 4.3 m tall and 3.1 m across, a straight, clean stem 1.5 m high on a flared
+# foot, opening into three branches under a broad, flattened dome of leaves hung with ten big red apples. Taller and wider than the
+# small round fruit tree, with its fork high enough to walk under.
+format 1
+
+# Half the vertices its size would give it, like the other fruit tree
+Detail detail=0.5
+    Union
+        Material material=tree_bark
+            Distort amount=0.008 frequency=4
+                SmoothUnion smoothness=0.1
+                    # The stem, straight and clean, flaring into the ground, cut flat at it
+                    Intersection
+                        SmoothUnion smoothness=0.15
+                            ArbitraryRoundCone a=(0, 0, 0) b=(0.04, 1.5, 0) radiusA=0.15 radiusB=0.12
+                            Ellipsoid radii=(0.3, 0.16, 0.28)
+                        # The ground
+                        Translate translation=(0, 1, 0)
+                            Box size=(0.6, 1, 0.6)
+                    # Three branches from the top of the stem out and up, ending inside the dome
+                    ArbitraryRoundCone a=(0.04, 1.45, 0) b=(0.95, 2.55, 0.25) radiusA=0.1 radiusB=0.06
+                    ArbitraryRoundCone a=(0.04, 1.45, 0) b=(-0.85, 2.6, 0.3) radiusA=0.1 radiusB=0.06
+                    ArbitraryRoundCone a=(0.04, 1.5, 0) b=(0.05, 2.6, -0.75) radiusA=0.09 radiusB=0.055
+
+        # The crown, low enough that the branches end inside it, high enough that the fork shows beneath
+        Translate translation=(0, 2.85, 0)
+            Part part=fruit_crown_wide

@@ -1,0 +1,27 @@
+# Birch crown young: the loose crown of a young birch, about 1.6 m across and 2.7 m tall, centred on the origin: three big round
+# clumps stacked up a thin core, alternating sides like steps, and a small one on top, each standing far enough out of the core
+# that the crown reads open and uneven rather than as the full oval of the grown birch. Form only: the model wraps it in its
+# material.
+format 1
+
+# A gentle, large-scale lumpiness over the clumps, shallow next to their size
+Distort amount=0.02 frequency=1.8
+    # Soft creases between the clumps, each keeping its own bulge in the outline
+    SmoothUnion smoothness=0.07
+        # The thin core, holding the clumps together
+        Ellipsoid radii=(0.24, 0.95, 0.24)
+        # The lowest and biggest clump, out to +x
+        Translate translation=(0.42, -0.65, 0.12)
+            Ellipsoid radii=(0.56, 0.46, 0.52)
+        # The middle clump, out to -x and a little back
+        Translate translation=(-0.44, 0.05, -0.1)
+            Ellipsoid radii=(0.5, 0.45, 0.48)
+        # A smaller one to the front, between them
+        Translate translation=(0.02, -0.15, 0.5)
+            Ellipsoid radii=(0.38, 0.36, 0.36)
+        # The upper clump, back over to +x
+        Translate translation=(0.26, 0.7, 0.08)
+            Ellipsoid radii=(0.42, 0.4, 0.4)
+        # The tip
+        Translate translation=(-0.02, 1.15, 0)
+            Ellipsoid radii=(0.24, 0.3, 0.24)

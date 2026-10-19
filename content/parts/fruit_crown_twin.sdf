@@ -1,0 +1,51 @@
+# Fruit crown twin: the crown of a young apple tree that forked low, two round lobes of leaves side by side, about 2.4 m across
+# and 1.4 m tall, centred on the origin: a bigger lobe to -x and a smaller, higher one to +x, each a core with clumps around it,
+# meeting in a soft saddle in the middle, with eight apples set half into them. Carries its own materials, leaves and apples; the
+# model leaves it unwrapped.
+format 1
+
+Union
+    # The leaves
+    Material material=fruit_leaves
+        # A gentle, large-scale lumpiness, shallow next to the clumps
+        Distort amount=0.02 frequency=1.8
+            # Soft creases between the clumps, and a saddle where the lobes meet
+            SmoothUnion smoothness=0.12
+                # The bigger lobe, to -x
+                Translate translation=(-0.55, 0, 0)
+                    Ellipsoid radii=(0.55, 0.5, 0.52)
+                Translate translation=(-0.95, -0.1, 0.25)
+                    Ellipsoid radii=(0.42, 0.4, 0.4)
+                Translate translation=(-0.6, 0.35, -0.25)
+                    Ellipsoid radii=(0.42, 0.38, 0.4)
+                Translate translation=(-0.3, -0.15, 0.4)
+                    Ellipsoid radii=(0.38, 0.35, 0.36)
+                # The smaller, higher lobe, to +x
+                Translate translation=(0.45, 0.25, 0)
+                    Ellipsoid radii=(0.5, 0.46, 0.48)
+                Translate translation=(0.8, 0.15, -0.2)
+                    Ellipsoid radii=(0.38, 0.36, 0.36)
+                Translate translation=(0.4, 0.6, 0.15)
+                    Ellipsoid radii=(0.36, 0.32, 0.34)
+                Translate translation=(0.2, 0.1, -0.35)
+                    Ellipsoid radii=(0.36, 0.34, 0.34)
+
+    # The apples, a plain union so the red stops crisply at the leaves
+    Material material=apple
+        Union
+            Translate translation=(-0.501, -0.148, 0.494)
+                Sphere radius=0.15
+            Translate translation=(-1.272, -0.261, 0.451)
+                Sphere radius=0.15
+            Translate translation=(-0.676, 0.654, -0.478)
+                Sphere radius=0.15
+            Translate translation=(-0.197, -0.356, 0.674)
+                Sphere radius=0.15
+            Translate translation=(0.586, 0.16, 0.452)
+                Sphere radius=0.15
+            Translate translation=(1.155, 0.043, -0.271)
+                Sphere radius=0.15
+            Translate translation=(0.457, 0.886, 0.293)
+                Sphere radius=0.15
+            Translate translation=(0.231, -0.026, -0.664)
+                Sphere radius=0.15

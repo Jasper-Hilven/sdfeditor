@@ -1,0 +1,29 @@
+# Canopy tall: the crown of a tall broadleaf tree, an upright egg of soft blob clumps about 2.5 m across and 3.4 m tall, centred
+# on the origin: a broad bottom clump ringed by three more, a ring of three turned against them above, two higher still and a small
+# one on top, each keeping its own bulge in the outline like the canopy's. Form only: the model wraps it in its material.
+format 1
+
+# A gentle, large-scale lumpiness over the clumps, shallow next to their size
+Distort amount=0.03 frequency=1.6
+    # Soft creases between the clumps, not so soft that the crown melts into one egg
+    SmoothUnion smoothness=0.13
+        Translate translation=(0, -0.75, 0)
+            Ellipsoid radii=(0.85, 0.6, 0.8)
+        Translate translation=(0.62, -0.55, 0.35)
+            Ellipsoid radii=(0.6, 0.5, 0.56)
+        Translate translation=(-0.6, -0.45, 0.3)
+            Ellipsoid radii=(0.58, 0.5, 0.55)
+        Translate translation=(0.05, -0.6, -0.62)
+            Ellipsoid radii=(0.58, 0.48, 0.55)
+        Translate translation=(0.5, 0.25, -0.3)
+            Ellipsoid radii=(0.58, 0.52, 0.55)
+        Translate translation=(-0.48, 0.2, -0.2)
+            Ellipsoid radii=(0.56, 0.52, 0.54)
+        Translate translation=(0.05, 0.15, 0.55)
+            Ellipsoid radii=(0.55, 0.5, 0.52)
+        Translate translation=(0.2, 0.95, 0.1)
+            Ellipsoid radii=(0.5, 0.48, 0.48)
+        Translate translation=(-0.25, 1, -0.15)
+            Ellipsoid radii=(0.45, 0.45, 0.44)
+        Translate translation=(0, 1.5, 0)
+            Ellipsoid radii=(0.36, 0.36, 0.34)

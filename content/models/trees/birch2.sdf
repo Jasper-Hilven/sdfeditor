@@ -1,0 +1,30 @@
+# Birch 2: a young silver birch about 4.9 m tall, a thin pale trunk in a gentle S-curve, out to +x and back over to -x, under a
+# loose, open crown of three clumps stepping up it from side to side, with two whippy branches reaching into them. Smaller, lighter
+# and more irregular than the grown birches, so it reads as a sapling among them.
+format 1
+
+# Half the vertices its 4.9 m would give it, like the other birches
+Detail detail=0.5
+    Union
+        Material material=birch_bark
+            Distort amount=0.005 frequency=4
+                SmoothUnion smoothness=0.03
+                    # The trunk in three lengths of the same radius where they meet, curving out to +x and back
+                    Union
+                        Intersection
+                            SmoothUnion smoothness=0.1
+                                ArbitraryRoundCone a=(0, 0, 0) b=(0.25, 1.4, 0) radiusA=0.11 radiusB=0.085
+                                Ellipsoid radii=(0.2, 0.1, 0.2)
+                            # The ground
+                            Translate translation=(0, 1, 0)
+                                Box size=(0.6, 1, 0.6)
+                        ArbitraryRoundCone a=(0.25, 1.4, 0) b=(0.12, 2.8, 0.08) radiusA=0.085 radiusB=0.065
+                        ArbitraryRoundCone a=(0.12, 2.8, 0.08) b=(-0.16, 4.1, 0.1) radiusA=0.065 radiusB=0.04
+                    # Two thin branches, up into the lower and middle clumps
+                    ArbitraryRoundCone a=(0.18, 2.3, 0.05) b=(0.55, 3, 0.2) radiusA=0.04 radiusB=0.03
+                    ArbitraryRoundCone a=(0.1, 2.9, 0.08) b=(-0.45, 3.5, -0.1) radiusA=0.04 radiusB=0.03
+
+        # The crown, its lowest clump just above the curve, so most of the trunk shows
+        Translate translation=(-0.08, 3.65, 0.08)
+            Material material=birch_leaves
+                Part part=birch_crown_young
