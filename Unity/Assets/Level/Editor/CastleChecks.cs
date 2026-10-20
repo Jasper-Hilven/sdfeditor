@@ -47,8 +47,10 @@ namespace SdfLevel.Editor
             var scene = EditorSceneManager.OpenScene(LevelBuilder.ScenePathOf($"{LevelBuilder.GeneratedFolder}/{level}"), OpenSceneMode.Single);
             Physics.SyncTransforms();
             var castle = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName)
-                .Cast<Transform>().Where(t => t.name == "castle0").OrderByDescending(t => t.position.x).First();
-            if (model != "castle0")
+                .Cast<Transform>().Where(t => t.name is "castle0" or "castle1").OrderByDescending(t => t.position.x).First();
+            // the level's own castle (castle1 in the meadow since ticket 15, castle0 in the fungal level) is swapped for a fresh instance of the
+            // model checked, so the checks see the same one wherever it is placed
+            if (model != "castle0" || castle.name != "castle0")
                 castle = Swap(castle, model);
             var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
             if (only.Contains("walk"))
@@ -60,7 +62,7 @@ namespace SdfLevel.Editor
             Debug.Log($"SDF castle checks ({model}): done, snapshots in {directory}");
         }
 
-        /// <summary>Hides the placed castle0 and puts an instance of the other castle's prefab in its place (position, turn and scale).</summary>
+        /// <summary>Hides the placed castle (castle0 or castle1) and puts an instance of the other castle's prefab in its place (position, turn and scale).</summary>
         private static Transform Swap(Transform placed, string model)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{model}.prefab")
@@ -70,10 +72,11 @@ namespace SdfLevel.Editor
             instance.transform.SetLocalPositionAndRotation(placed.localPosition, placed.localRotation);
             instance.transform.localScale = placed.localScale;
             placed.gameObject.SetActive(false);
-            // castle0's repeated parts are drawn by the instanced renderer, not by the placed object: take its placements out
+            // the placed castle's repeated parts are drawn by the instanced renderer, not by the placed object: take its placements out
+            var placedName = placed.name;
             foreach (var renderer in placed.gameObject.scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<InstancedScatterRenderer>(true)))
             {
-                var hidden = new HashSet<int>(renderer.prototypes.Select((p, i) => (p, i)).Where(e => e.p.name.StartsWith("castle0/", StringComparison.Ordinal)).Select(e => e.i));
+                var hidden = new HashSet<int>(renderer.prototypes.Select((p, i) => (p, i)).Where(e => e.p.name.StartsWith(placedName + "/", StringComparison.Ordinal)).Select(e => e.i));
                 renderer.placements = renderer.placements.Where(p => !hidden.Contains(p.prototype)).ToArray();
                 renderer.enabled = false;
                 renderer.enabled = true;

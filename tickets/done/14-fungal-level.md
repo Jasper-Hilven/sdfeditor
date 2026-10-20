@@ -6,7 +6,7 @@ moss and small fungi instead of grass and flowers, a felted mat of mycelium inst
 (`castle0`) made fully fungal: no stone wall pattern, no tiled ground. Under the Eye-Moon Night sky, whose spores and floating caps
 already belong to this world.
 
-The meadow becomes the plain counterpart, with no fungi at all: ticket [15](../15-meadow-without-fungi.md). The two tickets split the
+The meadow becomes the plain counterpart, with no fungi at all: ticket [15](15-meadow-without-fungi.md). The two tickets split the
 current meadow's mix (a mushroom castle and giant mushrooms on a grass meadow with birches and pines) into two levels that are each
 one thing.
 

@@ -22,7 +22,7 @@ ticket's Status says.
 | 13 | [Chess without eyes](done/13-chess-no-eyes.md) | The 19 chess pieces lose their floating eyes and hands; re-meshed, prefabs and scenes rebuilt. After 11 |
 | 14 | [Chess cube](done/14-chess-cube.md) | The chessboard is one theme, board games: a closed cube of six chessboards (floor, four walls, ceiling), no hills, island, foliage or sky; every piece plain, without mushrooms, eyes or hands (14.1-14.8). Left: Play-mode walk, lamp tone by eye, budgets (will not yet do this). After 11, 12, 13 |
 | 14 | [Fungal level](done/14-fungal-level.md) | Third level, `fungal.level` / `Fungal.unity`: the meadow's island where everything that grows is a fungus (mushroom trees, moss, fungi tufts, mycelium ground); `castle0` fully fungal, no stone pattern, no tiles; Eye-Moon Night. Done (subtickets 14.1-14.8); left: a few triangle-budget overshoots, a Play-mode walk. After 01–09 |
-| 15 | [Meadow without fungi](15-meadow-without-fungi.md) | The meadow with no fungi: a new stone castle `castle1` on the tiles, the giant mushrooms out, the day sky. Not started. After 14.2 |
+| 15 | [Meadow without fungi](done/15-meadow-without-fungi.md) | The meadow with no fungi: a new stone castle `castle1` on the tiles, the giant mushrooms out, the day sky (15.1-15.4). Left: castle1's wall-walk has 16 stalls (castle0 13) and 31-35 cm LOD0 steps, a few views above before in triangles (freed field fills with foliage), a Play-mode walk. After 14.2 |
 
 ## The level
 
@@ -55,6 +55,6 @@ ticket's Status says.
 - **Instancing**: everything the level holds in quantity (grass, flowers, trees, crest clusters) is baked as instance data and drawn
   by one instanced renderer, so draw calls scale with the number of variants, not of objects. Only unique models (castles, big
   rocks) are scene objects.
-- **One theme per scene**: each scene, players aside, has exactly one theme. The meadow is mushrooms; the chessboard is board
+- **One theme per scene**: each scene, players aside, has exactly one theme. The meadow is a plain meadow (ticket 15); the chessboard is board
   games. Ground, borders, sky, props and pieces all belong to the scene's theme; only the players may come from another.
 - **Budgets** (per frame): high ≈ 2M triangles; integrated GPU / web ≈ 500k triangles, ≤ 200 draw calls.

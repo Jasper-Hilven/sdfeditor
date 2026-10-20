@@ -2,7 +2,7 @@
 
 The meadow becomes a meadow and nothing else: grass, flowers, birches, pines, fruit and old trees, rocks, a path, and a plain
 **stone castle** on flagstones at each end, under a day sky. No mushroom castle, no giant mushrooms, no eye-moon, no spores or
-floating caps. Everything fungal moves to its own level, ticket [14](done/14-fungal-level.md).
+floating caps. Everything fungal moves to its own level, ticket [14](14-fungal-level.md).
 
 The mushrooms stay as the **cast**: the characters are mushrooms in every level, so a mushroom scout on the meadow is fine. The
 levels themselves are each one thing: a plain meadow, a mushroom chessboard (11–13, unchanged), the fungal level.
@@ -73,4 +73,18 @@ and walks** as `castle0`, so ticket 09's floor rules, the walk tests and `Castle
 
 ## Status
 
-Not started.
+Done (subtickets 15.1-15.4 are in this folder). `meadow.level` bakes with `castle1` on the tiles at both ends, no giant mushrooms (three
+more rocks in the open field), `sky preset=day`; `Meadow.unity` is rebuilt, `Mushrooms.unity` shows `castle1` (`buildings/` row) next to
+`castle0`. `dotnet build` clean; `dotnet test`: 533 + 384 pass. Unity 6000.3.0f1 batch logs (build, level snapshots, castle checks,
+showcase snapshots): no `error CS`, no shader error, no exception. Details and numbers: [15.4](15.4-rebuild-snapshots-docs.md).
+Left for a human look:
+- Triangles per view are not all below the figures before the ticket (see 15.4's table): freeing the 12 giant mushrooms' places let
+  the scatter put 9,076 instead of 8,683 instances (more grass, 17 more field trees), so the views toward the middle of the field
+  are up to 26% above before; the views that used to show giant mushrooms are below. The web preset is over 500k in two views, as before.
+- `CastleChecks` on `castle1` vs `castle0`: z-fighting 0 and the gate and keep-stair walks 0 stalls, as `castle0`, but the wall-walk has
+  16 stalls (castle0: 13) and the walk-level floors of neighbouring parts are 2-14 cm apart instead of exactly 15 cm, with 31-35 cm
+  steps at LOD0 (gate turrets and large tower over the keep/bays) that `castle0` has only at LOD1. Not changed here (15.1/15.2's models).
+- Looked at in snapshots only: a Play-mode walk of the castle's wall-walk, the bare abyss under the island by day (it shows the
+  grey-brown rock underside against a plain sky; not touched, as the ticket says), dark crescent shapes on the tower roof decks in
+  the z-fight view `zfight_joint2_6m_high` (shadow-like, look at them in Play mode), thin sliver spikes at the foot of a tower in
+  `crowd_eye`.
