@@ -1,0 +1,16 @@
+# Ink cap 0: an ink cap tree 9.5 m tall, a long pale stem under a tall shaggy bell 3.4 m across whose rim has melted to black ink and
+# drips (the part fungi_inkcap_bell), the gills' edges under it glowing cyan-green. The stem is the trunk of the collider.
+format 1
+collider capsule
+
+Detail detail=0.2
+    Union
+        Material material=ftree_stem
+            SmoothUnion smoothness=0.25
+                Intersection
+                    Ellipsoid radii=(0.7, 0.5, 0.7)
+                    Translate translation=(0, 0.5, 0)
+                        Box size=(2, 0.5, 2)
+                ArbitraryRoundCone a=(0, 0.2, 0) b=(0.1, 6.5, 0) radiusA=0.38 radiusB=0.26
+        Translate translation=(0.1, 6.0, 0)
+            Part part=fungi_inkcap_bell

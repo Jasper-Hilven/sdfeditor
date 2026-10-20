@@ -1,0 +1,62 @@
+# Bracket tiers, squat: four broad tiers of shelf fungus that wrap a dead trunk, 8 m across at the bottom and 4.5 m tall, the first tier
+# at the origin, alternately cream and orange, with a cream cap fungus on the broken top. Like fungi_bracket_tiers but wider and
+# fewer, for the squat tower. Form and look both; a part, so it is a mesh of its own.
+format 1
+
+SmoothUnion smoothness=0.1
+    Translate translation=(0, 0.3, 0)
+        Rotate rotation=(0.05, 0.9, -0.04)
+            RadialWave amount=0.07 count=8
+                Union
+                    Material material=ftree_bracket_cream
+                        Intersection
+                            Ellipsoid radii=(4.0, 0.85, 4.0)
+                            Translate translation=(0, 0.85, 0)
+                                Box size=(9, 0.85, 9)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(3.8, 0.3, 3.8)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(4.3, 0.3, 4.3)
+    Translate translation=(0, 1.5, 0)
+        Rotate rotation=(-0.05, 0.2, 0.05)
+            RadialWave amount=0.07 count=7
+                Union
+                    Material material=ftree_bracket_orange
+                        Intersection
+                            Ellipsoid radii=(3.2, 0.7, 3.2)
+                            Translate translation=(0, 0.7, 0)
+                                Box size=(7, 0.7, 7)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(3.0, 0.3, 3.0)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(3.5, 0.3, 3.5)
+    Translate translation=(0, 2.7, 0)
+        Rotate rotation=(0.04, 1.5, 0.05)
+            RadialWave amount=0.07 count=6
+                Union
+                    Material material=ftree_bracket_cream
+                        Intersection
+                            Ellipsoid radii=(2.4, 0.6, 2.4)
+                            Translate translation=(0, 0.6, 0)
+                                Box size=(5.5, 0.6, 5.5)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(2.2, 0.3, 2.2)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(2.7, 0.3, 2.7)
+    Translate translation=(0, 3.8, 0)
+        Rotate rotation=(-0.04, 0.6, -0.05)
+            RadialWave amount=0.07 count=5
+                Union
+                    Material material=ftree_bracket_orange
+                        Intersection
+                            Ellipsoid radii=(1.6, 0.5, 1.6)
+                            Translate translation=(0, 0.5, 0)
+                                Box size=(4, 0.5, 4)
+                    Material material=ftree_bracket_pores
+                        Intersection
+                            Ellipsoid radii=(1.45, 0.3, 1.45)
+                            Translate translation=(0, -0.3, 0)
+                                Box size=(1.95, 0.3, 1.95)

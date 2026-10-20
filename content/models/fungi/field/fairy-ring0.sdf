@@ -1,0 +1,112 @@
+# Fairy ring 0: a ring of 24 champignons about 7 m across, 0.3 to 0.8 m tall, on a darker circle of moss, in the open field. Knee-
+# high, so no collider. Each of the two mushroom kinds is a part, meshed once and drawn per use.
+format 1
+collider none
+
+# Half the vertices its size would give it: big, simple forms, and a few dozen of these lie in the field
+Detail detail=0.5
+    Union
+        # The darker circle of moss the mushrooms grow from, a low band 1.8 m wide
+        Material material=field_ring_moss
+            Distort amount=0.03 frequency=2.5
+                Intersection
+                    Scale scale=(1, 0.09, 1)
+                        Torus innerRadius=2.60 outerRadius=4.40
+                    Plane normal=(0, -1, 0) height=0
+        # 24 mushrooms round it, a little out of line, turned and sized each their own way
+        Translate translation=(3.81, 0, -0.22)
+            Rotate rotation=(0, 1.60, 0)
+                Scale scale=(1.41, 1.41, 1.41)
+                    Part part=field_champignon
+        Translate translation=(3.34, 0, 0.89)
+            Rotate rotation=(0, 4.95, 0)
+                Scale scale=(1.32, 1.32, 1.32)
+                    Part part=field_champignon_bud
+        Translate translation=(2.76, 0, 1.36)
+            Rotate rotation=(0, 2.72, 0)
+                Scale scale=(1.47, 1.47, 1.47)
+                    Part part=field_champignon
+        Translate translation=(2.07, 0, 2.25)
+            Rotate rotation=(0, 4.53, 0)
+                Scale scale=(1.16, 1.16, 1.16)
+                    Part part=field_champignon
+        Translate translation=(2.10, 0, 3.29)
+            Rotate rotation=(0, 0.19, 0)
+                Scale scale=(1.52, 1.52, 1.52)
+                    Part part=field_champignon_bud
+        Translate translation=(1.17, 0, 3.34)
+            Rotate rotation=(0, 2.39, 0)
+                Scale scale=(1.55, 1.55, 1.55)
+                    Part part=field_champignon
+        Translate translation=(0.16, 0, 3.43)
+            Rotate rotation=(0, 1.39, 0)
+                Scale scale=(0.82, 0.82, 0.82)
+                    Part part=field_champignon
+        Translate translation=(-0.87, 0, 3.39)
+            Rotate rotation=(0, 1.45, 0)
+                Scale scale=(0.99, 0.99, 0.99)
+                    Part part=field_champignon_bud
+        Translate translation=(-1.60, 0, 3.07)
+            Rotate rotation=(0, 0.13, 0)
+                Scale scale=(1.03, 1.03, 1.03)
+                    Part part=field_champignon
+        Translate translation=(-2.64, 0, 2.37)
+            Rotate rotation=(0, 1.17, 0)
+                Scale scale=(1.31, 1.31, 1.31)
+                    Part part=field_champignon
+        Translate translation=(-3.45, 0, 1.65)
+            Rotate rotation=(0, 2.09, 0)
+                Scale scale=(0.90, 0.90, 0.90)
+                    Part part=field_champignon_bud
+        Translate translation=(-3.60, 0, 0.83)
+            Rotate rotation=(0, 2.65, 0)
+                Scale scale=(1.55, 1.55, 1.55)
+                    Part part=field_champignon
+        Translate translation=(-3.65, 0, -0.19)
+            Rotate rotation=(0, 3.69, 0)
+                Scale scale=(1.04, 1.04, 1.04)
+                    Part part=field_champignon
+        Translate translation=(-3.61, 0, -1.21)
+            Rotate rotation=(0, 3.70, 0)
+                Scale scale=(1.20, 1.20, 1.20)
+                    Part part=field_champignon_bud
+        Translate translation=(-2.94, 0, -1.42)
+            Rotate rotation=(0, 2.60, 0)
+                Scale scale=(1.44, 1.44, 1.44)
+                    Part part=field_champignon
+        Translate translation=(-2.63, 0, -2.37)
+            Rotate rotation=(0, 4.24, 0)
+                Scale scale=(1.36, 1.36, 1.36)
+                    Part part=field_champignon
+        Translate translation=(-1.78, 0, -2.95)
+            Rotate rotation=(0, 4.89, 0)
+                Scale scale=(1.21, 1.21, 1.21)
+                    Part part=field_champignon_bud
+        Translate translation=(-0.87, 0, -3.29)
+            Rotate rotation=(0, 0.19, 0)
+                Scale scale=(1.19, 1.19, 1.19)
+                    Part part=field_champignon
+        Translate translation=(-0.27, 0, -3.67)
+            Rotate rotation=(0, 3.73, 0)
+                Scale scale=(1.59, 1.59, 1.59)
+                    Part part=field_champignon
+        Translate translation=(0.78, 0, -3.11)
+            Rotate rotation=(0, 6.17, 0)
+                Scale scale=(1.20, 1.20, 1.20)
+                    Part part=field_champignon_bud
+        Translate translation=(1.90, 0, -2.98)
+            Rotate rotation=(0, 1.46, 0)
+                Scale scale=(1.49, 1.49, 1.49)
+                    Part part=field_champignon
+        Translate translation=(2.77, 0, -2.76)
+            Rotate rotation=(0, 2.88, 0)
+                Scale scale=(1.26, 1.26, 1.26)
+                    Part part=field_champignon
+        Translate translation=(3.00, 0, -1.88)
+            Rotate rotation=(0, 0.04, 0)
+                Scale scale=(1.57, 1.57, 1.57)
+                    Part part=field_champignon_bud
+        Translate translation=(3.70, 0, -0.81)
+            Rotate rotation=(0, 4.65, 0)
+                Scale scale=(1.51, 1.51, 1.51)
+                    Part part=field_champignon

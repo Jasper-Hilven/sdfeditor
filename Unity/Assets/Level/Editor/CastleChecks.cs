@@ -13,9 +13,9 @@ namespace SdfLevel.Editor
     /// <summary>
     /// The batch-mode checks of the castle's floor heights and levels of detail (ticket 09): without a window,
     /// <c>Unity -batchmode -quit -projectPath Unity -executeMethod SdfLevel.Editor.CastleChecks.Run -snapshotDir &lt;folder&gt;</c>
-    /// (without -nographics), on the meadow's first castle. <c>-castle castle1</c> runs the same checks on the stone castle (ticket
-    /// 15.2) instead: it is put where that castle stands, the meadow's <c>castle0</c> hidden, so floors, walks and views are the same
-    /// ones; the default is <c>castle0</c>, as before.
+    /// (without -nographics), on a level's first castle (-level &lt;name&gt;, the meadow by default). <c>-castle castle1</c> runs the
+    /// same checks on the stone castle (ticket 15.2) instead: it is put where that castle stands, the level's <c>castle0</c> hidden,
+    /// so floors, walks and views are the same ones; the default is <c>castle0</c>, as before.
     /// <list type="bullet">
     /// <item><b>Height profiles</b>: a walker is dropped on the floor along a path, 2 cm at a time: at each step a ray from a step
     /// height (0.42 m) above its feet down finds the floor it stands on. It logs every jump of more than 1.5 cm (where, how
@@ -42,8 +42,9 @@ namespace SdfLevel.Editor
             var directory = index >= 0 && index + 1 < args.Length ? args[index + 1] : Path.Combine(Path.GetTempPath(), "castle-checks");
             var only = Array.IndexOf(args, "-only") is var o && o >= 0 && o + 1 < args.Length ? args[o + 1] : "walk,zfight,lod";
             var model = Array.IndexOf(args, "-castle") is var c && c >= 0 && c + 1 < args.Length ? args[c + 1] : "castle0";
+            var level = Array.IndexOf(args, "-level") is var l && l >= 0 && l + 1 < args.Length ? args[l + 1] : "meadow";
             Directory.CreateDirectory(directory);
-            var scene = EditorSceneManager.OpenScene(LevelBuilder.ScenePathOf($"{LevelBuilder.GeneratedFolder}/meadow"), OpenSceneMode.Single);
+            var scene = EditorSceneManager.OpenScene(LevelBuilder.ScenePathOf($"{LevelBuilder.GeneratedFolder}/{level}"), OpenSceneMode.Single);
             Physics.SyncTransforms();
             var castle = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName)
                 .Cast<Transform>().Where(t => t.name == "castle0").OrderByDescending(t => t.position.x).First();

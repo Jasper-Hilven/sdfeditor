@@ -2,7 +2,7 @@
 
 The meadow becomes a meadow and nothing else: grass, flowers, birches, pines, fruit and old trees, rocks, a path, and a plain
 **stone castle** on flagstones at each end, under a day sky. No mushroom castle, no giant mushrooms, no eye-moon, no spores or
-floating caps. Everything fungal moves to its own level, ticket [14](14-fungal-level.md).
+floating caps. Everything fungal moves to its own level, ticket [14](done/14-fungal-level.md).
 
 The mushrooms stay as the **cast**: the characters are mushrooms in every level, so a mushroom scout on the meadow is fine. The
 levels themselves are each one thing: a plain meadow, a mushroom chessboard (11–13, unchanged), the fungal level.

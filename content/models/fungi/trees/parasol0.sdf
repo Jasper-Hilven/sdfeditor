@@ -1,0 +1,24 @@
+# Parasol 0: a parasol mushroom tree 10.8 m tall, a tall slender cream stem on a small bulb with a drooping ring, under a broad flat
+# scaly cap 8 m across (the part fungi_parasol_cap). The stem is the trunk of the collider; the cap is what hides the hills behind.
+format 1
+collider capsule
+
+# Fewer vertices than its height would give it: a thin stem and one big smooth cap
+Detail detail=0.13
+    Union
+        Material material=ftree_stem
+            SmoothUnion smoothness=0.25
+                # The bulb at the foot, flat on the ground
+                Intersection
+                    Ellipsoid radii=(0.8, 0.55, 0.8)
+                    Translate translation=(0, 0.5, 0)
+                        Box size=(2, 0.5, 2)
+                # The stem, tapering and leaning a little
+                ArbitraryRoundCone a=(0, 0.2, 0) b=(0.25, 8.9, 0.1) radiusA=0.42 radiusB=0.22
+        # The ring, a skirt hanging from the stem
+        Material material=ftree_ring
+            Translate translation=(0.18, 6.3, 0.07)
+                CappedCone height=0.5 bottomRadius=0.85 topRadius=0.3
+        # The cap, its underside at the stem's top
+        Translate translation=(0.25, 8.6, 0.1)
+            Part part=fungi_parasol_cap

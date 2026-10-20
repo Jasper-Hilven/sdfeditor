@@ -1,0 +1,56 @@
+# Cap cluster 3: stacked cream and orange shelf caps with amanita domes, 7 caps of several kinds grown into one soft mass on short stout stems, about 9 m across and 7 m tall.
+# Drawn instanced behind the hills' crest, seen from 30 m and more, so it needs no detail finer than its caps. Its stems reach 1.5 m
+# below its base, so it stands on a slope without showing its foot. The fungal counterpart of the meadow's crest clusters.
+format 1
+collider capsule
+
+# Fewer vertices than its size would give it: a big, simple form seen from far away
+Detail detail=0.25
+    Intersection
+        Translate translation=(0, 10, 0)
+            Box size=(7, 11.5, 7)
+        SmoothUnion smoothness=0.25
+            Material material=ftree_stem
+                SmoothUnion smoothness=0.3
+                    ArbitraryRoundCone a=(0.06, -1.5, 0.01) b=(0.30, 6.20, 0.04) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(0.43, -1.5, 0.38) b=(2.17, 2.98, 1.88) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.21, -1.5, 0.57) b=(-1.06, 4.52, 2.83) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.60, -1.5, 0.28) b=(-3.02, 4.42, 1.42) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.59, -1.5, -0.12) b=(-2.96, 5.23, -0.60) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(-0.09, -1.5, -0.47) b=(-0.47, 5.88, -2.34) radiusA=0.57 radiusB=0.26
+                    ArbitraryRoundCone a=(0.16, -1.5, -0.36) b=(0.79, 4.20, -1.79) radiusA=0.57 radiusB=0.26
+            Material material=ftree_bracket_cream
+                Translate translation=(0.30, 6.00, 0.04)
+                    Rotate rotation=(-0.16, 0, 0.25)
+                        Scale scale=(1.20, 1.20, 1.20)
+                            Part part=fungi_cap_flat
+            Material material=ftree_bracket_orange
+                Translate translation=(2.17, 2.78, 1.88)
+                    Rotate rotation=(-0.17, 0, 0.10)
+                        Scale scale=(1.07, 1.07, 1.07)
+                            Part part=fungi_cap_flat
+            Material material=ftree_bracket_cream
+                Translate translation=(-1.06, 4.32, 2.83)
+                    Rotate rotation=(0.24, 0, -0.19)
+                        Scale scale=(1.10, 1.10, 1.10)
+                            Part part=fungi_cap_flat
+            Material material=ftree_bracket_orange
+                Translate translation=(-3.02, 4.22, 1.42)
+                    Rotate rotation=(-0.10, 0, 0.23)
+                        Scale scale=(0.96, 0.96, 0.96)
+                            Part part=fungi_cap_flat
+            Material material=amanita_cap
+                Translate translation=(-2.96, 5.03, -0.60)
+                    Rotate rotation=(-0.09, 0, -0.10)
+                        Scale scale=(0.86, 0.86, 0.86)
+                            Part part=fungi_cap_dome
+            Material material=amanita_cap
+                Translate translation=(-0.47, 5.68, -2.34)
+                    Rotate rotation=(-0.09, 0, 0.20)
+                        Scale scale=(1.12, 1.12, 1.12)
+                            Part part=fungi_cap_dome
+            Material material=game_porcini_cap
+                Translate translation=(0.79, 4.00, -1.79)
+                    Rotate rotation=(0.16, 0, 0.25)
+                        Scale scale=(1.08, 1.08, 1.08)
+                            Part part=fungi_cap_dome

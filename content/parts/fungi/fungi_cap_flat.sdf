@@ -1,0 +1,11 @@
+# Cap flat: a broad, flat mushroom cap like a parasol's or a russula's, form only, 4.4 m across and 0.9 m tall with a low boss, its flat
+# underside at the origin. The model using it wraps it in a material. Used scaled and tilted in the cap masses.
+format 1
+
+SmoothUnion smoothness=0.2
+    Intersection
+        Ellipsoid radii=(2.2, 0.7, 2.2)
+        Translate translation=(0, 0.7, 0)
+            Box size=(5, 0.7, 5)
+    Translate translation=(0, 0.5, 0)
+        Ellipsoid radii=(0.8, 0.45, 0.8)

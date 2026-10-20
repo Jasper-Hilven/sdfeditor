@@ -183,6 +183,8 @@ namespace SdfLevel.Editor
                     ShootFoliage(scene, directory, "", Shot, EyeShot);
                 if (HasGroup(scatter, TreesGroup))
                     ShootTrees(scene, "", Shot, EyeShot);
+                if (scene.name == "Fungal")
+                    ShootFungal(scene, Shot, EyeShot);
 
                 QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
@@ -381,6 +383,90 @@ namespace SdfLevel.Editor
             eyeShot("island_below", below, Quaternion.LookRotation(new Vector3(0, -10, 0) - below));
 
             WalkIntoATree(scene, play);
+        }
+
+        /// <summary>
+        /// The fungal level's own views (ticket 14.7): the fairy rings from outside and from inside (the placed ring models), the fallen
+        /// log, a stump and a puffball from 6 m (found among the scatter colliders by model name), the crest across the field from the
+        /// far side, the wood edge at the corner and the cyan glow among the trees at night; and a character controller walked at the
+        /// log from the side, logging how high it climbed (it should step onto the log, which is about 0.5 m high).
+        /// </summary>
+        private static void ShootFungal(Scene scene, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot)
+        {
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            var rings = Placed(scene, "fairy-ring0").Concat(Placed(scene, "fairy-ring1")).ToArray();
+            for (var i = 0; i < rings.Length && i < 4; i++)
+            {
+                var ring = rings[i];
+                var side = OnGround(ring.position + new Vector3(0, 0, -9)) + up;
+                eyeShot($"fairy_ring{i}", side, Quaternion.LookRotation(ring.position + Vector3.up * 0.4f - side));
+            }
+            if (rings.Length > 0)
+            {
+                var inside = OnGround(rings[0].position) + up;
+                eyeShot("fairy_ring_inside", inside, Quaternion.Euler(10, 40, 0));
+            }
+            var colliders = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.ScatterCollidersName);
+            if (colliders != null)
+            {
+                var play = PlayHalfSize(scene);
+                foreach (var model in new[] { "log-fungi0", "stump-brackets0", "stump-brackets1", "puffball0" })
+                {
+                    var target = colliders.Cast<Transform>().Where(t => t.name.StartsWith(model + " ") && Mathf.Abs(t.position.x) < play.x - 20 && Mathf.Abs(t.position.z) < play.y - 15)
+                        .OrderBy(t => t.position.sqrMagnitude).FirstOrDefault();
+                    if (target == null)
+                    {
+                        Debug.Log($"SDF level: fungal view: no {model} among the scatter colliders inside the field");
+                        continue;
+                    }
+                    var from = OnGround(target.position + new Vector3(0, 0, -6)) + up;
+                    eyeShot($"fungal_{model}", from, Quaternion.LookRotation(target.position + Vector3.up * 0.5f - from));
+                    if (model == "log-fungi0")
+                        WalkAtLog(scene, target);
+                }
+            }
+            // From the far end of the field the +x hills (and what the front row hides behind them), and the corner's wood
+            var play2 = PlayHalfSize(scene);
+            var across = OnGround(new Vector3(-(play2.x - 25), 0, 0)) + up;
+            eyeShot("fungal_crest_across", across, Quaternion.Euler(-2, 90, 0));
+            eyeShot("fungal_crest_across_up", across, Quaternion.Euler(-12, 90, 0));
+            var wood = OnGround(new Vector3(play2.x - 18, 0, play2.y - 22)) + up;
+            eyeShot("fungal_wood_edge", wood, Quaternion.LookRotation(new Vector3(1, 0.1f, 1)));
+            eyeShot("fungal_glow", wood, Quaternion.LookRotation(new Vector3(0.3f, 0.2f, 1)));
+        }
+
+        /// <summary>Walks a character controller at the log from 4 m, across its length's middle, logging the greatest height it reached.</summary>
+        private static void WalkAtLog(Scene scene, Transform log)
+        {
+            var walker = new GameObject("Log Check") { hideFlags = HideFlags.HideAndDontSave };
+            SceneManager.MoveGameObjectToScene(walker, scene);
+            try
+            {
+                var controller = walker.AddComponent<CharacterController>();
+                controller.height = 1.75f;
+                controller.radius = 0.3f;
+                controller.center = new Vector3(0, controller.height / 2, 0);
+                controller.slopeLimit = 45;
+                controller.stepOffset = 0.4f;
+                var bounds = log.GetComponentsInChildren<Collider>().Select(c => c.bounds).Aggregate((a, b) => { a.Encapsulate(b); return a; });
+                var side = Mathf.Abs(bounds.extents.x) > Mathf.Abs(bounds.extents.z) ? Vector3.forward : Vector3.right;
+                var start = OnGround(bounds.center - side * (4 + Mathf.Min(bounds.extents.x, bounds.extents.z)));
+                controller.enabled = false;
+                walker.transform.position = start + Vector3.up * 0.05f;
+                controller.enabled = true;
+                Physics.SyncTransforms();
+                var highest = start.y;
+                for (var travelled = 0f; travelled < 9; travelled += 0.05f)
+                {
+                    controller.Move(side * 0.05f + Vector3.down * 0.1f);
+                    highest = Mathf.Max(highest, walker.transform.position.y);
+                }
+                Debug.Log($"SDF level: log check: walking across {log.name} (collider {bounds.size.x:0.0} x {bounds.size.y:0.00} x {bounds.size.z:0.0} m) reached {highest - start.y:0.00} m above its start, ended {walker.transform.position.y - start.y:0.00} m above it");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(walker);
+            }
         }
 
         /// <summary>

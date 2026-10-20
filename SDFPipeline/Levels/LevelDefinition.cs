@@ -12,7 +12,18 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 {
     public const int DefaultSeed = 1;
 
-    /// <summary>The ground's regions other than grass, in the file's order: where they overlap, the later one wins.</summary>
+    public const string DefaultBase = "grass";
+
+    /// <summary>
+    /// The ground outside every region, named as a region is: <c>moss</c> is materials/ground/ground_moss.sdfmat. Set by the regions
+    /// line's <c>base=</c>; grass when left out. level.json names its material under the role <c>grass</c> whatever it is.
+    /// </summary>
+    public string Base { get; init; } = DefaultBase;
+
+    /// <summary>The material of the ground outside every region.</summary>
+    public string BaseMaterial => GroundRegion.MaterialPrefix + Base;
+
+    /// <summary>The ground's regions other than the base ground, in the file's order: where they overlap, the later one wins.</summary>
     public IReadOnlyList<GroundRegion> Regions { get; init; } = [];
 
     /// <summary>The unique models placed in the level (castles, big rocks), in the file's order.</summary>

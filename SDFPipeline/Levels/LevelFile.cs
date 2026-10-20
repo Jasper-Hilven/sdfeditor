@@ -23,7 +23,7 @@ namespace SDFPipeline.Levels;
 ///     margin=6 rim=3                        # the ground bends down to 3 m high at the edge, all round
 ///     underside island-underside            # the rocky underside below it, from content/models/
 ///
-/// regions                                   # the ground other than grass, 2D shapes; where regions overlap, the later one wins
+/// regions base=moss                         # the ground other than the base (grass unless base= names another), 2D shapes; where regions overlap, the later one wins
 ///     dirt
 ///         Circle center=(-60, 0) radius=18 noise=1.2
 ///     tiles stone=0.6 grout=0.05             # drawn as stones (the region named tiles is, unless pattern=plain)
@@ -61,7 +61,9 @@ namespace SDFPipeline.Levels;
 /// A region's shapes are <c>Circle</c> (center, radius), <c>Box2D</c> (center, size, angle), <c>RoundedBox2D</c> (the same and radius)
 /// and <c>Polyline</c> (points, width), each with optional <c>noise</c> (metres the edge wobbles) and <c>noiseScale</c>. Sizes are full
 /// widths, angles degrees. A region's own line may give <c>wobble</c>, metres the ground shader moves its edge with fine noise (0.06 by
-/// default; 0 keeps the edge ruled straight). A region's material is materials/ground/ground_&lt;region&gt;.sdfmat; there are at most four regions.
+/// default; 0 keeps the edge ruled straight). The ground outside every region is grass; <c>regions base=moss</c> makes it
+/// materials/ground/ground_moss.sdfmat instead. level.json names the base ground's material under the role <c>grass</c> whatever it is, so
+/// Unity needs no change. A region's material is materials/ground/ground_&lt;region&gt;.sdfmat; there are at most four regions.
 /// </para>
 /// <para>
 /// A placement names a model as its file is named, hyphens and all (amanita-scout), then <c>at</c> (x, z), and optionally <c>yaw</c>
@@ -150,6 +152,7 @@ public static class LevelFile
         var hills = HillRing.None;
         var edge = IslandEdge.None;
         IReadOnlyList<GroundRegion> regions = [];
+        var baseGround = LevelDefinition.DefaultBase;
         IReadOnlyList<Placement> placements = [];
         var scatters = new List<ScatterLayer>();
         var trees = new List<ScatterLayer>();
@@ -183,7 +186,7 @@ public static class LevelFile
                     edge = ReadEdge(line, cursor);
                     break;
                 case Regions:
-                    regions = ReadRegions(line, cursor);
+                    (regions, baseGround) = ReadRegions(line, cursor);
                     break;
                 case Place:
                     placements = ReadPlacements(line, cursor);
@@ -220,7 +223,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room };
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room };
     }
 
     private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)
@@ -338,9 +341,12 @@ public static class LevelFile
         return new IslandEdge(margin) { Rim = rim, Shoulder = shoulder, Underside = underside };
     }
 
-    private static IReadOnlyList<GroundRegion> ReadRegions(SourceLine line, Cursor cursor)
+    private static (IReadOnlyList<GroundRegion> Regions, string Base) ReadRegions(SourceLine line, Cursor cursor)
     {
-        cursor.ExpectEnd();
+        // The regions line's own parameters: base=moss, the ground outside the regions (materials/ground/ground_moss.sdfmat)
+        var baseParameters = Parameters.Read(Regions, line with { Children = [] }, cursor);
+        var baseGround = baseParameters.Name("base", LevelDefinition.DefaultBase, null)!;
+        baseParameters.Done("base");
         var regions = new List<GroundRegion>();
         var seen = new Dictionary<string, int>();
         foreach (var child in line.Children)
@@ -366,7 +372,7 @@ public static class LevelFile
                 throw childCursor.Error($"Region '{name}' needs shapes indented below it, like 'Circle center=(0, 0) radius=10'");
             regions.Add(new GroundRegion(name, child.Children.Select(ReadShape).ToArray(), pattern, stone, grout, wobble));
         }
-        return regions.Count > 0 ? regions : throw cursor.Error("The regions need a region indented below them, like 'dirt'");
+        return regions.Count > 0 ? (regions, baseGround) : throw cursor.Error("The regions need a region indented below them, like 'dirt'");
     }
 
     private static RegionShape ReadShape(SourceLine line)

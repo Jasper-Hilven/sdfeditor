@@ -105,6 +105,46 @@ public class LevelFileTests
     }
 
     [Fact]
+    public void Read_RegionsBase_NamesTheGroundOutsideTheRegions()
+    {
+        var level = LevelFile.Read("format 1\nplay size=(40, 30)\nregions base=moss\n    litter\n        Circle center=(0, 0) radius=5");
+
+        Assert.Equal("moss", level.Base);
+        Assert.Equal("ground_moss", level.BaseMaterial);
+        Assert.Equal(["litter"], level.Regions.Select(r => r.Name));
+    }
+
+    [Fact]
+    public void Read_WithoutBase_TheGroundIsGrass()
+    {
+        var level = LevelFile.Read("format 1\nplay size=(40, 30)\nregions\n    dirt\n        Circle center=(0, 0) radius=5");
+
+        Assert.Equal(("grass", "ground_grass"), (level.Base, level.BaseMaterial));
+        Assert.Equal("grass", LevelFile.Read("format 1\nplay size=(40, 30)").Base);
+    }
+
+    [Fact]
+    public void Read_RegionsLine_RejectsUnknownParametersAndANumberAsBase()
+    {
+        var unknown = Assert.Throws<SdfProgramFileException>(() =>
+            LevelFile.Read("format 1\nplay size=(40, 30)\nregions ground=moss\n    dirt\n        Circle center=(0, 0) radius=5"));
+        Assert.Equal(3, unknown.Line);
+        var number = Assert.Throws<SdfProgramFileException>(() =>
+            LevelFile.Read("format 1\nplay size=(40, 30)\nregions base=3\n    dirt\n        Circle center=(0, 0) radius=5"));
+        Assert.Equal(3, number.Line);
+    }
+
+    [Fact]
+    public void ContentMeadowAndChessboard_KeepGrassAsTheirBaseGround()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        foreach (var name in new[] { "meadow", "chessboard" })
+            Assert.Equal("grass", LevelFile.Load(Path.Combine(content, LevelFile.FolderName, name + LevelFile.Extension)).Base);
+    }
+
+    [Fact]
     public void ContentMeadow_IsAValidLevel()
     {
         var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
@@ -124,6 +164,63 @@ public class LevelFileTests
         Assert.All(level.Scatters, s => Assert.Equal("foliage", s.Group));
         Assert.All(level.Scatters, s => Assert.Equal(["dirt", "tiles", "path"], s.Avoid));
         Assert.Equal([6f, 15f, 35f], level.DrawGroups.Single(g => g.Name == "foliage").Rings);
+    }
+
+    [Fact]
+    public void ContentFungal_IsAValidLevel()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "fungal" + LevelFile.Extension));
+
+        Assert.Equal(new Vector2(150, 100), level.Play.Size);
+        Assert.InRange(level.Hills.Height, 8, 12);
+        // Moss outside the regions; litter, trail and mycelium, none of them stones
+        Assert.Equal("moss", level.Base);
+        Assert.Equal(["litter", "trail", "mycelium"], level.Regions.Select(r => r.Name));
+        Assert.All(level.Regions, r => Assert.Equal(GroundPattern.Plain, r.Pattern));
+        Assert.DoesNotContain(level.Regions, r => r.Name == GroundRegion.Tiles);
+        // A castle on each short side, on a plateau of mycelium
+        var castles = level.Placements.Where(p => p.Model == "castle0").ToArray();
+        Assert.Equal([-62f, 62f], castles.Select(c => c.At.X).Order());
+        Assert.All(castles, c => Assert.Equal(("mycelium", true), (c.Ground, c.Flatten > 0)));
+        // Moss turfs and fungi tufts, off the litter, mycelium and trail
+        Assert.Equal(["moss-turf0", "fungi-tuft0"], level.Scatters.Select(s => s.Entries[0].Model));
+        Assert.All(level.Scatters, s => Assert.Equal(["litter", "mycelium", "trail"], s.Avoid));
+        // The ground materials exist, plain
+        foreach (var region in level.Regions.Select(r => r.Material).Append("ground_moss"))
+            Assert.True(File.Exists(Path.Combine(content, "..", "materials", "ground", region + ".sdfmat")), region);
+    }
+
+    [Fact]
+    public void ContentFungal_HasNothingButFungi()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "fungal" + LevelFile.Extension));
+        var models = Path.Combine(content, "models");
+        var folderOf = Directory.GetFiles(models, "*.sdf", SearchOption.AllDirectories)
+            .GroupBy(Path.GetFileNameWithoutExtension)
+            .ToDictionary(g => g.Key!, g => g.Select(f => Path.GetRelativePath(models, Path.GetDirectoryName(f)!).Replace('\\', '/')).ToArray());
+
+        var named = level.Placements.Select(p => p.Model)
+            .Concat(level.Scatters.SelectMany(s => s.Entries.Select(e => e.Model)))
+            .Concat(level.Trees.SelectMany(t => t.Entries.Select(e => e.Model)))
+            .Distinct()
+            .ToArray();
+        Assert.NotEmpty(named);
+        foreach (var model in named)
+        {
+            Assert.True(folderOf.TryGetValue(model, out var folders), $"{model} is not in content/models");
+            Assert.All(folders!, folder =>
+            {
+                var top = folder.Split('/')[0];
+                Assert.True(model == "castle0" || top is "fungi" or "mushrooms" or "rocks" or "terrain", $"{model} comes from {folder}");
+                Assert.DoesNotContain(top, new[] { "grass", "flowers", "trees" });
+            });
+        }
     }
 
     [Fact]
