@@ -1,16 +1,17 @@
 # Field champignon bud: the younger fairy-ring mushroom, 0.5 m tall, a tall stem under a closed, bell-shaped buff-tan cap 0.26 m
 # across, standing on the origin. The ring's second variety, so its mushrooms are not all one shape.
 format 1
+# (CappedCone's height is its half height: the cone below spans 0 to 2 x height once moved up by height.)
 
 Union
     Material material=field_champignon_stem
         SmoothUnion smoothness=0.03
             Translate translation=(0, 0.23, 0)
-                CappedCone height=0.46 bottomRadius=0.045 topRadius=0.03
+                CappedCone height=0.23 bottomRadius=0.045 topRadius=0.03
             Ellipsoid radii=(0.065, 0.05, 0.065)
     # The cap: a bell, an egg-shaped ellipsoid cut flat below
     Material material=field_champignon_cap
-        Intersection
+        Subtraction
             Translate translation=(0, 0.43, 0)
                 Ellipsoid radii=(0.13, 0.17, 0.13)
-            Plane normal=(0, -1, 0) height=-0.38
+            Plane normal=(0, 1, 0) height=0.38
