@@ -6,7 +6,7 @@ moss and small fungi instead of grass and flowers, a felted mat of mycelium inst
 (`castle0`) made fully fungal: no stone wall pattern, no tiled ground. Under the Eye-Moon Night sky, whose spores and floating caps
 already belong to this world.
 
-The meadow becomes the plain counterpart, with no fungi at all: ticket [15](15-meadow-without-fungi.md). The two tickets split the
+The meadow becomes the plain counterpart, with no fungi at all: ticket [15](../15-meadow-without-fungi.md). The two tickets split the
 current meadow's mix (a mushroom castle and giant mushrooms on a grass meadow with birches and pines) into two levels that are each
 one thing.
 
@@ -220,4 +220,10 @@ Folder `content/models/fungi/field/`.
 
 ## Status
 
-Not started.
+Done; subtickets 14.1-14.8 are in this folder, each with its own Status. `fungal.level` bakes, `Fungal.unity` builds and is in the build
+settings after `Chessboard`; `dotnet build`/`dotnet test` and the Unity batch logs are clean. Left for a human look:
+- Triangle budget: one high-preset view (the `stump-brackets0` close-up) is 2.02M against 2M; the web views are 533-605k against 500k
+  (the meadow is over there too); the full draw-call count against 200 was not measured (the instanced renderer's alone is at most 173).
+- 14.3's moss turfs 0, 2, 3 and `fungi-tuft1` have LOD1/LOD2 triangle counts 1.5-4x those of the grass/flowers they replace.
+- Castle walk tops (fibres kept): looked at in snapshots, speckle only; a Play-mode walk, web build and frame time are not done.
+- Fairy-ring placement was chosen by hand and judged in snapshots only.
