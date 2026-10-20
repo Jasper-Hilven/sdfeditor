@@ -218,7 +218,7 @@ public class LevelTreesTests
     }
 
     [Fact]
-    public void Meadow_FieldBetweenTheCastles_HasTreesRocksAndGiantMushrooms()
+    public void Meadow_FieldBetweenTheCastles_HasTreesAndRocks()
     {
         var level = LevelFile.Load(Path.Combine(Content, LevelFile.FolderName, "meadow.level"));
         var models = Path.Combine(Content, "models");
@@ -230,17 +230,6 @@ public class LevelTreesTests
         Assert.Single(fieldRocks);
         Assert.Contains(level.DrawGroups, g => g.Name == "rocks");
         Assert.All(field.Concat(fieldRocks).SelectMany(t => t.Entries).Select(e => e.Model), m => Assert.True(exists(m), m));
-
-        var mushrooms = level.Placements.Where(p => p.Model.StartsWith("giant-", StringComparison.Ordinal)).ToArray();
-        Assert.InRange(mushrooms.Length, 8, 15);
-        Assert.All(mushrooms, p => Assert.True(exists(p.Model), p.Model));
-        foreach (var file in Directory.GetFiles(Path.Combine(models, "mushrooms"), "giant-*.sdf"))
-        {
-            var text = File.ReadAllText(file);
-            Assert.DoesNotContain("Part part=eye", text);
-            Assert.DoesNotContain("Part part=hand", text);
-            Assert.Equal(ColliderShape.Convex, ModelSettings.Load(file).Collider);
-        }
     }
 
     /// <summary>

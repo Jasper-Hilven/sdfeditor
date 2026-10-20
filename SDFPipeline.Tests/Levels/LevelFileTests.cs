@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.RegularExpressions;
 using SDFPipeline.Levels;
 using SDFPipeline.ProgramFiles;
 
@@ -156,7 +157,7 @@ public class LevelFileTests
         Assert.InRange(level.Hills.Height, 8, 12);
         Assert.Equal(["dirt", "path", "tiles"], level.Regions.Select(r => r.Name));
         // A castle on each short side, on a plateau of tiles
-        var castles = level.Placements.Where(p => p.Model == "castle0").ToArray();
+        var castles = level.Placements.Where(p => p.Model == "castle1").ToArray();
         Assert.Equal([-62f, 62f], castles.Select(c => c.At.X).Order());
         Assert.All(castles, c => Assert.Equal(("tiles", true), (c.Ground, c.Flatten > 0)));
         // Grass turfs and flowers, off the dirt, path and tiles, drawn in the foliage group
@@ -164,6 +165,56 @@ public class LevelFileTests
         Assert.All(level.Scatters, s => Assert.Equal("foliage", s.Group));
         Assert.All(level.Scatters, s => Assert.Equal(["dirt", "tiles", "path"], s.Avoid));
         Assert.Equal([6f, 15f, 35f], level.DrawGroups.Single(g => g.Name == "foliage").Rings);
+    }
+
+    [Fact]
+    public void ContentMeadow_HasNoFungi()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "meadow" + LevelFile.Extension));
+        var models = Path.Combine(content, "models");
+        var partsFolder = Path.Combine(content, ModelFiles.PartsFolderName);
+        var files = Directory.GetFiles(models, "*.sdf", SearchOption.AllDirectories)
+            .GroupBy(Path.GetFileNameWithoutExtension)
+            .ToDictionary(g => g.Key!, g => g.ToArray());
+
+        var named = level.Placements.Select(p => p.Model)
+            .Concat(level.Scatters.SelectMany(s => s.Entries.Select(e => e.Model)))
+            .Concat(level.Trees.SelectMany(t => t.Entries.Select(e => e.Model)))
+            .Distinct()
+            .ToArray();
+        Assert.NotEmpty(named);
+        Assert.DoesNotContain("castle0", named);
+
+        var materials = new SortedSet<string>();
+        var parts = new HashSet<string>();
+        var pending = new Stack<string>();
+        foreach (var model in named)
+        {
+            Assert.True(files.TryGetValue(model, out var paths), $"{model} is not in content/models");
+            foreach (var path in paths!)
+            {
+                var top = Path.GetRelativePath(models, path).Replace('\\', '/').Split('/')[0];
+                Assert.DoesNotContain(top, new[] { "mushrooms", "fungi", "chess" });
+                pending.Push(path);
+            }
+        }
+        while (pending.Count > 0)
+        {
+            var text = File.ReadAllText(pending.Pop());
+            foreach (Match m in Regex.Matches(text, @"^\s*Material\s+material=(\S+)", RegexOptions.Multiline))
+                materials.Add(m.Groups[1].Value);
+            foreach (Match m in Regex.Matches(text, @"^\s*Part\s+part=(\S+)", RegexOptions.Multiline))
+                if (parts.Add(m.Groups[1].Value))
+                    foreach (var file in Directory.EnumerateFiles(partsFolder, m.Groups[1].Value + ".sdf", SearchOption.AllDirectories))
+                        pending.Push(file);
+        }
+        Assert.NotEmpty(materials);
+        Assert.All(materials, m => Assert.False(m.StartsWith("amanita_") || m.StartsWith("game_") || m.StartsWith("chess_"), m));
+        Assert.NotEqual("night", level.Sky?.Preset);
+        Assert.Equal("day", level.Sky?.Preset);
     }
 
     [Fact]

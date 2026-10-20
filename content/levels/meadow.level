@@ -29,8 +29,8 @@ regions
 # from above, so yaw=90 turns a model's front, +z, to +x). The castles face each other across the meadow, standing on level
 # plateaus of tiles; a few big rocks break up the open field
 place
-    castle0 at=(-62, 0) yaw=90 ground=tiles groundMargin=2.5 flatten=22
-    castle0 at=(62, 0) yaw=-90 ground=tiles groundMargin=2.5 flatten=22
+    castle1 at=(-62, 0) yaw=90 ground=tiles groundMargin=2.5 flatten=22
+    castle1 at=(62, 0) yaw=-90 ground=tiles groundMargin=2.5 flatten=22
     rock1 at=(10, 30) yaw=40 scale=2.2                # a mossy outcrop, too big for a convex collider
     rock3 at=(-20, -35) yaw=0 scale=1.5
     rock4 at=(30, -32) yaw=125
@@ -38,20 +38,9 @@ place
     rock0 at=(-40, -42) yaw=15 scale=2
     rock0 at=(34, 26) yaw=70 scale=2.4
     rock3 at=(4, -44) yaw=250 scale=1.8
-    # The giant mushrooms standing in the open field between the castles, each on the ground where it is, with a convex collider: no
-    # eyes and no hands. They stand clear of the path, the dirt and the castles' plateaus
-    giant-amanita0 at=(-26, -14) yaw=20
-    giant-amanita0 at=(26, 12) yaw=200
-    giant-amanita0 at=(-20, 30) yaw=300
-    giant-amanita0 at=(2, 14) yaw=45
-    giant-porcini0 at=(-4, -26) yaw=60
-    giant-porcini0 at=(30, -14) yaw=30
-    giant-porcini0 at=(-18, -6) yaw=0
-    giant-porcini1 at=(14, -22) yaw=150
-    giant-porcini1 at=(-2, 38) yaw=80
-    giant-amanita-cluster0 at=(-14, 14) yaw=0
-    giant-amanita-cluster0 at=(22, 36) yaw=-40
-    giant-amanita-cluster0 at=(-36, -30) yaw=110
+    rock2 at=(-4, -22) yaw=330 scale=1.1              # a few more in the open field, clear of the path, the dirt and the plateaus
+    rock4 at=(22, 14) yaw=80 scale=1.2
+    rock1 at=(-16, 10) yaw=160 scale=1.4
 
 # The ground foliage, scattered by the thousand and drawn instanced: clumps of grass on the grass ground (which reads as grass on its
 # own; the turfs are clumps on top, not a carpet) and flowers in looser drifts, nothing on the dirt, path or tiles. density is
@@ -133,7 +122,7 @@ draw foliage
     wind=0.04 windHeight=0.5 tintHeight=0.08
     lowDensity=0.5 lowDistance=0.7
 
-# How the castles' repeated parts (walls, towers, merlons, stairs, mycelium) are drawn: instanced, without wind, each use at LOD0 up
+# How the castles' repeated parts (walls, towers, merlons, stairs) are drawn: instanced, without wind, each use at LOD0 up
 # to 25 m, LOD1 to 60 m and LOD2 out past the far castle, with the ink outline on the nearer two rings (as their prefabs have it)
 # and shadows on all three. The integrated GPU / web preset casts them from the nearest ring only and ends each ring at 0.4 times
 # the distance (LOD0 to 10 m, LOD1 to 24 m, LOD2 to 160 m, past the far castle). Details cull at their own distance (their parts'
@@ -157,4 +146,4 @@ draw clusters
 draw rocks
     rings=[20, 50, 1000] outline=2 shadows=1 blend=2 lowDistance=0.7
 
-sky preset=night                          # Eye-Moon Night, content/skies/night.sky
+sky preset=day                            # content/skies/day.sky
