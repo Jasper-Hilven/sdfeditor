@@ -1,0 +1,17 @@
+# Field champignon: a fairy-ring mushroom 0.4 m tall, a slim cream stem under a broad, domed buff-tan cap 0.4 m across, standing
+# on the origin. Made to be placed many times round a fairy ring (turned and scaled), so the ring meshes it once and draws it per use.
+format 1
+
+Union
+    Material material=field_champignon_stem
+        SmoothUnion smoothness=0.03
+            Translate translation=(0, 0.19, 0)
+                CappedCone height=0.38 bottomRadius=0.05 topRadius=0.035
+            Translate translation=(0, 0, 0)
+                Ellipsoid radii=(0.07, 0.05, 0.07)
+    # The cap: the top half of a flattened ellipsoid
+    Material material=field_champignon_cap
+        Intersection
+            Translate translation=(0, 0.34, 0)
+                Ellipsoid radii=(0.2, 0.13, 0.2)
+            Plane normal=(0, -1, 0) height=-0.31

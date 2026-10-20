@@ -1,0 +1,84 @@
+# Stump with brackets 0: a broken stump 1.9 m tall and 1.3 m across at its swollen foot, grey-brown bark flaring into roots, the
+# top snapped off aslant with a pale splintered spike left standing, and ten hoof-shaped tinder brackets stuck to its sides in two
+# tiers. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.5
+    Union
+        Material material=field_wood
+            Distort amount=0.03 frequency=3
+                Subtraction
+                    Subtraction
+                        SmoothUnion smoothness=0.3
+                            # The trunk, narrowing upwards
+                            Translate translation=(0, 0.8, 0)
+                                CappedCone height=1.6 bottomRadius=0.66 topRadius=0.5
+                            # The roots flaring out at the foot
+                            Translate translation=(0.55, 0.12, 0.2)
+                                Ellipsoid radii=(0.5, 0.2, 0.28)
+                            Translate translation=(-0.3, 0.12, -0.5)
+                                Ellipsoid radii=(0.3, 0.2, 0.5)
+                            Translate translation=(-0.4, 0.12, 0.45)
+                                Ellipsoid radii=(0.4, 0.18, 0.25)
+                        # Flat on the ground
+                        Plane normal=(0, 1, 0) height=0
+                    # Snapped off aslant: everything above this plane goes
+                    Plane normal=(-0.45, -0.9, -0.1) height=1.35
+        # The pale splintered core left standing, taller on the low side
+        Material material=field_wood_broken
+            Translate translation=(-0.18, 1.55, 0)
+                Rotate rotation=(0, 0, 0.12)
+                    CappedCone height=0.9 bottomRadius=0.22 topRadius=0.08
+        Material material=field_tinder
+            Union
+                Translate translation=(0.81, 0.45, 0.25)
+                    Rotate rotation=(0, -0.30, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.42, 0.17, 0.34)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(0.06, 0.55, 0.78)
+                    Rotate rotation=(0, -1.50, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.34, 0.14, 0.27)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(-0.76, 0.40, 0.46)
+                    Rotate rotation=(0, -2.60, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.48, 0.20, 0.39)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(-0.68, 0.62, -0.42)
+                    Rotate rotation=(0, -3.70, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.38, 0.15, 0.31)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(-0.09, 0.50, -0.83)
+                    Rotate rotation=(0, -4.60, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.42, 0.17, 0.34)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(0.63, 0.42, -0.51)
+                    Rotate rotation=(0, -5.60, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.36, 0.14, 0.29)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(0.44, 1.00, 0.56)
+                    Rotate rotation=(0, -0.90, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.32, 0.13, 0.26)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(-0.41, 1.05, 0.56)
+                    Rotate rotation=(0, -2.20, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.29, 0.12, 0.24)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(-0.68, 1.10, -0.18)
+                    Rotate rotation=(0, -3.40, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.34, 0.14, 0.27)
+                            Plane normal=(0, 1, 0) height=-0.02
+                Translate translation=(0.26, 0.98, -0.65)
+                    Rotate rotation=(0, -5.10, -0.12)
+                        Subtraction
+                            Ellipsoid radii=(0.29, 0.12, 0.24)
+                            Plane normal=(0, 1, 0) height=-0.02

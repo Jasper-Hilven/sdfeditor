@@ -1,0 +1,22 @@
+# Puffball 0: a giant puffball 2.3 m tall and 2.5 m across, a smooth, slightly flattened ball of cream skin pinched at the foot
+# and stained ochre on top, with two younger ones, 0.6 and 0.4 m, at its side. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.5
+    Union
+        Material material=field_puffball
+            Distort amount=0.025 frequency=1.5
+                Subtraction
+                    SmoothUnion smoothness=0.25
+                        Translate translation=(0, 1.1, 0)
+                            Ellipsoid radii=(1.25, 1.1, 1.2)
+                        # The pinched foot
+                        Translate translation=(0, 0.2, 0)
+                            Ellipsoid radii=(0.7, 0.3, 0.7)
+                        # The two young ones at its side
+                        Translate translation=(1.55, 0.3, 0.6)
+                            Ellipsoid radii=(0.32, 0.3, 0.3)
+                        Translate translation=(1.25, 0.2, -0.95)
+                            Ellipsoid radii=(0.22, 0.2, 0.22)
+                    Plane normal=(0, 1, 0) height=0
