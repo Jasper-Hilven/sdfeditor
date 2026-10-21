@@ -1,0 +1,32 @@
+# Weapon pod: the low round pedestal a weapon floats over, 30 cm tall with a wide bevelled foot, so the player walks up its slope
+# (about 40 degrees, inside the character controller's slope limit and with no step) onto a flat top 1.9 m across. A ring of soft
+# glow is inlaid in the top, 1 cm under the stone, at 0.55 to 0.68 m from the centre. Centred on the origin, the foot on the ground,
+# the top at y = 0.3. The collider is convex: a solid with no hollows to walk into.
+format 1
+collider convex
+
+Union
+    Material material=pod_stone
+        Subtraction
+            Intersection
+                # The cone of the bevel, rounded where it meets the top, taller than the pod so the roundness sits only at the rim
+                SmoothIntersection smoothness=0.015
+                    Translate translation=(0, 0.5, 0)
+                        CappedCone height=0.5 bottomRadius=1.3 topRadius=0.1333
+                    # The flat top at 0.3 m (a box rather than a plane, which the renderer's framing would leave out as infinite)
+                    Translate translation=(0, -0.7, 0)
+                        Box size=(2, 1, 2)
+                # The foot, flat on the ground
+                Translate translation=(0, 1, 0)
+                    Box size=(2, 1, 2)
+            # The groove the ring lies in, 3 cm deep
+            Translate translation=(0, 0.3, 0)
+                Subtraction
+                    CappedCone height=0.03 bottomRadius=0.68 topRadius=0.68
+                    CappedCone height=0.04 bottomRadius=0.55 topRadius=0.55
+    Material material=pod_glow
+        # The ring, filling the groove to 1 cm under the top
+        Translate translation=(0, 0.28, 0)
+            Subtraction
+                CappedCone height=0.01 bottomRadius=0.68 topRadius=0.68
+                CappedCone height=0.02 bottomRadius=0.55 topRadius=0.55

@@ -23,6 +23,7 @@ ticket's Status says.
 | 14 | [Chess cube](done/14-chess-cube.md) | The chessboard is one theme, board games: a closed cube of six chessboards (floor, four walls, ceiling), no hills, island, foliage or sky; every piece plain, without mushrooms, eyes or hands (14.1-14.8). Left: Play-mode walk, lamp tone by eye, budgets (will not yet do this). After 11, 12, 13 |
 | 14 | [Fungal level](done/14-fungal-level.md) | Third level, `fungal.level` / `Fungal.unity`: the meadow's island where everything that grows is a fungus (mushroom trees, moss, fungi tufts, mycelium ground); `castle0` fully fungal, no stone pattern, no tiles; Eye-Moon Night. Done (subtickets 14.1-14.8); left: a few triangle-budget overshoots, a Play-mode walk. After 01–09 |
 | 15 | [Meadow without fungi](done/15-meadow-without-fungi.md) | The meadow with no fungi: a new stone castle `castle1` on the tiles, the giant mushrooms out, the day sky (15.1-15.4). Left: castle1's wall-walk has 16 stalls (castle0 13) and 31-35 cm LOD0 steps, a few views above before in triangles (freed field fills with foliage), a Play-mode walk. After 14.2 |
+| 16 | [Weapon pickup pods](16-weapon-pickup-pods.md) | A 30 cm walk-on pedestal model (`weapon-pod`) and one pod prefab per weapon, built by `WeaponPodBuilder`: the weapon floats 1 m over the top at 6 rpm; walking into the trigger takes it (`WeaponPickup`, event with the weapon id) and it respawns. Not placed in a level yet |
 
 ## The level
 

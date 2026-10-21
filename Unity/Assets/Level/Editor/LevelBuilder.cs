@@ -300,6 +300,8 @@ namespace SdfLevel.Editor
         {
             RenderPipelineSetup.Ensure();
             MushroomBuilder.BuildStale();
+            // The weapon pickup pods are built over the weapons' and the pod's prefabs
+            SdfPickups.Editor.WeaponPodBuilder.BuildStale();
             var failed = Levels().Count(level => !Build(level));
             if (failed > 0)
                 EditorApplication.Exit(1);
