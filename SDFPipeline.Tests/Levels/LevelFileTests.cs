@@ -97,12 +97,31 @@ public class LevelFileTests
                 castle0 at=(-62, 0) yaw=90 ground=tiles flatten=22
                 amanita-scout at=(3, 4) scale=2
                     yaw=-45
+                team-red-sprig0 at=(-55, 7) y=5.5
             """);
 
         Assert.Equal(new Placement("castle0", new Vector2(-62, 0), 90, 1, 22, Placement.DefaultFlattenFalloff, "tiles", Placement.DefaultGroundMargin, 4),
             level.Placements[0]);
         Assert.Equal(new Placement("amanita-scout", new Vector2(3, 4), -45, 2, 0, Placement.DefaultFlattenFalloff, null, Placement.DefaultGroundMargin, 5),
             level.Placements[1]);
+        // y lifts a model's base off the ground, onto another model (ticket 19); 0 by default
+        Assert.Equal(0, level.Placements[0].Y);
+        Assert.Equal(5.5f, level.Placements[2].Y);
+    }
+
+    [Fact]
+    public void Read_PlacementBelowTheGround_IsAnError()
+    {
+        var error = Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(
+            """
+            format 1
+            play size=(150, 100)
+            place
+                rock1 at=(3, 4) y=-1
+            """));
+
+        Assert.Equal(4, error.Line);
+        Assert.Contains("metres above the ground", error.Problem);
     }
 
     [Fact]
@@ -136,6 +155,62 @@ public class LevelFileTests
     }
 
     [Fact]
+    public void Read_TakesTheBattleSides_AndTheNeutralPods()
+    {
+        var level = LevelFile.Read(
+            """
+            format 1
+            play size=(150, 100)
+            sides
+                east
+                    pod health at=(51, 11)
+                    flag at=(61, 0) yaw=30
+                    spawn at=(57, 0) yaw=-90
+                    pod pistol at=(48, -6)
+                    pod minigun at=(48, 6)
+                west
+                    spawn
+                        at=(-57, 0)
+                        yaw=90
+                    flag at=(-61, 0) yaw=-30
+                    pod minigun at=(-48, 6)
+                    pod pistol at=(-48, -6)
+                    pod health at=(-51, 11)
+            neutral
+                pod poison-gun at=(0, -30)
+                pod electro-gun at=(0, 30)
+            """);
+
+        var battle = level.Battle!;
+        Assert.Equal(("west", "east"), (battle.West.Name, battle.East.Name));
+        Assert.Equal(new BattleObject(BattleKind.Spawn, null, new Vector2(-57, 0), 90, 11), battle.West.Spawn);
+        Assert.Equal(new BattleObject(BattleKind.Flag, null, new Vector2(61, 0), 30, 6), battle.East.Flag);
+        Assert.Equal(new BattleObject(BattleKind.Pod, "minigun", new Vector2(48, 6), 0, 9), battle.East.Minigun);
+        Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health"], battle.East.Objects.Select(o => o.Name));
+        // The long-range pod first, whichever order the file gives them in
+        Assert.Equal(["electro-gun", "poison-gun"], battle.Neutral.Select(p => p.Pod));
+        Assert.Equal(BattleObject.PodRadius, battle.Neutral[0].Radius);
+        Assert.Null(LevelFile.Read("format 1\nplay size=(10, 10)").Battle);
+    }
+
+    [Fact]
+    public void Read_TakesASpawnZonesRadius_ThreeMetresWithoutOne()
+    {
+        const string Side = "        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n";
+        var level = LevelFile.Read("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) yaw=90 radius=2.5\n" + Side +
+                                   "    east\n        spawn at=(57, 0) yaw=-90\n" + Side.Replace("(-", "(") +
+                                   "neutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)\n");
+
+        var battle = level.Battle!;
+        Assert.Equal(2.5f, battle.West.Spawn.ZoneRadius);
+        Assert.Equal(2.5f, battle.West.Spawn.Radius);
+        Assert.Equal(BattleObject.DefaultSpawnZone, battle.East.Spawn.ZoneRadius);
+        Assert.Equal(3f, battle.East.Spawn.Radius);
+        // A flag or a pod takes up its own foot, whatever its zone would be
+        Assert.Equal(BattleObject.FlagRadius, battle.West.Flag.Radius);
+    }
+
+    [Fact]
     public void ContentMeadowAndChessboard_KeepGrassAsTheirBaseGround()
     {
         var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
@@ -155,15 +230,15 @@ public class LevelFileTests
 
         Assert.Equal(new Vector2(150, 100), level.Play.Size);
         Assert.InRange(level.Hills.Height, 8, 12);
-        Assert.Equal(["dirt", "path", "tiles"], level.Regions.Select(r => r.Name));
-        // A castle on each short side, on a plateau of tiles
+        Assert.Equal(["path", "tiles"], level.Regions.Select(r => r.Name));
+        // A castle on each short side, on a plateau of grass, tiled only under its footprint
         var castles = level.Placements.Where(p => p.Model == "castle1").ToArray();
         Assert.Equal([-62f, 62f], castles.Select(c => c.At.X).Order());
-        Assert.All(castles, c => Assert.Equal(("tiles", true), (c.Ground, c.Flatten > 0)));
-        // Grass turfs and flowers, off the dirt, path and tiles, drawn in the foliage group
+        Assert.All(castles, c => Assert.Equal(("tiles", 0f, true), (c.Ground, c.GroundMargin, c.Flatten > 0)));
+        // Grass turfs and flowers, off the path and tiles, drawn in the foliage group
         Assert.Equal(["grass-turf0", "flower0"], level.Scatters.Select(s => s.Entries[0].Model));
         Assert.All(level.Scatters, s => Assert.Equal("foliage", s.Group));
-        Assert.All(level.Scatters, s => Assert.Equal(["dirt", "tiles", "path"], s.Avoid));
+        Assert.All(level.Scatters, s => Assert.Equal(["tiles", "path"], s.Avoid));
         Assert.Equal([6f, 15f, 35f], level.DrawGroups.Single(g => g.Name == "foliage").Rings);
     }
 
@@ -496,6 +571,27 @@ public class LevelFileTests
     [InlineData("format 1\nplay size=(1, 1)\nplace\n    -rock at=(0, 0)", 4, "Expected a model's name")]
     [InlineData("format 1\nplay size=(1, 1)\nplace\n    rock1 yaw=3", 4, "Placement rock1 is missing parameter 'at'")]
     [InlineData("format 1\nplay size=(1, 1)\nplace\n    rock1 at=(0, 0) ground=(1, 2)", 4, "'ground' of placement rock1 needs a name")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n    east\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n", 3, "A level with battle sides has neutral pods between them, and the other way round; add a 'neutral' section")]
+    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 3, "add a 'sides' section")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 3, "The sides need both west and east indented below them; east is missing")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n    north\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 10, "The sides are west and east; there is no side 'north'")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 10, "Side west is given twice, first on line 4")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides extra=1\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n    east\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 3, "Unexpected 'extra=1'")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0)\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n    east\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 4, "Side west has no pod health; a side has a spawn, a flag and a pod each of minigun, pistol, health")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0)\n        spawn at=(-58, 0)\n", 6, "Side west has its spawn twice, first on line 5")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod sniper at=(-57, 0)\n", 5, "A side's pods are minigun, pistol, health; sniper is a neutral pod")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod rocket at=(-57, 0)\n", 5, "A side's pods are minigun, pistol, health; rocket is none of them")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        tower at=(-57, 0)\n", 5, "Expected 'spawn', 'flag' or 'pod' in side west, found 'tower'")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        flag yaw=3\n", 5, "Flag is missing parameter 'at'")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod minigun at=(-48, 6) scale=2\n", 5, "Pod minigun has no parameter 'scale'; its parameters are at, yaw")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod minigun at=(-48, 6) radius=2\n", 5, "Pod minigun has no parameter 'radius'; its parameters are at, yaw")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) radius=12\n", 5, "'radius' of spawn is 12, but needs metres, 0.5 to 10")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) scale=2\n", 5, "Spawn has no parameter 'scale'; its parameters are at, yaw, radius")]
+    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod sniper at=(0, 32)\n    pod electro-gun at=(0, -32)", 5, "The neutral pods have one long-range pod, but sniper is on line 4 already")]
+    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod blob-gun at=(0, 32)\n    pod poison-gun at=(0, -32)", 5, "The neutral pods have one short-range pod, but blob-gun is on line 4 already")]
+    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod sniper at=(0, 32)", 3, "The neutral pods need one of flamethrower, poison-gun, blob-gun indented below them")]
+    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod minigun at=(0, 32)", 4, "The neutral pods are one of sniper, electro-gun and one of flamethrower, poison-gun, blob-gun; minigun is a side's pod")]
+    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    spawn at=(0, 32)", 4, "Expected 'pod' in the neutral pods, found 'spawn'")]
     public void Read_ExplainsWhatIsWrongAndWhere(string text, int line, string problem)
     {
         var exception = Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(text));

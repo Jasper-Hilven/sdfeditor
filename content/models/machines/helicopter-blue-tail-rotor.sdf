@@ -1,0 +1,19 @@
+# Helicopter tail rotor, blue (ticket 24.1): a little cornflower blue cap with a wavy rim of four lobes on a short hub, facing out to the
+# side (+x), spun by script.
+# Pivot: the origin is the hub's inner end on the tail rotor's axis (it spins about x); in helicopter-blue-body it is at
+# (0.025, 0.4, -0.35).
+format 1
+
+Rotate rotation=(0, 0, -1.5707964)
+    Union
+        Material material=machine_blue_flesh
+            Translate translation=(0, 0.012, 0)
+                CappedCylinder radius=0.018 height=0.014
+        Material material=machine_blue_cap
+            Round radius=0.005
+                RadialWave amount=0.08 count=4
+                    Intersection
+                        Translate translation=(0, 0.02, 0)
+                            Ellipsoid radii=(0.08, 0.022, 0.08)
+                        Translate translation=(0, 0.12, 0)
+                            Box size=(0.1, 0.1, 0.1)

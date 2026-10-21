@@ -1,4 +1,4 @@
-# Fairy ring 1: a wider ring of 30 champignons about 9.4 m across, 0.3 to 0.8 m tall, on a darker circle of moss, in the open field.
+# Fairy ring 1: a wider ring of 30 champignons about 9.4 m across, 0.3 to 0.8 m tall, on a low band of the ground's dirt, in the open field.
 # Knee-high, so no collider. Each of the two mushroom kinds is a part, meshed once and drawn per use.
 format 1
 collider none
@@ -6,8 +6,8 @@ collider none
 # Half the vertices its size would give it: big, simple forms, and a few dozen of these lie in the field
 Detail detail=0.5
     Union
-        # The darker circle of moss the mushrooms grow from, a low band 1.8 m wide
-        Material material=field_ring_moss
+        # The low band of dirt the mushrooms grow from, 1.8 m wide, in the ground's colour
+        Material material=field_ring_dirt
             Distort amount=0.03 frequency=2.5
                 Intersection
                     Scale scale=(1, 0.09, 1)

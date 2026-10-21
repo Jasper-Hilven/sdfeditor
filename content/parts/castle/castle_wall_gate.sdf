@@ -1,5 +1,5 @@
-# Castle gate bay: a castle_wall_bay with the gate cut through it, a passage 3.2 m wide under a round arch 4.6 m high, and the
-# partial veil of a young mushroom hanging over the opening on the outer side. Two castle_gate_turrets frame it in the layout.
+# Castle gate bay: a castle_wall_bay with the gate cut through it, a passage 3.2 m wide under a round arch 4.6 m high. Two
+# castle_gate_turrets frame it in the layout.
 # The passage is cut 10 cm below y = 0, so its floor is the level's ground, not a face of its own in the ground's plane.
 format 1
 collider mesh
@@ -9,7 +9,7 @@ Detail detail=0.3
         Translate translation=(0, 11.7, 0)
             Box size=(12, 12, 12)
         Union
-            Material material=castle_wall
+            Material material=castle_stem
                 Subtraction
                     Union
                         # The core, the walk on top of it and the parapet on its outer edge
@@ -30,12 +30,3 @@ Detail detail=0.3
                         Translate translation=(0, 1.45, 0)
                             Box size=(1.6, 1.55, 2)
                         ArbitraryCappedCylinder a=(0, 3, -2) b=(0, 3, 2) radius=1.6
-            # The veil: a cream band under the walk with a fringe of folds hanging from it
-            Material material=amanita_gills
-                Union
-                    Translate translation=(0, 4.45, 1.05)
-                        Round radius=0.03
-                            Box size=(1.75, 0.12, 0.2)
-                    Translate translation=(0, 4.05, 1.12)
-                        LimitedRepetition spacing=0.55 limits=(3, 0, 0)
-                            Ellipsoid radii=(0.3, 0.45, 0.1)

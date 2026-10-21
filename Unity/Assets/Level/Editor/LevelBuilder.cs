@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using SdfBattle;
 using SdfMushrooms.Editor;
+using SdfPickups;
+using SdfPickups.Editor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -40,7 +43,18 @@ namespace SdfLevel.Editor
     /// <item>the light, sky and post-processing (<see cref="MushroomScene.BuildLighting"/>) of the level's sky (level.json "sky"), and
     /// under Level/Sky its settings, far layer and spores (<see cref="LevelSky"/>); a level without one is lit like the mushroom scene,
     /// unless it has a room, which is lit by <see cref="RoomLight"/> and has no sky object, skybox or sky material at all;</item>
-    /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>.</item>
+    /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>;</item>
+    /// <item>Battle, the level's battle layout (level.json "battle", the level file's sides and neutral pods): a <see cref="BattleArena"/>
+    /// with Battle/West and Battle/East, each a <see cref="SdfBattle.BattleSide"/> over its spawn marker, flag stand
+    /// (Assets/Pickups/Flags) and minigun, pistol and health pods (Assets/Pickups/Pods), and Battle/Neutral with the two neutral pods;
+    /// not static, as the pods' pickups turn and hide; on it the <see cref="Match"/> (ticket 20), with the player as you, the two scout
+    /// prefabs for the bots' bodies and the GUI prefab for the HUD: it makes the eight players at runtime, none are in the scene;</item>
+    /// <item>SceneInfo, an <see cref="IMMScene"/> with what the game needs to know of the scene: its play area and extent, the spawn,
+    /// the player and camera, the placed models, the battle sides;</item>
+    /// <item>Sun Shadow, the level's fixed sun shadow (<see cref="StaticSunShadow"/>): one shadow map over the whole level, rendered
+    /// once, in place of the light's cascaded shadows, which are off;</item>
+    /// <item>Game, an instance of the hand-made <see cref="IMMGame.PrefabPath"/>, the same in every level but for its reference to
+    /// SceneInfo.</item>
     /// </list>
     /// The ground is drawn with SdfGround.shader, in the toon look of the models (the <see cref="MushroomStyle"/> settings), its material
     /// parameters from level.json (Assets/Level/Materials/&lt;level&gt; Ground.mat): grass, and over it the regions (dirt, path, tiles)
@@ -70,8 +84,16 @@ namespace SdfLevel.Editor
         /// regions from the region map, and placed models. Version 3: the scattered models through the instanced renderer, and wind.
         /// Version 4: the placed models' repeated parts (a castle's) through the instanced renderer, in the draw group <see cref="PartsGroup"/>.
         /// Version 5: the sky. Version 6: the island's underside, and collider-only objects for scattered models with colliders (trees).
+        /// Version 9: SceneInfo, the scene's <see cref="IMMScene"/>. Version 10: Game, an instance of <see cref="IMMGame.PrefabPath"/>.
+        /// Version 11: the ground's LOD distances doubled.
+        /// Version 12: the fixed sun shadow (<see cref="StaticSunShadow"/>) instead of the light's cascades. Version 13: the ground's LOD
+        /// distances back down, to a quarter. Version 14: Battle, the battle sides and neutral pods (<see cref="BattleArena"/>).
+        /// Version 15: the match on Battle (<see cref="Match"/>), the sides' spawn zones, every player's capsule from
+        /// <see cref="FirstPersonController.Configure"/>.
+        /// Version 16: the bots' navmesh (ticket 23, <see cref="SdfBattle.Editor.BattleNavmesh"/>), Level/Navigation Scout and Tank.
+        /// Version 17: the scouts' agent 5 cm wider than the capsule.
         /// </summary>
-        public const int BuilderVersion = 8;
+        public const int BuilderVersion = 17;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -109,6 +131,8 @@ namespace SdfLevel.Editor
         public const string ScatterCollidersName = "Scatter Colliders";
         public const string ScatterName = "Scatter";
         public const string WindName = "Wind";
+        public const string NeutralName = "Neutral";
+        public const string SpawnName = "Spawn";
 
         /// <summary>The bake's instances, instances.bin, copied next to the level's meshes as instances.bytes, which Unity reads as a TextAsset.</summary>
         public const string InstancesFile = "instances.bin";
@@ -139,8 +163,10 @@ namespace SdfLevel.Editor
         /// <summary>
         /// How many pixels, at 1080 lines, a ground level's error may cover before the finer level is needed again. More than the models'
         /// one: the ground has no ink line whose silhouette would show the change, and its errors are mostly on the hills' smooth slopes.
+        /// Four: the ground's finer levels showed no difference over its coarser ones, so it changes level at a quarter of the distance
+        /// one pixel would give.
         /// </summary>
-        private const float LodPixelError = 2;
+        private const float LodPixelError = 4;
 
         /// <summary>How long the level's folder must stay unchanged before a rebuild, in seconds; a bake writes it within one.</summary>
         private const double QuietSeconds = 1;
@@ -172,6 +198,13 @@ namespace SdfLevel.Editor
                 foreach (var level in Levels().Where(level => ModelsOf(level).Any(names.Contains)))
                     Schedule(level);
             };
+            // A scene whose assets are gone (see HasMissingReferences) is built anew once the editor has loaded
+            if (!Application.isBatchMode)
+                EditorApplication.delayCall += () =>
+                {
+                    foreach (var level in StaleLevels())
+                        Schedule(level);
+                };
         }
 
         private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom, bool didDomainReload)
@@ -274,13 +307,44 @@ namespace SdfLevel.Editor
             }
         }
 
-        /// <summary>Levels whose scene is missing, or was built from an older level.json or by an older version of this code.</summary>
+        /// <summary>Levels whose scene is missing, was built from an older level.json or by an older version of this code, or has lost its ground meshes.</summary>
         public static string[] StaleLevels() =>
             Levels().Where(level =>
             {
                 var scene = ScenePathOf(level);
-                return !File.Exists(scene) || AssetImporter.GetAtPath(scene)?.userData != VersionStamp($"{level}/{LevelJson}");
+                return !File.Exists(scene) || AssetImporter.GetAtPath(scene)?.userData != VersionStamp($"{level}/{LevelJson}")
+                    || HasMissingReferences(level, scene);
             }).ToArray();
+
+        /// <summary>
+        /// Whether the scene does not point at the ground chunk meshes that are in this project. The scene is committed but the level's
+        /// meshes (Assets/Level/Meshes, .asset files) are generated and ignored by git, so on a checkout where they were made anew they
+        /// have other GUIDs: the ground's MeshColliders then have no mesh, and the player falls through the ground. The version stamp
+        /// cannot see that (level.json is the same), so the chunks' GUIDs are looked for in the scene as well.
+        /// </summary>
+        private static bool HasMissingReferences(string level, string scenePath)
+        {
+            try
+            {
+                var data = JObject.Parse(File.ReadAllText($"{level}/{LevelJson}"));
+                var chunks = data["ground"]?["chunks"] as JArray;
+                if (chunks == null)
+                    return false;
+                var sceneText = File.ReadAllText(scenePath);
+                var meshFolder = $"{MeshFolder}/{data.Value<string>("name") ?? Path.GetFileName(level)}";
+                foreach (var chunk in chunks)
+                {
+                    var guid = AssetDatabase.AssetPathToGUID($"{meshFolder}/{Path.GetFileNameWithoutExtension(chunk.Value<string>("file"))}_ground.asset");
+                    if (string.IsNullOrEmpty(guid) || !sceneText.Contains(guid, StringComparison.Ordinal))
+                        return true;
+                }
+                return false;
+            }
+            catch (Exception exception) when (exception is IOException or Newtonsoft.Json.JsonException)
+            {
+                return false;
+            }
+        }
 
         public static void BuildStale()
         {
@@ -356,7 +420,7 @@ namespace SdfLevel.Editor
             }
 
             var hasRoom = LevelRoom.HasRoom(data);
-            MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLight : null);
+            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLight : null);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -411,15 +475,23 @@ namespace SdfLevel.Editor
                 AddWalls(levelRoot.transform, data);
             var parts = new PartInstances(((data["drawGroups"] as JArray) ?? new JArray()).Any(g => g.Value<string>("name") == PartsGroup),
                 $"{meshFolder}/{MirroredFolder}");
-            var placed = AddPlacements(levelRoot.transform, scene, data, parts);
+            var placements = new List<IMMScene.Placement>();
+            var placed = AddPlacements(levelRoot.transform, scene, data, parts, placements);
             AddUnderside(levelRoot.transform, scene, data);
             MarkStatic(levelRoot);
             var scattered = AddScatter(scene, level, meshFolder, data, parts);
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
             AssetDatabase.SaveAssets();
-            AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
+            var player = AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
+            var battle = AddBattle(scene, data, player);
+            // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
+            var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
+                player, battle != null ? battle.gameObject : null);
             LevelSky.Add(levelRoot.transform, name, data);
+            AddStaticShadow(scene, sun);
+            var sceneInfo = AddSceneInfo(scene, name, hasRoom, data, levelRoot.transform, player, placements, battle);
+            AddGame(scene, sceneInfo);
 
             EditorSceneManager.SaveScene(scene, scenePath);
             var importer = AssetImporter.GetAtPath(scenePath);
@@ -434,7 +506,19 @@ namespace SdfLevel.Editor
                 throw new InvalidDataException("the room's squares or edges are wrong, see above");
             if (openedHere)
                 EditorSceneManager.CloseScene(scene, true);
-            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered ({scatterColliders} with colliders)");
+            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered ({scatterColliders} with colliders), {navmeshes} navmeshes");
+        }
+
+        /// <summary>A corner of the play area (level.json "play" min or max) in Unity's coordinates, x mirrored.</summary>
+        private static Vector2 PlayCorner(JObject data, string corner)
+        {
+            var play = data["play"];
+            var mirrored = corner == "min" ? "max" : "min";
+            if (play?[mirrored] is JArray x && play[corner] is JArray z)
+                return new Vector2(-x[0].Value<float>(), z[1].Value<float>());
+            var size = play?["size"];
+            var half = size != null ? new Vector2(size[0].Value<float>(), size[1].Value<float>()) / 2 : new Vector2(75, 50);
+            return corner == "min" ? -half : half;
         }
 
         private static bool NothingWorthKeepingOpen()
@@ -546,9 +630,10 @@ namespace SdfLevel.Editor
         /// <summary>
         /// The placed models, under Level/Placed: an instance of each one's prefab with its base where level.json puts it, x mirrored and
         /// yaw turned round for Unity's coordinates, scaled. They bring the colliders their prefabs have; a convex one that the scale makes
-        /// larger than <see cref="LargestConvexSize"/> is made concave, as the pipeline does for models that large. Returns how many.
+        /// larger than <see cref="LargestConvexSize"/> is made concave, as the pipeline does for models that large. Adds each to
+        /// <paramref name="placed"/> and returns how many.
         /// </summary>
-        private static int AddPlacements(Transform levelRoot, Scene scene, JObject data, PartInstances parts)
+        private static int AddPlacements(Transform levelRoot, Scene scene, JObject data, PartInstances parts, List<IMMScene.Placement> placed)
         {
             var placements = data["placements"] as JArray;
             if (placements == null || placements.Count == 0)
@@ -580,6 +665,7 @@ namespace SdfLevel.Editor
                         collider.convex = false;
                 }
                 parts.Take(model, instance);
+                placed.Add(new IMMScene.Placement { model = model, transform = instance.transform });
                 count++;
             }
             return count;
@@ -770,6 +856,11 @@ namespace SdfLevel.Editor
                         continue;
                     var world = use.localToWorldMatrix;
                     var mirrored = world.determinant < 0;
+                    if (surfaces.Any(level => level.Any(r => r.GetComponent<MeshFilter>()?.sharedMesh == null)))
+                    {
+                        Debug.LogError($"SDF level: {model} part '{use.name}' has a renderer with a missing mesh (its prefab references meshes that are not in this checkout); re-mesh {model} and rebuild its prefab.");
+                        continue;
+                    }
                     var key = $"{model}/{surfaces[0][0].GetComponent<MeshFilter>().sharedMesh.name}{(mirrored ? " (mirrored)" : "")}";
                     if (!index.TryGetValue(key, out var prototype))
                     {
@@ -1031,7 +1122,7 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>The player at the level's spawn point, looking along +x (across the long side), with the camera at eye height.</summary>
-        private static void AddPlayer(Scene scene, JObject data, bool noSky)
+        private static GameObject AddPlayer(Scene scene, JObject data, bool noSky)
         {
             var spawn = data["spawn"];
             var player = new GameObject(PlayerName);
@@ -1039,12 +1130,7 @@ namespace SdfLevel.Editor
             player.transform.SetPositionAndRotation(
                 new Vector3(-spawn[0].Value<float>(), spawn[1].Value<float>() + 0.05f, spawn[2].Value<float>()),
                 Quaternion.Euler(0, 90, 0));
-            var controller = player.AddComponent<CharacterController>();
-            controller.height = 1.75f;
-            controller.radius = 0.3f;
-            controller.center = new Vector3(0, controller.height / 2, 0);
-            controller.slopeLimit = 45;
-            controller.stepOffset = 0.4f;
+            FirstPersonController.Configure(player.AddComponent<CharacterController>());
             player.AddComponent<FirstPersonController>();
 
             var camera = MushroomScene.CreateCamera(scene, "Main Camera", 60, player.transform);
@@ -1058,6 +1144,192 @@ namespace SdfLevel.Editor
                 camera.backgroundColor = UnityEngine.Color.black;
                 camera.farClipPlane = RoomFarPlane;
             }
+            return player;
+        }
+
+        /// <summary>
+        /// Battle, at the scene's root (level.json "battle"): a <see cref="BattleArena"/> over Battle/West and Battle/East, each a
+        /// <see cref="SdfBattle.BattleSide"/> whose children are its Spawn (an empty marker, the side's gizmo draws it), its flag stand
+        /// (Assets/Pickups/Flags/flag-stand-&lt;side&gt;.prefab) and its minigun, pistol and health pods
+        /// (Assets/Pickups/Pods/&lt;pod&gt;-pod.prefab), and Battle/Neutral with the neutral pods. Each stands where level.json puts it,
+        /// x mirrored and yaw turned round, as the placements. A missing prefab logs a warning and leaves its reference empty; a level
+        /// without sides gets no Battle and returns null.
+        /// </summary>
+        private static BattleArena AddBattle(Scene scene, JObject data, GameObject player)
+        {
+            if (!(data["battle"] is JObject battle))
+                return null;
+            var root = new GameObject(BattleArena.ObjectName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            var arena = root.AddComponent<BattleArena>();
+
+            void Place(Transform item, JToken entry)
+            {
+                var position = entry["position"].ToObject<float[]>();
+                item.SetLocalPositionAndRotation(new Vector3(-position[0], position[1], position[2]), Quaternion.Euler(0, -entry.Value<float>("yaw"), 0));
+            }
+            T Instance<T>(Transform parent, string prefabPath, string objectName, JToken entry) where T : Component
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab == null)
+                {
+                    Debug.LogWarning($"SDF level: there is no prefab {prefabPath} for the battle's {objectName}; let the pickups build (Tools > SDF Pickups)");
+                    return null;
+                }
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+                instance.name = objectName;
+                instance.transform.SetParent(parent, false);
+                Place(instance.transform, entry);
+                return instance.GetComponent<T>();
+            }
+            WeaponPickup Pod(Transform parent, JToken entry)
+            {
+                var pod = entry.Value<string>("pod");
+                return Instance<WeaponPickup>(parent, WeaponPodBuilder.PodPrefabOf(pod), $"{Capitalized(pod)} Pod", entry);
+            }
+
+            foreach (var entry in (JArray)battle["sides"])
+            {
+                var id = entry.Value<string>("side") == FlagStand.SideNameOf(BattleSideId.East) ? BattleSideId.East : BattleSideId.West;
+                var sideObject = new GameObject(Capitalized(FlagStand.SideNameOf(id)));
+                sideObject.transform.SetParent(root.transform, false);
+                var side = sideObject.AddComponent<SdfBattle.BattleSide>();
+                side.side = id;
+                var spawn = new GameObject(SpawnName).transform;
+                spawn.SetParent(sideObject.transform, false);
+                Place(spawn, entry["spawn"]);
+                side.spawn = spawn;
+                side.spawnRadius = entry["spawn"].Value<float?>("radius") ?? side.spawnRadius;
+                side.flagStand = Instance<FlagStand>(sideObject.transform, FlagStandBuilder.StandPrefabOf(id), "Flag Stand", entry["flag"]);
+                foreach (var podEntry in (JArray)entry["pods"])
+                    switch (podEntry.Value<string>("pod"))
+                    {
+                        case "minigun":
+                            side.minigunPod = Pod(sideObject.transform, podEntry);
+                            break;
+                        case "pistol":
+                            side.pistolPod = Pod(sideObject.transform, podEntry);
+                            break;
+                        case "health":
+                            side.healthPod = Instance<HealthPickup>(sideObject.transform, HealthPodBuilder.PodPrefab, "Health Pod", podEntry);
+                            break;
+                    }
+                if (id == BattleSideId.West)
+                    arena.west = side;
+                else
+                    arena.east = side;
+            }
+
+            var neutral = new GameObject(NeutralName);
+            neutral.transform.SetParent(root.transform, false);
+            arena.neutralPods = ((JArray)battle["neutral"]).Select(entry => Pod(neutral.transform, entry)).Where(p => p != null).ToArray();
+            AddMatch(root, player);
+            return arena;
+        }
+
+        /// <summary>
+        /// The match (ticket 20) on Battle: the scene's player is you, the scouts are the bots' bodies (amanita red, chanterelle blue),
+        /// the GUI prefab its HUD. A missing prefab logs a warning; the match then plays without those bodies or without a HUD.
+        /// </summary>
+        private static void AddMatch(GameObject battle, GameObject player)
+        {
+            var match = battle.AddComponent<Match>();
+            match.you = player.GetComponent<FirstPersonController>();
+            GameObject Load(string path, string what)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null)
+                    Debug.LogWarning($"SDF level: there is no {path} for the match's {what}; build it (Tools > SDF Mushrooms, Tools > SDF GUI) and rebuild the level");
+                return prefab;
+            }
+            match.redScout = Load($"{MushroomBuilder.PrefabFolder}/{RedScout}.prefab", "red bodies");
+            match.blueScout = Load($"{MushroomBuilder.PrefabFolder}/{BlueScout}.prefab", "blue bodies");
+            match.gui = Load(SdfGui.Editor.GuiScene.GuiPrefabPath, "HUD");
+        }
+
+        /// <summary>The scouts the bots are drawn as: red (west) the amanita scout, blue (east) the chanterelle scout.</summary>
+        public const string RedScout = "amanita-scout", BlueScout = "chanterelle-scout";
+
+        /// <summary>minigun is Minigun, electro-gun Electro-gun.</summary>
+        private static string Capitalized(string name) => char.ToUpperInvariant(name[0]) + name.Substring(1);
+
+        public const string StaticShadowName = "Sun Shadow";
+
+        /// <summary>
+        /// The level's fixed sun shadow (<see cref="StaticSunShadow"/>), at the scene's root, and the light's own (cascaded) shadows off:
+        /// one map over the whole level, rendered once, so no shadow changes with where the camera is.
+        /// </summary>
+        private static void AddStaticShadow(Scene scene, Light sun)
+        {
+            sun.shadows = LightShadows.None;
+            var shadow = new GameObject(StaticShadowName);
+            SceneManager.MoveGameObjectToScene(shadow, scene);
+            var component = shadow.AddComponent<StaticSunShadow>();
+            component.sun = sun;
+            component.scatter = scene.GetRootGameObjects().Select(o => o.GetComponent<InstancedScatterRenderer>()).FirstOrDefault(r => r != null);
+            component.casterMaterial = AssetDatabase.LoadAssetAtPath<Material>(MushroomBuilder.ToonMaterialPath);
+            component.lowQualityLevel = RenderPipelineSetup.Web.Name;
+        }
+
+        /// <summary>
+        /// SceneInfo, at the scene's root: the <see cref="IMMScene"/> filled from level.json, in Unity's coordinates. The play area and
+        /// the extent are mirrored in x, so a corner's x is the negated other one's.
+        /// </summary>
+        private static IMMScene AddSceneInfo(Scene scene, string name, bool indoor, JObject data, Transform levelRoot, GameObject player,
+            List<IMMScene.Placement> placements, BattleArena battle)
+        {
+            var info = new GameObject(IMMScene.ObjectName);
+            SceneManager.MoveGameObjectToScene(info, scene);
+            var sceneInfo = info.AddComponent<IMMScene>();
+            (Vector2 min, Vector2 max) Mirrored(JToken area) =>
+                (new Vector2(-area["max"][0].Value<float>(), area["min"][1].Value<float>()),
+                    new Vector2(-area["min"][0].Value<float>(), area["max"][1].Value<float>()));
+            sceneInfo.levelName = name;
+            sceneInfo.indoor = indoor;
+            (sceneInfo.playAreaMin, sceneInfo.playAreaMax) = Mirrored(data["play"]);
+            (sceneInfo.extentMin, sceneInfo.extentMax) = data["extent"] != null ? Mirrored(data["extent"]) : (sceneInfo.playAreaMin, sceneInfo.playAreaMax);
+            var spawn = data["spawn"];
+            sceneInfo.spawnPoint = new Vector3(-spawn[0].Value<float>(), spawn[1].Value<float>(), spawn[2].Value<float>());
+            sceneInfo.spawnRotation = player.transform.rotation;
+            sceneInfo.eyeHeight = EyeHeight;
+            sceneInfo.player = player.transform;
+            sceneInfo.playerCamera = player.GetComponentInChildren<Camera>();
+            sceneInfo.levelRoot = levelRoot;
+            sceneInfo.placements = placements.ToArray();
+            sceneInfo.battleSides = IMMScene.NewBattleSides();
+            sceneInfo.battle = battle;
+            // Team 0 is the west side, team 1 the east, each with its spawn, flag stand and pods
+            if (battle != null)
+                for (var team = 0; team < IMMScene.SideCount; team++)
+                {
+                    var side = battle.Side(team == 0 ? BattleSideId.West : BattleSideId.East);
+                    if (side == null)
+                        continue;
+                    sceneInfo.battleSides[team].name = side.name;
+                    sceneInfo.battleSides[team].elements = side.Objects.ToList();
+                }
+            return sceneInfo;
+        }
+
+        /// <summary>
+        /// Game, at the scene's root: an instance of <see cref="IMMGame.PrefabPath"/> whose one override is its reference to the scene's
+        /// SceneInfo. The prefab is made, holding only an <see cref="IMMGame"/>, when it is missing; else it is left as it is.
+        /// </summary>
+        private static void AddGame(Scene scene, IMMScene sceneInfo)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(IMMGame.PrefabPath);
+            if (prefab == null)
+            {
+                MushroomBuilder.EnsureFolder(Path.GetDirectoryName(IMMGame.PrefabPath));
+                var template = new GameObject(IMMGame.ObjectName, typeof(IMMGame));
+                prefab = PrefabUtility.SaveAsPrefabAsset(template, IMMGame.PrefabPath);
+                UnityEngine.Object.DestroyImmediate(template);
+            }
+            var game = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            game.name = IMMGame.ObjectName;
+            var component = game.GetComponent<IMMGame>();
+            component.scene = sceneInfo;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(component);
         }
 
         private static void AddToBuildSettings(string scenePath)

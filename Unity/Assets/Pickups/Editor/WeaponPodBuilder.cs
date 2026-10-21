@@ -19,7 +19,8 @@ namespace SdfPickups.Editor
     /// minigun-pod         WeaponPickup (weapon id, respawn, event) and the trigger, an upright capsule over the pod
     ///   Pod               the weapon-pod prefab: the 30 cm pedestal with its convex collider, to walk onto
     ///   Weapon            SpinHover: 1 m above the pod's top, 6 rpm about the vertical axis, a small bob
-    ///     Model           the weapon's prefab, moved so the middle of its bounds is on the Weapon's origin and it turns on the spot
+    ///     Model           the weapon's prefab, <see cref="ScaleOf"/> times its size, moved so the middle of its bounds is on the
+    ///                     Weapon's origin and it turns on the spot
     /// </code>
     /// A pod is rebuilt when it is missing, older than the weapon's or the pod's prefab, or built by an older version of this code; that
     /// is checked when the editor loads and whenever <see cref="MushroomBuilder"/> built prefabs. By hand: Tools > SDF Pickups > Rebuild
@@ -34,8 +35,18 @@ namespace SdfPickups.Editor
         public const string WeaponGroup = "weapons";
 
         /// <summary>Raise when the way pods are built changes, so every pod is rebuilt when the editor loads. Version 2: the health pod
-        /// (<see cref="HealthPodBuilder"/>).</summary>
-        public const int BuilderVersion = 2;
+        /// (<see cref="HealthPodBuilder"/>). Version 3: the weapon <see cref="WeaponScale"/> times its size. Version 4:
+        /// <see cref="ScaleOf"/>.</summary>
+        public const int BuilderVersion = 4;
+
+        /// <summary>How much bigger the floating weapon is than the one in the hand, so it reads from across the field.</summary>
+        public const float WeaponScale = 2.25f;
+
+        /// <summary>The minigun, about a metre long in the hand, would crowd the pod at <see cref="WeaponScale"/>.</summary>
+        public const float MinigunScale = 1.5f;
+
+        /// <summary>How much bigger the weapon floats over its pod than it is in the hand.</summary>
+        public static float ScaleOf(string weapon) => weapon == "minigun" ? MinigunScale : WeaponScale;
 
         /// <summary>Metres from the pod's top to the middle of the weapon.</summary>
         public const float HoverHeight = 1;
@@ -143,9 +154,11 @@ namespace SdfPickups.Editor
                 hover.transform.SetParent(root.transform, false);
                 var model = (GameObject)PrefabUtility.InstantiatePrefab(weaponPrefab, hover.transform);
                 model.name = "Model";
-                // The middle of the weapon's bounds (all of its levels) on the hover's origin, so it turns on the spot
+                // The middle of the weapon's bounds (all of its levels, measured at its own size) on the hover's origin, so it turns on
+                // the spot
                 if (Measure(model) is { } weaponBounds)
-                    model.transform.localPosition = -weaponBounds.center;
+                    model.transform.localPosition = -weaponBounds.center * ScaleOf(weapon);
+                model.transform.localScale = Vector3.one * ScaleOf(weapon);
 
                 var spin = hover.AddComponent<SpinHover>();
                 spin.baseHeight = podTop;

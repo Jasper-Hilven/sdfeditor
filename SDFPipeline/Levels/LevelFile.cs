@@ -34,6 +34,7 @@ namespace SDFPipeline.Levels;
 /// place                                     # unique models from content/models/, by name
 ///     castle0 at=(-62, 0) yaw=90 ground=tiles flatten=22
 ///     rock1 at=(10, 30) yaw=40
+///     team-red-crown0 at=(-67, 0) y=20.35      # 20.35 m above the ground there: on top of the castle's keep
 ///
 /// scatter                                   # models by the thousand, drawn instanced
 ///     grass-turf0 weight=3
@@ -52,6 +53,19 @@ namespace SDFPipeline.Levels;
 ///     fade end=200
 ///
 /// room size=(160, 160, 160)                 # a closed room over the playable area: walls on its edges, a ceiling at y=160 (see <see cref="RoomSpec"/>)
+///
+/// sides                                     # the two battle sides, west (-x) and east (+x), see <see cref="BattleLayout"/>
+///     west
+///         spawn at=(-57, 0) yaw=90 radius=3
+///         flag at=(-61, 0)
+///         pod minigun at=(-48, 5.5)
+///         pod pistol at=(-48, -5.5)
+///         pod health at=(-51, 9)
+///     east
+///         ...
+/// neutral                                   # the pods between the sides
+///     pod sniper at=(0, 30)
+///     pod flamethrower at=(0, -30)
 /// </code>
 /// Only <c>play</c> is required: without <c>hills</c> the ground stays flat up to the edge, without <c>edge</c> the island ends at the
 /// crest (so a level with neither bakes the flat floor alone, with no hill, rim or underside), without <c>scatter</c>, <c>trees</c> and
@@ -68,8 +82,8 @@ namespace SDFPipeline.Levels;
 /// <para>
 /// A placement names a model as its file is named, hyphens and all (amanita-scout), then <c>at</c> (x, z), and optionally <c>yaw</c>
 /// (degrees, counter-clockwise from above), <c>scale</c>, <c>flatten</c> (the radius of level ground round it), <c>falloff</c> (metres
-/// over which that ground blends back), <c>ground</c> (a region painted under its footprint) and <c>groundMargin</c> (how far that
-/// reaches past the footprint).
+/// over which that ground blends back), <c>ground</c> (a region painted under its footprint), <c>groundMargin</c> (how far that
+/// reaches past the footprint) and <c>y</c> (metres above the ground there that its base stands, to put it on top of another model).
 /// </para>
 /// <para>
 /// A scatter (<see cref="ScatterLayer"/>; there may be several) lists the models it picks from below it, each named as its file is, with
@@ -96,6 +110,13 @@ namespace SDFPipeline.Levels;
 /// baked with no sky data. The room takes a <c>size</c> (width, height, depth; across and along must be the play size) and optionally a
 /// <c>square</c> (8 m by default), the side of the checker's squares.
 /// </para>
+/// <para>
+/// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
+/// <c>pod</c> each of minigun, pistol and health, below it; <c>neutral</c> lists exactly two pods, one of sniper or electro-gun and one
+/// of flamethrower, poison-gun or blob-gun. Each takes <c>at</c> (x, z), standing on the ground there like a placement, and optionally
+/// <c>yaw</c>; a spawn also <c>radius</c>, its spawn zone (3 m by default), within which the side's players appear. A level has both
+/// sections or neither.
+/// </para>
 /// </summary>
 public static class LevelFile
 {
@@ -120,8 +141,13 @@ public static class LevelFile
     private const string Ring = "ring";
     private const string Noise = "noise";
     private const string Underside = "underside";
+    private const string Sides = "sides";
+    private const string Neutral = "neutral";
+    private const string Spawn = "spawn";
+    private const string Flag = "flag";
+    private const string Pod = "pod";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
     private static readonly string[] Repeatable = [Scatter, Trees, Draw];
@@ -160,6 +186,8 @@ public static class LevelFile
         SkySection? sky = null;
         RoomSpec? room = null;
         var roomLine = 0;
+        (BattleSide West, BattleSide East)? sides = null;
+        IReadOnlyList<BattleObject>? neutral = null;
         var seen = new Dictionary<string, int>();
         foreach (var line in lines.Skip(1))
         {
@@ -210,8 +238,17 @@ public static class LevelFile
                     room = ReadRoom(line, cursor);
                     roomLine = line.Number;
                     break;
+                case Sides:
+                    sides = ReadSides(line, cursor);
+                    break;
+                case Neutral:
+                    neutral = ReadNeutral(line, cursor);
+                    break;
             }
         }
+        if ((sides is null) != (neutral is null))
+            throw new SdfProgramFileException(seen[sides is null ? Neutral : Sides],
+                $"A level with battle sides has neutral pods between them, and the other way round; add a '{(sides is null ? Sides : Neutral)}' section");
 
         foreach (var scatter in scatters.Concat(trees))
             if (drawGroups.All(g => g.Name != scatter.Group))
@@ -223,7 +260,102 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room };
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room,
+            Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
+    }
+
+    private static (BattleSide West, BattleSide East) ReadSides(SourceLine line, Cursor cursor)
+    {
+        cursor.ExpectEnd();
+        var sides = new Dictionary<string, BattleSide>();
+        var lines = new Dictionary<string, int>();
+        foreach (var child in line.Children)
+        {
+            var childCursor = new Cursor(child);
+            var name = childCursor.ReadName($"a side, {BattleSide.West} or {BattleSide.East}");
+            if (name is not (BattleSide.West or BattleSide.East))
+                throw childCursor.Error($"The sides are {BattleSide.West} and {BattleSide.East}; there is no side '{name}'");
+            if (lines.TryGetValue(name, out var first))
+                throw childCursor.Error($"Side {name} is given twice, first on line {first}");
+            lines[name] = child.Number;
+            childCursor.ExpectEnd();
+            sides[name] = ReadSide(name, child, childCursor);
+        }
+        foreach (var name in new[] { BattleSide.West, BattleSide.East })
+            if (!sides.ContainsKey(name))
+                throw cursor.Error($"The sides need both {BattleSide.West} and {BattleSide.East} indented below them; {name} is missing");
+        return (sides[BattleSide.West], sides[BattleSide.East]);
+    }
+
+    /// <summary>A side's objects: exactly one spawn, one flag and one pod each of <see cref="BattleLayout.SidePods"/>.</summary>
+    private static BattleSide ReadSide(string name, SourceLine line, Cursor cursor)
+    {
+        var objects = new Dictionary<string, BattleObject>();
+        foreach (var child in line.Children)
+        {
+            var item = ReadBattleObject($"side {name}", child, [Spawn, Flag, Pod]);
+            if (item.Kind == BattleKind.Pod && !BattleLayout.SidePods.Contains(item.Pod))
+                throw new SdfProgramFileException(child.Number,
+                    $"A side's pods are {string.Join(", ", BattleLayout.SidePods)}; {item.Pod} {(IsNeutralPod(item.Pod!) ? "is a neutral pod" : "is none of them")}");
+            if (objects.TryGetValue(item.Name, out var first))
+                throw new SdfProgramFileException(child.Number, $"Side {name} has its {item.Name} twice, first on line {first.Line}");
+            objects[item.Name] = item;
+        }
+        BattleObject Get(string what) => objects.GetValueOrDefault(what)
+            ?? throw cursor.Error($"Side {name} has no {what}; a side has a {Spawn}, a {Flag} and a {Pod} each of {string.Join(", ", BattleLayout.SidePods)}");
+        return new BattleSide(name, Get(Spawn), Get(Flag), Get($"{Pod} minigun"), Get($"{Pod} pistol"), Get($"{Pod} health"));
+    }
+
+    /// <summary>The neutral pods: exactly one of <see cref="BattleLayout.LongRange"/> and one of <see cref="BattleLayout.ShortRange"/>.</summary>
+    private static IReadOnlyList<BattleObject> ReadNeutral(SourceLine line, Cursor cursor)
+    {
+        cursor.ExpectEnd();
+        BattleObject? longRange = null, shortRange = null;
+        foreach (var child in line.Children)
+        {
+            var pod = ReadBattleObject("the neutral pods", child, [Pod]);
+            var isLong = BattleLayout.LongRange.Contains(pod.Pod);
+            if (!isLong && !BattleLayout.ShortRange.Contains(pod.Pod))
+                throw new SdfProgramFileException(child.Number,
+                    $"The neutral pods are one of {string.Join(", ", BattleLayout.LongRange)} and one of {string.Join(", ", BattleLayout.ShortRange)}; " +
+                    $"{pod.Pod} {(BattleLayout.SidePods.Contains(pod.Pod) ? "is a side's pod" : "is none of them")}");
+            ref var slot = ref isLong ? ref longRange : ref shortRange;
+            if (slot is not null)
+                throw new SdfProgramFileException(child.Number,
+                    $"The neutral pods have one {(isLong ? "long-range" : "short-range")} pod, but {slot.Pod} is on line {slot.Line} already");
+            slot = pod;
+        }
+        if (longRange is null || shortRange is null)
+            throw cursor.Error($"The neutral pods need one of {string.Join(", ", longRange is null ? BattleLayout.LongRange : BattleLayout.ShortRange)} " +
+                               $"indented below them, like '{Pod} {(longRange is null ? BattleLayout.LongRange : BattleLayout.ShortRange)[0]} at=(0, 30)'");
+        return [longRange, shortRange];
+    }
+
+    private static bool IsNeutralPod(string pod) => BattleLayout.LongRange.Contains(pod) || BattleLayout.ShortRange.Contains(pod);
+
+    /// <summary>A spawn, flag or pod line: its kind (a pod's pickup after it, like pod minigun), at and yaw.</summary>
+    private static BattleObject ReadBattleObject(string owner, SourceLine line, string[] kinds)
+    {
+        var cursor = new Cursor(line);
+        var what = kinds.Length == 1 ? $"'{Pod}'" : $"{string.Join(", ", kinds.SkipLast(1).Select(k => $"'{k}'"))} or '{kinds[^1]}'";
+        var kind = cursor.ReadName(what);
+        if (!kinds.Contains(kind))
+            throw cursor.Error($"Expected {what} in {owner}, found '{kind}'");
+        var pod = kind == Pod ? cursor.ReadFileName("the pod's pickup, like minigun or electro-gun") : null;
+        var name = pod is null ? kind : $"{Pod} {pod}";
+        var parameters = Parameters.Read(name, line, cursor);
+        var at = parameters.Vector2("at", "a point like (-58, 0), x and z in metres");
+        var yaw = parameters.Number("yaw", 0, -360, 360, "degrees, -360 to 360");
+        if (kind != Spawn)
+        {
+            parameters.Done("at", "yaw");
+            return new BattleObject(kind == Flag ? BattleKind.Flag : BattleKind.Pod, pod, at, yaw, line.Number);
+        }
+        // A spawn is a zone: the side's players appear anywhere within its radius
+        var radius = parameters.Number("radius", BattleObject.DefaultSpawnZone, BattleObject.MinSpawnZone, BattleObject.MaxSpawnZone,
+            $"metres, {FileSyntax.Number(BattleObject.MinSpawnZone)} to {FileSyntax.Number(BattleObject.MaxSpawnZone)}");
+        parameters.Done("at", "yaw", "radius");
+        return new BattleObject(BattleKind.Spawn, null, at, yaw, line.Number) { ZoneRadius = radius };
     }
 
     private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)
@@ -429,8 +561,9 @@ public static class LevelFile
             var falloff = parameters.Number("falloff", Placement.DefaultFlattenFalloff, 0.5f, 200, "metres, 0.5 to 200");
             var ground = parameters.Name("ground", null, null);
             var margin = parameters.Number("groundMargin", Placement.DefaultGroundMargin, 0, 50, "metres, 0 to 50");
-            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin");
-            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number));
+            var y = parameters.Number("y", 0, 0, 100, "metres above the ground, 0 to 100");
+            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin", "y");
+            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number) { Y = y });
         }
         return placements.Count > 0 ? placements : throw cursor.Error("Nothing is placed; indent placements below, like 'rock1 at=(10, 30)'");
     }

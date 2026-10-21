@@ -76,12 +76,18 @@ namespace SdfGui
             {
                 if (phase == MatchPhase.Playing && (screen == GuiScreen.Lobby || screen == GuiScreen.RoundEnd))
                     screen = GuiScreen.Hud;
-                if (phase == MatchPhase.Over && Match.YouAreAlive && IsInRound(screen))
+                if (phase == MatchPhase.Over && (Match.YouAreAlive || Match.driven) && (IsInRound(screen) || (Match.driven && screen == GuiScreen.Death)))
                     screen = GuiScreen.RoundEnd;
+                // A real match's next round counts down on the HUD
+                if (phase == MatchPhase.Countdown && Match.driven && screen == GuiScreen.RoundEnd)
+                    screen = GuiScreen.Hud;
                 lastPhase = phase;
             }
             if (wasAlive && !Match.YouAreAlive && IsInRound(screen))
                 screen = GuiScreen.Death;
+            // In a real match you respawn: back to the HUD
+            if (!wasAlive && Match.YouAreAlive && screen == GuiScreen.Death)
+                screen = GuiScreen.Hud;
             wasAlive = Match.YouAreAlive;
         }
 

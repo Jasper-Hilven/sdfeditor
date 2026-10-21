@@ -407,6 +407,28 @@ place
     pawn-dark at=(-4.0, 68.8) yaw=103 scale=0.89
     queen-dark at=(-51.7, -53.9) yaw=-12 scale=1.01
 
+# The battle sides (ticket 17), west at -x and east at +x, mirrored. With no castles, each side is its back rank: the flag stand two
+# squares in from the wall on the middle line, the spawn zone (ticket 20; the default 3 m round) in front of it facing the other
+# side, the minigun and pistol pods either
+# side of the spawn and the health pod behind them by the wall, all in the gaps between the strewn pieces. The neutral pods stand on
+# the middle line, one each side of the board's centre, clear of the pieces
+sides
+    west
+        spawn at=(-66, -4) yaw=90
+        flag at=(-72, -4)
+        pod minigun at=(-66, 6)
+        pod pistol at=(-66, -14)
+        pod health at=(-74, -14)
+    east
+        spawn at=(66, -4) yaw=-90
+        flag at=(72, -4)
+        pod minigun at=(66, 6)
+        pod pistol at=(66, -14)
+        pod health at=(74, -14)
+neutral
+    pod sniper at=(0, 16)
+    pod blob-gun at=(0, -12)
+
 # The room: walls on the board's four edges and a ceiling at y = 160 m facing down, 160 m cube. Their squares are 8 m, all one checker
 # pattern with the floor's (RoomChecker): the colour alternates across the edges where wall meets floor and ceiling; the four
 # vertical corners cannot alternate too (three squares meet at each cube corner), so the squares there match. The floor is the board above

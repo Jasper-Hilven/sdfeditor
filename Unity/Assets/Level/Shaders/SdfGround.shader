@@ -153,6 +153,7 @@ Shader "SdfMushrooms/Ground"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Assets/Mushrooms/Shaders/SdfSurface.hlsl"
             #include "Assets/Mushrooms/Shaders/SdfToon.hlsl"
+            #include "Assets/Mushrooms/Shaders/SdfStaticShadow.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -289,8 +290,14 @@ Shader "SdfMushrooms/Ground"
                     tint = _MainLightColor.rgb / brightest;
                     if (dot(n, l) > 0.0)
                     {
-                        Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS), input.positionWS, half4(1, 1, 1, 1));
-                        shadow = light.shadowAttenuation;
+                        // The level's fixed sun shadow where there is one (SdfStaticShadow.hlsl), else the light's cascades
+                        if (SdfStaticShadowOn())
+                            shadow = SdfStaticShadow(input.positionWS);
+                        else
+                        {
+                            Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS), input.positionWS, half4(1, 1, 1, 1));
+                            shadow = light.shadowAttenuation;
+                        }
                     }
                 }
 

@@ -28,8 +28,11 @@ public class CastleMaterialsTests
                     pending.Push(Directory.EnumerateFiles(partsFolder, m.Groups[1].Value + ".sdf", SearchOption.AllDirectories).Single());
         }
 
+        // The walls are grown of the towers' stem flesh: no brick or stone material, and no glowing windows
         Assert.Contains("castle_wall_bay", parts);
-        Assert.Contains("castle_wall", materials);
+        Assert.Contains("castle_stem", materials);
+        Assert.DoesNotContain("castle_wall", materials);
+        Assert.DoesNotContain("castle_window_frame", parts);
         foreach (var material in materials)
             Assert.False(patterns.TryGetValue(material, out var p) && p.Kind == MaterialPatternKind.Stones, $"{material} has a stones pattern");
     }

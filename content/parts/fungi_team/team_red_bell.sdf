@@ -1,0 +1,25 @@
+# Team red bell (ticket 19): a slender mushroom 0.55 m tall for the west castle's side, a pointed bell cap 0.26 m across
+# like a waxcap's or a pinkgill's, warm coral-scarlet, on a thin stem; the shape of team_blue_bell in the other side's
+# colour. Its stem goes on 10 cm below the origin. Placed many times by the team mushroom models.
+format 1
+collider none
+shadows near
+
+Union
+    Material material=team_red_stem
+        Translate translation=(0, 0.2, 0)
+            CappedCone height=0.3 bottomRadius=0.04 topRadius=0.026
+    Material material=team_red_gills
+        Translate translation=(0, 0.4, 0)
+            CappedCylinder radius=0.11 height=0.01
+    # The bell: a tall ellipsoid drawn up to a soft point, cut flat below its widest part
+    Material material=team_red_cap
+        Round radius=0.008
+            Intersection
+                SmoothUnion smoothness=0.04
+                    Translate translation=(0, 0.42, 0)
+                        Ellipsoid radii=(0.13, 0.07, 0.13)
+                    Translate translation=(0, 0.49, 0)
+                        CappedCone height=0.07 bottomRadius=0.1 topRadius=0.018
+                Translate translation=(0, 0.8, 0)
+                    Box size=(0.5, 0.4, 0.5)

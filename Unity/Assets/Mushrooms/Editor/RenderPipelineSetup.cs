@@ -42,11 +42,15 @@ namespace SdfMushrooms.Editor
             public float LodBias;
         }
 
-        /// <summary>The dev machine (M4 Max): sharp shadows far out, four samples per pixel at full resolution.</summary>
+        /// <summary>
+        /// The dev machine (M4 Max): shadows far out, four samples per pixel at full resolution. One cascade, like the minimum spec: the
+        /// toon look's crisp shadow edges showed every cascade border (a shadow's outline snapping finer or coarser as it crossed one), and
+        /// the same detail everywhere reads better than sharper shadows near the eye that change as one walks.
+        /// </summary>
         public static readonly Preset High = new Preset
         {
             Name = "High", AssetPath = SettingsFolder + "/URP High.asset",
-            ShadowDistance = 60, ShadowCascades = 4, ShadowResolution = 4096, SoftShadows = SoftShadowQuality.Medium,
+            ShadowDistance = 60, ShadowCascades = 1, ShadowResolution = 4096, SoftShadows = SoftShadowQuality.Medium,
             Msaa = 4, RenderScale = 1, Hdr = true, LodBias = 1,
         };
 

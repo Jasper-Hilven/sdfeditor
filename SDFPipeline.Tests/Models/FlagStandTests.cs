@@ -7,7 +7,7 @@ namespace SDFPipeline.Tests.Models;
 
 /// <summary>
 /// Ticket 17.2: the flag stand (content/models/pickups/flag-stand.sdf) is a low base the player can walk onto or round, no higher
-/// than the weapon pod and with the pod's bevel rule, with a socket in the middle; the flags (flag-red.sdf, flag-gold.sdf) are a
+/// than the weapon pod and with the pod's bevel rule, with a socket in the middle; the flags (flag-red.sdf, flag-blue.sdf) are a
 /// pole of about 2 m with a cloth, the same shape in two colours, whose pole fits the socket.
 /// </summary>
 public class FlagStandTests
@@ -91,7 +91,7 @@ public class FlagStandTests
 
     [Theory]
     [InlineData("flag-red")]
-    [InlineData("flag-gold")]
+    [InlineData("flag-blue")]
     public void Flag_IsAPoleOfAboutTwoMetres_WithAClothFlyingTowardsPlusX(string name)
     {
         var sdf = Model(name);
@@ -118,12 +118,12 @@ public class FlagStandTests
     public void BothFlags_HaveTheSameShape()
     {
         var red = Model("flag-red");
-        var gold = Model("flag-gold");
+        var blue = Model("flag-blue");
         var random = new Random(17);
         for (var i = 0; i < 500; i++)
         {
             var p = new Vector3(random.NextSingle() * 1.2f - 0.1f, random.NextSingle() * 2.3f - 0.1f, random.NextSingle() * 0.4f - 0.2f);
-            Assert.Equal(red(p), gold(p), 1e-5f);
+            Assert.Equal(red(p), blue(p), 1e-5f);
         }
     }
 }

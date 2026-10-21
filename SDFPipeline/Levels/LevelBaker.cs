@@ -23,7 +23,7 @@ public sealed record BakedLevel(string Folder, GroundLayout Layout, IReadOnlyLis
     public ScatteredLevel Scattered { get; init; } = ScatteredLevel.None;
 }
 
-/// <summary>A placement as baked: the model's base at <see cref="Position"/>, on the (flattened) ground.</summary>
+/// <summary>A placement as baked: the model's base at <see cref="Position"/>, on the (flattened) ground or its <see cref="Placement.Y"/> above it.</summary>
 public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, float Scale);
 
 /// <summary>
@@ -33,7 +33,7 @@ public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, floa
 /// where the player starts, the ground's materials by region, the region map (regions.png, see <see cref="RegionMap"/>), the placed
 /// models, the scattered ones and the trees (instances.bin, see <see cref="InstanceFile"/> and <see cref="LevelScatter"/>) with their
 /// draw groups, the island's edge with its underside model, the resolved sky (<see cref="SkyDocument"/>) with where its floaters and
-/// spores are, and the list of every model's name. Unity's LevelBuilder turns it into the level's scene; the ground's colliders are made
+/// spores are, the battle sides and neutral pods (<see cref="BattleLayout"/>) on the ground, and the list of every model's name. Unity's LevelBuilder turns it into the level's scene; the ground's colliders are made
 /// there, from LOD1, the placed models bring theirs on their prefabs, and a scattered model whose prefab has a collider (the trees' trunk
 /// capsules) gets a collider-only object per instance.
 /// <para>
@@ -109,8 +109,13 @@ public static class LevelBaker
             if (!materials.Contains(region.Material))
                 throw new InvalidOperationException($"There is no material file for {region.Material}; the ground needs materials/ground/{region.Material}.sdfmat");
         var placed = level.Placements
-            .Select(p => new PlacedModel(p.Model, new Vector3(p.At.X, terrain.Height(p.At.X, p.At.Y), p.At.Y), p.Yaw, p.Scale))
+            .Select(p => new PlacedModel(p.Model, new Vector3(p.At.X, terrain.Height(p.At.X, p.At.Y) + p.Y, p.At.Y), p.Yaw, p.Scale))
             .ToArray();
+        // The battle objects stand wholly inside the playable rectangle, where the player can reach them
+        foreach (var item in level.Battle?.Objects ?? [])
+            if (MathF.Abs(item.At.X) > level.Play.HalfSize.X - item.Radius || MathF.Abs(item.At.Y) > level.Play.HalfSize.Y - item.Radius)
+                throw new ProgramFiles.SdfProgramFileException(item.Line,
+                    $"The {item.Name} at ({item.At.X}, {item.At.Y}) is not {item.Radius} m or more inside the playable area, where the player can reach it");
 
         // The scattered models need only be there; the ground's colour under each instance is its material's average
         foreach (var entry in level.Scatters.Concat(level.Trees).SelectMany(s => s.Entries))
@@ -321,6 +326,10 @@ public static class LevelBaker
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
             room = level.Room is { } room ? RoomDocument(room) : null,
+            // The battle sides (west at -x, east at +x), each with its spawn, flag stand and minigun, pistol and health pods, and the
+            // neutral pods between them: position is on the ground (a castle's courtyard is), yaw in degrees as a placement's. Unity
+            // builds them from Assets/Pickups (pods/<pod>-pod.prefab, flags/flag-stand-<side>.prefab). Null for a level without sides
+            battle = level.Battle is { } battle ? BattleDocument(battle, terrain) : null,
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
@@ -330,6 +339,29 @@ public static class LevelBaker
         var json = JsonSerializer.SerializeToUtf8Bytes(document, JsonOptions);
         GlbWriter.SaveAtomically(Path.Combine(folder, LevelJson), [.. json, (byte)'\n']);
         return new BakedLevel(folder, layout, files, triangles, skirts, maxErrors) { Regions = regions.Regions, Placements = placed, Scattered = scattered };
+    }
+
+    private static object BattleDocument(BattleLayout battle, LevelTerrain terrain)
+    {
+        object Item(BattleObject item) => new
+        {
+            pod = item.Pod,
+            position = new[] { item.At.X, terrain.Height(item.At.X, item.At.Y), item.At.Y },
+            yaw = item.Yaw,
+            // A spawn's zone (ticket 20): its players appear anywhere within this radius; none for a flag or pod
+            radius = item.Kind == BattleKind.Spawn ? item.ZoneRadius : (float?)null,
+        };
+        return new
+        {
+            sides = battle.Sides.Select(side => new
+            {
+                side = side.Name,
+                spawn = Item(side.Spawn),
+                flag = Item(side.Flag),
+                pods = new[] { Item(side.Minigun), Item(side.Pistol), Item(side.Health) },
+            }).ToArray(),
+            neutral = battle.Neutral.Select(Item).ToArray(),
+        };
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

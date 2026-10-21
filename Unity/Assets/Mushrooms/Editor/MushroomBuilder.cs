@@ -85,8 +85,10 @@ namespace SdfMushrooms.Editor
         /// look only, the realistic one gone. Version 9: URP instead of HDRP. Version 10: colliders from the model's collider setting.
         /// Version 11: part instances, a child with its own LOD group per use, and the shadows, outline, cull and collider settings per part.
         /// Version 12: part LODs no earlier than the model's. Version 13: the material patterns per vertex (UV7).
+        /// Version 14: LOD distances doubled (<see cref="LodPixelError"/> halved).
+        /// Version 15: and back to one pixel.
         /// </summary>
-        public const int BuilderVersion = 13;
+        public const int BuilderVersion = 15;
 
         private static string VersionStamp
         {
@@ -408,6 +410,7 @@ namespace SdfMushrooms.Editor
         /// <summary>
         /// How many pixels, at 1080 lines, a level's error may cover before the finer level is needed again. One pixel keeps the change
         /// of silhouette under the ink line's width (4 pixels by default), so the toon look shows no pop even before the cross-fade.
+        /// The cull height does not depend on it.
         /// </summary>
         private const float LodPixelError = 1;
 

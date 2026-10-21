@@ -11,8 +11,9 @@ namespace SdfPickups
 
     /// <summary>
     /// A side's flag stand, for capture the flag: which side it belongs to and its flag, the <c>Flag</c> child the stand holds when
-    /// the flag is home. There are no capture-the-flag rules yet; this holds the data such a mode needs: the side, the flag, and the
-    /// flag's home pose on the stand (recorded by the builder), so the flag can be carried off (re-parented) and put back.
+    /// the flag is home, and the flag's home pose on the stand (recorded by the builder), so the flag can be carried off (re-parented)
+    /// and put back (<see cref="ReturnFlag"/>). In a match (ticket 21) <see cref="State"/> says where the flag is: at home, carried (by
+    /// whom) or dropped (where, how long until it goes home); SdfBattle.CaptureTheFlag keeps it and moves the flag object to match.
     /// </summary>
     public sealed class FlagStand : MonoBehaviour
     {
@@ -35,6 +36,15 @@ namespace SdfPickups
             flag != null && flag.parent == transform
                          && (flag.localPosition - homePosition).sqrMagnitude < 1e-6f
                          && Quaternion.Angle(flag.localRotation, homeRotation) < 0.1f;
+
+        /// <summary>
+        /// The flag in a capture-the-flag match: <see cref="SdfBattle.TeamFlag.Status"/> (home, carried, dropped), the carrier, where it
+        /// lies and the seconds until it goes home. Null outside a match.
+        /// </summary>
+        public SdfBattle.TeamFlag State { get; set; }
+
+        /// <summary>The player carrying the flag, as the rules know them; null when it is home or dropped, or outside a match.</summary>
+        public SdfBattle.PlayerState Carrier => State?.Carrier;
 
         /// <summary>Puts the flag back on the stand, wherever it was.</summary>
         public void ReturnFlag()

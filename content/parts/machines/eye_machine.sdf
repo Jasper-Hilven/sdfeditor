@@ -1,0 +1,53 @@
+# Machine eye (ticket 24.1): the scouts' eye (content/parts/eye.sdf), the same eyeball 12 cm in radius with the same painted rings
+# (limbus, iris, amber ring, pupil) and materials, meshed far coarser. The machines float a pair of them at a little over half size,
+# where the scouts' eye cost 4,254 triangles each at LOD0, more than the machine they sat on; at these sizes the rings need only a
+# few cells each. The rings are cut to z > 0.05 rather than to the front half: the cut stays inside the eyeball (the disc they fill
+# meets the surface at z = 0.1), and at this detail a cut at z = 0, through the middle of the eyeball, broke the mesh into
+# thousands of split vertices on every other grid size.
+format 1
+
+# A quarter of the cells its size gives it: about 580 triangles at LOD0, the pupil still a round-ish polygon. Detail is in steps of
+# cells, and the pupil's shape follows the grid, so check a render of the .glb before changing it
+Detail detail=0.26
+    Union
+        # White: the whole eyeball but the front disc the rings fill
+        Material material=eye_white
+            Subtraction
+                Sphere radius=0.12
+                Intersection
+                    Plane normal=(0, 0, -1) height=0.05
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.066
+        Material material=eye_limbus
+            Subtraction
+                Intersection
+                    Sphere radius=0.12
+                    Plane normal=(0, 0, -1) height=0.05
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.066
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.06
+        Material material=eye_iris
+            Subtraction
+                Intersection
+                    Sphere radius=0.12
+                    Plane normal=(0, 0, -1) height=0.05
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.06
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.034
+        Material material=eye_iris_inner
+            Subtraction
+                Intersection
+                    Sphere radius=0.12
+                    Plane normal=(0, 0, -1) height=0.05
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.034
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.022
+        Material material=eye_pupil
+            Intersection
+                Sphere radius=0.12
+                Plane normal=(0, 0, -1) height=0.05
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.022

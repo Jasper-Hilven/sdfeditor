@@ -33,7 +33,8 @@ Depends on: the weapon models (`content/models/weapons/`) and their prefabs; no 
   respawns the weapon after `respawnSeconds` (15; 0 or less for never), also under a player who is still standing on it.
 - `Editor/WeaponPodBuilder.cs`: for each weapon `.glb` in the Generated folder's `weapons` group (variants such as `minigun_512`
   count as `minigun`) it writes `Assets/Pickups/Pods/<weapon>-pod.prefab`: `Pod` (the weapon-pod prefab), `Weapon` (`SpinHover`)
-  with `Model` (the weapon's prefab, shifted so the middle of its bounds is on the pivot, so it turns on the spot). Rebuilt when
+  with `Model` (the weapon's prefab at 2.25 times its size, `WeaponScale` (the minigun 1.5, `MinigunScale`), shifted so the middle of its bounds is on the pivot, so it
+  turns on the spot). Rebuilt when
   missing, older than the weapon's or the pod's prefab, or built by an older `BuilderVersion`; checked when the editor loads and
   after `MushroomBuilder` built prefabs. `Tools > SDF Pickups > Rebuild Pods`, or in a batch
   `SdfPickups.Editor.WeaponPodBuilder.BuildAllInBatch`; `LevelBuilder.BuildAllInBatch` does it as well.

@@ -34,7 +34,9 @@ public sealed record ScatteredLevel(IReadOnlyList<ScatterPrototype> Prototypes, 
 /// average: soft patches over about 1 / cluster of the ground, thinning out between them, scaled so that the weights average 1
 /// over the ground that is kept. At cluster 1 the scatter is even.</item>
 /// </list>
-/// Each kept point picks its model by weight, a yaw and a scale at random, and takes the ground's height and colour there.
+/// Each kept point picks its model by weight, a yaw and a scale at random, and takes the ground's height and colour there. Last, an
+/// instance within <see cref="BattleClearing"/> of a battle object (<see cref="BattleLayout"/>) is left out, so the pods, flag stands
+/// and spawns stand on open ground; this is done after the random draws, so the rest of the scatter stays where it was without them.
 /// <para>
 /// The trees sections (<see cref="LevelDefinition.Trees"/>) are scattered the same way after the scatter layers, with streams of their
 /// own (so adding trees leaves the grass where it was), over the band of distance they give instead of the reach; each tree stands on
@@ -51,6 +53,12 @@ public static class LevelScatter
     /// patches (the toon style's colour variation) and about half the ground is in a patch.
     /// </summary>
     public const float GroundVariationShare = 0.25f;
+
+    /// <summary>
+    /// How far a scattered instance stays from a battle object's edge, in metres, besides the layer's margin: a little for the foliage,
+    /// so no grass grows through a pod; more for the trees sections (trees, rocks), whose crowns and boulders reach past their point.
+    /// </summary>
+    public static float BattleClearing(ScatterLayer layer) => layer.Margin + (layer.Band is null ? 0.2f : 1.5f);
 
     /// <summary>How many candidates Bridson's algorithm tries round each point before it gives the point up.</summary>
     private const int Candidates = 30;
@@ -103,6 +111,8 @@ public static class LevelScatter
         }).ToArray();
         var placements = level.Placements.Select(p => (Placement: p, Footprint: footprintOf(p.Model))).ToArray();
         var cosMaxSlope = MathF.Cos(layer.MaxSlope * MathF.PI / 180);
+        var battle = level.Battle?.Objects.ToArray() ?? [];
+        var clearing = BattleClearing(layer);
 
         bool Allowed(Vector2 p)
         {
@@ -189,8 +199,11 @@ public static class LevelScatter
             var yaw = random.NextFloat() * 360 - 180;
             var scale = layer.Scale.X + (layer.Scale.Y - layer.Scale.X) * random.NextFloat();
             var height = layer.Band is null ? terrain.Height(p.X, p.Y) : LowestAround(terrain, p, FootRadius);
+            var hash = random.NextUInt();
+            if (battle.Any(item => Vector2.Distance(p, item.At) < item.Radius + clearing))
+                continue;
             instances.Add(new ScatteredInstance(prototypes.FindIndex(m => m.Model == entry.Model), new Vector3(p.X, height, p.Y),
-                yaw, scale, Srgba(groundColor(p)), random.NextUInt()));
+                yaw, scale, Srgba(groundColor(p)), hash));
         }
     }
 

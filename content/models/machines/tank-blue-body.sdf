@@ -1,0 +1,25 @@
+# Tank body, blue (ticket 24.1): a squat mushroom hull of sky blue stem flesh sitting between two tread rolls, each a row of five
+# umber puffball segments grown onto a core roll, like a fat caterpillar. The turret (tank-blue-turret) sits on the hull's top.
+# Pivot: the origin is on the ground under the middle, +z forward. The turret's pivot is at (0, 0.3, 0) in this model.
+format 1
+collider convex
+
+Union
+    # The treads, mirrored either side of the hull
+    Material material=machine_tread
+        SymmetryX
+            Translate translation=(0.21, 0.1, 0)
+                SmoothUnion smoothness=0.035
+                    Capsule a=(0, 0, -0.25) b=(0, 0, 0.25) radius=0.07
+                    LimitedRepetition spacing=0.125 limits=(0, 0, 2)
+                        Sphere radius=0.088
+    # The hull: a stout stem lying low, its top flattened where the turret's collar goes in, with a little gill skirt round it
+    Material material=machine_blue_flesh
+        SmoothUnion smoothness=0.03
+            Intersection
+                Translate translation=(0, 0.17, 0)
+                    Ellipsoid radii=(0.19, 0.15, 0.29)
+                Translate translation=(0, -0.2, 0)
+                    Box size=(0.4, 0.5, 0.4)
+            Translate translation=(0, 0.27, 0)
+                CappedCylinder radius=0.11 height=0.03

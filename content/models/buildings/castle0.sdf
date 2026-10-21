@@ -15,516 +15,548 @@
 format 1
 collider mesh
 
-Union
-    # Bay 0 (the gate), with its merlons
-    Translate translation=(-0.002, 0, 7.914)
-        Rotate rotation=(0, 0, 0)
-            Union
-                Part part=castle_wall_gate
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+# Half the cells everywhere: the finest level of detail the full grid gave was not needed, so the castle's finest is what its
+# second was. The stairs double their own detail to keep theirs, and the mycelium more than that: thin treads and threads break up
+# when coarse
+Detail detail=0.5
+    Union
+        # Bay 0 (the gate), with its merlons
+        Translate translation=(-0.002, 0, 7.914)
+            Rotate rotation=(0, 0, 0)
+                Union
+                    Part part=castle_wall_gate
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 1, with its merlons
-    Translate translation=(3.481, 0, 7.561)
-        Rotate rotation=(0, 0.202, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 1, with its merlons
+        Translate translation=(3.481, 0, 7.561)
+            Rotate rotation=(0, 0.202, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 2, with its merlons
-    Translate translation=(6.798, 0, 6.464)
-        Rotate rotation=(0, 0.437, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 2, with its merlons
+        Translate translation=(6.798, 0, 6.464)
+            Rotate rotation=(0, 0.437, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 3, with its merlons
-    Translate translation=(9.66, 0, 4.511)
-        Rotate rotation=(0, 0.761, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 3, with its merlons
+        Translate translation=(9.66, 0, 4.511)
+            Rotate rotation=(0, 0.761, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 4, with its merlons
-    Translate translation=(11.465, 0, 1.652)
-        Rotate rotation=(0, 1.257, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 4, with its merlons
+        Translate translation=(11.465, 0, 1.652)
+            Rotate rotation=(0, 1.257, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 5, with its merlons
-    Translate translation=(11.465, 0, -1.651)
-        Rotate rotation=(0, 1.884, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 5, with its merlons
+        Translate translation=(11.465, 0, -1.651)
+            Rotate rotation=(0, 1.884, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 6, with its merlons
-    Translate translation=(9.662, 0, -4.509)
-        Rotate rotation=(0, 2.381, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 6, with its merlons
+        Translate translation=(9.662, 0, -4.509)
+            Rotate rotation=(0, 2.381, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 7, with its merlons
-    Translate translation=(6.801, 0, -6.462)
-        Rotate rotation=(0, 2.704, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 7, with its merlons
+        Translate translation=(6.801, 0, -6.462)
+            Rotate rotation=(0, 2.704, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 8, with its merlons
-    Translate translation=(3.485, 0, -7.56)
-        Rotate rotation=(0, 2.94, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 8, with its merlons
+        Translate translation=(3.485, 0, -7.56)
+            Rotate rotation=(0, 2.94, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 9, with its merlons
-    Translate translation=(0.002, 0, -7.914)
-        Rotate rotation=(0, 3.141, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 9, with its merlons
+        Translate translation=(0.002, 0, -7.914)
+            Rotate rotation=(0, 3.141, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 10, with its merlons
-    Translate translation=(-3.481, 0, -7.561)
-        Rotate rotation=(0, -2.94, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 10, with its merlons
+        Translate translation=(-3.481, 0, -7.561)
+            Rotate rotation=(0, -2.94, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 11, with its merlons
-    Translate translation=(-6.798, 0, -6.464)
-        Rotate rotation=(0, -2.704, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 11, with its merlons
+        Translate translation=(-6.798, 0, -6.464)
+            Rotate rotation=(0, -2.704, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 12, with its merlons
-    Translate translation=(-9.66, 0, -4.511)
-        Rotate rotation=(0, -2.381, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 12, with its merlons
+        Translate translation=(-9.66, 0, -4.511)
+            Rotate rotation=(0, -2.381, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 13, with its merlons
-    Translate translation=(-11.465, 0, -1.653)
-        Rotate rotation=(0, -1.885, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 13, with its merlons
+        Translate translation=(-11.465, 0, -1.653)
+            Rotate rotation=(0, -1.885, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 14, with its merlons
-    Translate translation=(-11.465, 0, 1.649)
-        Rotate rotation=(0, -1.258, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 14, with its merlons
+        Translate translation=(-11.465, 0, 1.649)
+            Rotate rotation=(0, -1.258, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 15, with its merlons
-    Translate translation=(-9.662, 0, 4.509)
-        Rotate rotation=(0, -0.761, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 15, with its merlons
+        Translate translation=(-9.662, 0, 4.509)
+            Rotate rotation=(0, -0.761, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 16, with its merlons
-    Translate translation=(-6.801, 0, 6.462)
-        Rotate rotation=(0, -0.438, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 16, with its merlons
+        Translate translation=(-6.801, 0, 6.462)
+            Rotate rotation=(0, -0.438, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Bay 17, with its merlons
-    Translate translation=(-3.485, 0, 7.56)
-        Rotate rotation=(0, -0.202, 0)
-            Union
-                Part part=castle_wall_bay
-                Translate translation=(-1.25, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(0, 5.45, 0.85)
-                    Part part=castle_merlon
-                Translate translation=(1.25, 5.45, 0.85)
-                    Part part=castle_merlon
+        # Bay 17, with its merlons
+        Translate translation=(-3.485, 0, 7.56)
+            Rotate rotation=(0, -0.202, 0)
+                Union
+                    Part part=castle_wall_bay
+                    Translate translation=(-1.25, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(0, 5.45, 0.85)
+                        Part part=castle_merlon
+                    Translate translation=(1.25, 5.45, 0.85)
+                        Part part=castle_merlon
 
-    # Tower at joint 0
-    Translate translation=(3.24, 0, 8.169)
-        Rotate rotation=(0, 0.098, 0)
-            Rotate rotation=(0.01, 0, -0.018)
-                Part part=castle_gate_turret
-
-    # Mycelium round its foot
-    Translate translation=(3.24, 0, 8.169)
-        Rotate rotation=(0, 0.098, 0)
-            Scale scale=(0.8, 0.8, 0.8)
-                Part part=castle_mycelium
-
-    # Joint 1
-    Translate translation=(5.205, 0, 7.208)
-        Rotate rotation=(0, 0.311, 0)
-            Part part=castle_wall_joint
-
-    # Joint 2
-    Translate translation=(8.391, 0, 5.719)
-        Rotate rotation=(0, 0.578, 0)
-            Part part=castle_wall_joint
-
-    # Joint 3
-    Translate translation=(10.929, 0, 3.304)
-        Rotate rotation=(0, 0.974, 0)
-            Part part=castle_wall_joint
-
-    # Tower at joint 4
-    Translate translation=(12.4, 0, 0)
-        Rotate rotation=(0, 1.571, 0)
-            Rotate rotation=(-0.01, 0, -0.007)
-                Part part=castle_tower_large
-
-    # Mycelium round its foot
-    Translate translation=(12.4, 0, 0)
-        Rotate rotation=(0, 5.571, 0)
-            Scale scale=(1, 1, 1)
-                Part part=castle_mycelium
-
-    # Joint 5
-    Translate translation=(10.931, 0, -3.301)
-        Rotate rotation=(0, 2.168, 0)
-            Part part=castle_wall_joint
-
-    # Tower at joint 6
-    Translate translation=(8.613, 0, -6.052)
-        Rotate rotation=(0, 2.563, 0)
-            Rotate rotation=(-0.015, 0, -0.004)
-                Part part=castle_tower_small
-
-    # Mycelium round its foot
-    Translate translation=(8.613, 0, -6.052)
-        Rotate rotation=(0, 8.563, 0)
-            Scale scale=(1, 1, 1)
-                Part part=castle_mycelium
-
-    # Joint 7
-    Translate translation=(5.208, 0, -7.207)
-        Rotate rotation=(0, 2.831, 0)
-            Part part=castle_wall_joint
-
-    # Joint 8
-    Translate translation=(1.762, 0, -7.913)
-        Rotate rotation=(0, 3.043, 0)
-            Part part=castle_wall_joint
-
-    # Joint 9
-    Translate translation=(-1.758, 0, -7.914)
-        Rotate rotation=(0, -3.043, 0)
-            Part part=castle_wall_joint
-
-    # Joint 10
-    Translate translation=(-5.205, 0, -7.208)
-        Rotate rotation=(0, -2.831, 0)
-            Part part=castle_wall_joint
-
-    # Tower at joint 11
-    Translate translation=(-8.61, -0.318, -6.054)
-        Rotate rotation=(0, -2.564, 0)
-            Rotate rotation=(-0.013, 0, 0.005)
-                Scale scale=(1.06, 1.06, 1.06)
-                    Part part=castle_tower_small
-
-    # Mycelium round its foot
-    Translate translation=(-8.61, 0, -6.054)
-        Rotate rotation=(0, 8.436, 0)
-            Scale scale=(1, 1, 1)
-                Part part=castle_mycelium
-
-    # Joint 12
-    Translate translation=(-10.929, 0, -3.304)
-        Rotate rotation=(0, -2.168, 0)
-            Part part=castle_wall_joint
-
-    # Tower at joint 13
-    Translate translation=(-12.4, 0.424, -0.003)
-        Rotate rotation=(0, -1.571, 0)
-            Rotate rotation=(0.013, 0, 0.006)
-                Scale scale=(0.92, 0.92, 0.92)
-                    Part part=castle_tower_large
-
-    # Mycelium round its foot
-    Translate translation=(-12.4, 0, -0.003)
-        Rotate rotation=(0, 11.429, 0)
-            Scale scale=(1, 1, 1)
-                Part part=castle_mycelium
-
-    # Joint 14
-    Translate translation=(-10.931, 0, 3.301)
-        Rotate rotation=(0, -0.974, 0)
-            Part part=castle_wall_joint
-
-    # Joint 15
-    Translate translation=(-8.394, 0, 5.717)
-        Rotate rotation=(0, -0.578, 0)
-            Part part=castle_wall_joint
-
-    # Joint 16
-    Translate translation=(-5.208, 0, 7.207)
-        Rotate rotation=(0, -0.311, 0)
-            Part part=castle_wall_joint
-
-    # Tower at joint 17
-    Translate translation=(-3.244, -0.212, 8.169)
-        Rotate rotation=(0, -0.099, 0)
-            Rotate rotation=(0.01, 0, 0.018)
-                Scale scale=(1.04, 1.04, 1.04)
+        # Tower at joint 0
+        Translate translation=(3.24, 0, 8.169)
+            Rotate rotation=(0, 0.098, 0)
+                Rotate rotation=(0.01, 0, -0.018)
                     Part part=castle_gate_turret
 
-    # Mycelium round its foot
-    Translate translation=(-3.244, 0, 8.169)
-        Rotate rotation=(0, 16.901, 0)
-            Scale scale=(0.8, 0.8, 0.8)
-                Part part=castle_mycelium
+        # Mycelium round its foot
+        Translate translation=(3.24, 0, 8.169)
+            Rotate rotation=(0, 0.098, 0)
+                Scale scale=(0.8, 0.8, 0.8)
+                    Part part=castle_mycelium
 
-    # The keep against the rear wall, its two stairs (mirrored) and the mycelium round its foot
-    Translate translation=(0, 0, -5)
-        Union
-            Part part=castle_keep
-            SymmetryX
-                Part part=castle_stair
-            Scale scale=(1.7, 1.7, 1.7)
-                Part part=castle_mycelium
+        # Joint 1
+        Translate translation=(5.205, 0, 7.208)
+            Rotate rotation=(0, 0.311, 0)
+                Part part=castle_wall_joint
 
-    # Young fly agarics at the wall foot
-    Translate translation=(10.271, 0, 6.403)
-        Rotate rotation=(0, 0.578, 0)
-            Part part=castle_amanitas
+        # Joint 2
+        Translate translation=(8.391, 0, 5.719)
+            Rotate rotation=(0, 0.578, 0)
+                Part part=castle_wall_joint
 
-    # Young fly agarics at the wall foot
-    Translate translation=(8.264, 0, -7.713)
-        Rotate rotation=(0, 3.563, 0)
-            Part part=castle_amanitas
+        # Joint 3
+        Translate translation=(10.929, 0, 3.304)
+            Rotate rotation=(0, 0.974, 0)
+                Part part=castle_wall_joint
 
-    # Young fly agarics at the wall foot
-    Translate translation=(-3.109, 0, -9.388)
-        Rotate rotation=(0, -1.043, 0)
-            Part part=castle_amanitas
+        # Tower at joint 4
+        Translate translation=(12.4, 0, 0)
+            Rotate rotation=(0, 1.571, 0)
+                Rotate rotation=(-0.01, 0, -0.007)
+                    Part part=castle_tower_large
 
-    # Young fly agarics at the wall foot
-    Translate translation=(-8.264, 0, 7.713)
-        Rotate rotation=(0, 2.422, 0)
-            Part part=castle_amanitas
+        # Mycelium round its foot
+        Translate translation=(12.4, 0, 0)
+            Rotate rotation=(0, 5.571, 0)
+                Scale scale=(1, 1, 1)
+                    Part part=castle_mycelium
 
-    # Young fly agarics at the wall foot
-    Translate translation=(-6.836, 0, -8.365)
-        Rotate rotation=(0, 1.169, 0)
-            Part part=castle_amanitas
+        # Joint 5
+        Translate translation=(10.931, 0, -3.301)
+            Rotate rotation=(0, 2.168, 0)
+                Part part=castle_wall_joint
 
-    # Young fly agarics at the wall foot
-    Translate translation=(12.927, 0, 3.211)
-        Rotate rotation=(0, 5.974, 0)
-            Part part=castle_amanitas
+        # Tower at joint 6
+        Translate translation=(8.613, 0, -6.052)
+            Rotate rotation=(0, 2.563, 0)
+                Rotate rotation=(-0.015, 0, -0.004)
+                    Part part=castle_tower_small
 
-    # Window frames on the keep, the towers and the gate turrets (under their rings), see the floor heights above
-    Translate translation=(2.413, 7.200, -3.274)
-        Rotate rotation=(0, 0.950, 0)
-            Part part=castle_window_frame
-    Translate translation=(-2.413, 7.200, -3.274)
-        Rotate rotation=(0, -0.950, 0)
-            Part part=castle_window_frame
-    Translate translation=(1.307, 11.000, -2.608)
-        Rotate rotation=(0, 0.500, 0)
-            Part part=castle_window_frame
-    Translate translation=(-1.307, 11.000, -2.608)
-        Rotate rotation=(0, -0.500, 0)
-            Part part=castle_window_frame
-    Translate translation=(13.607, 7.201, -1.663)
-        Rotate rotation=(0, 2.471, 0)
-            Part part=castle_window_frame
-    Translate translation=(13.608, 7.224, 1.561)
-        Rotate rotation=(0, 0.671, 0)
-            Part part=castle_window_frame
-    Translate translation=(-13.662, 7.193, 1.435)
-        Rotate rotation=(0, -0.671, 0)
-            Part part=castle_window_frame
-    Translate translation=(-13.661, 7.175, -1.523)
-        Rotate rotation=(0, -2.471, 0)
-            Part part=castle_window_frame
-    Translate translation=(8.001, 7.209, -7.566)
-        Rotate rotation=(0, 3.463, 0)
-            Part part=castle_window_frame
-    Translate translation=(10.197, 7.220, -6.131)
-        Rotate rotation=(0, 1.663, 0)
-            Part part=castle_window_frame
-    Translate translation=(-10.303, 7.221, -6.159)
-        Rotate rotation=(0, -1.664, 0)
-            Part part=castle_window_frame
-    Translate translation=(-7.959, 7.207, -7.686)
-        Rotate rotation=(0, -3.464, 0)
-            Part part=castle_window_frame
-    Translate translation=(4.042, 3.878, 9.069)
-        Rotate rotation=(0, 0.698, 0)
-            Part part=castle_window_frame
-    Translate translation=(2.768, 3.901, 9.194)
-        Rotate rotation=(0, -0.502, 0)
-            Part part=castle_window_frame
-    Translate translation=(-2.757, 3.901, 9.233)
-        Rotate rotation=(0, 0.501, 0)
-            Part part=castle_window_frame
-    Translate translation=(-4.078, 3.877, 9.102)
-        Rotate rotation=(0, -0.699, 0)
-            Part part=castle_window_frame
+        # Mycelium round its foot
+        Translate translation=(8.613, 0, -6.052)
+            Rotate rotation=(0, 8.563, 0)
+                Scale scale=(1, 1, 1)
+                    Part part=castle_mycelium
 
-    # Wall shelf fungi on the outer faces of the joints and at the foot of the four large and small towers
-    Translate translation=(5.407, 1.400, 8.846)
-        Rotate rotation=(0, -0.039, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(12.360, 2.600, 3.988)
-        Rotate rotation=(0, 1.274, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(12.337, 1.900, -4.153)
-        Rotate rotation=(0, 2.068, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(5.362, 1.200, -8.854)
-        Rotate rotation=(0, 3.231, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(-1.604, 2.900, -9.461)
-        Rotate rotation=(0, -3.443, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(-12.389, 1.600, -4.084)
-        Rotate rotation=(0, -1.968, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(-12.074, 2.200, 4.425)
-        Rotate rotation=(0, -0.624, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(-5.899, 1.000, 8.751)
-        Rotate rotation=(0, -0.511, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(14.450, 1.814, -0.888)
-        Rotate rotation=(0, 1.971, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(-14.329, 1.770, -0.820)
-        Rotate rotation=(0, -1.971, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(8.764, 1.824, -8.212)
-        Rotate rotation=(0, 3.063, 0)
-            Part part=castle_wall_shelf
-    Translate translation=(-8.764, 1.820, -8.326)
-        Rotate rotation=(0, -3.064, 0)
-            Part part=castle_wall_shelf
+        # Joint 7
+        Translate translation=(5.208, 0, -7.207)
+            Rotate rotation=(0, 2.831, 0)
+                Part part=castle_wall_joint
 
-    # Lanterns: the gate's two on its inner pillars, one on the keep's ring and one each on two towers' rings
-    Translate translation=(1.748, 2.600, 7.334)
-        Rotate rotation=(0, 3.142, 0)
-            Part part=castle_lantern
-    Translate translation=(-1.752, 2.600, 7.334)
-        Rotate rotation=(0, 3.142, 0)
-            Part part=castle_lantern
-    Translate translation=(-3.760, 5.000, -2.016)
-        Rotate rotation=(0, -0.900, 0)
-            Part part=castle_lantern
-    Translate translation=(14.507, 5.040, 2.682)
-        Rotate rotation=(0, 0.671, 0)
-            Part part=castle_lantern
-    Translate translation=(-14.444, 4.989, 2.470)
-        Rotate rotation=(0, -0.671, 0)
-            Part part=castle_lantern
-    Translate translation=(10.452, 5.051, -8.905)
-        Rotate rotation=(0, 2.563, 0)
-            Part part=castle_lantern
+        # Joint 8
+        Translate translation=(1.762, 0, -7.913)
+            Rotate rotation=(0, 3.043, 0)
+                Part part=castle_wall_joint
 
-    # Veils: two on the keep's ring at the front, and one from each large tower's ring on its outer side
-    Translate translation=(-1.413, 5.000, -0.433)
-        Rotate rotation=(0, -0.300, 0)
-            Part part=castle_veil
-    Translate translation=(2.292, 5.000, -0.805)
-        Rotate rotation=(0, 0.500, 0)
-            Part part=castle_veil
-    Translate translation=(15.820, 5.034, -0.036)
-        Rotate rotation=(0, 1.571, 0)
-            Part part=castle_veil
-    Translate translation=(-15.652, 4.958, -0.031)
-        Rotate rotation=(0, -1.571, 0)
-            Part part=castle_veil
+        # Joint 9
+        Translate translation=(-1.758, 0, -7.914)
+            Rotate rotation=(0, -3.043, 0)
+                Part part=castle_wall_joint
+
+        # Joint 10
+        Translate translation=(-5.205, 0, -7.208)
+            Rotate rotation=(0, -2.831, 0)
+                Part part=castle_wall_joint
+
+        # Tower at joint 11
+        Translate translation=(-8.61, -0.318, -6.054)
+            Rotate rotation=(0, -2.564, 0)
+                Rotate rotation=(-0.013, 0, 0.005)
+                    Scale scale=(1.06, 1.06, 1.06)
+                        Part part=castle_tower_small
+
+        # Mycelium round its foot
+        Translate translation=(-8.61, 0, -6.054)
+            Rotate rotation=(0, 8.436, 0)
+                Scale scale=(1, 1, 1)
+                    Part part=castle_mycelium
+
+        # Joint 12
+        Translate translation=(-10.929, 0, -3.304)
+            Rotate rotation=(0, -2.168, 0)
+                Part part=castle_wall_joint
+
+        # Tower at joint 13
+        Translate translation=(-12.4, 0.424, -0.003)
+            Rotate rotation=(0, -1.571, 0)
+                Rotate rotation=(0.013, 0, 0.006)
+                    Scale scale=(0.92, 0.92, 0.92)
+                        Part part=castle_tower_large
+
+        # Mycelium round its foot
+        Translate translation=(-12.4, 0, -0.003)
+            Rotate rotation=(0, 11.429, 0)
+                Scale scale=(1, 1, 1)
+                    Part part=castle_mycelium
+
+        # Joint 14
+        Translate translation=(-10.931, 0, 3.301)
+            Rotate rotation=(0, -0.974, 0)
+                Part part=castle_wall_joint
+
+        # Joint 15
+        Translate translation=(-8.394, 0, 5.717)
+            Rotate rotation=(0, -0.578, 0)
+                Part part=castle_wall_joint
+
+        # Joint 16
+        Translate translation=(-5.208, 0, 7.207)
+            Rotate rotation=(0, -0.311, 0)
+                Part part=castle_wall_joint
+
+        # Tower at joint 17
+        Translate translation=(-3.244, -0.212, 8.169)
+            Rotate rotation=(0, -0.099, 0)
+                Rotate rotation=(0.01, 0, 0.018)
+                    Scale scale=(1.04, 1.04, 1.04)
+                        Part part=castle_gate_turret
+
+        # Mycelium round its foot
+        Translate translation=(-3.244, 0, 8.169)
+            Rotate rotation=(0, 16.901, 0)
+                Scale scale=(0.8, 0.8, 0.8)
+                    Part part=castle_mycelium
+
+        # The keep against the rear wall, its two stairs (mirrored) and the mycelium round its foot
+        Translate translation=(0, 0, -5)
+            Union
+                Part part=castle_keep
+                SymmetryX
+                    Part part=castle_stair
+                Scale scale=(1.7, 1.7, 1.7)
+                    Part part=castle_mycelium
+
+        # More mycelium: roots out over the ground from every joint's foot, across the courtyard and before the gate
+        Translate translation=(5.205, 0, 7.208)
+            Rotate rotation=(0, 0.711, 0)
+                Scale scale=(0.9, 0.9, 0.9)
+                    Part part=castle_mycelium
+        Translate translation=(8.391, 0, 5.719)
+            Rotate rotation=(0, 2.078, 0)
+                Scale scale=(0.75, 0.75, 0.75)
+                    Part part=castle_mycelium
+        Translate translation=(10.929, 0, 3.304)
+            Rotate rotation=(0, 3.574, 0)
+                Scale scale=(1.0, 1.0, 1.0)
+                    Part part=castle_mycelium
+        Translate translation=(10.931, 0, -3.301)
+            Rotate rotation=(0, 5.868, 0)
+                Scale scale=(0.85, 0.85, 0.85)
+                    Part part=castle_mycelium
+        Translate translation=(5.208, 0, -7.207)
+            Rotate rotation=(0, 7.631, 0)
+                Scale scale=(0.95, 0.95, 0.95)
+                    Part part=castle_mycelium
+        Translate translation=(1.762, 0, -7.913)
+            Rotate rotation=(0, 8.943, 0)
+                Scale scale=(0.8, 0.8, 0.8)
+                    Part part=castle_mycelium
+        Translate translation=(-1.758, 0, -7.914)
+            Rotate rotation=(0, 3.957, 0)
+                Scale scale=(0.9, 0.9, 0.9)
+                    Part part=castle_mycelium
+        Translate translation=(-5.205, 0, -7.208)
+            Rotate rotation=(0, 5.269, 0)
+                Scale scale=(0.75, 0.75, 0.75)
+                    Part part=castle_mycelium
+        Translate translation=(-10.929, 0, -3.304)
+            Rotate rotation=(0, 7.032, 0)
+                Scale scale=(1.0, 1.0, 1.0)
+                    Part part=castle_mycelium
+        Translate translation=(-10.931, 0, 3.301)
+            Rotate rotation=(0, 9.326, 0)
+                Scale scale=(0.85, 0.85, 0.85)
+                    Part part=castle_mycelium
+        Translate translation=(-8.394, 0, 5.717)
+            Rotate rotation=(0, 10.822, 0)
+                Scale scale=(0.95, 0.95, 0.95)
+                    Part part=castle_mycelium
+        Translate translation=(-5.208, 0, 7.207)
+            Rotate rotation=(0, 12.189, 0)
+                Scale scale=(0.8, 0.8, 0.8)
+                    Part part=castle_mycelium
+        Translate translation=(-5.5, 0, 1.5)
+            Rotate rotation=(0, 0.7, 0)
+                Scale scale=(0.9, 0.9, 0.9)
+                    Part part=castle_mycelium
+        Translate translation=(5.8, 0, 0.8)
+            Rotate rotation=(0, 2.6, 0)
+                Scale scale=(0.85, 0.85, 0.85)
+                    Part part=castle_mycelium
+        Translate translation=(0.4, 0, 3.6)
+            Rotate rotation=(0, 4.1, 0)
+                Scale scale=(0.7, 0.7, 0.7)
+                    Part part=castle_mycelium
+        Translate translation=(-1.2, 0, 11.2)
+            Rotate rotation=(0, 1.9, 0)
+                Scale scale=(0.8, 0.8, 0.8)
+                    Part part=castle_mycelium
+        Translate translation=(2.3, 0, 11.6)
+            Rotate rotation=(0, 5.3, 0)
+                Scale scale=(0.7, 0.7, 0.7)
+                    Part part=castle_mycelium
+        Translate translation=(9.8, 0, -1.2)
+            Rotate rotation=(0, 3.4, 0)
+                Scale scale=(0.8, 0.8, 0.8)
+                    Part part=castle_mycelium
+        Translate translation=(-9.5, 0, 0.9)
+            Rotate rotation=(0, 6.0, 0)
+                Scale scale=(0.8, 0.8, 0.8)
+                    Part part=castle_mycelium
+
+        # Young fly agarics at the wall foot
+        Translate translation=(10.271, 0, 6.403)
+            Rotate rotation=(0, 0.578, 0)
+                Part part=castle_amanitas
+
+        # Young fly agarics at the wall foot
+        Translate translation=(8.264, 0, -7.713)
+            Rotate rotation=(0, 3.563, 0)
+                Part part=castle_amanitas
+
+        # Young fly agarics at the wall foot
+        Translate translation=(-3.109, 0, -9.388)
+            Rotate rotation=(0, -1.043, 0)
+                Part part=castle_amanitas
+
+        # Young fly agarics at the wall foot
+        Translate translation=(-8.264, 0, 7.713)
+            Rotate rotation=(0, 2.422, 0)
+                Part part=castle_amanitas
+
+        # Young fly agarics at the wall foot
+        Translate translation=(-6.836, 0, -8.365)
+            Rotate rotation=(0, 1.169, 0)
+                Part part=castle_amanitas
+
+        # Young fly agarics at the wall foot
+        Translate translation=(12.927, 0, 3.211)
+            Rotate rotation=(0, 5.974, 0)
+                Part part=castle_amanitas
+
+        # Wall shelf fungi on the outer faces of the joints and at the foot of the four large and small towers
+        Translate translation=(5.407, 1.400, 8.846)
+            Rotate rotation=(0, -0.039, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(12.360, 2.600, 3.988)
+            Rotate rotation=(0, 1.274, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(12.337, 1.900, -4.153)
+            Rotate rotation=(0, 2.068, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(5.362, 1.200, -8.854)
+            Rotate rotation=(0, 3.231, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(-1.604, 2.900, -9.461)
+            Rotate rotation=(0, -3.443, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(-12.389, 1.600, -4.084)
+            Rotate rotation=(0, -1.968, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(-12.074, 2.200, 4.425)
+            Rotate rotation=(0, -0.624, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(-5.899, 1.000, 8.751)
+            Rotate rotation=(0, -0.511, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(14.450, 1.814, -0.888)
+            Rotate rotation=(0, 1.971, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(-14.329, 1.770, -0.820)
+            Rotate rotation=(0, -1.971, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(8.764, 1.824, -8.212)
+            Rotate rotation=(0, 3.063, 0)
+                Part part=castle_wall_shelf
+        Translate translation=(-8.764, 1.820, -8.326)
+            Rotate rotation=(0, -3.064, 0)
+                Part part=castle_wall_shelf
+
+        # Lanterns: the gate's two on its inner pillars, one on the keep's ring and one each on two towers' rings
+        Translate translation=(1.748, 2.600, 7.334)
+            Rotate rotation=(0, 3.142, 0)
+                Part part=castle_lantern
+        Translate translation=(-1.752, 2.600, 7.334)
+            Rotate rotation=(0, 3.142, 0)
+                Part part=castle_lantern
+        Translate translation=(-3.760, 5.000, -2.016)
+            Rotate rotation=(0, -0.900, 0)
+                Part part=castle_lantern
+        Translate translation=(14.507, 5.040, 2.682)
+            Rotate rotation=(0, 0.671, 0)
+                Part part=castle_lantern
+        Translate translation=(-14.444, 4.989, 2.470)
+            Rotate rotation=(0, -0.671, 0)
+                Part part=castle_lantern
+        Translate translation=(10.452, 5.051, -8.905)
+            Rotate rotation=(0, 2.563, 0)
+                Part part=castle_lantern
+
+        # Veils: two on the keep's ring at the front, and one from each large tower's ring on its outer side
+        Translate translation=(-1.413, 5.000, -0.433)
+            Rotate rotation=(0, -0.300, 0)
+                Part part=castle_veil
+        Translate translation=(2.292, 5.000, -0.805)
+            Rotate rotation=(0, 0.500, 0)
+                Part part=castle_veil
+        Translate translation=(15.820, 5.034, -0.036)
+            Rotate rotation=(0, 1.571, 0)
+                Part part=castle_veil
+        Translate translation=(-15.652, 4.958, -0.031)
+            Rotate rotation=(0, -1.571, 0)
+                Part part=castle_veil
 

@@ -1,0 +1,23 @@
+# Team blue sprig 0 (ticket 19): three small mushrooms 0.2 to 0.4 m tall in a row 0.65 m long and 0.35 m deep (x along the row),
+# small enough for the parapet's top between two merlons and the outer rim of a tower's ring, where they leave the walk free. In
+# the east side's colours, bluish: cobalt caps glowing a little; the same layout as team-red-sprig0 in the other side's. Only uses
+# of the team_blue_* parts, so each mushroom is meshed once and the level draws them instanced with the castle's parts. Small and
+# decorative: no collider.
+format 1
+collider none
+
+# Half the cells their size would give them, as the fairy rings have it: small, simple forms, and many stand round each castle
+Detail detail=0.5
+    Union
+        Translate translation=(0, 0, 0)
+            Rotate rotation=(0, 0.5, 0)
+                Scale scale=(0.9, 0.9, 0.9)
+                    Part part=team_blue_button
+        Translate translation=(0.17, 0, 0.02)
+            Rotate rotation=(0, 2, 0)
+                Scale scale=(0.7, 0.7, 0.7)
+                    Part part=team_blue_dome
+        Translate translation=(-0.17, 0, -0.02)
+            Rotate rotation=(0, 4.1, 0)
+                Scale scale=(0.65, 0.65, 0.65)
+                    Part part=team_blue_button

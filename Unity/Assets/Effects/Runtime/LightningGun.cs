@@ -53,6 +53,21 @@ namespace SdfEffects
 
         public bool Active => time >= 0 && time < duration;
 
+        private Vector3 strikePoint;
+        private Vector3 strikeNormal;
+
+        /// <summary>
+        /// Fires at a point the game found itself (ticket 22's electro-gun) rather than at <see cref="target"/>: the bolt ends there,
+        /// on a surface facing <paramref name="normal"/>. Clears the target.
+        /// </summary>
+        public void Strike(Vector3 point, Vector3 normal)
+        {
+            target = null;
+            strikePoint = point;
+            strikeNormal = normal;
+            Fire();
+        }
+
         public override void Fire()
         {
             // Firing again while it lasts keeps it going
@@ -108,18 +123,27 @@ namespace SdfEffects
         {
             shown = Random.Value > 0.1f || time < flickerInterval;
             var start = muzzle.position;
-            // A point on the target's surface near its middle, found along the line to it
-            var bounds = target.bounds;
-            var aim = bounds.center + Vector3.Scale(bounds.extents, Random.InsideUnitSphere) * 0.35f;
-            if (target.Raycast(new Ray(start, aim - start), out var hitInfo, 1000))
+            if (target == null)
             {
-                hit = hitInfo.point;
-                hitNormal = hitInfo.normal;
+                // A point given by Strike
+                hit = strikePoint;
+                hitNormal = strikeNormal;
             }
             else
             {
-                hit = aim;
-                hitNormal = (start - aim).normalized;
+                // A point on the target's surface near its middle, found along the line to it
+                var bounds = target.bounds;
+                var aim = bounds.center + Vector3.Scale(bounds.extents, Random.InsideUnitSphere) * 0.35f;
+                if (target.Raycast(new Ray(start, aim - start), out var hitInfo, 1000))
+                {
+                    hit = hitInfo.point;
+                    hitNormal = hitInfo.normal;
+                }
+                else
+                {
+                    hit = aim;
+                    hitNormal = (start - aim).normalized;
+                }
             }
 
             bolt[0] = start;

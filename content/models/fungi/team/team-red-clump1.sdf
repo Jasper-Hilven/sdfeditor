@@ -1,0 +1,46 @@
+# Team red clump 1 (ticket 19): a large clump of nine mushrooms 0.4 to 1.9 m tall, about 3.5 m across, for either side of the gate
+# and the plateau round the castle. In the west side's colours, reddish: warm coral-scarlet caps with cream flecks; the same
+# layout as team-blue-clump1 in the other side's. Only uses of the team_red_* parts, so each mushroom is meshed once and the level
+# draws them instanced with the castle's parts. Small and decorative: no collider.
+format 1
+collider none
+
+# Half the cells their size would give them, as the fairy rings have it: small, simple forms, and many stand round each castle
+Detail detail=0.5
+    Union
+        Translate translation=(0, 0, 0)
+            Rotate rotation=(0, 0.4, 0)
+                Scale scale=(3.4, 3.4, 3.4)
+                    Part part=team_red_dome
+        Translate translation=(0.85, 0, 0.45)
+            Rotate rotation=(0, 1.6, 0)
+                Scale scale=(3, 3, 3)
+                    Part part=team_red_bell
+        Translate translation=(-0.9, 0, 0.55)
+            Rotate rotation=(0, 2.3, 0)
+                Scale scale=(2.4, 2.4, 2.4)
+                    Part part=team_red_dome
+        Translate translation=(-0.2, 0, -1)
+            Rotate rotation=(0, 3.7, 0)
+                Scale scale=(2.2, 2.2, 2.2)
+                    Part part=team_red_bell
+        Translate translation=(0.75, 0, -0.75)
+            Rotate rotation=(0, 4.9, 0)
+                Scale scale=(2.6, 2.6, 2.6)
+                    Part part=team_red_button
+        Translate translation=(1.5, 0, -0.1)
+            Rotate rotation=(0, 5.6, 0)
+                Scale scale=(1.7, 1.7, 1.7)
+                    Part part=team_red_dome
+        Translate translation=(-1.4, 0, -0.35)
+            Rotate rotation=(0, 0.9, 0)
+                Scale scale=(1.8, 1.8, 1.8)
+                    Part part=team_red_button
+        Translate translation=(-0.1, 0, 1.25)
+            Rotate rotation=(0, 2.9, 0)
+                Scale scale=(1.5, 1.5, 1.5)
+                    Part part=team_red_bell
+        Translate translation=(1.25, 0, 1)
+            Rotate rotation=(0, 4.2, 0)
+                Scale scale=(1.4, 1.4, 1.4)
+                    Part part=team_red_button

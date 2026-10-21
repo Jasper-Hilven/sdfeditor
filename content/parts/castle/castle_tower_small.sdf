@@ -1,6 +1,6 @@
 # Castle tower, small: a fly agaric 9.5 m tall with a 3.3 m cap, flanking the keep.
 # Modelled at an eighth of its size and scaled up, so the cap's white flecks and the stem's fibres come out at the size they have on
-# the fly agaric scout. Base at y = 0, the side with the windows towards +z (out of the castle). The ring's flat top is at
+# the fly agaric scout. Base at y = 0, the side that faces out of the castle towards +z. The ring's flat top is at
 # 5.3 m, 30 cm above the wall-walk (the floor heights are in castle0.sdf), a balcony round the stem that the walk runs onto; the
 # layout may scale a tower up only if it sinks it by as much as the ring rose.
 format 1
@@ -25,13 +25,6 @@ Detail detail=0.4
                         Translate translation=(0, 0.6325, 0)
                             Round radius=0.004
                                 CappedCone height=0.016 bottomRadius=0.43 topRadius=0.44
-                # Glowing round windows on the side facing out
-                Material material=flower_center
-                    Union
-                        Translate translation=(0, 0.3, 0.259)
-                            Ellipsoid radii=(0.045, 0.06, 0.03)
-                        Translate translation=(0, 0.934, 0.199)
-                            Ellipsoid radii=(0.04, 0.055, 0.03)
                 Material material=amanita_gills
                     Translate translation=(0, 1.2, 0)
                         CappedCylinder radius=0.384 height=0.012

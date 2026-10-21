@@ -9,8 +9,8 @@ namespace SdfPickups.Editor
 {
     /// <summary>
     /// Builds the two flag stand prefabs, Assets/Pickups/Flags/flag-stand-west.prefab and flag-stand-east.prefab, from the prefabs of
-    /// content/models/pickups/flag-stand.sdf and the side's flag (flag-red.sdf for the west, flag-gold.sdf for the east, the colours of
-    /// the amanita and chanterelle scouts). A flag stand prefab reads, from the root down:
+    /// content/models/pickups/flag-stand.sdf and the side's flag (flag-red.sdf for the west, flag-blue.sdf for the east, the colours of
+    /// the amanita and chanterelle scouts: red and blue). A flag stand prefab reads, from the root down:
     /// <code>
     /// flag-stand-west     FlagStand (side, the Flag child, its home pose)
     ///   Stand             the flag-stand prefab: the 25 cm base with its convex collider, to walk onto, and the socket
@@ -29,7 +29,7 @@ namespace SdfPickups.Editor
         public const string StandModel = "flag-stand";
 
         /// <summary>Raise when the way stands are built changes, so every stand is rebuilt when the editor loads.</summary>
-        public const int BuilderVersion = 1;
+        public const int BuilderVersion = 2;
 
         /// <summary>The stand's height (the top of the socket collar) if its mesh is not there to measure.</summary>
         public const float DefaultStandHeight = 0.3f;
@@ -41,7 +41,7 @@ namespace SdfPickups.Editor
         public static readonly IReadOnlyList<(BattleSideId side, string flagModel)> Sides = new[]
         {
             (BattleSideId.West, "flag-red"),
-            (BattleSideId.East, "flag-gold"),
+            (BattleSideId.East, "flag-blue"),
         };
 
         private static string Stamp => $"sdf-flag-stand {BuilderVersion}";

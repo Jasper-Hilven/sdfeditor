@@ -1,0 +1,384 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97a5014355cbe4507a1c2ad101857ef0, type: 3}
+  m_Name: Weapons
+  m_EditorClassIdentifier: Assembly-CSharp::SdfBattle.WeaponTableAsset
+  table:
+    headHeight: 1.2
+    healthPack: 40
+    overheal: 200
+    weapons:
+    - id: pistol
+      displayName: Pistol
+      slot: 0
+      mode: 0
+      shotsPerSecond: 2.5
+      spinUp: 0
+      burstSeconds: 0
+      spinDown: 0
+      drawSeconds: 0.25
+      damage: 12
+      headDamage: 0
+      falloffStart: 20
+      falloffEnd: 40
+      falloffMin: 0.5
+      range: 120
+      spread: 0.4
+      spreadGrowth: 0
+      spreadMax: 0
+      zoomedSpread: 0
+      zoomFieldOfView: 0
+      chainRange: 0
+      chainDamage: 0
+      chainJumps: 2
+      coneAngle: 0
+      burnPerSecond: 0
+      burnSeconds: 0
+      projectileSpeed: 0
+      projectileLift: 0
+      projectileGravity: 9.8
+      areaRadius: 0
+      areaSeconds: 0
+      slow: 0
+      slowSeconds: 0
+    - id: dual-pistols
+      displayName: Dual Pistols
+      slot: 0
+      mode: 0
+      shotsPerSecond: 5
+      spinUp: 0
+      burstSeconds: 0
+      spinDown: 0
+      drawSeconds: 0.25
+      damage: 12
+      headDamage: 0
+      falloffStart: 20
+      falloffEnd: 40
+      falloffMin: 0.5
+      range: 120
+      spread: 1.2
+      spreadGrowth: 0
+      spreadMax: 0
+      zoomedSpread: 0
+      zoomFieldOfView: 0
+      chainRange: 0
+      chainDamage: 0
+      chainJumps: 2
+      coneAngle: 0
+      burnPerSecond: 0
+      burnSeconds: 0
+      projectileSpeed: 0
+      projectileLift: 0
+      projectileGravity: 9.8
+      areaRadius: 0
+      areaSeconds: 0
+      slow: 0
+      slowSeconds: 0
+    - id: minigun
+      displayName: Minigun
+      slot: 1
+      mode: 0
+      shotsPerSecond: 14
+      spinUp: 0.6
+      burstSeconds: 3
+      spinDown: 0.6
+      drawSeconds: 0.4
+      damage: 7
+      headDamage: 0
+      falloffStart: 35
+      falloffEnd: 60
+      falloffMin: 0.4
+      range: 120
+      spread: 0.8
+      spreadGrowth: 1.5
+      spreadMax: 4.5
+      zoomedSpread: 0
+      zoomFieldOfView: 0
+      chainRange: 0
+      chainDamage: 0
+      chainJumps: 2
+      coneAngle: 0
+      burnPerSecond: 0
+      burnSeconds: 0
+      projectileSpeed: 0
+      projectileLift: 0
+      projectileGravity: 9.8
+      areaRadius: 0
+      areaSeconds: 0
+      slow: 0
+      slowSeconds: 0
+    - id: sniper
+      displayName: Sniper
+      slot: 2
+      mode: 0
+      shotsPerSecond: 0.71428573
+      spinUp: 0
+      burstSeconds: 0
+      spinDown: 0
+      drawSeconds: 0.4
+      damage: 85
+      headDamage: 120
+      falloffStart: 1000
+      falloffEnd: 1000
+      falloffMin: 1
+      range: 250
+      spread: 5
+      spreadGrowth: 0
+      spreadMax: 0
+      zoomedSpread: 0
+      zoomFieldOfView: 20
+      chainRange: 0
+      chainDamage: 0
+      chainJumps: 2
+      coneAngle: 0
+      burnPerSecond: 0
+      burnSeconds: 0
+      projectileSpeed: 0
+      projectileLift: 0
+      projectileGravity: 9.8
+      areaRadius: 0
+      areaSeconds: 0
+      slow: 0
+      slowSeconds: 0
+    - id: electro-gun
+      displayName: Electro Gun
+      slot: 2
+      mode: 1
+      shotsPerSecond: 1.2
+      spinUp: 0
+      burstSeconds: 0
+      spinDown: 0
+      drawSeconds: 0.3
+      damage: 40
+      headDamage: 0
+      falloffStart: 1000
+      falloffEnd: 1000
+      falloffMin: 1
+      range: 60
+      spread: 0.2
+      spreadGrowth: 0
+      spreadMax: 0
+      zoomedSpread: 0
+      zoomFieldOfView: 0
+      chainRange: 6
+      chainDamage: 20
+      chainJumps: 2
+      coneAngle: 0
+      burnPerSecond: 0
+      burnSeconds: 0
+      projectileSpeed: 0
+      projectileLift: 0
+      projectileGravity: 9.8
+      areaRadius: 0
+      areaSeconds: 0
+      slow: 0
+      slowSeconds: 0
+    - id: flamethrower
+      displayName: Flamethrower
+      slot: 3
+      mode: 2
+      shotsPerSecond: 10
+      spinUp: 0
+      burstSeconds: 0
+      spinDown: 0
+      drawSeconds: 0.3
+      damage: 70
+      headDamage: 0
+      falloffStart: 1000
+      falloffEnd: 1000
+      falloffMin: 1
+      range: 8
+      spread: 0
+      spreadGrowth: 0
+      spreadMax: 0
+      zoomedSpread: 0
+      zoomFieldOfView: 0
+      chainRange: 0
+      chainDamage: 0
+      chainJumps: 2
+      coneAngle: 14
+      burnPerSecond: 10
+      burnSeconds: 2
+      projectileSpeed: 0
+      projectileLift: 0
+      projectileGravity: 9.8
+      areaRadius: 0
+      areaSeconds: 0
+      slow: 0
+      slowSeconds: 0
+    - id: poison-gun
+      displayName: Poison Gun
+      slot: 3
+      mode: 3
+      shotsPerSecond: 0.8
+      spinUp: 0
+      burstSeconds: 0
+      spinDown: 0
+      drawSeconds: 0.3
+      damage: 18
+      headDamage: 0
+      falloffStart: 1000
+      falloffEnd: 1000
+      falloffMin: 1
+      range: 30
+      spread: 0
+      spreadGrowth: 0
+      spreadMax: 0
+      zoomedSpread: 0
+      zoomFieldOfView: 0
+      chainRange: 0
+      chainDamage: 0
+      chainJumps: 2
+      coneAngle: 0
+      burnPerSecond: 3
+      burnSeconds: 10
+      projectileSpeed: 17
+      projectileLift: 8
+      projectileGravity: 9.8
+      areaRadius: 3
+      areaSeconds: 5
+      slow: 0.25
+      slowSeconds: 10
+    - id: blob-gun
+      displayName: Blob Gun
+      slot: 3
+      mode: 4
+      shotsPerSecond: 1.25
+      spinUp: 0
+      burstSeconds: 0
+      spinDown: 0
+      drawSeconds: 0.3
+      damage: 35
+      headDamage: 0
+      falloffStart: 1000
+      falloffEnd: 1000
+      falloffMin: 1
+      range: 40
+      spread: 1
+      spreadGrowth: 0
+      spreadMax: 0
+      zoomedSpread: 0
+      zoomFieldOfView: 0
+      chainRange: 0
+      chainDamage: 0
+      chainJumps: 2
+      coneAngle: 0
+      burnPerSecond: 0
+      burnSeconds: 0
+      projectileSpeed: 22
+      projectileLift: 5
+      projectileGravity: 12
+      areaRadius: 1.2
+      areaSeconds: 5
+      slow: 0.4
+      slowSeconds: 2
+  looks:
+  - id: pistol
+    model: {fileID: 1447486972918508816, guid: db12b8c94e47d409ebce8405168632f3, type: 3}
+    muzzle: {x: 0, y: 0.128, z: 0.105}
+    grip: {x: 0, y: 0.052, z: -0.058}
+    viewGrip: {x: 0.17, y: -0.2, z: 0.36}
+    viewYaw: -4
+    handScale: 0.85
+    tracer: {r: 1, g: 0.55, b: 0.1, a: 1}
+    tracerWidth: 0.05
+    tracerLength: 1.4
+    tracerSpeed: 110
+    tracerTrail: 0
+    flashSize: 0.09
+  - id: minigun
+    model: {fileID: 9128549333348539538, guid: af8673b19b831445da043ef2280f2f15, type: 3}
+    muzzle: {x: 0, y: 0.135, z: 1}
+    grip: {x: 0, y: 0.1, z: -0.45}
+    viewGrip: {x: 0.2, y: -0.36, z: 0.25}
+    viewYaw: -3
+    handScale: 0.7
+    tracer: {r: 1, g: 0.3, b: 0.05, a: 1}
+    tracerWidth: 0.045
+    tracerLength: 2.2
+    tracerSpeed: 140
+    tracerTrail: 0
+    flashSize: 0.13
+  - id: sniper
+    model: {fileID: 706373311264400779, guid: d48764437a93e484d8728ea2de4b6afb, type: 3}
+    muzzle: {x: 0, y: 0.172, z: 0.69}
+    grip: {x: 0, y: 0.1, z: -0.15}
+    viewGrip: {x: 0.17, y: -0.24, z: 0.3}
+    viewYaw: -2
+    handScale: 0.8
+    tracer: {r: 0.3, g: 0.7, b: 1, a: 1}
+    tracerWidth: 0.065
+    tracerLength: 6
+    tracerSpeed: 320
+    tracerTrail: 0.7
+    flashSize: 0.12
+  - id: electro-gun
+    model: {fileID: 6668855610617195490, guid: 551aa8404b2054acaa34559235ee861a, type: 3}
+    muzzle: {x: 0, y: 0.13, z: 0.34}
+    grip: {x: 0, y: 0.055, z: -0.152}
+    viewGrip: {x: 0.18, y: -0.22, z: 0.32}
+    viewYaw: -4
+    handScale: 0.85
+    tracer: {r: 0.25, g: 0.75, b: 1, a: 1}
+    tracerWidth: 0.05
+    tracerLength: 1.4
+    tracerSpeed: 110
+    tracerTrail: 0
+    flashSize: 0.09
+  - id: flamethrower
+    model: {fileID: 7284130457218151961, guid: 0c20b8112e7814c8db66816d56712ea8, type: 3}
+    muzzle: {x: 0, y: 0.17, z: 0.53}
+    grip: {x: 0, y: 0.11, z: -0.11}
+    viewGrip: {x: 0.18, y: -0.28, z: 0.3}
+    viewYaw: -4
+    handScale: 0.85
+    tracer: {r: 1, g: 0.45, b: 0.08, a: 1}
+    tracerWidth: 0.05
+    tracerLength: 1.4
+    tracerSpeed: 110
+    tracerTrail: 0
+    flashSize: 0.09
+  - id: poison-gun
+    model: {fileID: 2249194378733773294, guid: 20df9287ea5274c2890765fdaa0cc26b, type: 3}
+    muzzle: {x: 0, y: 0.125, z: 0.34}
+    grip: {x: 0, y: 0.06, z: -0.14}
+    viewGrip: {x: 0.18, y: -0.24, z: 0.32}
+    viewYaw: -4
+    handScale: 0.85
+    tracer: {r: 0.5, g: 0.9, b: 0.2, a: 1}
+    tracerWidth: 0.05
+    tracerLength: 1.4
+    tracerSpeed: 110
+    tracerTrail: 0
+    flashSize: 0.09
+  - id: blob-gun
+    model: {fileID: 270822340050117207, guid: 481453e6f7acf46ebbe2bef7457ad51a, type: 3}
+    muzzle: {x: 0, y: 0.135, z: 0.25}
+    grip: {x: 0, y: 0.055, z: -0.1}
+    viewGrip: {x: 0.18, y: -0.24, z: 0.33}
+    viewYaw: -4
+    handScale: 0.85
+    tracer: {r: 0.85, g: 0.18, b: 0.65, a: 1}
+    tracerWidth: 0.05
+    tracerLength: 1.4
+    tracerSpeed: 110
+    tracerTrail: 0
+    flashSize: 0.09
+  viewScale: 0.3
+  effectMaterial: {fileID: 2100000, guid: 010961ff580ef423fa33e63ffc2f6e22, type: 2}
+  blobModels:
+  - {fileID: 5815587023978100201, guid: e14375fafeb5948698b445fc74b07bb0, type: 3}
+  - {fileID: 8610068012018275843, guid: 817a9dd04193b46a2b04ea5f1819a510, type: 3}
+  - {fileID: 1443822926806600287, guid: cf1019a51ad9e4710bf7ad3a2912cdb4, type: 3}
+  splatModels:
+  - {fileID: 2338780862715088327, guid: e8c02887cc4b349a4925485914b41221, type: 3}
+  - {fileID: 7253036791891702097, guid: 09315b1bca5904867bc687027cc80654, type: 3}

@@ -93,6 +93,7 @@ Shader "SdfMushrooms/Toon"
             #include "SdfSurface.hlsl"
             #include "SdfToon.hlsl"
             #include "SdfPattern.hlsl"
+            #include "SdfStaticShadow.hlsl"
             #pragma vertex Vert
             #pragma fragment Frag
 
@@ -175,8 +176,14 @@ Shader "SdfMushrooms/Toon"
                     tint = _MainLightColor.rgb / brightest;
                     if (dot(n, l) > 0.0)
                     {
-                        Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS), input.positionWS, half4(1, 1, 1, 1));
-                        shadow = light.shadowAttenuation;
+                        // The level's fixed sun shadow where there is one (SdfStaticShadow.hlsl), else the light's cascades
+                        if (SdfStaticShadowOn())
+                            shadow = SdfStaticShadow(input.positionWS);
+                        else
+                        {
+                            Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS), input.positionWS, half4(1, 1, 1, 1));
+                            shadow = light.shadowAttenuation;
+                        }
                     }
                 }
 

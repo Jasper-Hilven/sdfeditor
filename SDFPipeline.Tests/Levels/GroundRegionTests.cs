@@ -178,7 +178,7 @@ public class GroundRegionTests
                 [
                     new Placement("castle", new Vector2(-4, 1), 90, 1, 5, 3, "tiles", 1, 1),
                     new Placement("grass-rock", new Vector2(6, -2), -30, 1.5f, 0, 3, null, 1, 2),
-                    new Placement("castle", new Vector2(4, 1), -90, 1, 0, 3, null, 1, 3),
+                    new Placement("castle", new Vector2(4, 1), -90, 1, 0, 3, null, 1, 3) { Y = 5.5f },
                 ],
             };
             var materials = MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default)
@@ -201,6 +201,9 @@ public class GroundRegionTests
             Assert.Equal([6, terrain.Height(6, -2), -2], position);
             Assert.Equal(-30, placements[1].GetProperty("yaw").GetSingle());
             Assert.Equal(1.5f, placements[1].GetProperty("scale").GetSingle());
+            // A placement with a y stands that far above the ground
+            var lifted = placements[2].GetProperty("position").EnumerateArray().Select(v => v.GetSingle()).ToArray();
+            Assert.Equal([4, terrain.Height(4, 1) + 5.5f, 1], lifted);
             Assert.Equal(["grass", "dirt", "tiles"], document.GetProperty("materials").EnumerateObject().Select(p => p.Name));
             var channels = document.GetProperty("regions").GetProperty("channels").EnumerateArray().ToArray();
             Assert.Equal(["dirt", "tiles"], channels.Select(c => c.GetProperty("name").GetString()));
@@ -283,9 +286,10 @@ public class GroundRegionTests
         var castle = models("castle0");
 
         Assert.NotNull(castle);
-        // About 31 × 21 m within its wall, its gate towards +z; the mycelium and young fly agarics outside the wall add a few metres
+        // About 31 × 21 m within its wall, its gate towards +z; the mycelium and young fly agarics outside the wall add a few metres,
+        // the roots before the gate most of all
         Assert.InRange(castle.Size.X, 30, 38);
-        Assert.InRange(castle.Size.Y, 20, 29);
+        Assert.InRange(castle.Size.Y, 20, 34);
         Assert.NotNull(models("amanita-scout"));
         Assert.Null(models("no-such-model"));
     }

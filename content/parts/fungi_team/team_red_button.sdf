@@ -1,0 +1,18 @@
+# Team red button (ticket 19): a young mushroom 0.25 m tall for the west castle's side, a round warm coral-scarlet cap still closed
+# over a short, thick stem; the shape of team_blue_button in the other side's colour. Its stem goes on
+# 10 cm below the origin. Placed many times by the team mushroom models.
+format 1
+collider none
+shadows near
+
+Union
+    Material material=team_red_stem
+        Translate translation=(0, 0.04, 0)
+            CappedCone height=0.14 bottomRadius=0.06 topRadius=0.05
+    Material material=team_red_cap
+        Round radius=0.01
+            Intersection
+                Translate translation=(0, 0.14, 0)
+                    Ellipsoid radii=(0.13, 0.11, 0.13)
+                Translate translation=(0, 0.3, 0)
+                    Box size=(0.5, 0.18, 0.5)

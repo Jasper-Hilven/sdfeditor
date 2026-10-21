@@ -1,0 +1,27 @@
+# Team blue dome (ticket 19): a mushroom 0.55 m tall for the east castle's side, a round cobalt blue, glowing a little cap 0.46 m across on a stout
+# fibrous stem with a little bulb, gills under the cap; the shape of team_red_dome in the other side's colour.
+# Its stem goes on 10 cm below the origin, so it stands on a domed tower cap or uneven ground without a gap. Made to be placed many
+# times (turned and scaled) by the team mushroom models, so each is meshed once and drawn per use.
+format 1
+collider none
+shadows near
+# (CappedCone's and CappedCylinder's height is the half height; Box's size is half the size.)
+
+Union
+    Material material=team_blue_stem
+        SmoothUnion smoothness=0.03
+            Translate translation=(0, 0.15, 0)
+                CappedCone height=0.25 bottomRadius=0.06 topRadius=0.042
+            Translate translation=(0, 0.01, 0)
+                Ellipsoid radii=(0.075, 0.05, 0.075)
+    Material material=team_blue_gills
+        Translate translation=(0, 0.39, 0)
+            CappedCylinder radius=0.2 height=0.012
+    # The cap: the top of a squat ellipsoid, its rim a little rounded
+    Material material=team_blue_cap
+        Round radius=0.01
+            Intersection
+                Translate translation=(0, 0.38, 0)
+                    Ellipsoid radii=(0.22, 0.16, 0.22)
+                Translate translation=(0, 0.6, 0)
+                    Box size=(0.5, 0.2, 0.5)

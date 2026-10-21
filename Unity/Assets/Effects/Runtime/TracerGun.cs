@@ -119,6 +119,23 @@ namespace SdfEffects
             }
         }
 
+        /// <summary>
+        /// A shot whose line the game found itself (ticket 22's weapons): a tracer from the muzzle to <paramref name="end"/>, landing
+        /// there on a surface facing <paramref name="normal"/> (dust and sparks) or flying on into the distance, and the muzzle flash.
+        /// </summary>
+        public void ShootAt(Vector3 end, bool landed, Vector3 normal)
+        {
+            var start = muzzle.position;
+            var along = end - start;
+            var distance = along.magnitude;
+            if (distance < 1e-3f)
+                return;
+            var direction = along / distance;
+            if (tracerCount < Pool)
+                tracers[tracerCount++] = new Tracer { start = start, direction = direction, distance = distance, normal = landed ? normal : -direction, landed = landed };
+            flash = 0;
+        }
+
         private void Shoot()
         {
             var direction = Quaternion.AngleAxis(Random.Range(0, 360f), muzzle.forward)

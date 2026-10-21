@@ -20,7 +20,7 @@ namespace SdfGui
             var killerPlayer = m.Player(kill.killer);
             var victimPlayer = m.Player(kill.victim);
             var involvesYou = killerPlayer is { you: true } || victimPlayer is { you: true };
-            GuiText.Set(killer, GuiText.Name(killerPlayer));
+            GuiText.Set(killer, killerPlayer == null && !string.IsNullOrEmpty(kill.killerName) ? kill.killerName : GuiText.Name(killerPlayer));
             GuiText.Set(victim, GuiText.Name(victimPlayer));
             if (background != null)
                 background.SetColor(involvesYou ? GuiPalette.Paper : GuiPalette.WithAlpha(GuiPalette.Night, 0.82f));

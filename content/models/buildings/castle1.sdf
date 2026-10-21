@@ -4,8 +4,7 @@
 # bays meet. Two large round towers stand at the oval's ends, two small ones flank the keep, and two slim gate turrets lean apart
 # either side of the gate. Towers vary by their lean and turn, and by a scale that moves them down or up by as much as their ring
 # moved, so every ring stays at its height. The keep stands against the rear wall; its ring is the balcony the rear walk runs onto,
-# and two flights of stone steps spiral up its drum to it. Merlons on every bay are detail pieces, and so are the window frames and
-# lanterns.
+# and two flights of stone steps spiral up its drum to it. Merlons on every bay are detail pieces, and so are the window frames.
 # Floor heights (ticket 09), the same as castle0: floors of parts that overlap never lie in one plane, or they would z-fight. The
 # bays' walks are at 5 m, the joints' pads at 5.15 m and the towers', gate turrets' and keep's rings at 5.3 m: joints meet bays and
 # towers, and the keep's ring meets bays and joints; it is small enough to clear the small towers' rings, which clear the large
@@ -386,23 +385,3 @@ Union
     Translate translation=(-4.078, 3.877, 9.102)
         Rotate rotation=(0, -0.699, 0)
             Part part=stone_window_frame
-
-    # Lanterns: the gate's two on its inner pillars, one on the keep's ring and one each on two towers' rings
-    Translate translation=(1.748, 2.600, 7.334)
-        Rotate rotation=(0, 3.142, 0)
-            Part part=stone_lantern
-    Translate translation=(-1.752, 2.600, 7.334)
-        Rotate rotation=(0, 3.142, 0)
-            Part part=stone_lantern
-    Translate translation=(-3.760, 5.000, -2.016)
-        Rotate rotation=(0, -0.900, 0)
-            Part part=stone_lantern
-    Translate translation=(14.507, 5.040, 2.682)
-        Rotate rotation=(0, 0.671, 0)
-            Part part=stone_lantern
-    Translate translation=(-14.444, 4.989, 2.470)
-        Rotate rotation=(0, -0.671, 0)
-            Part part=stone_lantern
-    Translate translation=(10.452, 5.051, -8.905)
-        Rotate rotation=(0, 2.563, 0)
-            Part part=stone_lantern

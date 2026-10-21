@@ -1,0 +1,31 @@
+# Tank turret, red (ticket 24.1): a glossy scarlet cap with cream warts and pale gills under it, on a short collar of
+# stem flesh, turning on the hull; the scouts' floating eyes hover over the cap, looking where the barrel points.
+# Pivot: the origin is at the bottom of the collar on the turret's axis (it turns about y); in tank-red-body it is at (0, 0.3, 0).
+# The barrel's (tank-red-barrel) pivot is at (0, 0.05, 0.13) in this model, under the cap's front rim.
+format 1
+collider convex
+
+Union
+    # The collar: the cap's own short stem, going down into the hull
+    Material material=machine_red_flesh
+        Translate translation=(0, 0.03, 0)
+            CappedCylinder radius=0.1 height=0.05
+    # Gills: a pale disc filling the underside
+    Material material=machine_red_gills
+        Translate translation=(0, 0.085, 0)
+            CappedCylinder radius=0.24 height=0.012
+    # The cap: the top of a wide ellipsoid, rounded at the rim
+    Material material=machine_red_cap
+        Round radius=0.015
+            Intersection
+                Translate translation=(0, 0.08, 0)
+                    Ellipsoid radii=(0.255, 0.18, 0.255)
+                # A box rather than a plane, so the cap counts towards the model's bounds
+                Translate translation=(0, 0.4, 0)
+                    Box size=(0.3, 0.3, 0.3)
+    # Eyes, mirrored: the scouts' eyeballs at a little over half size, floating over the cap's front, as eye_machine,
+    # the scouts' eye meshed coarser (content/parts/machines)
+    SymmetryX
+        Translate translation=(0.075, 0.345, 0.07)
+            Scale scale=(0.55, 0.55, 0.55)
+                Part part=eye_machine

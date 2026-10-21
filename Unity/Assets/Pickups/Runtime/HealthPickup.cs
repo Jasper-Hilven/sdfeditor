@@ -30,8 +30,18 @@ namespace SdfPickups
         /// <summary>Whether the cross is on the pod, to be taken.</summary>
         public bool Available { get; private set; } = true;
 
+        /// <summary>
+        /// Asked before a player takes it, when set (ticket 22's combat): false leaves the pod as it is, for others. A player who has all
+        /// the health a pod can give leaves it.
+        /// </summary>
+        public static Func<HealthPickup, GameObject, bool> CanPickUp;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => PickedUp = null;
+        private static void ResetStatics()
+        {
+            PickedUp = null;
+            CanPickUp = null;
+        }
 
         private void OnTriggerEnter(Collider other) => TryPickUp(other);
 
@@ -43,7 +53,7 @@ namespace SdfPickups
             if (!Available)
                 return;
             var player = other.GetComponentInParent<CharacterController>();
-            if (player != null)
+            if (player != null && (CanPickUp == null || CanPickUp(this, player.gameObject)))
                 PickUp(player.gameObject);
         }
 

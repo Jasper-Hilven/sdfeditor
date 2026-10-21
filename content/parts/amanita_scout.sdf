@@ -1,4 +1,4 @@
-# Amanita scout: a fly agaric with a glossy red dome of a cap flecked with white warts, pale gills under it, a white stem with a
+# Amanita scout: a fly agaric with a glossy red dome of a cap flecked with white warts, pale gills under it, a rosy red stem with a
 # drooping ring and a bulb at its foot, floating eyes and small floating hands. The whole character as a part, so the model
 # (content/models/characters/amanita-scout.sdf) and its exploding pieces (content/models/characters/exploding/) share one shape:
 # an edit here changes the scout and its pieces together. Its own parts, the eyes and hands, are still meshes of their own.
@@ -25,14 +25,14 @@ Union
                     CappedCylinder radius=0.58 height=0.02
             SmoothUnion smoothness=0.04
                 # Stem and bulb grow into each other
-                Material material=amanita_stem
+                Material material=amanita_scout_stem
                     SmoothUnion smoothness=0.1
                         Translate translation=(0, 0.62, 0)
                             CappedCone height=0.56 bottomRadius=0.2 topRadius=0.15
                         Translate translation=(0, 0.15, 0)
                             Ellipsoid radii=(0.28, 0.16, 0.28)
                 # The ring: a short flared skirt high on the stem, of the stem's own flesh so the stem reads as one piece
-                Material material=amanita_stem
+                Material material=amanita_scout_stem
                     Translate translation=(0, 1.04, 0)
                         Round radius=0.012
                             CappedCone height=0.035 bottomRadius=0.23 topRadius=0.165
@@ -43,8 +43,8 @@ Union
         Translate translation=(0.13, 0.86, 0.3)
             Part part=eye
 
-    # Floating hands, mirrored: the chanterelle's hands in the stem's off-white flesh, either side of the stem below the eyes
+    # Floating hands, mirrored: the chanterelle's hands in the stem's rosy flesh, either side of the stem below the eyes
     SymmetryX
         Translate translation=(0.29, 0.55, 0.1)
-            Material material=amanita_stem
+            Material material=amanita_scout_stem
                 Part part=hand

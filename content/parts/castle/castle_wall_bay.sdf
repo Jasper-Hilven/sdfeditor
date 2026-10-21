@@ -1,5 +1,5 @@
 # Castle wall bay: one bay of the fly agaric castle's curtain wall, 3.8 m long (x), its outer face towards +z, standing on y = 0.
-# A core 1.2 m thick of pale stem flesh, swelling at the foot like a stem's bulb, with three stems packed along the outer face;
+# A core 1.2 m thick of pale stem flesh (the towers' castle_stem), swelling at the foot like a stem's bulb, with three stems packed along the outer face;
 # on top a 2.1 m wall-walk at 5 m (the lowest of the castle's floor heights, see castle0.sdf) and a parapet on its outer edge.
 # The castle's layout turns one bay per chord of its oval wall; neighbouring bays overlap under a castle_wall_joint, whose pad
 # above the walk covers the overlap and the seam. Merlons are placed by the layout.
@@ -10,7 +10,7 @@ Detail detail=0.3
     Intersection
         Translate translation=(0, 11.7, 0)
             Box size=(12, 12, 12)
-        Material material=castle_wall
+        Material material=castle_stem
             Union
                 # The core, the walk on top of it and the parapet on its outer edge
                 Translate translation=(0, 2.4, 0)

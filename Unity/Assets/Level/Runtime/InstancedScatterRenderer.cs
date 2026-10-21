@@ -574,6 +574,48 @@ namespace SdfLevel
             LastFrame = stats;
         }
 
+        /// <summary>
+        /// Every instance that casts a shadow, for <see cref="StaticSunShadow"/>: those of the groups with shadow rings (on the low
+        /// preset, low shadow rings, and only the instances it keeps), at LOD0, with no wind and no fade. Hands each part's matrices to
+        /// <paramref name="draw"/> at most <see cref="BatchSize"/> at a time (the array is reused), and gives each instance's bounding
+        /// sphere to <paramref name="bounds"/> once.
+        /// </summary>
+        public void ShadowCasters(bool low, Action<Mesh, Matrix4x4[], int> draw, Action<Vector3, float> bounds)
+        {
+            if (!Load())
+                return;
+            var casting = new List<int>[prototypes.Length];
+            for (var i = 0; i < instancePrototypes.Length; i++)
+            {
+                var p = instancePrototypes[i];
+                if (p < 0)
+                    continue;
+                var group = groups[prototypeGroups[p]];
+                if ((low ? group.lowShadowRings : group.shadowRings) == 0 || low && shares[i] >= group.lowDensity)
+                    continue;
+                (casting[p] ??= new List<int>()).Add(i);
+                bounds(matrices[i].MultiplyPoint3x4(prototypeCentres[p]), prototypeRadii[p] * Mathf.Abs(scales[i]));
+            }
+            for (var p = 0; p < prototypes.Length; p++)
+            {
+                if (casting[p] == null)
+                    continue;
+                foreach (var part in levels[p][0].parts)
+                {
+                    if (part.mesh == null || !part.shadows)
+                        continue;
+                    var members = casting[p];
+                    for (var start = 0; start < members.Count; start += BatchSize)
+                    {
+                        var n = Mathf.Min(BatchSize, members.Count - start);
+                        for (var b = 0; b < n; b++)
+                            batchMatrices[b] = part.transform.isIdentity ? matrices[members[start + b]] : matrices[members[start + b]] * part.transform;
+                        draw(part.mesh, batchMatrices, n);
+                    }
+                }
+            }
+        }
+
         private bool InView(Vector3 centre, float radius)
         {
             for (var plane = 0; plane < planes.Length; plane++)

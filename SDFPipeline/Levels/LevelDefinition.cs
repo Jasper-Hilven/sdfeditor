@@ -46,6 +46,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 
     /// <summary>The closed room over the playable area (walls and ceiling), or null for a level open to the sky.</summary>
     public RoomSpec? Room { get; init; }
+
+    /// <summary>The two battle sides and the neutral pods between them (ticket 17), or null for a level without them.</summary>
+    public BattleLayout? Battle { get; init; }
 }
 
 /// <summary>
@@ -149,7 +152,8 @@ public enum GroundPattern
 
 /// <summary>
 /// A unique model in the level, by its name in content/models/ (castle0, rock1). Its base, the model's y = 0, sits on the ground at
-/// <see cref="At"/>, turned <see cref="Yaw"/> degrees about +y (counter-clockwise seen from above, as glTF turns: +z towards +x).
+/// <see cref="At"/> (or <see cref="Y"/> metres above it), turned <see cref="Yaw"/> degrees about +y (counter-clockwise seen from above,
+/// as glTF turns: +z towards +x).
 /// </summary>
 /// <param name="Flatten">Within this many metres of <see cref="At"/> the ground is levelled to the height it had there, so the model stands level;
 /// beyond it the ground goes back to its own height over <see cref="FlattenFalloff"/> metres. 0 leaves the ground as it is.</param>
@@ -160,6 +164,13 @@ public sealed record Placement(string Model, Vector2 At, float Yaw, float Scale,
 {
     public const float DefaultFlattenFalloff = 6;
     public const float DefaultGroundMargin = 2;
+
+    /// <summary>
+    /// How far above the ground at <see cref="At"/> the model's base is, in metres: 0 (the default) stands it on the ground; more puts
+    /// it on something there, like the team mushrooms on a castle's tower caps and parapets (ticket 19), whose heights are the castle's
+    /// over its own base, which stands on the same level ground (its plateau).
+    /// </summary>
+    public float Y { get; init; }
 }
 
 /// <summary>A model a scatter layer picks from, <see cref="Weight"/> times as often as one of weight 1.</summary>

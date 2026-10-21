@@ -34,6 +34,8 @@ namespace SdfGui
     public struct FakeKill
     {
         public int killer;
+        [Tooltip("The killer's name (rich text) when it is no player: a machine (battle scenes); empty for a player")]
+        public string killerName;
         public int victim;
         public int weapon;
         public bool headshot;
@@ -49,6 +51,10 @@ namespace SdfGui
     /// <para>
     /// The player acts through <see cref="Fire"/>, <see cref="Reload"/> and the test commands (<see cref="GuiCommandId"/>); the bots
     /// through <see cref="Update"/>. Pausing does not stop it: the match is "online".
+    /// </para>
+    /// <para>
+    /// In a battle scene it is the HUD's view of the real match instead (<see cref="driven"/>): SdfBattle.MatchHud writes the match
+    /// into it every frame and it does nothing of its own.
     /// </para>
     /// </summary>
     public sealed class FakeMatch : MonoBehaviour
@@ -115,6 +121,9 @@ namespace SdfGui
         [Header("Bots")]
         [Tooltip("Bots eliminate each other, crumble the island and now and then hit you")]
         public bool autoEvents = true;
+        [Tooltip("Written by a real match every frame (SdfBattle.MatchHud, in the battle scenes): nothing here moves on by itself, and " +
+                 "firing, reloading and the test commands do nothing")]
+        public bool driven;
         public Vector2 secondsBetweenKills = new Vector2(3, 8);
         public float seed = 1;
 
@@ -161,7 +170,7 @@ namespace SdfGui
 
         private void Update()
         {
-            if (!Application.isPlaying)
+            if (!Application.isPlaying || driven)
                 return;
             var dt = Time.deltaTime;
             Fade(dt);
@@ -298,7 +307,7 @@ namespace SdfGui
         /// <summary>Holds the trigger for <paramref name="dt"/> seconds: spends spores, spreads the crosshair, now and then hits.</summary>
         public void Fire(float dt)
         {
-            if (phase != MatchPhase.Playing || !YouAreAlive || reload > 0)
+            if (driven || phase != MatchPhase.Playing || !YouAreAlive || reload > 0)
                 return;
             if (ammo <= 0)
             {
@@ -318,7 +327,7 @@ namespace SdfGui
 
         public void Reload()
         {
-            if (reload <= 0 && ammo < magazine)
+            if (!driven && reload <= 0 && ammo < magazine)
                 reload = 0.001f;
         }
 

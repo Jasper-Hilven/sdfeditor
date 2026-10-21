@@ -1,0 +1,25 @@
+# Turret head, red (ticket 24.1): a big glossy scarlet cap with cream warts and pale gills, on a collar of stem flesh,
+# turning on the foot's stem; the scouts' floating eyes, full size, hover in front of the cap.
+# Pivot: the origin is the collar's middle on the head's axis (it turns about y); in turret-red-foot it is at (0, 1.5, 0). The
+# barrel's (turret-red-barrel) pivot is at (0, 0, 0.3) in this model, under the cap's front rim.
+format 1
+collider convex
+
+Union
+    Material material=machine_red_flesh
+        CappedCylinder radius=0.2 height=0.09
+    Material material=machine_red_gills
+        Translate translation=(0, 0.1, 0)
+            CappedCylinder radius=0.52 height=0.02
+    Material material=machine_red_cap
+        Round radius=0.025
+            Intersection
+                Translate translation=(0, 0.09, 0)
+                    Ellipsoid radii=(0.58, 0.4, 0.58)
+                Translate translation=(0, 0.6, 0)
+                    Box size=(0.7, 0.5, 0.7)
+    # Eyes, mirrored: the scouts' eyeballs at their own size, floating in front of the cap, as eye_machine,
+    # the scouts' eye meshed coarser (content/parts/machines)
+    SymmetryX
+        Translate translation=(0.16, 0.27, 0.66)
+            Part part=eye_machine

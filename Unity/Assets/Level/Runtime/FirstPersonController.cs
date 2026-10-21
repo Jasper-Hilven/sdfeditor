@@ -1,47 +1,124 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace SdfLevel
 {
     /// <summary>
-    /// Walks a level in first person: WASD or the arrow keys to walk, Shift to run, Space to jump, the mouse to look once the view is
-    /// clicked (Escape lets the cursor go). A <see cref="CharacterController"/> keeps the player on the ground and out of the colliders
-    /// (the chunks' ground, the walls around the playable area); the camera is a child at eye height. Reads the classic input manager,
-    /// which the project uses, so it needs no input package.
+    /// Moves a player by the game's rules (ticket 20): walking at <see cref="walkSpeed"/> times <see cref="speedMultiplier"/> (the flag
+    /// carrier's 0.9, ticket 21), slopes and steps as the <see cref="CharacterController"/> allows, gravity, and a jump of
+    /// <see cref="jumpHeight"/> from the ground only (no double jump). No sprint, no crouch.
+    /// <para>
+    /// Two kinds of driver use the same movement API, so both move by the same rules: with <see cref="readsInput"/> (you) the keyboard
+    /// and mouse feed it, WASD or the arrow keys to walk, Space to jump, the mouse to look once the view is clicked (the pointer is then
+    /// locked, which is what a click asks of the web build too; Escape lets it go); without it (a bot, ticket 23) its brain calls
+    /// <see cref="SetMove"/>, <see cref="SetAim"/> and <see cref="Jump"/>. <see cref="frozen"/> holds it in place (the match's
+    /// countdown). Reads the classic input manager, which the project uses, so it needs no input package.
+    /// </para>
+    /// The camera, if any, is a child at eye height and takes the pitch; the body turns with the yaw.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public sealed class FirstPersonController : MonoBehaviour
     {
+        /// <summary>The player's capsule, for every player: about a scout's height, its stem's width.</summary>
+        public const float Height = 1.75f, Radius = 0.3f;
+
         [Tooltip("Walking speed in metres per second")]
         public float walkSpeed = 4;
-        [Tooltip("Running speed (Shift) in metres per second")]
-        public float runSpeed = 7;
+        [Tooltip("Set by other systems: the flag carrier walks at 0.9 (ticket 21)")]
+        public float speedMultiplier = 1;
+        [Tooltip("Set by combat every frame: a blob's slow (ticket 22); multiplies with speedMultiplier")]
+        public float slowMultiplier = 1;
         [Tooltip("Height of a jump in metres")]
-        public float jumpHeight = 1;
+        public float jumpHeight = 1.1f;
         [Tooltip("Degrees of turn per unit of mouse movement")]
         public float lookSensitivity = 2;
         public float gravity = 20;
+        [Tooltip("Driven by the keyboard and mouse (you); off for a bot, whose brain calls SetMove, SetAim and Jump")]
+        public bool readsInput = true;
+        [Tooltip("Held in place: no walking, no jumping (gravity still pulls); looking about is allowed")]
+        public bool frozen;
 
         private CharacterController controller;
         private Transform eye;
         private float pitch;
         private float verticalSpeed;
+        private Vector2 move;
+        private bool jumpWanted;
+
+        /// <summary>Where the view looks up or down, degrees, positive down (as a camera's x rotation).</summary>
+        public float Pitch => pitch;
+
+        /// <summary>Where the body faces, degrees about y.</summary>
+        public float Yaw => transform.eulerAngles.y;
+
+        public bool IsGrounded => controller != null && controller.isGrounded;
+
+        /// <summary>The way the player aims: the yaw and the pitch together.</summary>
+        public Vector3 AimDirection => Quaternion.Euler(pitch, Yaw, 0) * Vector3.forward;
+
+        /// <summary>Gives a new player's CharacterController the capsule every player has, its slope and step limits.</summary>
+        public static void Configure(CharacterController controller)
+        {
+            controller.height = Height;
+            controller.radius = Radius;
+            controller.center = new Vector3(0, Height / 2, 0);
+            controller.slopeLimit = 45;
+            controller.stepOffset = 0.4f;
+        }
 
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
             var camera = GetComponentInChildren<Camera>();
-            eye = camera != null ? camera.transform : transform;
+            eye = camera != null ? camera.transform : null;
         }
+
+        // ---------------------------------------------------------------- The movement API (bots call it; your input feeds it)
+
+        /// <summary>Where to walk this frame and on: x sideways, y forward, in the body's frame; longer than 1 is cut to 1.</summary>
+        public void SetMove(Vector2 input) => move = Vector2.ClampMagnitude(input, 1);
+
+        /// <summary>Turns the body to <paramref name="yaw"/> and the view to <paramref name="pitchDegrees"/> (positive down).</summary>
+        public void SetAim(float yaw, float pitchDegrees)
+        {
+            transform.rotation = Quaternion.Euler(0, yaw, 0);
+            pitch = Mathf.Clamp(pitchDegrees, -85, 85);
+            if (eye != null)
+                eye.localRotation = Quaternion.Euler(pitch, 0, 0);
+        }
+
+        /// <summary>Jumps on the next update, if on the ground then; in the air it is forgotten (no double jump).</summary>
+        public void Jump() => jumpWanted = true;
+
+        /// <summary>Puts the player at <paramref name="position"/> (its feet) facing <paramref name="yaw"/>, level, standing still.</summary>
+        public void Teleport(Vector3 position, float yaw)
+        {
+            // A CharacterController keeps its own idea of where it is: off while moved, so the move holds
+            var enabledBefore = controller != null && controller.enabled;
+            if (controller != null)
+                controller.enabled = false;
+            transform.position = position;
+            if (controller != null)
+                controller.enabled = enabledBefore;
+            SetAim(yaw, 0);
+            verticalSpeed = 0;
+            move = Vector2.zero;
+            jumpWanted = false;
+        }
+
+        // ---------------------------------------------------------------- Updates
 
         private void Update()
         {
-            Look();
+            if (readsInput)
+                ReadInput();
             Move();
         }
 
-        private void Look()
+        private void ReadInput()
         {
-            if (Input.GetMouseButtonDown(0))
+            // A click on the view takes the pointer (one on a button of the GUI does not); Escape lets it go
+            if (Input.GetMouseButtonDown(0) && !(EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()))
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
@@ -51,33 +128,39 @@ namespace SdfLevel
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
-            if (Cursor.lockState != CursorLockMode.Locked)
-                return;
+            if (Cursor.lockState == CursorLockMode.Locked)
+                SetAim(Yaw + Input.GetAxis("Mouse X") * lookSensitivity, pitch - Input.GetAxis("Mouse Y") * lookSensitivity);
 
-            transform.Rotate(0, Input.GetAxis("Mouse X") * lookSensitivity, 0, Space.Self);
-            pitch = Mathf.Clamp(pitch - Input.GetAxis("Mouse Y") * lookSensitivity, -85, 85);
-            eye.localRotation = Quaternion.Euler(pitch, 0, 0);
+            SetMove(new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")));
+            if (Input.GetButtonDown("Jump"))
+                Jump();
         }
 
         private void Move()
         {
-            var input = Vector3.ClampMagnitude(new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")), 1);
-            var speed = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? runSpeed : walkSpeed;
-            var velocity = transform.TransformDirection(input) * speed;
+            if (controller == null || !controller.enabled)
+                return;
+            var input = frozen ? Vector2.zero : move;
+            var speed = walkSpeed * Mathf.Max(0, speedMultiplier) * Mathf.Max(0, slowMultiplier);
+            var velocity = transform.TransformDirection(new Vector3(input.x, 0, input.y)) * speed;
 
             if (controller.isGrounded)
             {
                 // A small push down keeps the controller on the ground going down slopes
                 verticalSpeed = -2;
-                if (Input.GetButtonDown("Jump"))
+                if (jumpWanted && !frozen)
                     verticalSpeed = Mathf.Sqrt(2 * gravity * jumpHeight);
             }
             else
             {
                 verticalSpeed -= gravity * Time.deltaTime;
             }
+            jumpWanted = false;
             velocity.y = verticalSpeed;
-            controller.Move(velocity * Time.deltaTime);
+            var flags = controller.Move(velocity * Time.deltaTime);
+            // A head against a ceiling (a gate's arch, a stair above) ends the rise
+            if ((flags & CollisionFlags.Above) != 0 && verticalSpeed > 0)
+                verticalSpeed = 0;
         }
     }
 }

@@ -1,0 +1,29 @@
+# Turret foot, red (ticket 24.1): a thick fibrous stem of rosy red flesh, swelling to a bulb at the bottom, rooted in a mossy mound
+# with a few roots running out under the moss, and a pale ring skirt high on the stem. The head (turret-red-head) turns on top.
+# Pivot: the origin is on the ground at the stem's axis, +z forward. The head's pivot is at (0, 1.5, 0) in this model.
+format 1
+collider convex
+
+Union
+    # The moss mound and the roots under it, cut off at the ground
+    Material material=machine_moss
+        Intersection
+            Distort amount=0.012 frequency=12
+                SmoothUnion smoothness=0.06
+                    Translate translation=(0, 0, 0)
+                        Ellipsoid radii=(0.58, 0.17, 0.58)
+                    SymmetryXZ
+                        ArbitraryRoundCone a=(0.18, 0.08, 0.18) b=(0.5, 0.02, 0.36) radiusA=0.09 radiusB=0.05
+            Translate translation=(0, 0.5, 0)
+                Box size=(1, 0.5, 1)
+    Material material=machine_red_flesh
+        SmoothUnion smoothness=0.08
+            Translate translation=(0, 0.79, 0)
+                CappedCone height=0.71 bottomRadius=0.27 topRadius=0.19
+            Translate translation=(0, 0.27, 0)
+                Ellipsoid radii=(0.36, 0.25, 0.36)
+    # The ring: a short flared skirt high on the stem
+    Material material=machine_red_gills
+        Translate translation=(0, 1.2, 0)
+            Round radius=0.01
+                CappedCone height=0.04 bottomRadius=0.29 topRadius=0.215

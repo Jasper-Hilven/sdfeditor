@@ -1,0 +1,31 @@
+# Helicopter body, red (ticket 24.1): a round scarlet puffball flecked with cream warts, standing on two little skids of rosy red
+# stem flesh, with a short mast on top for the rotor and a tapering stalk of a tail behind, which carries the tail rotor; the
+# scouts' floating eyes hover in front.
+# Pivot: the origin is on the ground under the middle (the skids stand on it), +z forward. The rotor's (helicopter-red-rotor)
+# pivot is at (0, 0.56, 0) and the tail rotor's (helicopter-red-tail-rotor) at (0.025, 0.4, -0.35) in this model.
+format 1
+collider convex
+
+Union
+    # The puffball, its underside a little flattened
+    Material material=machine_red_cap
+        Translate translation=(0, 0.3, 0)
+            Ellipsoid radii=(0.22, 0.19, 0.19)
+    Material material=machine_red_flesh
+        Union
+            # The mast up to the rotor's hub
+            Translate translation=(0, 0.5, 0)
+                CappedCone height=0.06 bottomRadius=0.045 topRadius=0.032
+            # The tail, from the back of the puffball to the tail rotor's hub
+            ArbitraryRoundCone a=(0, 0.32, -0.12) b=(0, 0.4, -0.35) radiusA=0.06 radiusB=0.028
+            # The skids, mirrored: a short leg down to a runner along z each side
+            SymmetryX
+                SmoothUnion smoothness=0.02
+                    ArbitraryRoundCone a=(0.08, 0.16, 0) b=(0.13, 0.03, 0) radiusA=0.03 radiusB=0.022
+                    Capsule a=(0.13, 0.022, -0.1) b=(0.13, 0.022, 0.12) radius=0.022
+    # Eyes, mirrored: the scouts' eyeballs at a little over half size, floating in front of the puffball, as eye_machine,
+    # the scouts' eye meshed coarser (content/parts/machines)
+    SymmetryX
+        Translate translation=(0.085, 0.36, 0.235)
+            Scale scale=(0.55, 0.55, 0.55)
+                Part part=eye_machine

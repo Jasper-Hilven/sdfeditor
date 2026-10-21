@@ -1,0 +1,20 @@
+# Turret barrel, red (ticket 24.1): a long stem-like gun of rosy red flesh from a round knuckle, two pale gill bands along it, and a
+# little cap flared open at the muzzle like a trumpet mushroom's.
+# Pivot: the origin is the knuckle's centre, the hinge it tilts about (local x); it points along +z. In turret-red-head it is at
+# (0, 0, 0.3).
+format 1
+
+Union
+    Material material=machine_red_flesh
+        SmoothUnion smoothness=0.03
+            Sphere radius=0.11
+            ArbitraryRoundCone a=(0, 0, 0) b=(0, 0, 0.48) radiusA=0.085 radiusB=0.065
+    Material material=machine_red_gills
+        Union
+            ArbitraryCappedCylinder a=(0, 0, 0.24) b=(0, 0, 0.27) radius=0.083
+            ArbitraryCappedCylinder a=(0, 0, 0.4) b=(0, 0, 0.43) radius=0.075
+    Material material=machine_red_cap
+        Round radius=0.01
+            Subtraction
+                ArbitraryCappedCone a=(0, 0, 0.47) b=(0, 0, 0.57) radiusA=0.07 radiusB=0.115
+                ArbitraryCappedCone a=(0, 0, 0.5) b=(0, 0, 0.6) radiusA=0.04 radiusB=0.09

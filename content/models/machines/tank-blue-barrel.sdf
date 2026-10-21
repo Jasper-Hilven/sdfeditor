@@ -1,0 +1,19 @@
+# Tank barrel, blue (ticket 24.1): a short stem-like gun of sky blue flesh growing from a round knuckle, ending in a little cap
+# flared open like a trumpet mushroom's, with a pale gill band behind the flare.
+# Pivot: the origin is the knuckle's centre, the hinge it tilts about (local x); it points along +z. In tank-blue-turret it is at
+# (0, 0.05, 0.13).
+format 1
+
+Union
+    Material material=machine_blue_flesh
+        SmoothUnion smoothness=0.02
+            Sphere radius=0.05
+            ArbitraryRoundCone a=(0, 0, 0) b=(0, 0, 0.2) radiusA=0.042 radiusB=0.032
+    Material material=machine_blue_gills
+        ArbitraryCappedCylinder a=(0, 0, 0.16) b=(0, 0, 0.18) radius=0.04
+    # The muzzle: a funnel opening forwards, hollowed so it reads as a mouth
+    Material material=machine_blue_cap
+        Round radius=0.006
+            Subtraction
+                ArbitraryCappedCone a=(0, 0, 0.195) b=(0, 0, 0.245) radiusA=0.035 radiusB=0.058
+                ArbitraryCappedCone a=(0, 0, 0.21) b=(0, 0, 0.26) radiusA=0.02 radiusB=0.046
