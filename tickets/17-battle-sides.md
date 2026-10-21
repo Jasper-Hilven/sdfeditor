@@ -70,6 +70,29 @@ open Unity or run `LevelBuilder.BuildAllInBatch`: it rebuilds `health-cross.pref
 - The builder writes `flag-stand-west.prefab` and `flag-stand-east.prefab` (stand + flag of that colour + `FlagStand`).
 - Tests: bounds and the walkable base in `SDFPipeline.Tests/Models/`.
 
+**Status 17.2: done**, except what only Play mode shows. Built:
+
+- `flag-stand.sdf`: stone base (`pod_stone`), foot radius 1.05 m, flat top 1.5 m across at 0.25 m, the pod's bevel (about 40
+  degrees); a `pod_glow` ring inlaid at 0.42 to 0.52 m; a brass socket collar (`flag_brass`) up to 0.3 m (the pod's height) with
+  the pole's hole down to 0.15 m. `collider convex`. Meshed at 256 with 3 LODs: 3.6k, 0.9k, 0.4k triangles.
+- `flag-red.sdf` / `flag-gold.sdf`: two models (the toon colour comes per vertex, so one model cannot take two materials), the same
+  shape: a 2 m wooden pole (`flag_pole`) with a brass knob, foot on the origin; a 0.9 × 0.6 m cloth flying towards +x with two soft
+  waves (two `Arc2D`s extruded), a swallowtail and a sleeve. `collider none`. 1.3k, 0.3k, 0.1k triangles. Materials
+  `materials/pickups/flag_red` (amanita scarlet, white flecks), `flag_gold` (chanterelle gold), `flag_pole`, `flag_brass`.
+- `Assets/Pickups/Runtime/FlagStand.cs`: `side` (`BattleSideId` West/East, in the same file, for 17.3 to reuse), `flag` (the `Flag`
+  child), `homePosition`/`homeRotation`, `FlagAtHome`, `ReturnFlag()`.
+- `Assets/Pickups/Editor/FlagStandBuilder.cs` writes `Assets/Pickups/Flags/flag-stand-west.prefab` and `flag-stand-east.prefab`:
+  `Stand` (the flag-stand prefab), `Flag` (pivot at the socket's bottom, y = 0.15) with `Model` (the flag's prefab), `FlagStand` on
+  the root. Same rebuild rules as the pods (own `BuilderVersion`, editor load, after `MushroomBuilder`, `LevelBuilder.BuildAllInBatch`;
+  `Tools > SDF Pickups > Rebuild Flag Stands`; batch `SdfPickups.Editor.FlagStandBuilder.BuildAllInBatch`).
+- `SDFPipeline.Tests/Models/FlagStandTests.cs`: stand bounds, flat top, nothing above 0.3 m, bevel under the slope limit, the socket;
+  each flag's bounds, pole foot fits the socket, the cloth; both flags the same shape.
+
+Left: a Play-mode look (walking onto the stand, the flag's size in the courtyard, how the thin cloth's LOD2 and ink line read far off).
+Generated files to make in the main checkout: `sdf unity --resolution 256 --lods 3` (writes `Generated/pickups/flag-stand.glb`,
+`flag-red.glb`, `flag-gold.glb`), then open Unity or run `LevelBuilder.BuildAllInBatch` (mesh assets, the three model prefabs are in
+git, the two stands are rebuilt if stale).
+
 ## 17.3 — Sides in the level file and the scene
 
 - **Level file**: a new `sides` block in `content/levels/*.level` (parsed in `SDFPipeline/Levels/LevelFile.cs`, written to the bake
@@ -109,4 +132,4 @@ open Unity or run `LevelBuilder.BuildAllInBatch`: it rebuilds `health-cross.pref
 
 ## Status
 
-Not started.
+17.1 and 17.2 done (see their status above); 17.3 not started.
