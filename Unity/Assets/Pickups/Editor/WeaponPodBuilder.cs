@@ -33,8 +33,9 @@ namespace SdfPickups.Editor
         public const string PodModel = "weapon-pod";
         public const string WeaponGroup = "weapons";
 
-        /// <summary>Raise when the way pods are built changes, so every pod is rebuilt when the editor loads.</summary>
-        public const int BuilderVersion = 1;
+        /// <summary>Raise when the way pods are built changes, so every pod is rebuilt when the editor loads. Version 2: the health pod
+        /// (<see cref="HealthPodBuilder"/>).</summary>
+        public const int BuilderVersion = 2;
 
         /// <summary>Metres from the pod's top to the middle of the weapon.</summary>
         public const float HoverHeight = 1;
@@ -43,11 +44,11 @@ namespace SdfPickups.Editor
         public const float DefaultPodHeight = 0.3f;
 
         /// <summary>The trigger's radius, a little inside the top's, 0.95 m: the player is on the pod when it takes the weapon.</summary>
-        private const float TriggerRadius = 0.9f;
+        internal const float TriggerRadius = 0.9f;
 
         private static readonly Regex VariantSuffix = new Regex(@"_(\d+|fast|superfast)$");
 
-        private static string Stamp => $"sdf-pod {BuilderVersion}";
+        internal static string Stamp => $"sdf-pod {BuilderVersion}";
 
         [InitializeOnLoadMethod]
         private static void Hook()
@@ -69,15 +70,24 @@ namespace SdfPickups.Editor
 
         public static string PodPrefabOf(string weapon) => $"{PodFolder}/{weapon}-pod.prefab";
 
-        private static string PodModelPrefab => $"{MushroomBuilder.PrefabFolder}/{PodModel}.prefab";
+        internal static string PodModelPrefab => $"{MushroomBuilder.PrefabFolder}/{PodModel}.prefab";
 
         [MenuItem("Tools/SDF Pickups/Rebuild Pods")]
-        public static void BuildAll() => Build(Weapons());
+        public static void BuildAll()
+        {
+            Build(Weapons());
+            HealthPodBuilder.Build();
+        }
 
         /// <summary>For batch mode: every pod.</summary>
         public static void BuildAllInBatch() => BuildAll();
 
-        public static void BuildStale() => Build(Weapons().Where(IsStale).ToArray());
+        public static void BuildStale()
+        {
+            Build(Weapons().Where(IsStale).ToArray());
+            if (HealthPodBuilder.IsStale())
+                HealthPodBuilder.Build();
+        }
 
         private static bool IsStale(string weapon)
         {
@@ -173,7 +183,7 @@ namespace SdfPickups.Editor
         }
 
         /// <summary>The bounds of the object's meshes (not the ink outline's copies) in its parent's space, or null if it has none.</summary>
-        private static Bounds? Measure(GameObject owner)
+        internal static Bounds? Measure(GameObject owner)
         {
             Bounds? bounds = null;
             var toParent = owner.transform.parent != null ? owner.transform.parent.worldToLocalMatrix : Matrix4x4.identity;
