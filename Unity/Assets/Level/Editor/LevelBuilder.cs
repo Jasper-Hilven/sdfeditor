@@ -302,6 +302,8 @@ namespace SdfLevel.Editor
             MushroomBuilder.BuildStale();
             // The weapon pickup pods are built over the weapons' and the pod's prefabs
             SdfPickups.Editor.WeaponPodBuilder.BuildStale();
+            // The flag stands, over the stand's and the flags' prefabs
+            SdfPickups.Editor.FlagStandBuilder.BuildStale();
             var failed = Levels().Count(level => !Build(level));
             if (failed > 0)
                 EditorApplication.Exit(1);

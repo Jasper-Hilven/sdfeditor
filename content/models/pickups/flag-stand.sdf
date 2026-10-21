@@ -1,0 +1,44 @@
+# Flag stand: the low round base a side's flag stands in, the weapon pod's smaller cousin. 25 cm tall with a bevelled foot of the
+# pod's slope (about 40 degrees, inside the character controller's slope limit and with no step), so the player walks onto it or
+# round it, and a flat top 1.5 m across. In the middle a brass socket collar, 5 cm proud of the top (so 30 cm, the pod's height),
+# holds the flag's pole in a hole 4.5 cm wide and 15 cm deep; a ring of soft glow is inlaid round it, as on the pods. Centred on
+# the origin, the foot on the ground, the top at y = 0.25. The collider is convex: the hole is too narrow to step into anyway.
+format 1
+collider convex
+
+Union
+    Material material=pod_stone
+        Subtraction
+            Intersection
+                # The cone of the bevel (radius 1.05 m at the foot, 0.758 m at the top), rounded where it meets the top
+                SmoothIntersection smoothness=0.015
+                    Translate translation=(0, 0.45, 0)
+                        CappedCone height=0.45 bottomRadius=1.05 topRadius=0
+                    # The flat top at 0.25 m (a box rather than a plane, which the renderer's framing would leave out as infinite)
+                    Translate translation=(0, -0.75, 0)
+                        Box size=(2, 1, 2)
+                # The foot, flat on the ground
+                Translate translation=(0, 1, 0)
+                    Box size=(2, 1, 2)
+            Union
+                # The groove the ring lies in, 3 cm deep
+                Translate translation=(0, 0.25, 0)
+                    Subtraction
+                        CappedCone height=0.03 bottomRadius=0.52 topRadius=0.52
+                        CappedCone height=0.04 bottomRadius=0.42 topRadius=0.42
+                # The pole's hole, on down through the stone under the collar to 0.15 m
+                Translate translation=(0, 0.35, 0)
+                    CappedCylinder radius=0.045 height=0.2
+    Material material=pod_glow
+        # The ring, filling the groove to 1 cm under the top
+        Translate translation=(0, 0.23, 0)
+            Subtraction
+                CappedCone height=0.01 bottomRadius=0.52 topRadius=0.52
+                CappedCone height=0.02 bottomRadius=0.42 topRadius=0.42
+    Material material=flag_brass
+        # The socket collar from 0.2 m (sunk 5 cm in the stone) to 0.3 m (the pod's height), rounded, with the pole's hole through it
+        Subtraction
+            Translate translation=(0, 0.25, 0)
+                RoundedCylinder radius=0.1 roundness=0.025 height=0.05
+            Translate translation=(0, 0.35, 0)
+                CappedCylinder radius=0.045 height=0.2
