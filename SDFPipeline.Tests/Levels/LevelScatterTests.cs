@@ -187,13 +187,17 @@ public class LevelScatterTests
             // The rock's footprint, 4 × 6 m at scale 2, turned 30°, grown by the margin
             var local = Placement2D.ToLocal(p - new Vector2(8, 5), 30) / 2;
             Assert.False(MathF.Abs(local.X) < 1.25f && MathF.Abs(local.Y) < 1.75f);
-            Assert.True(Vector2.Distance(p, new Vector2(10, -8)) >= 3.5f);
+            // The castle's footprint, unturned at scale 1, grown by the margin; its level ground round that is not kept clear
+            var castle = p - new Vector2(10, -8);
+            Assert.False(MathF.Abs(castle.X) < 1.5f && MathF.Abs(castle.Y) < 2f);
             Assert.True(terrain.DistanceOutside(p.X, p.Y) <= 2);
             Assert.True(terrain.Normal(p.X, p.Y).Y >= MathF.Cos(25 * MathF.PI / 180));
             Assert.Equal(terrain.Height(p.X, p.Y), instance.Position.Y);
         }
         // Up to the reach, where the hills are still gentle
         Assert.Contains(scattered.Instances, i => terrain.DistanceOutside(i.Position.X, i.Position.Z) > 1);
+        // On the castle's level ground, up to its footprint
+        Assert.Contains(scattered.Instances, i => Vector2.Distance(new Vector2(i.Position.X, i.Position.Z), new Vector2(10, -8)) < 3.5f);
     }
 
     [Fact]

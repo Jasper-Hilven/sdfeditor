@@ -27,8 +27,8 @@ public sealed record ScatteredLevel(IReadOnlyList<ScatterPrototype> Prototypes, 
 /// from a random generator seeded by the level's seed and the layer's index, then kept or dropped by fixed rules and a per-point hash.
 /// <list type="bullet">
 /// <item>Dropped: beyond the reach up the hills, off the island, within the margin of an avoided region (its distance, noise and all, as
-/// the region map has it), on a placement's level ground or footprint grown by the margin, or on ground steeper than the layer's
-/// maximum slope.</item>
+/// the region map has it), on a placement's footprint grown by the margin, or on ground steeper than the layer's maximum slope (a
+/// placement's level ground is not kept clear: a region painted over it does that).</item>
 /// <item>Kept with a probability that gives the layer's density on average: the density times the clustering, over the samples' own
 /// density. The clustering is value noise about clusterScale metres wide, turned into weights from none up to cluster times the
 /// average: soft patches over about 1 / cluster of the ground, thinning out between them, scaled so that the weights average 1
@@ -123,8 +123,6 @@ public static class LevelScatter
                     return false;
             foreach (var (placement, footprint) in placements)
             {
-                if (placement.Flatten > 0 && Vector2.Distance(p, placement.At) < placement.Flatten + layer.Margin)
-                    return false;
                 // In the model's own plane, its footprint grown by the margin
                 var local = Placement2D.ToLocal(p - placement.At, placement.Yaw) / placement.Scale;
                 var grow = layer.Margin / placement.Scale;

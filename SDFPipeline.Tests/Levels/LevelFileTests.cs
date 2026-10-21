@@ -227,20 +227,19 @@ public class LevelFileTests
 
         Assert.Equal(new Vector2(150, 100), level.Play.Size);
         Assert.InRange(level.Hills.Height, 8, 12);
-        // Moss outside the regions; litter, trail and mycelium, none of them stones
-        Assert.Equal("moss", level.Base);
-        Assert.Equal(["litter", "trail", "mycelium"], level.Regions.Select(r => r.Name));
+        // Dirt outside the regions, and only the trail, plain
+        Assert.Equal("dirt", level.Base);
+        Assert.Equal(["trail"], level.Regions.Select(r => r.Name));
         Assert.All(level.Regions, r => Assert.Equal(GroundPattern.Plain, r.Pattern));
-        Assert.DoesNotContain(level.Regions, r => r.Name == GroundRegion.Tiles);
-        // A castle on each short side, on a plateau of mycelium
+        // A castle on each short side, on a plateau with nothing painted round it, so the fungi grow up to its walls
         var castles = level.Placements.Where(p => p.Model == "castle0").ToArray();
         Assert.Equal([-62f, 62f], castles.Select(c => c.At.X).Order());
-        Assert.All(castles, c => Assert.Equal(("mycelium", true), (c.Ground, c.Flatten > 0)));
-        // Moss turfs and fungi tufts, off the litter, mycelium and trail
+        Assert.All(castles, c => Assert.Equal((null, true), (c.Ground, c.Flatten > 0)));
+        // Moss turfs and fungi tufts, off the trail only
         Assert.Equal(["moss-turf0", "fungi-tuft0"], level.Scatters.Select(s => s.Entries[0].Model));
-        Assert.All(level.Scatters, s => Assert.Equal(["litter", "mycelium", "trail"], s.Avoid));
+        Assert.All(level.Scatters, s => Assert.Equal(["trail"], s.Avoid));
         // The ground materials exist, plain
-        foreach (var region in level.Regions.Select(r => r.Material).Append("ground_moss"))
+        foreach (var region in level.Regions.Select(r => r.Material).Append("ground_dirt"))
             Assert.True(File.Exists(Path.Combine(content, "..", "materials", "ground", region + ".sdfmat")), region);
     }
 

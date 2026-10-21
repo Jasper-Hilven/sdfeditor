@@ -171,7 +171,7 @@ public sealed record ScatterEntry(string Model, float Weight, int Line);
 /// <see cref="Spacing"/> metres apart or more (Poisson-disk sampling), and each is kept so that, on average, <see cref="Density"/>
 /// instances stand on a square metre; clustering noise <see cref="ClusterScale"/> metres wide makes that up to <see cref="Cluster"/>
 /// times as many in places and none in others. Nothing stands within <see cref="Margin"/> metres of a region in <see cref="Avoid"/>, on
-/// a placement's footprint or level ground, on ground steeper than <see cref="MaxSlope"/> degrees, or more than <see cref="Reach"/>
+/// a placement's footprint, on ground steeper than <see cref="MaxSlope"/> degrees, or more than <see cref="Reach"/>
 /// metres up the hills from the playable rectangle.
 /// </summary>
 /// <param name="Scale">The smallest and largest scale an instance gets, at random between them.</param>

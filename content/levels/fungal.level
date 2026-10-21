@@ -1,6 +1,6 @@
 # The fungal level: the third level. The same 150 m × 100 m floating island as the meadow, walled in by hills whose crests, 8 to 12 m
 # high, hide everything behind them from eye height, but everything that grows here is a fungus: mushroom trees for trees, moss and
-# small fungi for grass and flowers, a felted mat of mycelium for flagstones, and the fly agaric castle grown whole. Stumps, logs,
+# small fungi for grass and flowers on bare dark earth, and the fly agaric castle grown whole. Stumps, logs,
 # lichened rock, moss and leaf litter are what fungi live on; nothing else grows. Under the Eye-Moon Night sky.
 format 1
 
@@ -15,26 +15,20 @@ edge                                      # where the island ends, behind the hi
     margin=6 rim=3 shoulder=3             # its last 3 m bend down to 3 m high all round, where the underside meets the ground
     underside island-underside            # the rock below the island, content/models/terrain/, made for these numbers
 
-# The ground other than moss (the base: the ground outside the regions), from 2D shapes; where regions overlap, the later one wins.
-# Each is drawn in its material, materials/ground/ground_<region>.sdfmat; the mycelium also gets the castles' footprints
-# (ground=mycelium below)
-regions base=moss
-    litter                                # dark humus and fallen leaves round each castle
-        Circle center=(-60, 0) radius=27 noise=2 noiseScale=7
-        Circle center=(60, 0) radius=27 noise=2 noiseScale=7
+# The ground other than dirt (the base: bare earth, the ground outside the regions), from 2D shapes; where regions overlap, the
+# later one wins. Each is drawn in its material, materials/ground/ground_<region>.sdfmat. The fungi grow right up to the castles'
+# walls: nothing but the trail is kept clear
+regions base=dirt
     trail                                 # a track of pale spore dust, trodden from gate to gate
         Polyline points=[(-49, 0), (-36, 4), (-18, 7), (0, 2), (16, -5), (34, -5), (49, 0)] width=2.6 noise=0.5 noiseScale=4
-    mycelium                              # a felted cream mat: an apron before each gate, and the castles' footprints and surrounds
-        RoundedBox2D center=(-48, 0) size=(5, 7) radius=1.5
-        RoundedBox2D center=(48, 0) size=(5, 7) radius=1.5
 
 # The unique models, each from content/models/ by name, its base on the ground at (x, z), turned yaw degrees (counter-clockwise
 # from above, so yaw=90 turns a model's front, +z, to +x). The fungal castles face each other across the island, standing on level
-# plateaus of mycelium; a few big lichened rocks break up the open field, and four fairy rings (rings of small mushrooms in a darker
-# circle of moss, with no collider) lie in the open ground, clear of the trail, the litter, the mycelium, the rocks and the giants
+# plateaus with the fungi grown up to their walls; a few big lichened rocks break up the open field, and the fairy rings (rings of
+# small mushrooms in a darker circle of moss, with no collider) lie in the open ground, clear of the trail, the rocks and the giants
 place
-    castle0 at=(-62, 0) yaw=90 ground=mycelium groundMargin=2.5 flatten=22
-    castle0 at=(62, 0) yaw=-90 ground=mycelium groundMargin=2.5 flatten=22
+    castle0 at=(-62, 0) yaw=90 flatten=22
+    castle0 at=(62, 0) yaw=-90 flatten=22
     rock1 at=(10, 30) yaw=40 scale=2.2                # a mossy outcrop, too big for a convex collider
     rock3 at=(-20, -35) yaw=0 scale=1.5
     rock4 at=(30, -32) yaw=125
@@ -43,7 +37,7 @@ place
     rock0 at=(34, 26) yaw=70 scale=2.4
     rock3 at=(4, -44) yaw=250 scale=1.8
     # The giant mushrooms standing in the open field between the castles, each on the ground where it is, with a convex collider: no
-    # eyes and no hands. They stand clear of the trail, the litter and the castles' plateaus
+    # eyes and no hands. They stand clear of the trail and the castles
     giant-amanita0 at=(-26, -14) yaw=20
     giant-amanita0 at=(26, 12) yaw=200
     giant-amanita0 at=(-20, 30) yaw=300
@@ -61,10 +55,14 @@ place
     fairy-ring1 at=(18, -34) yaw=90
     fairy-ring0 at=(-30, 16) yaw=45
     fairy-ring1 at=(14, 12) yaw=20
+    fairy-ring0 at=(-46, 38) yaw=130
+    fairy-ring1 at=(44, -40) yaw=300
+    fairy-ring0 at=(46, 36) yaw=200
+    fairy-ring1 at=(-44, -22) yaw=75
 
-# The ground foliage, scattered by the thousand and drawn instanced: cushions of moss on the moss ground (which reads as moss on its
-# own; the turfs are cushions on top, not a carpet) and tufts of small fungi in looser drifts, nothing on the litter, the trail or the
-# mycelium. density is instances per square metre on average, up to cluster times that in the clusters, which are about clusterScale
+# The ground foliage, scattered by the thousand and drawn instanced: cushions of moss on the dirt ground (the turfs are
+# cushions on top, not a carpet) and tufts of small fungi in looser drifts, nothing on the trail.
+# density is instances per square metre on average, up to cluster times that in the clusters, which are about clusterScale
 # metres wide
 scatter
     moss-turf0 weight=3
@@ -72,14 +70,14 @@ scatter
     moss-turf2 weight=1.5
     moss-turf3 weight=1
     moss-turf4 weight=1
-    density=0.6 cluster=2 clusterScale=6 spacing=0.45 avoid=litter,mycelium,trail margin=0.5 maxSlope=25
+    density=1.0 cluster=2 clusterScale=6 spacing=0.4 avoid=trail margin=0.5 maxSlope=25
 scatter
     fungi-tuft0 weight=2
     fungi-tuft1 weight=1
     fungi-tuft2 weight=0.4
     fungi-tuft3 weight=1
     fungi-tuft4 weight=1
-    density=0.12 cluster=3 clusterScale=10 spacing=0.6 avoid=litter,mycelium,trail margin=0.8 maxSlope=20
+    density=0.4 cluster=3 clusterScale=8 spacing=0.5 avoid=trail margin=0.8 maxSlope=20
 
 # The woods on the border hills, drawn instanced like the foliage. band is how far from the playable rectangle's edge they stand
 # (negative inside it). The front row of mushroom trees climbs the inner slopes to the crest, 5 to 8 m apart, their caps large
@@ -98,7 +96,7 @@ trees
     honey-cluster0
     bracket-tower1
     inkcap0
-    band=(-3, 6) density=0.004 spacing=9 scale=(0.9, 1.2) avoid=litter,mycelium,trail margin=2
+    band=(-3, 6) density=0.004 spacing=9 scale=(0.9, 1.2) avoid=trail margin=2
 trees group=clusters
     cap-cluster0
     cap-cluster1
@@ -110,7 +108,7 @@ trees group=clusters
 
 # The field between the castles: groves of mushroom trees, clumps of them with open glades between, drawn instanced like the woods
 # and with stems that block the player. band is inside the playable rectangle, 8 m or more from its edge, so the island's edge and the
-# hills keep their own trees; margin keeps them 3 m clear of the litter, the trail, the mycelium and the castles' plateaus
+# hills keep their own trees; margin keeps them 3 m clear of the trail
 trees
     parasol0 weight=1
     parasol1 weight=0.8
@@ -118,7 +116,7 @@ trees
     bracket-tower0 weight=0.8
     bracket-tower1 weight=1
     honey-cluster0 weight=2
-    band=(-50, -8) density=0.024 spacing=4.5 cluster=3 clusterScale=10 scale=(0.9, 1.2) avoid=litter,mycelium,trail margin=3 maxSlope=20
+    band=(-50, -8) density=0.045 spacing=4 cluster=3 clusterScale=10 scale=(0.9, 1.2) avoid=trail margin=3 maxSlope=20
 
 # More giant mushrooms in the open field, the same models as the placed ones, each with the convex collider of its model (a trees
 # section takes any model with a collider: the rocks group does the same). Their own group, so that no wind bends them
@@ -127,7 +125,7 @@ trees group=giants
     giant-porcini0
     giant-porcini1
     giant-amanita-cluster0 weight=0.6
-    band=(-50, -8) density=0.0012 spacing=12 scale=(0.8, 1.2) avoid=litter,mycelium,trail margin=4 maxSlope=15
+    band=(-50, -8) density=0.003 spacing=9 scale=(0.8, 1.2) avoid=trail margin=4 maxSlope=15
 
 # Rocks in the field, scattered in the same way, with what fungi live on: stumps with brackets, a fallen log and puffballs among them
 trees group=rocks
@@ -140,13 +138,13 @@ trees group=rocks
     stump-brackets1 weight=0.7
     log-fungi0 weight=0.4
     puffball0 weight=0.8
-    band=(-50, -8) density=0.012 spacing=4.5 scale=(0.8, 1.6) avoid=litter,mycelium,trail margin=2.5 maxSlope=25
+    band=(-50, -8) density=0.02 spacing=4 scale=(0.8, 1.6) avoid=trail margin=2.5 maxSlope=25
 
 # How the foliage is drawn round the first-person camera: the finest level with its outline and shadows up to 6 m, the next to 15 m,
-# the coarsest to 35 m, fading out over its last 5 m. A gentle sway of 4 cm at half a metre up, and the lowest 8 cm of each turf (its
+# the coarsest to 35 m, fading out over its last 15 m. A gentle sway of 4 cm at half a metre up, and the lowest 8 cm of each turf (its
 # mound of soil) in the colour of the ground under it. The integrated GPU / web preset draws half of them, to 0.7 times the distance
 draw foliage
-    rings=[6, 15, 35] outline=1 shadows=1 blend=1 fade=5
+    rings=[6, 15, 35] outline=1 shadows=1 blend=1 fade=15
     wind=0.04 windHeight=0.5 tintHeight=0.08
     lowDensity=0.5 lowDistance=0.7
 
