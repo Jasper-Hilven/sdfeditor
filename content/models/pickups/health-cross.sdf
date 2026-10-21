@@ -1,0 +1,25 @@
+# Health cross: the chunky rounded plus that floats over a health pod, 0.5 m across and 0.15 m thick, facing along z so it shows
+# its face as it turns. A white plus is the rim; a red plus 3 cm inside its outline stands 1 cm proud of it on both faces, so the
+# cross reads red with a white border from the front, the back and at a distance. Centred on x and z, the bottom arm on the ground.
+# Each plus is drawn flat (two bars joined with the inner corners filled in, the outer corners rounded), extruded along z, and
+# rounded all over; the sizes inside are the outer sizes less the roundings.
+format 1
+
+Translate translation=(0, 0.25, 0)
+    Union
+        # The white rim: arms 0.5 m long and 17 cm wide, 13 cm thick
+        Material material=health_white
+            Round radius=0.025
+                Extrusion height=0.04
+                    Round2D radius=0.02
+                        SmoothUnion2D smoothness=0.02
+                            Box2D size=(0.205, 0.04)
+                            Box2D size=(0.04, 0.205)
+        # The red face, 3 cm inside the rim and 1 cm proud of it front and back: arms 0.44 m long and 11 cm wide, 15 cm thick
+        Material material=health_red
+            Round radius=0.015
+                Extrusion height=0.06
+                    Round2D radius=0.01
+                        SmoothUnion2D smoothness=0.012
+                            Box2D size=(0.195, 0.03)
+                            Box2D size=(0.03, 0.195)
