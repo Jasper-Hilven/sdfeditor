@@ -1,0 +1,50 @@
+# Toilet roll pyramid 0: six rolls of toilet paper lying on their sides in a 3-2-1 pyramid (30 times life size), 10.8 m wide (x), 3.6 m deep (z) and 9 m tall,
+# the top roll turned a little askew. Each roll is 3.6 m across and 3.6 m long (the axis along z); the rows nest, so the rolls touch and overlap and the wedge gaps
+# at the floor are filled (every gap under 0.6 m). The end of each roll shows its core as a shadowed recess. Quilted paper from the shader. Origin at the base's
+# centre on y = 0, front along +z. Landmark: mesh collider.
+format 1
+collider mesh
+
+# One roll with its axis along z, centred on the origin: a round-edged drum, the core a shallow recess in each end
+roll =
+    Union
+        Material material=bath_paper
+            Subtraction
+                Rotate rotation=(1.5707964, 0, 0)
+                    RoundedCylinder radius=1.8 roundness=0.35 height=1.8
+                Union
+                    Translate translation=(0, 0, 1.9)
+                        Rotate rotation=(1.5707964, 0, 0)
+                            CappedCylinder radius=0.6 height=0.45
+                    Translate translation=(0, 0, -1.9)
+                        Rotate rotation=(1.5707964, 0, 0)
+                            CappedCylinder radius=0.6 height=0.45
+        Material material=bath_paper_core
+            Rotate rotation=(1.5707964, 0, 0)
+                CappedCylinder radius=0.58 height=1.62
+
+Detail detail=0.37
+    Union
+        # The bottom row
+        Translate translation=(-3.6, 1.8, 0)
+            $roll
+        Translate translation=(0, 1.8, 0)
+            $roll
+        Translate translation=(3.6, 1.8, 0)
+            $roll
+        # The wedge gaps between the bottom rolls and the floor, filled with shadowed paper
+        Material material=bath_paper_core
+            Translate translation=(-1.8, 0.55, 0)
+                RoundBox size=(0.55, 0.55, 1.6) roundness=0.2
+        Material material=bath_paper_core
+            Translate translation=(1.8, 0.55, 0)
+                RoundBox size=(0.55, 0.55, 1.6) roundness=0.2
+        # The middle row, in the dips of the one below
+        Translate translation=(-1.8, 4.5, 0)
+            $roll
+        Translate translation=(1.8, 4.5, 0)
+            $roll
+        # The top roll, set a little off the middle and turned about 8 degrees
+        Translate translation=(0.2, 7.2, 0.1)
+            Rotate rotation=(0, 0.14, 0)
+                $roll

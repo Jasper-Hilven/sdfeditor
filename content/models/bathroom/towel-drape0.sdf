@@ -1,0 +1,49 @@
+# Towel drape 0: a butter yellow bath towel with white stripe bands hung over the bathtub's rim (30 times life size), 21 m wide (x), 16.5 m tall and 5 m deep (z),
+# hanging nearly straight (the front falls about 85 degrees from the horizontal, 1.1 m out over 13 m) from the rim to the floor, where it pools in a rounded roll 2.6 m
+# high that reaches 2.5 m out in front of the tub's face. Origin at the middle of the base on y = 0, the tub's front face at local z = -2.5 (the towel's back plane,
+# which is filled solid so there is no cavity behind it); the front is +z (the level places it with yaw 180). The pooled roll's sides are round and rise
+# steeply (over 50 degrees up to 2.1 m). Terry loops are the material's speckles. Landmark: mesh collider.
+format 1
+collider mesh
+
+# The hanging part: a solid wedge from the tub's front face out to the slanted towel face, its top edge over the rim at 16.5 m. The plane runs through
+# (z -0.8, y 16) and (z 0.3, y 3), so its normal is (0, 0.084, 0.996): the cut is a big box turned 4.8 degrees (a Plane in an Intersection hides the body from the bounds finder)
+hang =
+    Intersection
+        Translate translation=(0, 8.1, 0)
+            RoundBox size=(10.3, 8.1, 2.5) roundness=0.3
+        Translate translation=(0, 14.31, -20.72)
+            Rotate rotation=(-0.0845, 0, 0)
+                Box size=(20, 20, 20)
+
+# The pooled roll along x, round at its ends
+pool =
+    Capsule a=(-8.6, 1.3, 1.2) b=(8.6, 1.3, 1.2) radius=1.3
+
+body =
+    SmoothUnion smoothness=0.5
+        $hang
+        $pool
+
+# The white stripe bands: two pairs, one near the rim and one above the pooled roll
+bands =
+    Union
+        Translate translation=(0, 5.8, 0)
+            Box size=(12, 0.6, 6)
+        Translate translation=(0, 7.5, 0)
+            Box size=(12, 0.25, 6)
+        Translate translation=(0, 13.2, 0)
+            Box size=(12, 0.6, 6)
+        Translate translation=(0, 14.7, 0)
+            Box size=(12, 0.25, 6)
+
+Detail detail=0.37
+    Union
+        Material material=bath_towel_yellow
+            Subtraction
+                $body
+                $bands
+        Material material=bath_towel_white
+            Intersection
+                $body
+                $bands
