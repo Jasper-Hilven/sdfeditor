@@ -339,5 +339,48 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(0.70f, DifficultyRules.Apply(computer, Difficulty.Normal, -1).blueSkill, 1e-5f);
             Assert.AreEqual(0.35f, DifficultyRules.Apply(computer, Difficulty.Easy, 2).blueSkill, 1e-5f);
         }
+
+        [Test]
+        public void Taunts_FiveForEveryBattle_AndAllDifferent()
+        {
+            foreach (var battle in Def.Battles())
+            {
+                var lines = Taunts.Of(battle.id);
+                Assert.AreEqual(Taunts.PerArena, lines.Count, battle.id);
+                Assert.AreEqual(lines.Count, lines.Distinct().Count(), battle.id + " repeats a taunt");
+                Assert.IsTrue(lines.All(l => !string.IsNullOrWhiteSpace(l)), battle.id);
+            }
+            Assert.IsEmpty(Taunts.Of("nowhere"));
+            Assert.AreEqual("", Taunts.Pick("nowhere", 1));
+        }
+
+        [Test]
+        public void Taunts_GoRoundWithTheLossesInARow()
+        {
+            var lines = Taunts.Of("meadow");
+            Assert.AreEqual(lines[0], Taunts.Pick("meadow", 1));
+            Assert.AreEqual(lines[1], Taunts.Pick("meadow", 2));
+            Assert.AreEqual(lines[4], Taunts.Pick("meadow", 5));
+            Assert.AreEqual(lines[0], Taunts.Pick("meadow", 6));
+            Assert.AreEqual(lines[0], Taunts.Pick("meadow", 0), "never before the first");
+        }
+
+        [Test]
+        public void RetryEasier_WinsEarnAtMostSilver_AndTheLossStreakSurvivesASave()
+        {
+            var store = new MemoryCampaignStorage();
+            var p = Fresh(store);
+            p.RecordLoss("meadow");
+            p.RecordLoss("meadow");
+            Assert.IsTrue(Fresh(store).CanRetryEasier("meadow"), "two losses in a row are saved");
+            var win = p.RecordWin("meadow", 2, 0, 60, Difficulty.Normal, retriedEasier: true);
+            Assert.AreEqual(Medal.Silver, win.medal, "a flawless fast win that way is Silver, not Gold");
+            Assert.IsTrue(win.newBest);
+            Assert.IsFalse(Fresh(store).CanRetryEasier("meadow"), "the win clears the streak in the save");
+            var again = p.RecordWin("meadow", 2, 1, 300, Difficulty.Normal);
+            Assert.AreEqual(Medal.Bronze, again.medal);
+            Assert.IsFalse(again.newBest, "a worse medal is not a new best");
+            Assert.AreEqual(Medal.Silver, p.BestMedal("meadow"));
+        }
     }
 }

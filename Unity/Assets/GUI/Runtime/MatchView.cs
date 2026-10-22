@@ -82,6 +82,9 @@ namespace SdfGui
         [Tooltip("Seconds left of the countdown, or of the wait for the next round once it is over")]
         public float countdown;
 
+        [Tooltip("How the match ended (the banner, Victory and Defeat); filled by the real match, or sampled for the showcase")]
+        public ViewEnd end = new ViewEnd();
+
         [Header("Players")]
         public List<ViewPlayer> players = new List<ViewPlayer>();
         public int you;
@@ -234,6 +237,7 @@ namespace SdfGui
                 player.placement = 0;
             }
             phase = MatchPhase.Playing;
+            end.Clear();
             timeLeft = roundSeconds;
             health = maxHealth;
             ammo = magazine;
@@ -243,6 +247,35 @@ namespace SdfGui
             feed.Clear();
             nextKill = Time.time + 2;
             nextShot = Time.time + 6;
+        }
+
+        /// <summary>
+        /// The showcase round's end made up for the end screens (a real match fills <see cref="end"/> itself): a win 3 to 1 with a Silver
+        /// medal, or the loss the other way round.
+        /// </summary>
+        public void SampleEnd(bool won)
+        {
+            end.set = true;
+            end.won = won;
+            end.winnerBlue = !won;
+            end.redScore = won ? 3 : 1;
+            end.blueScore = won ? 1 : 3;
+            end.captures = won ? 2 : 0;
+            end.kills = You?.kills ?? 0;
+            end.deaths = players.Count(p => !p.alive);
+            end.seconds = Mathf.Max(0, roundSeconds - timeLeft);
+            end.medal = won ? 2 : 0;
+            end.newBest = won;
+            end.taunt = won ? "" : "Silver suits you.";
+            end.canRetryEasier = !won;
+        }
+
+        /// <summary>Whether the showcase round, played to its end, was won by your team.</summary>
+        public bool YourTeamWon()
+        {
+            var winner = players.Find(p => p.placement == 1);
+            var you = You;
+            return winner != null && you != null && winner.avatar == you.avatar;
         }
 
         // ---------------------------------------------------------------- What happens in a round

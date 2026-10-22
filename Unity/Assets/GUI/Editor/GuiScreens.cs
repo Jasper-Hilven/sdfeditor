@@ -9,7 +9,7 @@ namespace SdfGui.Editor
 {
     /// <summary>
     /// The screens of the GUI as prefabs in Assets/GUI/Prefabs/Screens, each filling the canvas and built from the component prefabs
-    /// (<see cref="GuiPrefabs"/>): title, level select, difficulty, confirm, story, HUD, scoreboard, pause, settings, death, round end,
+    /// (<see cref="GuiPrefabs"/>): title, level select, difficulty, confirm, story, HUD, scoreboard, pause, settings, death, the banner and Victory and Defeat,
     /// the developer's gallery of every component and the test panel. Each has a <see cref="GuiScreenRoot"/> for <see cref="GuiFlow"/> and draws from the match through its view.
     /// </summary>
     public sealed class GuiScreens
@@ -36,7 +36,9 @@ namespace SdfGui.Editor
             Screens[GuiScreen.Pause] = Pause();
             Screens[GuiScreen.Settings] = Settings();
             Screens[GuiScreen.Death] = Death();
-            Screens[GuiScreen.RoundEnd] = RoundEnd();
+            Screens[GuiScreen.MatchEnd] = MatchEnd();
+            Screens[GuiScreen.Victory] = Victory();
+            Screens[GuiScreen.Defeat] = Defeat();
             Screens[GuiScreen.Gallery] = Gallery();
             Screens[GuiScreen.Loading] = Loading();
             Screens[GuiScreen.LevelSelect] = LevelSelect();
@@ -616,7 +618,6 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.AmanitaDark, 0.6f), 0.45f);
             var result = root.AddComponent<GuiRoundResult>();
-            result.death = true;
             result.icons = f.Kit.icons;
             result.title = f.Text(t, "Title", "SPLATTERED!", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, 340), new Vector2(1200, 170));
             result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Killer", Centre, new Vector2(-300, 70), new Vector2(120, 120));
@@ -627,30 +628,97 @@ namespace SdfGui.Editor
             return Save(root);
         }
 
-        private GameObject RoundEnd()
+        // ---------------------------------------------------------------- End of the match (ticket 32.6)
+
+        // The 2 s banner over the HUD: RED WINS! or BLUE WINS!, coloured by GuiEndBanner
+        private GameObject MatchEnd()
         {
-            var root = Root("Round End", GuiScreen.RoundEnd);
+            var root = Root("Match End", GuiScreen.MatchEnd);
             var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), -0.2f);
-            var result = root.AddComponent<GuiRoundResult>();
-            result.death = false;
-            result.icons = f.Kit.icons;
-            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Gold, 0.5f), Centre, new Vector2(0, 120), new Vector2(900, 900));
-            f.Shape(t, "Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, new Vector2(0, 120), new Vector2(360, 360), s =>
+            var end = root.AddComponent<GuiEndBanner>();
+            var banner = p.BannerInstance(t, "Banner", "RED WINS!", GuiPalette.Amanita, Centre, new Vector2(0, -110), new Vector2(1000, 160), 100);
+            end.shape = banner;
+            end.label = banner.GetComponentInChildren<TMP_Text>();
+            return Save(root);
+        }
+
+        // The arena and the score under the banner, and your numbers in a panel; both end screens have them
+        private void EndNumbers(Transform t, GuiEndScreen end, float scoreY, float statsY)
+        {
+            end.arena = f.Text(t, "Arena", "MEADOW", TextStyle.Title, 46, GuiPalette.Gold, Centre, new Vector2(0, scoreY + 120), new Vector2(1200, 60));
+            end.score = f.Text(t, "Score", "3 – 1", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, scoreY), new Vector2(1200, 170));
+            var stats = f.Panel(t, "Stats", GuiPalette.WithAlpha(GuiPalette.Night, 0.92f), Centre, new Vector2(0, statsY), new Vector2(1100, 130), 26);
+            TMP_Text Stat(string label, float x)
             {
-                s.Outline = 7;
-                s.Shadow = 10;
-                s.Wobble = 3;
+                var number = f.Text(stats.transform, label, "0", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(x, 14), new Vector2(240, 80));
+                f.Text(number.transform, label + " Label", label.ToUpperInvariant(), TextStyle.BodyInk, 24, GuiPalette.Paper, Centre, new Vector2(0, -52), new Vector2(240, 30));
+                return number;
+            }
+            end.captures = Stat("Captures", -390);
+            end.kills = Stat("Kills", -130);
+            end.deaths = Stat("Deaths", 130);
+            end.time = Stat("Time", 390);
+        }
+
+        private GameObject Victory()
+        {
+            var root = Root("Victory", GuiScreen.Victory);
+            var t = root.transform;
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.2f);
+            var end = root.AddComponent<GuiEndScreen>();
+            end.victory = true;
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Gold, 0.4f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
+            p.BannerInstance(t, "Title", "VICTORY!", GuiPalette.Moss, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
+            EndNumbers(t, end, 160, -300);
+
+            // The medal: a burst in the medal's colour (set by the view) with its name, and NEW BEST under it
+            var medal = Object("Medal", t);
+            Place(medal.transform, Centre, new Vector2(0, -50), new Vector2(210, 210));
+            end.medal = medal;
+            end.medalShape = f.Shape(medal.transform, "Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, Vector2.zero, new Vector2(210, 210), s =>
+            {
+                s.Outline = 6;
+                s.Shadow = 8;
+                s.Wobble = 2;
             });
-            result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Winner", Centre, new Vector2(0, 120), new Vector2(220, 220));
-            result.title = p.BannerInstance(t, "Title", "ROUND WON!", GuiPalette.Amanita, Centre, new Vector2(0, 360), new Vector2(1180, 130), 76).GetComponentInChildren<TMP_Text>();
-            result.detail = f.Text(t, "Detail", "Your team wins", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, -90), new Vector2(1200, 60));
+            end.medalLabel = f.FillText(end.medalShape.transform, "Name", "GOLD", TextStyle.Title, 44, GuiPalette.Ink);
+            end.newBest = f.Text(t, "New Best", "NEW BEST!", TextStyle.Title, 52, GuiPalette.Gold, Centre, new Vector2(0, -185), new Vector2(600, 64));
 
-            var stats = f.Panel(t, "Stats", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, new Vector2(0, -210), new Vector2(360, 150), 26);
-            result.kills = f.Text(stats.transform, "Kills", "5", TextStyle.Title, 76, GuiPalette.Cream, Centre, new Vector2(0, 10), new Vector2(160, 90));
-            f.Text(stats.transform, "Kills Label", "KILLS", TextStyle.BodyInk, 24, GuiPalette.Paper, Bottom, new Vector2(0, 12), new Vector2(200, 30));
+            p.ButtonInstance(t, "CONTINUE", GuiPalette.Moss, GuiCommandId.Next, Centre, new Vector2(-400, -430), new Vector2(380, 96), 46, spots: 0.5f);
+            p.ButtonInstance(t, "RETRY", GuiPalette.Chanterelle, GuiCommandId.Retry, Centre, new Vector2(0, -430), new Vector2(300, 86), 42, spots: 0.4f);
+            p.ButtonInstance(t, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, new Vector2(400, -430), new Vector2(300, 86), 42, spots: 0);
+            return Save(root);
+        }
 
-            p.ButtonInstance(t, "MAIN MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, new Vector2(0, -420), new Vector2(330, 90), 42, spots: 0);
+        private GameObject Defeat()
+        {
+            var root = Root("Defeat", GuiScreen.Defeat);
+            var t = root.transform;
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.88f), -0.2f);
+            var end = root.AddComponent<GuiEndScreen>();
+            end.victory = false;
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiEndScreen.Blue, 0.35f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
+            p.BannerInstance(t, "Title", "DEFEATED", GuiEndScreen.Blue, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
+            EndNumbers(t, end, 160, -230);
+
+            // Prime's taunt on a cream card
+            var card = p.PanelInstance(t, "Taunt Card", GuiPalette.Cream, Centre, new Vector2(0, -20), new Vector2(1300, 160));
+            end.taunt = f.Text(card.transform, "Taunt", "\u201CSilver suits you.\u201D", TextStyle.Body, 50, GuiPalette.Ink, Centre, new Vector2(0, 16), new Vector2(1220, 80));
+            f.Text(card.transform, "Taunt By", "CHANTERELLE PRIME", TextStyle.Label, 26, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(600, 34));
+            end.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -365), new Vector2(1500, 50));
+
+            // RETRY EASIER comes and goes, so the buttons are laid out and the gap closes
+            var row = Object("Buttons", t);
+            Place(row.transform, Centre, new Vector2(0, -450), new Vector2(1300, 90));
+            var layout = row.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 40;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = false;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            p.ButtonInstance(row.transform, "RETRY", GuiPalette.Moss, GuiCommandId.Retry, Centre, Vector2.zero, new Vector2(320, 86), 42, spots: 0.5f);
+            var easier = p.ButtonInstance(row.transform, "RETRY EASIER", GuiPalette.Chanterelle, GuiCommandId.RetryEasier, Centre, Vector2.zero, new Vector2(440, 86), 40, spots: 0.4f);
+            p.ButtonInstance(row.transform, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, Vector2.zero, new Vector2(300, 86), 42, spots: 0);
+            end.retryEasier = easier.gameObject;
             return Save(root);
         }
 
@@ -913,7 +981,8 @@ namespace SdfGui.Editor
             Add("PAUSE", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Pause);
             Add("SETTINGS", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Settings);
             Add("DEATH", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Death);
-            Add("ROUND END", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.RoundEnd);
+            Add("VICTORY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Victory);
+            Add("DEFEAT", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Defeat);
             Add("GALLERY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Gallery);
             Add("LEVELS", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.LevelSelect);
             Add("DIFFICULTY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Difficulty);

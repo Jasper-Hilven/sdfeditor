@@ -22,6 +22,10 @@ namespace SdfGui
         WatchCutscene,
         Confirm,
         Cancel,
+        // The end screens' (ticket 32.6): CONTINUE after a win, RETRY, and RETRY EASIER after two losses in a row
+        Next,
+        Retry,
+        RetryEasier,
 
         // Test panel: events of a round on demand
         NewRound,

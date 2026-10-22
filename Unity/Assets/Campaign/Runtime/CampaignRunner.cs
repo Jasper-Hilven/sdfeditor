@@ -43,7 +43,7 @@ namespace SdfCampaign
         /// <summary>RETRY EASIER presses on this battle's attempt (0 to 2).</summary>
         public int EasierSteps { get; private set; }
 
-        /// <summary>The battle just ended, with its result and, for a win, the medal; the Victory and Defeat screens (32.6) read it.</summary>
+        /// <summary>The battle just ended, with its result and, for a win, the medal (already written into the GUI's <c>MatchView.end</c> for Victory and Defeat).</summary>
         public event Action<CampaignStep, MatchResult, WinResult?> BattleEnded;
 
         private Match match;
@@ -110,7 +110,14 @@ namespace SdfCampaign
                     WatchCutscene(level);
                     return true;
                 case GuiCommandId.Restart:
+                case GuiCommandId.Retry:
                     Retry();
+                    return true;
+                case GuiCommandId.RetryEasier:
+                    Retry(easier: true);
+                    return true;
+                case GuiCommandId.Next:
+                    Next();
                     return true;
                 case GuiCommandId.QuitToMenu:
                     QuitToTitle();
@@ -170,16 +177,19 @@ namespace SdfCampaign
             Run(step);
         }
 
-        /// <summary>After a win: on to the next step (its beat), or, from Level Select, back to the title.</summary>
+        /// <summary>After a win: on to the next step (its beat), or, from a replay in Level Select, back to Level Select.</summary>
         public void Next()
         {
             if (fromLevelSelect)
-                QuitToTitle();
+                QuitToTitle(GuiScreen.LevelSelect);
             else
                 Continue();
         }
 
-        /// <summary>Starts the battle over: in place when the match can be (same team sizes), else the scene is loaded again.</summary>
+        /// <summary>
+        /// Starts the battle over: in place when the match can be (same team sizes), else the scene is loaded again. With
+        /// <paramref name="easier"/> (RETRY EASIER) blue's skill drops by one more step, two at most.
+        /// </summary>
         public void Retry(bool easier = false)
         {
             if (Current == null || !Current.IsBattle)
@@ -193,6 +203,9 @@ namespace SdfCampaign
                 match.Retry(setup.ToMatchSetup());
                 flow.Show(GuiScreen.Hud);
                 Time.timeScale = 1;
+                // The click on the button is the gesture a browser asks for; the match can be played at once
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
                 return;
             }
             LoadBattle(Current, setup);
@@ -346,6 +359,9 @@ namespace SdfCampaign
             if (match.Setup == null)
                 Debug.LogWarning("Campaign: the match did not take the campaign's setup");
             match.Ended += OnMatchEnded;
+            // The scoreboard's subtitle and the end screens name the arena as the campaign does
+            if (match.Hud != null && match.Hud.view != null && Current != null)
+                match.Hud.view.arena = Current.title;
         }
 
         private void Unbind()
@@ -361,6 +377,7 @@ namespace SdfCampaign
             if (step == null || !step.IsBattle)
                 return;
             WinResult? win = null;
+            var streak = 0;
             if (result.Winner == Team.Red && result.RedScore > result.BlueScore)
             {
                 win = Progress.RecordWin(step.id, result.RedScore, result.BlueScore, result.Seconds, Progress.Difficulty, EasierSteps > 0);
@@ -368,10 +385,25 @@ namespace SdfCampaign
             }
             else
             {
-                var streak = Progress.RecordLoss(step.id);
+                streak = Progress.RecordLoss(step.id);
                 Debug.Log($"Campaign: lost {step.id} {result.RedScore}-{result.BlueScore}, {streak} in a row");
             }
+            ShowEnd(step, result, win, streak);
             BattleEnded?.Invoke(step, result, win);
+        }
+
+        // What the Victory and Defeat screens say that only the campaign knows: the medal, Prime's taunt, RETRY EASIER; shown after the banner
+        private void ShowEnd(CampaignStep step, MatchResult result, WinResult? win, int streak)
+        {
+            var end = flow != null && flow.Match != null ? flow.Match.end : null;
+            if (end == null)
+                return;
+            end.seconds = result.Seconds;
+            end.medal = win.HasValue ? (int)win.Value.medal : 0;
+            end.newBest = win.HasValue && win.Value.newBest;
+            end.taunt = win.HasValue ? "" : Taunts.Pick(step.id, streak);
+            // Offered after two losses in a row, until it has been pressed twice (blue cannot get clumsier than that)
+            end.canRetryEasier = !win.HasValue && Progress.CanRetryEasier(step.id) && EasierSteps < DifficultyRules.MaxEasierSteps;
         }
     }
 }

@@ -43,6 +43,14 @@ namespace SdfGui.Editor
             (5.4f, "20 confirm", f => { f.Show(GuiScreen.Pause); f.Ask("Leave the match?\nThe campaign is saved at the start of this arena.", () => f.Show(GuiScreen.Title)); Expect(f.ConfirmOpen && f.screen == GuiScreen.Pause, "the card shows over the pause menu"); }),
             (5.6f, "21 cancelled", f => { f.Execute(GuiCommandId.Cancel, GuiScreen.Hud); Expect(!f.ConfirmOpen && f.screen == GuiScreen.Pause, "NO closes the card and leaves the pause menu"); }),
             (5.8f, "22 yes", f => { f.Ask("Leave the match?", () => f.Show(GuiScreen.Title)); f.Execute(GuiCommandId.Confirm, GuiScreen.Hud); Expect(!f.ConfirmOpen && f.screen == GuiScreen.Title, "YES runs what was asked"); }),
+            // The match's end (32.6): slow-down 1 s, banner 2 s, then Victory; RETRY starts over; DEFEAT is the other screen
+            (6.0f, "23 new round", f => f.Execute(GuiCommandId.NewRound, GuiScreen.Hud)),
+            (6.2f, "23b round won", f => f.Execute(GuiCommandId.Win, GuiScreen.Hud)),
+            (6.6f, "24 slow-down", f => Expect(f.Ending && Time.timeScale < 0.5f && f.screen == GuiScreen.Hud, "the end slows the time down first")),
+            (7.6f, "25 banner", f => Expect(f.screen == GuiScreen.MatchEnd && Mathf.Approximately(Time.timeScale, 1), "then the banner shows at full speed")),
+            (9.6f, "26 victory", f => Expect(f.screen == GuiScreen.Victory && f.Match.end.won && !f.Ending, "then Victory")),
+            (9.8f, "27 retry", f => { f.Execute(GuiCommandId.Retry, GuiScreen.Hud); Expect(f.screen == GuiScreen.Hud && f.Match.phase == MatchPhase.Playing && !f.Match.end.set, "RETRY starts the round again"); }),
+            (10.0f, "28 defeat", f => { f.Show(GuiScreen.Defeat); Expect(f.screen == GuiScreen.Defeat && !f.Match.end.won, "the Defeat screen shows"); }),
         };
 
         private static void Expect(bool ok, string what)

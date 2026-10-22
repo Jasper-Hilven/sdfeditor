@@ -106,6 +106,7 @@ namespace SdfBattle
             view.killedBy = view.spectating = -1;
             view.killedByName = view.killedTitle = view.killedDetail = view.eliminatedTitle = null;
             view.feed.Clear();
+            view.end.Clear();
             view.spread = view.hitMarker = view.damage = view.eliminated = 0;
             view.hitMarkerKill = view.eliminatedHeadshot = false;
         }
@@ -144,6 +145,8 @@ namespace SdfBattle
             killedBy = -1;
             killedByName = killedTitle = killedDetail = null;
             memory.Clear();
+            if (view != null)
+                view.end.Clear();
         }
 
         private void OnDied(Death death)
@@ -185,6 +188,26 @@ namespace SdfBattle
             }
         }
 
+        // How the round ended, once it has (the banner, Victory and Defeat read it); the campaign adds the medal and the taunt
+        private void FeedEnd(MatchState state)
+        {
+            // Once: the clock goes on ticking after the end, and the numbers are the end's
+            if (state.Phase != RoundPhase.RoundEnd || state.Winner == null || view.end.set)
+                return;
+            var end = view.end;
+            var yours = match.You != null ? match.You.Team : match.yourTeam;
+            var you = match.You != null ? match.You.State : null;
+            end.set = true;
+            end.won = state.Winner == yours;
+            end.winnerBlue = state.Winner == Team.Blue;
+            end.redScore = state.Score(Team.Red);
+            end.blueScore = state.Score(Team.Blue);
+            end.captures = you?.Captures ?? 0;
+            end.kills = you?.Kills ?? 0;
+            end.deaths = you?.Deaths ?? 0;
+            end.seconds = state.RoundClock;
+        }
+
         private void Feed(float dt)
         {
             if (match == null || match.State == null || view == null)
@@ -222,6 +245,7 @@ namespace SdfBattle
                 winnerShown |= won;
             }
             view.you = 0;
+            FeedEnd(state);
 
             var you = match.You != null ? match.You.State : null;
             view.maxHealth = you?.MaxHealth > 0 ? you.MaxHealth : state.Rules.maxHealth;

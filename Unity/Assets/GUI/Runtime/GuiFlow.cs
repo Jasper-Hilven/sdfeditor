@@ -12,7 +12,8 @@ namespace SdfGui
         Pause,
         Settings,
         Death,
-        RoundEnd,
+        /// <summary>Your team won: the VICTORY! screen with the medal and the stats (ticket 32.6; it took RoundEnd's place).</summary>
+        Victory,
         Gallery,
         Loading,
         LevelSelect,
@@ -22,17 +23,26 @@ namespace SdfGui
         Difficulty,
         /// <summary>The player's gallery: the cutscenes seen so far, to watch again.</summary>
         Story,
+        /// <summary>The lost match's screen: DEFEATED, Prime's taunt, RETRY, RETRY EASIER and MENU.</summary>
+        Defeat,
+        /// <summary>The 2 s banner over the HUD between the match's last capture and Victory or Defeat.</summary>
+        MatchEnd,
     }
 
     /// <summary>
     /// Which screens of the GUI show. Each screen is a prefab under the GUI's canvas with a <see cref="GuiScreenRoot"/>; this turns
     /// them on and off for <see cref="screen"/> (some show over the HUD, like the pause menu), in the editor too, so picking a screen in
     /// the inspector shows it in the scene exactly as it will be at runtime. At runtime it also follows the match (the round starting,
-    /// you being eliminated, the round ending) and the keys: Escape pauses, Tab holds the scoreboard, F1 hides the test panel.
+    /// you being eliminated, the match ending) and the keys: Escape pauses, Tab holds the scoreboard, F1 hides the test panel.
     /// <para>
     /// Pausing stops the match: the pause screen (and the settings opened from it) sets <c>Time.timeScale</c> to 0 and pauses the audio;
     /// the GUI itself runs on unscaled time. Losing the pointer lock (the browser gives it up on Escape) or the window's focus while the
     /// HUD is up pauses too.
+    /// </para>
+    /// <para>
+    /// The match's end (ticket 32.6) is a short sequence on unscaled time: the time slows to <see cref="SlowScale"/> for
+    /// <see cref="SlowSeconds"/>, then the RED WINS or BLUE WINS banner shows for <see cref="BannerSeconds"/> over the HUD, then comes
+    /// Victory or Defeat with the pointer freed. A scene played alone (no campaign) stays on the HUD after the banner: its next round comes by itself.
     /// </para>
     /// </summary>
     [ExecuteAlways]
@@ -42,6 +52,9 @@ namespace SdfGui
         [Tooltip("Where Back from the settings goes")]
         public GuiScreen settingsReturn = GuiScreen.Title;
         public bool testPanel = true;
+
+        /// <summary>The match end's slow-down: this time scale, for this many seconds, then the banner this many.</summary>
+        public const float SlowScale = 0.3f, SlowSeconds = 1, BannerSeconds = 2;
 
         /// <summary>The GUI that survives scene loads (the campaign's, ticket 32.4); null where a scene plays alone with its own.</summary>
         public static GuiFlow Persistent { get; set; }
@@ -70,6 +83,8 @@ namespace SdfGui
         private bool wasLocked;
         private bool paused;
         private float timeScaleBefore = 1;
+        private bool slowing, bannering;
+        private float endTime;
 
         public MatchView Match => match != null ? match : match = GetComponentInParent<MatchView>();
 
@@ -100,24 +115,32 @@ namespace SdfGui
                 Keys();
                 PauseOnLostLock();
                 HoldTime();
+                TickEnd();
             }
             Apply();
         }
 
-        private void OnDisable() => Hold(false);
+        private void OnDisable()
+        {
+            CancelEnd();
+            Hold(false);
+        }
+
+        /// <summary>Whether the match's end sequence (the slow-down and the banner) is running.</summary>
+        public bool Ending => slowing || bannering;
 
         // The browser lets the pointer go on Escape without the key reaching the game; a lock lost while playing is a pause
         private void PauseOnLostLock()
         {
             var locked = Cursor.lockState == CursorLockMode.Locked;
-            if (screen == GuiScreen.Hud && wasLocked && !locked)
+            if (screen == GuiScreen.Hud && !Ending && wasLocked && !locked)
                 screen = GuiScreen.Pause;
             wasLocked = locked;
         }
 
         private void OnApplicationFocus(bool focus)
         {
-            if (!focus && Application.isPlaying && !Application.isBatchMode && screen == GuiScreen.Hud && Match != null && Match.driven)
+            if (!focus && Application.isPlaying && !Application.isBatchMode && screen == GuiScreen.Hud && !Ending && Match != null && Match.driven)
                 Pause();
         }
 
@@ -153,16 +176,17 @@ namespace SdfGui
             var phase = Match.phase;
             if (phase != lastPhase)
             {
-                if (phase == MatchPhase.Playing && screen == GuiScreen.RoundEnd)
+                // A new round (a retry, or the next round of a scene played alone): back to the HUD
+                if (phase != MatchPhase.Over && (Ending || IsEndScreen(screen)))
+                {
+                    CancelEnd();
                     screen = GuiScreen.Hud;
+                }
                 if (phase == MatchPhase.Over && (Match.YouAreAlive || Match.driven) && (IsInRound(screen) || (Match.driven && screen == GuiScreen.Death)))
-                    screen = GuiScreen.RoundEnd;
-                // A real match's next round counts down on the HUD
-                if (phase == MatchPhase.Countdown && Match.driven && screen == GuiScreen.RoundEnd)
-                    screen = GuiScreen.Hud;
+                    BeginEnd();
                 lastPhase = phase;
             }
-            if (wasAlive && !Match.YouAreAlive && IsInRound(screen))
+            if (wasAlive && !Match.YouAreAlive && IsInRound(screen) && !Ending)
                 screen = GuiScreen.Death;
             // In a real match you respawn: back to the HUD
             if (!wasAlive && Match.YouAreAlive && screen == GuiScreen.Death)
@@ -180,7 +204,7 @@ namespace SdfGui
             }
             if (Input.GetKeyDown(KeyCode.F1) && DevTools)
                 testPanel = !testPanel;
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (Input.GetKeyDown(KeyCode.Escape) && !Ending)
             {
                 if (screen == GuiScreen.Hud)
                     screen = GuiScreen.Pause;
@@ -214,6 +238,71 @@ namespace SdfGui
 
         private static bool IsInRound(GuiScreen s) => s == GuiScreen.Hud || s == GuiScreen.Scoreboard || s == GuiScreen.Pause;
 
+        private static bool IsEndScreen(GuiScreen s) => s == GuiScreen.MatchEnd || s == GuiScreen.Victory || s == GuiScreen.Defeat;
+
+        // ---------------------------------------------------------------- The match's end
+
+        private void BeginEnd()
+        {
+            // The showcase round has no match to fill the end screens: made up from the round
+            if (!Match.driven && !Match.end.set)
+                Match.SampleEnd(Match.YourTeamWon());
+            if (screen == GuiScreen.Scoreboard || screen == GuiScreen.Pause || screen == GuiScreen.Death)
+                screen = GuiScreen.Hud;
+            slowing = true;
+            bannering = false;
+            endTime = 0;
+            Time.timeScale = SlowScale;
+        }
+
+        private void TickEnd()
+        {
+            if (!Ending)
+                return;
+            if (Match == null)
+            {
+                CancelEnd();
+                return;
+            }
+            endTime += Time.unscaledDeltaTime;
+            if (slowing && endTime >= SlowSeconds)
+            {
+                slowing = false;
+                bannering = true;
+                endTime = 0;
+                RestoreTime();
+                screen = GuiScreen.MatchEnd;
+            }
+            else if (bannering && endTime >= BannerSeconds)
+            {
+                bannering = false;
+                // A scene played alone has no campaign to retry or go on in: its next round starts by itself
+                if (Match.driven && Campaign == null)
+                {
+                    screen = GuiScreen.Hud;
+                    return;
+                }
+                screen = Match.end.won ? GuiScreen.Victory : GuiScreen.Defeat;
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+        }
+
+        /// <summary>Stops the end sequence where it is and gives the time back (a retry, leaving, a new round).</summary>
+        private void CancelEnd()
+        {
+            if (!Ending)
+                return;
+            slowing = bannering = false;
+            RestoreTime();
+        }
+
+        private void RestoreTime()
+        {
+            if (!paused)
+                Time.timeScale = 1;
+        }
+
         /// <summary>Whether a screen shows while <see cref="screen"/> is up: the HUD stays under the overlays of a round.</summary>
         public bool Shows(GuiScreen root)
         {
@@ -223,7 +312,7 @@ namespace SdfGui
                 return true;
             if (root != GuiScreen.Hud)
                 return false;
-            return screen == GuiScreen.Scoreboard || screen == GuiScreen.Pause || screen == GuiScreen.Death || screen == GuiScreen.RoundEnd ||
+            return screen == GuiScreen.Scoreboard || screen == GuiScreen.Pause || screen == GuiScreen.Death || screen == GuiScreen.MatchEnd ||
                    (screen == GuiScreen.Settings && settingsReturn == GuiScreen.Pause);
         }
 
@@ -250,6 +339,10 @@ namespace SdfGui
                 return;
             }
             ConfirmOpen = false;
+            CancelEnd();
+            // Picked from the editor or the test panel: the showcase round's end, made up
+            if ((next == GuiScreen.Victory || next == GuiScreen.Defeat) && Match != null && !Match.driven)
+                Match.SampleEnd(next == GuiScreen.Victory);
             if (next == GuiScreen.Settings && screen != GuiScreen.Settings)
                 settingsReturn = screen == GuiScreen.Pause ? GuiScreen.Pause : GuiScreen.Title;
             screen = next;
@@ -295,6 +388,9 @@ namespace SdfGui
                 case GuiCommandId.BeginCampaign:
                 case GuiCommandId.PlayLevel:
                 case GuiCommandId.Restart:
+                case GuiCommandId.Retry:
+                case GuiCommandId.RetryEasier:
+                case GuiCommandId.Next:
                 case GuiCommandId.NewRound:
                     m?.StartPlaying();
                     Show(GuiScreen.Hud);

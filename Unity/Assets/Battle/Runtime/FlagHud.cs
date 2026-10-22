@@ -14,7 +14,6 @@ namespace SdfBattle
     /// <item>a marker over each flag that is not at home (not the one on your back), pinned to the screen's edge with an arrow when the
     /// flag is off screen, with its distance;</item>
     /// <item>banners: "You have the flag", "Blue took your flag", "Red scored", "Your flag was returned" and the like;</item>
-    /// <item>the round's result as a team result ("Red wins 3 – 1") instead of the GUI's plain round result.</item>
     /// </list>
     /// </summary>
     [DefaultExecutionOrder(100)]
@@ -51,7 +50,6 @@ namespace SdfBattle
         private ToonShape banner;
         private TMP_Text bannerText;
         private float bannerLeft;
-        private GuiRoundResult[] results = new GuiRoundResult[0];
 
         private Team YourTeam => ctf.Match.You != null ? ctf.Match.You.Team : ctf.Match.yourTeam;
 
@@ -123,8 +121,6 @@ namespace SdfBattle
                 GuiText.Show(marker, false);
             if (banner != null)
                 banner.gameObject.SetActive(false);
-
-            results = matchHud.view.GetComponentsInChildren<GuiRoundResult>(true);
         }
 
         /// <summary>
@@ -206,8 +202,6 @@ namespace SdfBattle
                 if (bannerLeft <= 0)
                     banner.gameObject.SetActive(false);
             }
-
-            ShowResult(match);
         }
 
         /// <summary>The marker over a flag that is away from home: over it on screen, or at the edge pointing to it.</summary>
@@ -257,23 +251,6 @@ namespace SdfBattle
             {
                 shownMetres[(int)flag.Team] = metres;
                 GuiText.Set(markerLabels[(int)flag.Team], $"{metres} m");
-            }
-        }
-
-        /// <summary>The round's end as a team result, over the GUI's plain round result.</summary>
-        private void ShowResult(MatchState match)
-        {
-            if (match.Phase != RoundPhase.RoundEnd || match.Winner == null)
-                return;
-            var winner = match.Winner.Value;
-            var title = winner == YourTeam ? "YOUR TEAM WINS!" : $"{winner.Name().ToUpperInvariant()} WINS";
-            var detail = $"<color=#{Hex(Team.Red)}>Red {match.Score(Team.Red)}</color>  –  <color=#{Hex(Team.Blue)}>{match.Score(Team.Blue)} Blue</color>";
-            foreach (var result in results)
-            {
-                if (result == null || result.death || !result.isActiveAndEnabled)
-                    continue;
-                GuiText.Set(result.title, title);
-                GuiText.Set(result.detail, detail);
             }
         }
 

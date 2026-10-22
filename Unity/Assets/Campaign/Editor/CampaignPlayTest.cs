@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SdfBattle;
 using SdfGui;
 using SdfStory;
@@ -12,9 +13,11 @@ namespace SdfCampaign.Editor
 {
     /// <summary>
     /// Plays Boot.unity without a window through the loader (ticket 32.4, menus 32.5): Boot, NEW CAMPAIGN and its difficulty card, the
-    /// intro (skipped) into the Meadow with its setup, a win recorded by two captures, back to the title (CONTINUE and LEVEL SELECT now
-    /// there, NEW CAMPAIGN asking first), CONTINUE on to Fungal, a retry, then Level Select and PLAY on the Meadow. Checks the persistent GUI, the setup being spent, the time scale and the
-    /// scene names after each step, and fails on any error logged. <c>Unity -batchmode -projectPath Unity -executeMethod
+    /// intro (skipped) into the Meadow with its setup, a win recorded by two captures, the end (slow-down, RED WINS! banner, Victory with
+    /// the medal, RETRY in place, a second win and MENU; ticket 32.6), back to the title (CONTINUE and LEVEL SELECT now there, NEW CAMPAIGN
+    /// asking first), CONTINUE on to Fungal, two losses (Defeat with Prime's taunt, RETRY in place, then RETRY EASIER), a pause and
+    /// QUIT TO MENU, then Level Select, PLAY on the Meadow and a win whose CONTINUE goes back to Level Select. Checks the persistent GUI,
+    /// the setup being spent, the time scale and the scene names after each step, and fails on any error logged. <c>Unity -batchmode -projectPath Unity -executeMethod
     /// SdfCampaign.Editor.CampaignPlayTest.Run</c> (without -quit: it quits when done, exit code 1 on a failure). It clears the saved
     /// campaign first and again after.
     /// </summary>
@@ -29,6 +32,8 @@ namespace SdfCampaign.Editor
         private static float started = -1;
         private static CampaignRunner runner;
         private static bool sawIntro;
+        private static bool sawSlow, sawBanner;
+        private static float skillBefore;
 
         static CampaignPlayTest()
         {
@@ -83,9 +88,9 @@ namespace SdfCampaign.Editor
                 errors.Add(exception.ToString());
                 step = int.MaxValue;
             }
-            if (step < 9 && now - started < 240)
+            if (step < 16 && now - started < 300)
                 return;
-            if (now - started >= 240)
+            if (now - started >= 300)
                 errors.Add($"Timed out in step {step}, scene {Active}");
             Finish();
         }
@@ -144,9 +149,37 @@ namespace SdfCampaign.Editor
                     Expect(Match.Current.State.Over, "two captures end the Meadow");
                     Expect(runner.Progress.Won(CampaignDefinition.Meadow), "the win is recorded");
                     Expect(runner.Progress.BestMedal(CampaignDefinition.Meadow) != Medal.None, "a medal is recorded");
-                    runner.QuitToTitle();
+                    sawSlow = sawBanner = false;
                     return true;
-                case 3: // back on the title
+                case 3: // the end: slow-down, banner, Victory; then RETRY in place
+                    if (!WaitForEnd(flow, GuiScreen.Victory, waited, "Victory"))
+                        return false;
+                    var won = flow.Match.end;
+                    Expect(won.won && won.redScore == 2 && won.blueScore == 0, $"the score 2-0 is on the end, got {won.redScore}-{won.blueScore}");
+                    Expect(won.medal > 0 && won.newBest, "the first win is a new best with a medal");
+                    Expect(won.captures == 0 && won.seconds > 0, "your captures (none by you) and the time are there");
+                    Expect(flow.Match.arena == "Meadow", "the arena is named as the campaign does: " + flow.Match.arena);
+                    var screen = flow.GetComponentInChildren<GuiEndScreen>(true);
+                    Expect(screen.victory && screen.medal.activeSelf && screen.newBest.gameObject.activeSelf, "Victory shows the medal and NEW BEST");
+                    var same = Match.Current;
+                    flow.Execute(GuiCommandId.Retry, GuiScreen.Hud);
+                    Expect(Match.Current == same && same.State.Score(Team.Red) == 0 && !same.State.Over, "RETRY starts the match over in place, no reload");
+                    Expect(flow.screen == GuiScreen.Hud && !flow.Match.end.set, "back on the HUD");
+                    Expect(Mathf.Approximately(Time.timeScale, 1), "time runs after RETRY");
+                    return true;
+                case 4: // a second win, then out through MENU
+                    if (waited < 0.5f)
+                        return false;
+                    Match.Current.State.ReportCapture(Team.Red);
+                    Match.Current.State.ReportCapture(Team.Red);
+                    sawSlow = sawBanner = false;
+                    return true;
+                case 5:
+                    if (!WaitForEnd(flow, GuiScreen.Victory, waited, "Victory again"))
+                        return false;
+                    flow.Execute(GuiCommandId.QuitToMenu, GuiScreen.Hud);
+                    return true;
+                case 6: // back on the title
                     if (Active != CampaignRunner.BootScene || runner.loader.Busy)
                         return Waiting(waited, "Boot");
                     Expect(flow.screen == GuiScreen.Title, "the title is up again");
@@ -163,7 +196,7 @@ namespace SdfCampaign.Editor
                     Expect(!flow.ConfirmOpen && flow.screen == GuiScreen.Title && runner.Progress.NextId == "beat-fungal", "NO leaves everything as it was");
                     flow.Execute(GuiCommandId.Continue, GuiScreen.Hud);
                     return true;
-                case 4: // on to Fungal
+                case 7: // on to Fungal, and a first loss: blue takes three captures
                     if (Active != "Fungal" || runner.loader.Busy || Match.Current == null)
                         return Waiting(waited, "Fungal");
                     Expect(runner.Current.id == CampaignDefinition.Fungal, "the current step is Fungal");
@@ -171,14 +204,49 @@ namespace SdfCampaign.Editor
                     Expect(Match.Current.Players.Count == 8, $"4 v 4 in Fungal, got {Match.Current.Players.Count}");
                     Expect(Match.Current.Setup != null && Match.Current.Setup.SkillOf(Team.Blue) > 0.29f, "Fungal's blue skill");
                     Expect(Match.Current.Hud != null && Match.Current.Hud.gameObject == flow.gameObject, "the HUD is on the persistent GUI");
+                    for (var i = 0; i < 3; i++)
+                        Match.Current.State.ReportCapture(Team.Blue);
+                    Expect(runner.Progress.LossStreak(CampaignDefinition.Fungal) == 1, "the loss is counted");
+                    sawSlow = sawBanner = false;
                     return true;
-                case 5: // a retry in place, then out
-                    runner.Retry();
-                    Expect(Match.Current.State.Round > 0 && Match.Current.State.Score(Team.Red) == 0, "the retry starts the match over");
+                case 8: // Defeat with the first taunt and no RETRY EASIER; RETRY in place; a second loss
+                    if (!WaitForEnd(flow, GuiScreen.Defeat, waited, "Defeat"))
+                        return false;
+                    var lost = flow.Match.end;
+                    Expect(!lost.won && lost.blueScore == 3 && lost.medal == 0, "a loss 0-3 without a medal");
+                    Expect(lost.taunt == Taunts.Pick(CampaignDefinition.Fungal, 1) && lost.taunt != "", "Prime's first taunt: " + lost.taunt);
+                    Expect(!lost.canRetryEasier, "no RETRY EASIER after one loss");
+                    var fungal = Match.Current;
+                    flow.Execute(GuiCommandId.Retry, GuiScreen.Hud);
+                    Expect(Match.Current == fungal && flow.screen == GuiScreen.Hud && !fungal.State.Over && fungal.State.Score(Team.Blue) == 0, "RETRY restarts Fungal in place");
+                    skillBefore = fungal.Setup.SkillOf(Team.Blue);
+                    return true;
+                case 9: // a second loss (a moment after the restart: the GUI follows the phase from frame to frame)
+                    if (waited < 0.5f)
+                        return false;
+                    for (var i = 0; i < 3; i++)
+                        Match.Current.State.ReportCapture(Team.Blue);
+                    Expect(runner.Progress.LossStreak(CampaignDefinition.Fungal) == 2, "two losses in a row");
+                    sawSlow = sawBanner = false;
+                    return true;
+                case 10: // two losses: RETRY EASIER, blue a step clumsier
+                    if (!WaitForEnd(flow, GuiScreen.Defeat, waited, "Defeat again"))
+                        return false;
+                    Expect(flow.Match.end.canRetryEasier, "RETRY EASIER after two losses in a row");
+                    Expect(flow.Match.end.taunt == Taunts.Pick(CampaignDefinition.Fungal, 2), "the second taunt differs from the first");
+                    var easier = flow.GetComponentsInChildren<GuiEndScreen>(true);
+                    Expect(easier.Any(e => !e.victory && e.retryEasier.activeInHierarchy), "the button shows");
+                    var again = Match.Current;
+                    flow.Execute(GuiCommandId.RetryEasier, GuiScreen.Hud);
+                    Expect(Match.Current == again && flow.screen == GuiScreen.Hud, "RETRY EASIER restarts in place");
+                    Expect(runner.EasierSteps == 1, "one step easier");
+                    Expect(Mathf.Abs(again.Setup.SkillOf(Team.Blue) - (skillBefore - DifficultyRules.EasierStep)) < 1e-4f, "blue is 0.1 clumsier");
+                    return true;
+                case 11: // a pause, then out
                     flow.Show(GuiScreen.Pause);
                     flow.Execute(GuiCommandId.QuitToMenu, GuiScreen.Hud);
                     return true;
-                case 6: // back on the title, then Level Select
+                case 12: // back on the title, then Level Select
                     if (Active != CampaignRunner.BootScene || runner.loader.Busy)
                         return Waiting(waited, "Boot");
                     Expect(flow.screen == GuiScreen.Title, "the title again");
@@ -194,20 +262,48 @@ namespace SdfCampaign.Editor
                     Expect(runner.Progress.Difficulty == Difficulty.Hard, "the selector sets the difficulty");
                     flow.Execute(GuiCommandId.PlayLevel, GuiScreen.Hud, CampaignDefinition.Meadow);
                     return true;
-                case 7: // a replay straight from Level Select: no warm-up, Hard difficulty on blue's skill
+                case 13: // a replay straight from Level Select: no warm-up, Hard difficulty on blue's skill; a win
                     if (Active != "Meadow" || runner.loader.Busy || Match.Current == null)
                         return Waiting(waited, "the Meadow again");
                     Expect(runner.Current.id == CampaignDefinition.Meadow, "PLAY loads the card's arena");
                     Expect(Match.Current.Setup != null && Match.Current.Setup.SkillOf(Team.Blue) > 0.29f, "Hard raises blue's skill");
                     Expect(flow.screen == GuiScreen.Hud, "the HUD is up");
-                    runner.QuitToTitle();
+                    Match.Current.State.ReportCapture(Team.Red);
+                    Match.Current.State.ReportCapture(Team.Red);
+                    sawSlow = sawBanner = false;
+                    return true;
+                case 14: // CONTINUE after a replay goes back to Level Select
+                    if (!WaitForEnd(flow, GuiScreen.Victory, waited, "Victory in the replay"))
+                        return false;
+                    flow.Execute(GuiCommandId.Next, GuiScreen.Hud);
                     return true;
                 default:
                     if (Active != CampaignRunner.BootScene || runner.loader.Busy)
                         return Waiting(waited, "Boot");
-                    Expect(flow.screen == GuiScreen.Title, "the title again");
+                    Expect(flow.screen == GuiScreen.LevelSelect, "CONTINUE after a Level Select replay is back in Level Select, got " + flow.screen);
                     return true;
             }
+        }
+
+        // The match's end as the GUI plays it: the time slows (seen on the way), the banner shows at full speed, then the screen; true on it
+        private static bool WaitForEnd(GuiFlow flow, GuiScreen end, float waited, string what)
+        {
+            if (flow.Ending && flow.screen == GuiScreen.Hud && Time.timeScale < 0.5f)
+                sawSlow = true;
+            if (flow.screen == GuiScreen.MatchEnd)
+            {
+                sawBanner = true;
+                Expect(Mathf.Approximately(Time.timeScale, 1), "the banner runs at full speed");
+                var text = flow.GetComponentInChildren<GuiEndBanner>(true).label.text;
+                Expect(text == (flow.Match.end.winnerBlue ? "BLUE WINS!" : "RED WINS!"), "the banner names the winner: " + text);
+            }
+            if (flow.screen != end)
+                return Waiting(waited, what);
+            Expect(sawSlow, "the time slowed down before the banner");
+            Expect(sawBanner, "the banner showed before " + end);
+            Expect(Mathf.Approximately(Time.timeScale, 1), "time runs on the end screen");
+            Expect(Cursor.lockState != CursorLockMode.Locked && Cursor.visible, "the pointer is free for the buttons");
+            return true;
         }
 
         private static bool Waiting(float waited, string what)
