@@ -228,7 +228,7 @@ namespace SdfLevel.Editor
         }
 
         /// <summary>
-        /// The views of a closed room (a chessboard cube): at eye height in the middle looking along each wall; at a corner looking along
+        /// The views of a closed room (a chessboard cube or any room of walls and a lid): at eye height in the middle looking along each wall; at a corner looking along
         /// a wall, and from the opposite corner diagonally across and up; up at the ceiling, straight and slanted; close at the foot of a
         /// wall and at the vertical edge of two walls, where the checker must run on across the edge; from high up in the room down;
         /// and the busiest crowd of pieces. Unity's coordinates; the room is centred on x and z and stands on y = 0.
@@ -237,15 +237,22 @@ namespace SdfLevel.Editor
         {
             foreach (var (name, yaw) in new[] { ("room_eye_+x", 90f), ("room_eye_-x", -90f), ("room_eye_+z", 0f), ("room_eye_-z", 180f) })
                 eyeShot(name, eye, Quaternion.Euler(0, yaw, 0));
+            // The room's own size (not necessarily a cube), from its ceiling's quad: half its width and depth, and its height
+            var ceiling = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelRoom.RoomName + "/ceiling").GetComponent<Renderer>().bounds;
+            var half = new Vector2(ceiling.extents.x, ceiling.extents.z);
+            var height = ceiling.center.y;
             var up = Vector3.up * LevelBuilder.EyeHeight;
-            eyeShot("room_corner_along", new Vector3(72, 0, -72) + up, Quaternion.LookRotation(new Vector3(0, 0.02f, 1)));
-            eyeShot("room_corner_across", new Vector3(-72, 0, -72) + up, Quaternion.LookRotation(new Vector3(1, 0.3f, 1)));
+            eyeShot("room_corner_along", new Vector3(half.x - 8, 0, -(half.y - 8)) + up, Quaternion.LookRotation(new Vector3(0, 0.02f, 1)));
+            eyeShot("room_corner_across", new Vector3(-(half.x - 8), 0, -(half.y - 8)) + up, Quaternion.LookRotation(new Vector3(1, 0.3f, 1)));
             eyeShot("room_ceiling", eye, Quaternion.Euler(-85, 0, 0));
             eyeShot("room_ceiling_slant", eye, Quaternion.Euler(-45, 30, 0));
-            eyeShot("room_wall_foot", new Vector3(0, 0, 60) + up, Quaternion.Euler(20, 0, 0));
-            eyeShot("room_wall_edge", new Vector3(40, 0, 40) + up, Quaternion.LookRotation(new Vector3(1, 0.1f, 1)));
-            eyeShot("room_ceiling_edge", new Vector3(60, 0, 0) + up, Quaternion.LookRotation(new Vector3(1, 1.4f, 0)));
-            shot("room_above", new Vector3(-60, 150, -60), Quaternion.LookRotation(new Vector3(1, -1.2f, 1)), 1920, 1080);
+            eyeShot("room_wall_foot", new Vector3(0, 0, half.y - 20) + up, Quaternion.Euler(20, 0, 0));
+            eyeShot("room_wall_edge", new Vector3(Mathf.Max(half.x - 40, half.x * 0.4f), 0, Mathf.Max(half.y - 40, half.y * 0.4f)) + up, Quaternion.LookRotation(new Vector3(1, 0.1f, 1)));
+            eyeShot("room_ceiling_edge", new Vector3(half.x - 20, 0, 0) + up, Quaternion.LookRotation(new Vector3(1, 1.4f, 0)));
+            // A wall's upper part from the middle: a frieze band and the strip of light along the top of the +z wall, if the room has them
+            eyeShot("room_frieze", eye, Quaternion.Euler(-12, 0, 0));
+            eyeShot("room_glow", eye, Quaternion.Euler(-40, 0, 0));
+            shot("room_above", new Vector3(-(half.x - 20), height - 10, -(half.y - 20)), Quaternion.LookRotation(new Vector3(1, -1.2f, 1)), 1920, 1080);
             ShootCrowd(scene, shot, eyeShot);
         }
 

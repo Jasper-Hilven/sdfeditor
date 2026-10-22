@@ -11,17 +11,20 @@ using UnityEngine.Rendering;
 namespace SdfLevel.Editor
 {
     /// <summary>
-    /// The closed room of a level (level.json "room", from the level file's <c>room</c> line): the chessboard cube. The floor is the
-    /// ground, built from its chunks as ever; <see cref="Add"/> builds the other five faces under Level/Room: a flat quad each (the four
-    /// walls and the ceiling, facing into the room, each on its own material on SdfRoomFace.shader, which draws the squares from the world
-    /// position with ruled-straight edges) and a box collider outside every one of the six faces, so that nothing can leave the room.
+    /// The closed room of a level (level.json "room", from the level file's <c>room</c> line): the chessboard cube, or a room with named
+    /// wall and ceiling materials (ticket 27.1). The floor is the ground, built from its chunks as ever; <see cref="Add"/> builds the
+    /// other five faces under Level/Room: a flat quad each (the four walls and the ceiling, facing into the room, each on its own
+    /// material: on SdfRoomFace.shader for the chessboard, which draws the squares from the world position with ruled-straight edges, or
+    /// on SdfRoomPlanks.shader for a room of materials, whose pattern <see cref="Looks"/> picks by the material's name) and a box
+    /// collider outside every one of the six faces, so that nothing can leave the room. A room may also have a strip of emissive light
+    /// along the top of a wall (the room block's <c>glow</c>, Level/Room/Glow).
     /// <para>
-    /// Which squares are dark is the pipeline's <c>RoomChecker</c>: the baked room block lists, per face, its origin, unit axes, inward
+    /// For a chessboard room, which squares are dark is the pipeline's <c>RoomChecker</c>: the baked room block lists, per face, its origin, unit axes, inward
     /// normal and dark rows; the shader takes the origin, axes and the colour of the square (0, 0) and alternates from there, which is the
     /// same as the rows for a chessboard. <see cref="CheckEdges"/> checks that against the rows, and the colour across the cube's edges:
     /// it alternates across the floor's four edges, the ceiling's four edges and everywhere inside a face, and matches along the four
     /// vertical wall-to-wall edges (three squares meet at each corner and two colours cannot colour a triangle, so some repeat is forced;
-    /// see RoomChecker).
+    /// see RoomChecker). A room of materials has no squares, so there is nothing to check.
     /// </para>
     /// Positions in level.json are the pipeline's; x is mirrored here, as in the rest of the builder.
     /// </summary>
@@ -29,6 +32,8 @@ namespace SdfLevel.Editor
     {
         public const string RoomName = "Room";
         public const string ShaderPath = "Assets/Level/Shaders/SdfRoomFace.shader";
+        public const string PlanksShaderPath = "Assets/Level/Shaders/SdfRoomPlanks.shader";
+        public const string GlowName = "Glow";
 
         /// <summary>The colliders are this thick, outside the faces; the player cannot leave the room however fast it moves.</summary>
         private const float ColliderThickness = 4;
@@ -44,10 +49,12 @@ namespace SdfLevel.Editor
             public int SquaresU, SquaresV;
             public float Square;
             public string[] Dark;
+            /// <summary>The face's lengths in metres along u and v: baked for a room of materials, else the squares times the square size.</summary>
+            public Vector2 Extent;
 
             public bool DarkAtOrigin => Dark[0][0] == '1';
             public bool IsFloor => Name == "floor";
-            public Vector2 Size => new Vector2(SquaresU, SquaresV) * Square;
+            public Vector2 Size => Extent;
 
             /// <summary>The square of a point (on the face's plane): floor of its coordinates along u and v, in squares.</summary>
             public Vector2Int SquareOf(Vector3 point)
@@ -64,21 +71,33 @@ namespace SdfLevel.Editor
         {
             if (!(data["room"] is JObject room))
                 return Array.Empty<Face>();
-            var square = room.Value<float>("square");
+            // A room of materials has no square size, squares or dark rows, but each face's extent in metres
+            var square = room["square"] != null ? room.Value<float>("square") : 0;
             Vector3 Mirrored(JToken token) => new Vector3(-token[0].Value<float>(), token[1].Value<float>(), token[2].Value<float>());
-            return ((JArray)room["faces"]).Select(f => new Face
+            Face Read(JToken f)
             {
-                Name = f.Value<string>("face"),
-                Origin = Mirrored(f["origin"]),
-                U = Mirrored(f["u"]),
-                V = Mirrored(f["v"]),
-                Normal = Mirrored(f["normal"]),
-                SquaresU = f["squares"][0].Value<int>(),
-                SquaresV = f["squares"][1].Value<int>(),
-                Square = square,
-                Dark = f["dark"].Values<string>().ToArray(),
-            }).ToArray();
+                var squares = f["squares"] as JArray;
+                return new Face
+                {
+                    Name = f.Value<string>("face"),
+                    Origin = Mirrored(f["origin"]),
+                    U = Mirrored(f["u"]),
+                    V = Mirrored(f["v"]),
+                    Normal = Mirrored(f["normal"]),
+                    SquaresU = squares != null ? squares[0].Value<int>() : 0,
+                    SquaresV = squares != null ? squares[1].Value<int>() : 0,
+                    Square = square,
+                    Dark = f["dark"]?.Values<string>().ToArray(),
+                    Extent = squares != null
+                        ? new Vector2(squares[0].Value<int>(), squares[1].Value<int>()) * square
+                        : new Vector2(f["extent"][0].Value<float>(), f["extent"][1].Value<float>()),
+                };
+            }
+            return ((JArray)room["faces"]).Select(Read).ToArray();
         }
+
+        /// <summary>Whether the room is the chessboard's checker (no wall and ceiling materials named).</summary>
+        public static bool IsChecker(JObject data) => !(data["room"]["walls"] is JObject);
 
         /// <summary>The room's size in metres (x, height, z).</summary>
         public static Vector3 Size(JObject data) =>
@@ -97,10 +116,16 @@ namespace SdfLevel.Editor
             root.transform.SetParent(levelRoot, false);
             var size = Size(data);
 
-            var shader = AssetDatabase.LoadAssetAtPath<Shader>(ShaderPath) ?? throw new InvalidOperationException($"The shader {ShaderPath} is missing");
-            var materials = (JObject)data["materials"];
-            var light = LevelBuilder.MaterialOf(materials, "light") ?? throw new InvalidDataException("level.json has no light material; bake the level again");
-            var dark = LevelBuilder.MaterialOf(materials, "dark") ?? throw new InvalidDataException("level.json has no dark material; bake the level again");
+            var checker = IsChecker(data);
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(checker ? ShaderPath : PlanksShaderPath)
+                         ?? throw new InvalidOperationException($"The shader {(checker ? ShaderPath : PlanksShaderPath)} is missing");
+            SdfGlb.Material light = null, dark = null;
+            if (checker)
+            {
+                var materials = (JObject)data["materials"];
+                light = LevelBuilder.MaterialOf(materials, "light") ?? throw new InvalidDataException("level.json has no light material; bake the level again");
+                dark = LevelBuilder.MaterialOf(materials, "dark") ?? throw new InvalidDataException("level.json has no dark material; bake the level again");
+            }
 
             MushroomBuilder.EnsureFolder(meshFolder);
             var drawn = 0;
@@ -113,7 +138,9 @@ namespace SdfLevel.Editor
                     faceObject.transform.SetParent(root.transform, false);
                     faceObject.AddComponent<MeshFilter>().sharedMesh = FaceMesh(face, $"{meshFolder}/room_{face.Name.Replace("+", "pos").Replace("-", "neg")}.asset");
                     var renderer = faceObject.AddComponent<MeshRenderer>();
-                    renderer.sharedMaterial = FaceMaterial(name, face, shader, light, dark);
+                    renderer.sharedMaterial = checker
+                        ? FaceMaterial(name, face, shader, light, dark)
+                        : PlanksMaterial(name, face, shader, data);
                     // Walls and ceiling cast no shadow (the ceiling would shade the whole room from the lamp) and take none
                     renderer.shadowCastingMode = ShadowCastingMode.Off;
                     renderer.receiveShadows = false;
@@ -123,9 +150,172 @@ namespace SdfLevel.Editor
                 }
                 AddCollider(root.transform, face, size);
             }
+            if (data["room"]["glow"] is JObject glow)
+                AddGlow(root.transform, name, meshFolder, faces, glow);
             AssetDatabase.SaveAssets();
             return drawn;
         }
+
+        /// <summary>One look of a room's wall or ceiling on SdfRoomPlanks.shader: what the shader draws on it (see the shader's top).</summary>
+        public sealed class Look
+        {
+            /// <summary>Width of the boards, which run along the face's v axis (up a wall).</summary>
+            public float BoardWidth = 6;
+            /// <summary>How far each board's tone steps from the next (fraction either way).</summary>
+            public float ToneStep = 0.07f;
+            /// <summary>The alphabet frieze's bottom and top (metres up), its cells' width and the letters' height; none if top is not above bottom.</summary>
+            public Vector4 Frieze;
+            /// <summary>The frieze's four paint colours (sRGB), taken in turn.</summary>
+            public Color[] FriezePaint = new Color[4];
+            /// <summary>Dovetail tails at the face's ends: length from the corner, row height; none if the length is 0.</summary>
+            public Vector2 Dovetail;
+            /// <summary>Where the cross battens lie, as fractions of the face's length along v (below 0 for none), and their width.</summary>
+            public Vector3 Battens = new Vector3(-1, -1, 3);
+        }
+
+        /// <summary>
+        /// The looks of rooms, by the name of the wall or ceiling material in the level file (<c>walls=toybox-wall</c>): the pipeline's
+        /// materials/room/&lt;name&gt;.sdfmat gives the paint (colours, seams), this the pattern drawn on it. A level that wants a new
+        /// room look (the kitchen, the bathroom, the computer) adds its entry here.
+        /// </summary>
+        public static readonly Dictionary<string, Look> Looks = new Dictionary<string, Look>
+        {
+            // The toy chest's walls: 6 m boards (10 cm real at 60x), the stencilled alphabet from 8 to 12 m up in pastel yellow, mint green,
+            // lilac and peach (nothing red or blue), dovetails at the corners
+            ["toybox-wall"] = new Look
+            {
+                Frieze = new Vector4(8, 12, 3, 2.4f),
+                FriezePaint = new[] { Srgb(0xF2D45C), Srgb(0x8CCB9A), Srgb(0xB59ADB), Srgb(0xF5B48A) },
+                Dovetail = new Vector2(2.5f, 4),
+            },
+            // The lid's underside: the same boards with two cross battens a quarter and three quarters across
+            ["toybox-lid"] = new Look { Battens = new Vector3(0.25f, 0.75f, 3) },
+        };
+
+        private static Color Srgb(int rgb) => new Color(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f);
+
+        /// <summary>Which rows have a dovetail tail at the start and at the far end of a wall, so that two walls meeting at a corner take opposite ones.</summary>
+        private static Vector2 DovetailParity(string face)
+        {
+            switch (face)
+            {
+                case "wall-z-":
+                case "wall-x+":
+                    return new Vector2(0, 1);
+                default:
+                    return new Vector2(1, 0);
+            }
+        }
+
+        /// <summary>The face's material on SdfRoomPlanks.shader: the ground's toon settings, the face's place and size, its look and its paint.</summary>
+        private static Material PlanksMaterial(string name, Face face, Shader shader, JObject data)
+        {
+            var room = (JObject)data["room"];
+            var which = face.Name == "ceiling" ? "ceiling" : "walls";
+            var paint = room[which] as JObject ?? throw new InvalidDataException($"level.json's room has no {which} material; bake the level again");
+            var materialName = paint.Value<string>("name");
+            if (!Looks.TryGetValue(materialName, out var look))
+                throw new InvalidDataException($"The room material '{materialName}' has no look in LevelRoom.Looks (it has {string.Join(", ", Looks.Keys)}); add one");
+            var parameters = new SdfGlb.Material { Name = materialName, Parameters = (JObject)paint["parameters"] };
+
+            var path = $"{LevelBuilder.MaterialFolder}/{name} Room {face.Name.Replace("+", "pos").Replace("-", "neg")}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                MushroomBuilder.EnsureFolder(LevelBuilder.MaterialFolder);
+                material = new Material(shader) { name = Path.GetFileNameWithoutExtension(path) };
+                AssetDatabase.CreateAsset(material, path);
+            }
+            else if (material.shader != shader)
+            {
+                material.shader = shader;
+            }
+
+            MushroomStyle.Load().ApplyToSurface(material);
+            material.SetVector("_ToonRim", Vector4.zero);
+            material.SetVector("_RoomOrigin", face.Origin);
+            material.SetVector("_RoomU", face.U);
+            material.SetVector("_RoomV", face.V);
+            // Text reads left to right seen from inside where u x v points away from the viewer, against the face's normal
+            var reading = Vector3.Dot(Vector3.Cross(face.U, face.V), face.Normal) < 0 ? 1 : -1;
+            material.SetVector("_RoomExtent", new Vector4(face.Size.x, face.Size.y, reading, LightLean));
+            material.SetVector("_WoodBase", LevelBuilder.Color(parameters, "baseColor", 0));
+            material.SetVector("_WoodVariation", LevelBuilder.Color(parameters, "variationColor", parameters.Number("variationScale")));
+            material.SetVector("_WoodSurface", LevelBuilder.Surface(parameters));
+            material.SetVector("_WoodSpeckle", LevelBuilder.Color(parameters, "speckleColor", parameters.Number("speckleScale")));
+            material.SetVector("_WoodPattern", new Vector4(parameters.Number("speckleDensity"), parameters.Number("speckleSize"), 0, 0));
+            material.SetVector("_WoodEdge", LevelBuilder.Color(parameters, "edgeColor", 0));
+            material.SetVector("_Planks", new Vector4(look.BoardWidth, look.ToneStep, parameters.Number("edgeThickness") / 2, 0));
+            material.SetVector("_Battens", new Vector4(look.Battens.x, look.Battens.y, look.Battens.z, 0));
+            material.SetVector("_Frieze", look.Frieze);
+            for (var i = 0; i < 4; i++)
+                material.SetVector($"_FriezeColor{i}", look.FriezePaint[i].linear);
+            var parity = DovetailParity(face.Name);
+            material.SetVector("_Dovetail", new Vector4(look.Dovetail.x, look.Dovetail.y, parity.x, parity.y));
+            material.enableInstancing = true;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
+        /// The glow strip: a quad over the top <c>height</c> metres of the named wall, a hand's width inside it, in an unlit emissive colour
+        /// brighter than the bloom's threshold. Casts no shadow, takes none, has no collider.
+        /// </summary>
+        private static void AddGlow(Transform root, string name, string meshFolder, Face[] faces, JObject glow)
+        {
+            var wallName = glow.Value<string>("wall");
+            var wall = faces.FirstOrDefault(f => f.Name == wallName) ?? throw new InvalidDataException($"The room's glow is on '{wallName}', which is not a face");
+            var height = glow.Value<float>("height");
+            var c = glow["color"];
+            var color = new Color(c[0].Value<float>(), c[1].Value<float>(), c[2].Value<float>());
+
+            var strip = new GameObject(GlowName);
+            strip.transform.SetParent(root, false);
+            var path = $"{meshFolder}/room_glow.asset";
+            var (u, v) = (wall.U * wall.Size.x, wall.V * height);
+            var origin = wall.Origin + wall.V * (wall.Size.y - height) + wall.Normal * GlowOffset;
+            var mesh = new Mesh { name = "room_glow" };
+            mesh.vertices = new[] { origin, origin + u, origin + u + v, origin + v };
+            mesh.normals = Enumerable.Repeat(wall.Normal, 4).ToArray();
+            mesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };
+            mesh.triangles = Vector3.Dot(Vector3.Cross(wall.U, wall.V), wall.Normal) > 0 ? new[] { 0, 1, 2, 0, 2, 3 } : new[] { 0, 2, 1, 0, 3, 2 };
+            mesh.RecalculateBounds();
+            if (AssetDatabase.LoadAssetAtPath<Mesh>(path) != null)
+                AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(mesh, path);
+            strip.AddComponent<MeshFilter>().sharedMesh = mesh;
+
+            var materialPath = $"{LevelBuilder.MaterialFolder}/{name} Room glow.mat";
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? throw new InvalidOperationException("URP's Unlit shader is missing");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material == null)
+            {
+                MushroomBuilder.EnsureFolder(LevelBuilder.MaterialFolder);
+                material = new Material(shader) { name = Path.GetFileNameWithoutExtension(materialPath) };
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+            else if (material.shader != shader)
+            {
+                material.shader = shader;
+            }
+            // Over 1 so that the faint bloom of the level's post-processing catches it
+            material.SetColor("_BaseColor", color * GlowBrightness);
+            material.SetColor("_Color", color * GlowBrightness);
+            EditorUtility.SetDirty(material);
+
+            var renderer = strip.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.lightProbeUsage = LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+        }
+
+        /// <summary>The glow strip floats this far in front of its wall, so that it never z-fights with it.</summary>
+        private const float GlowOffset = 0.08f;
+
+        /// <summary>The glow colour is multiplied by this, so it is brighter than the lit walls.</summary>
+        private const float GlowBrightness = 1.25f;
 
         /// <summary>A flat quad over the face, facing into the room.</summary>
         private static Mesh FaceMesh(Face face, string path)
@@ -215,6 +405,12 @@ namespace SdfLevel.Editor
             if (faces.Length == 0)
                 return 0;
             var name = data.Value<string>("name") ?? Path.GetFileName(level);
+            if (!IsChecker(data))
+            {
+                // No squares, so no edges to match: the faces are drawn from their materials (checked by the build and the snapshots)
+                Debug.Log($"SDF level: room check: {name}'s room is drawn from its wall and ceiling materials, not a checker; nothing to check");
+                return 0;
+            }
             var failures = 0;
             void Fail(string message)
             {

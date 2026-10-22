@@ -52,17 +52,51 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 }
 
 /// <summary>
-/// A closed room of six chessboards over the playable area: the floor (the playable rectangle, centred on the origin at y = 0), four walls
-/// standing on its edges and a ceiling at y = <c>Size.Y</c> facing down. Its squares are <paramref name="Square"/> metres across and
-/// coloured by <see cref="RoomChecker"/>.
+/// A closed room over the playable area: the floor (the playable rectangle, centred on the origin at y = 0), four walls standing on its
+/// edges and a ceiling at y = <c>Size.Y</c> facing down. Without <see cref="Walls"/> it is six chessboards (the chessboard level): squares
+/// <paramref name="Square"/> metres across, coloured by <see cref="RoomChecker"/>, the sides whole numbers of squares. With them the
+/// walls and the ceiling are drawn in the named materials (<c>materials/room/&lt;name&gt;.sdfmat</c>; ticket 27.1), the room may be any
+/// size, and <paramref name="Square"/> is unused. The room may also name its lamp (<see cref="Light"/>) and a strip of light along the top
+/// of one wall (<see cref="Glow"/>).
 /// </summary>
 public sealed record RoomSpec(Vector3 Size, float Square)
 {
     public const float DefaultSquare = 8;
 
-    /// <summary>How many squares the room has along x, y and z.</summary>
+    /// <summary>The material of the four walls, or null for the chessboard's checker.</summary>
+    public string? Walls { get; init; }
+
+    /// <summary>The material of the ceiling; set exactly when <see cref="Walls"/> is.</summary>
+    public string? Ceiling { get; init; }
+
+    /// <summary>A band of light along the top of one wall, or null.</summary>
+    public RoomGlow? Glow { get; init; }
+
+    /// <summary>The room's lamp and ambient light where the level changes them from the indoor default, or null.</summary>
+    public RoomLighting? Light { get; init; }
+
+    /// <summary>Whether the faces are the chessboard's checker (no wall or ceiling material named).</summary>
+    public bool IsChecker => Walls is null;
+
+    /// <summary>How many squares the room has along x, y and z (the checker's; a rounded count otherwise).</summary>
     public (int X, int Y, int Z) Squares => ((int)MathF.Round(Size.X / Square), (int)MathF.Round(Size.Y / Square), (int)MathF.Round(Size.Z / Square));
 }
+
+/// <summary>
+/// A band of emissive light on a wall's top <paramref name="Height"/> metres, over its whole length: the crack of light under a propped
+/// lid. <paramref name="Wall"/> is NegZ (south), PosZ (north), NegX (west) or PosX (east); <paramref name="Color"/> is sRGB, 0 to 1.
+/// </summary>
+public sealed record RoomGlow(RoomFace Wall, float Height, Vector3 Color)
+{
+    public const float DefaultHeight = 3;
+    public static readonly Vector3 DefaultColor = new(1, 0.82f, 0.5f);
+}
+
+/// <summary>
+/// A room's light, each part null to keep the indoor default. <paramref name="Direction"/> points from the room towards the lamp (so
+/// (0, 1, 0) is a lamp overhead), <paramref name="Color"/> and <paramref name="Ambient"/> are sRGB, 0 to 1.
+/// </summary>
+public sealed record RoomLighting(Vector3? Direction, Vector3? Color, Vector3? Ambient);
 
 /// <summary>
 /// The playable rectangle, centred on the origin. It is flat but for a gentle unevenness of up to <paramref name="NoiseAmplitude"/>

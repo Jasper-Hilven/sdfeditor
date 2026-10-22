@@ -166,7 +166,16 @@ internal sealed partial class Cursor(SourceLine line)
             case { } c when char.IsAsciiDigit(c) || c is '-' or '+' or '.':
                 return ReadNumber();
             default:
-                return new RawName(ReadName("a value"));
+                // A bare name may hold '-' between letters and digits, like the material toybox-wall (the names of files in content/)
+                var name = ReadName("a value");
+                while (position + 1 < text.Length && text[position] == '-' && char.IsAsciiLetterOrDigit(text[position + 1]))
+                {
+                    var start = ++position;
+                    while (position < text.Length && (char.IsAsciiLetterOrDigit(text[position]) || text[position] is '_'))
+                        position++;
+                    name += "-" + text[start..position];
+                }
+                return new RawName(name);
         }
     }
 

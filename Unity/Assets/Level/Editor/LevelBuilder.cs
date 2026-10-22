@@ -124,7 +124,39 @@ namespace SdfLevel.Editor
             ambient = new Color(0.17f, 0.14f, 0.1f),
         };
 
-        /// <summary>The far plane reaches across a room's diagonal (160 m square: 226 m on the floor, 277 m to the opposite top corner) with room to spare.</summary>
+        /// <summary>
+        /// A room's lamp as its level file has it (ticket 27.1: the room block's <c>light</c>: the direction towards the lamp, its colour and
+        /// the ambient, each optional), the rest from <see cref="RoomLight"/>. x is mirrored, as everywhere.
+        /// </summary>
+        private static MushroomScene.IndoorLighting RoomLightOf(JObject data)
+        {
+            var light = data["room"]?["light"] as JObject;
+            if (light == null)
+                return RoomLight;
+            Vector3 Direction(JToken t) => new Vector3(-t[0].Value<float>(), t[1].Value<float>(), t[2].Value<float>()).normalized;
+            UnityEngine.Color Colour(JToken t) => new UnityEngine.Color(t[0].Value<float>(), t[1].Value<float>(), t[2].Value<float>());
+            return new MushroomScene.IndoorLighting
+            {
+                lightDirection = light["direction"] != null ? Direction(light["direction"]) : RoomLight.lightDirection,
+                lightColor = light["color"] != null ? Colour(light["color"]) : RoomLight.lightColor,
+                ambient = light["ambient"] != null ? Colour(light["ambient"]) : RoomLight.ambient,
+            };
+        }
+
+        /// <summary>
+        /// The far plane reaches across a room's diagonal with room to spare: at least <see cref="RoomFarPlane"/> (160 m square: 226 m on
+        /// the floor, 277 m to the opposite top corner), else the room's own diagonal (width, height, depth) times 1.25.
+        /// </summary>
+        private static float RoomFarPlaneOf(JObject data)
+        {
+            var size = data["room"]?["size"];
+            if (size == null)
+                return RoomFarPlane;
+            var diagonal = new Vector3(size[0].Value<float>(), size[1].Value<float>(), size[2].Value<float>()).magnitude;
+            return Mathf.Max(RoomFarPlane, diagonal * 1.25f);
+        }
+
+        /// <summary>The least far plane of a room's camera.</summary>
         private const float RoomFarPlane = 450;
 
         public const string LevelRootName = "Level";
@@ -425,7 +457,7 @@ namespace SdfLevel.Editor
             }
 
             var hasRoom = LevelRoom.HasRoom(data);
-            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLight : null);
+            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -1147,7 +1179,7 @@ namespace SdfLevel.Editor
                 // Surrounded by walls: no skybox to clear to, a flat colour the room never shows; far enough for the whole cube
                 camera.clearFlags = CameraClearFlags.SolidColor;
                 camera.backgroundColor = UnityEngine.Color.black;
-                camera.farClipPlane = RoomFarPlane;
+                camera.farClipPlane = RoomFarPlaneOf(data);
             }
             return player;
         }

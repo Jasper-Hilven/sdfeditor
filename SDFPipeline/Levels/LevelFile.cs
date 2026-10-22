@@ -53,6 +53,8 @@ namespace SDFPipeline.Levels;
 ///     fade end=200
 ///
 /// room size=(160, 160, 160)                 # a closed room over the playable area: walls on its edges, a ceiling at y=160 (see <see cref="RoomSpec"/>)
+/// room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid     # the same with the faces in the named materials, not the checker
+///      glow=north height=3 color=(1, 0.82, 0.5) light=(0, 0.77, 0.64) lightColor=(1, 0.93, 0.7) ambient=(0.45, 0.4, 0.6)
 ///
 /// sides                                     # the two battle sides, west (-x) and east (+x), see <see cref="BattleLayout"/>
 ///     west
@@ -113,7 +115,12 @@ namespace SDFPipeline.Levels;
 /// <para>
 /// The sky names a preset in content/skies/ and may override its lines (see <see cref="SkyFile"/>); without a sky line the level is
 /// baked with no sky data. The room takes a <c>size</c> (width, height, depth; across and along must be the play size) and optionally a
-/// <c>square</c> (8 m by default), the side of the checker's squares.
+/// <c>square</c> (8 m by default), the side of the checker's squares. With <c>walls</c> and <c>ceiling</c> (the names of
+/// materials/room/&lt;name&gt;.sdfmat files) the room's faces are drawn in those instead of the checker: the room may be any size, and
+/// the squares go. Unity picks the pattern by the material's name (LevelRoom). <c>glow</c> (north is +z, south -z, east +x, west -x) adds
+/// a band of emissive light along the top of that wall, <c>height</c> metres tall (3) in <c>color</c>; <c>light</c> is the direction
+/// towards the room's lamp, <c>lightColor</c> its hue and <c>ambient</c> the flat ambient light (sRGB, each part 0 to 1), each replacing
+/// the indoor default of the chessboard (overhead, warm white) when given.
 /// </para>
 /// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
@@ -420,18 +427,69 @@ public static class LevelFile
         return new BattleObject(kind == Spawn ? BattleKind.Spawn : BattleKind.Machines, null, at, yaw, line.Number) { ZoneRadius = radius };
     }
 
+    private static readonly string[] GlowWalls = ["north", "south", "east", "west"];
+
     private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)
     {
         var parameters = Parameters.Read(Room, line, cursor);
         var size = parameters.Vector3("size", "a size like (160, 160, 160), width, height and depth in metres");
+        var walls = parameters.Name("walls", null, null);
+        var ceiling = parameters.Name("ceiling", null, null);
+        if ((walls is null) != (ceiling is null))
+            throw parameters.Error(walls is null ? "ceiling" : "walls", "The room needs both walls= and ceiling= (the materials of its faces, materials/room/<name>.sdfmat), or neither for the chessboard's checker");
+        if (walls is not null && parameters.Has("square"))
+            throw parameters.Error("square", "A room with walls= and ceiling= has no checker; leave out square");
         var square = parameters.Number("square", RoomSpec.DefaultSquare, 0.5f, 100, "a square's side in metres, 0.5 to 100");
-        parameters.Done("size", "square");
         if (size.X <= 0 || size.Y <= 0 || size.Z <= 0)
             throw parameters.Error("size", "The room needs a positive width, height and depth, like size=(160, 160, 160)");
-        foreach (var length in new[] { size.X, size.Y, size.Z })
-            if (MathF.Abs(length / square - MathF.Round(length / square)) > 1e-3f)
-                throw parameters.Error("size", $"The room's sides must be whole numbers of squares of {FileSyntax.Number(square)} m");
-        return new RoomSpec(size, square);
+        if (walls is null)
+            foreach (var length in new[] { size.X, size.Y, size.Z })
+                if (MathF.Abs(length / square - MathF.Round(length / square)) > 1e-3f)
+                    throw parameters.Error("size", $"The room's sides must be whole numbers of squares of {FileSyntax.Number(square)} m");
+
+        // glow=north height=3 color=(1, 0.82, 0.5): a band of light along the top of a wall
+        var glowWall = parameters.Name("glow", null, GlowWalls);
+        var hasHeight = parameters.Has("height");
+        var hasColor = parameters.Has("color");
+        var glowHeight = parameters.Number("height", RoomGlow.DefaultHeight, 0.1f, size.Y, $"metres, 0.1 up to the room's height ({FileSyntax.Number(size.Y)})");
+        var glowColor = hasColor ? Colour(parameters, "color") : RoomGlow.DefaultColor;
+        if (glowWall is null && (hasHeight || hasColor))
+            throw parameters.Error(hasHeight ? "height" : "color", "height= and color= belong to glow=<north, south, east or west>");
+        RoomGlow? glow = glowWall is null ? null : new RoomGlow(glowWall switch
+        {
+            "north" => RoomFace.PosZ,
+            "south" => RoomFace.NegZ,
+            "east" => RoomFace.PosX,
+            _ => RoomFace.NegX,
+        }, glowHeight, glowColor);
+
+        // light=(0, 0.77, 0.64) lightColor=(1, 0.95, 0.7) ambient=(0.4, 0.35, 0.5): the lamp's direction (towards it) and hue, the ambient
+        Vector3? direction = null;
+        if (parameters.Has("light"))
+        {
+            direction = parameters.Vector3("light", "the direction towards the lamp, like (0, 0.77, 0.64)");
+            if (direction.Value.LengthSquared() < 1e-6f)
+                throw parameters.Error("light", "The lamp's direction needs a length, like (0, 0.77, 0.64)");
+        }
+        Vector3? lampColor = parameters.Has("lightColor") ? Colour(parameters, "lightColor") : null;
+        Vector3? ambient = parameters.Has("ambient") ? Colour(parameters, "ambient") : null;
+        parameters.Done("size", "square", "walls", "ceiling", "glow", "height", "color", "light", "lightColor", "ambient");
+        return new RoomSpec(size, square)
+        {
+            Walls = walls,
+            Ceiling = ceiling,
+            Glow = glow,
+            Light = direction is null && lampColor is null && ambient is null ? null : new RoomLighting(direction, lampColor, ambient),
+        };
+    }
+
+    /// <summary>A colour like (1, 0.82, 0.5), sRGB with each part 0 to 1.</summary>
+    private static Vector3 Colour(Parameters parameters, string name)
+    {
+        var color = parameters.Vector3(name, "a colour like (1, 0.82, 0.5), each part 0 to 1");
+        return color.X is < 0 or > 1 || color.Y is < 0 or > 1 || color.Z is < 0 or > 1
+            ? throw parameters.Error(name, $"'{name}' needs a colour like (1, 0.82, 0.5), each part 0 to 1")
+            : color;
     }
 
     private static PlayArea ReadPlay(SourceLine line, Cursor cursor)

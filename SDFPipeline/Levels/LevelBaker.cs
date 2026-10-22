@@ -108,6 +108,9 @@ public static class LevelBaker
         foreach (var region in regions.Regions)
             if (!materials.Contains(region.Material))
                 throw new InvalidOperationException($"There is no material file for {region.Material}; the ground needs materials/ground/{region.Material}.sdfmat");
+        foreach (var face in new[] { level.Room?.Walls, level.Room?.Ceiling })
+            if (face is not null && !materials.Contains(face))
+                throw new InvalidOperationException($"There is no material file for {face}; the room's walls and ceiling need materials/room/{face}.sdfmat");
         var placed = level.Placements
             .Select(p => new PlacedModel(p.Model, new Vector3(p.At.X, terrain.Height(p.At.X, p.At.Y) + p.Y, p.At.Y), p.Yaw, p.Scale))
             .ToArray();
@@ -330,7 +333,7 @@ public static class LevelBaker
             sky = sky is null ? null : SkyDocument.Of(sky.Definition, sky.Hash, SkyLayout.Of(sky.Definition, level.Seed, play.HalfSize, terrain.EdgeDistance)),
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
-            room = level.Room is { } room ? RoomDocument(room) : null,
+            room = level.Room is { } room ? RoomDocument(room, materials) : null,
             // The battle sides (west at -x, east at +x), each with its spawn, flag stand, weapon pods and health pods (and on a
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
@@ -388,15 +391,22 @@ public static class LevelBaker
     /// <summary>
     /// The room for level.json: its size and square size, and for each face its origin corner, the directions of its u and v axes (one
     /// square is <c>square</c> metres along each), the way it faces (into the room), its squares along u and v, and which squares are
-    /// dark (<see cref="RoomChecker"/>) as one string per row v = 0, 1, ..., a '1' for each dark square u = 0, 1, ...
+    /// dark (<see cref="RoomChecker"/>) as one string per row v = 0, 1, ..., a '1' for each dark square u = 0, 1, ... A room with named
+    /// wall and ceiling materials (ticket 27.1) has instead, per face, its <c>extent</c> in metres along u and v, and the block names
+    /// <c>walls</c> and <c>ceiling</c> with their material's parameters. The glow strip and the light, when the level gives them, are
+    /// <c>glow</c> (the face's name, its height and colour) and <c>light</c> (direction towards the lamp, colour, ambient: each or none).
+    /// The checker room's block is as it always was.
     /// </summary>
-    private static object RoomDocument(RoomSpec room)
+    private static object RoomDocument(RoomSpec room, MaterialLibrary materials)
     {
         var (size, squares) = (room.Size, room.Squares);
         var (hx, hz) = (size.X / 2, size.Z / 2);
+        float[] Vec(Vector3 v) => [v.X, v.Y, v.Z];
         object Face(RoomFace face, string name, Vector3 origin, Vector3 u, Vector3 v, Vector3 normal)
         {
-            var (countU, countV) = RoomChecker.Size(face, squares);
+            var (countU, countV) = room.IsChecker ? RoomChecker.Size(face, squares) : (0, 0);
+            // The face's two lengths in metres: along u and v
+            float Length(Vector3 axis) => MathF.Abs(Vector3.Dot(axis, size));
             return new
             {
                 face = name,
@@ -404,21 +414,36 @@ public static class LevelBaker
                 u = new[] { u.X, u.Y, u.Z },
                 v = new[] { v.X, v.Y, v.Z },
                 normal = new[] { normal.X, normal.Y, normal.Z },
-                squares = new[] { countU, countV },
-                dark = Enumerable.Range(0, countV)
-                    .Select(row => new string(Enumerable.Range(0, countU).Select(col => RoomChecker.IsDark(face, col, row, squares) ? '1' : '0').ToArray()))
-                    .ToArray(),
+                squares = room.IsChecker ? new[] { countU, countV } : null,
+                dark = room.IsChecker
+                    ? Enumerable.Range(0, countV)
+                        .Select(row => new string(Enumerable.Range(0, countU).Select(col => RoomChecker.IsDark(face, col, row, squares) ? '1' : '0').ToArray()))
+                        .ToArray()
+                    : null,
+                extent = room.IsChecker ? null : new[] { Length(u), Length(v) },
             };
         }
 
+        object? Look(string? material) => material is null ? null : new { name = material, parameters = Parameters(materials.Resolve(material)) };
         return new
         {
             size = new[] { size.X, size.Y, size.Z },
-            square = room.Square,
-            squares = new[] { squares.X, squares.Y, squares.Z },
-            note = "the floor is the ground at y = 0, centred on the origin; walls stand on its edges, the ceiling is at y = size.y facing down; " +
-                   "a face's square (u, v) spans origin + u * square * (u axis) + v * square * (v axis) and the next square along each; " +
-                   "colour alternates across every edge of the cube but the four vertical ones, where the walls' squares match (three squares meet at a corner, so some repeat is forced)",
+            square = room.IsChecker ? room.Square : (float?)null,
+            squares = room.IsChecker ? new[] { squares.X, squares.Y, squares.Z } : null,
+            note = room.IsChecker
+                ? "the floor is the ground at y = 0, centred on the origin; walls stand on its edges, the ceiling is at y = size.y facing down; " +
+                  "a face's square (u, v) spans origin + u * square * (u axis) + v * square * (v axis) and the next square along each; " +
+                  "colour alternates across every edge of the cube but the four vertical ones, where the walls' squares match (three squares meet at a corner, so some repeat is forced)"
+                : "the floor is the ground at y = 0, centred on the origin; walls stand on its edges, the ceiling is at y = size.y facing down; " +
+                  "a face spans origin + (0..extent[0]) * (u axis) + (0..extent[1]) * (v axis); walls and ceiling are drawn in the materials named below",
+            walls = Look(room.Walls),
+            ceiling = Look(room.Ceiling),
+            // The emissive band along the top of a wall: the wall's face name, its height in metres and its colour (sRGB)
+            glow = room.Glow is { } glow ? new { wall = FaceName(glow.Wall), height = glow.Height, color = Vec(glow.Color) } : null,
+            // The lamp: the direction towards it (the pipeline's axes), its colour and the ambient (sRGB); parts left out keep Unity's indoor default
+            light = room.Light is { } light
+                ? new { direction = light.Direction is { } d ? Vec(d) : null, color = light.Color is { } c ? Vec(c) : null, ambient = light.Ambient is { } a ? Vec(a) : null }
+                : null,
             faces = new[]
             {
                 Face(RoomFace.Floor, "floor", new Vector3(-hx, 0, -hz), Vector3.UnitX, Vector3.UnitZ, Vector3.UnitY),
@@ -430,6 +455,16 @@ public static class LevelBaker
             },
         };
     }
+
+    private static string FaceName(RoomFace face) => face switch
+    {
+        RoomFace.NegZ => "wall-z-",
+        RoomFace.PosZ => "wall-z+",
+        RoomFace.NegX => "wall-x-",
+        RoomFace.PosX => "wall-x+",
+        RoomFace.Ceiling => "ceiling",
+        _ => "floor",
+    };
 
     /// <summary>
     /// A ground material's colour as the ground shader shows it on average (linear): its base, some of the way towards its patches'
