@@ -50,4 +50,24 @@ namespace SdfBattle
         /// <summary>The fight phase of a number 1 to 3 (anything else is phase 1).</summary>
         public static BossPhase FromNumber(int number) => number == 2 ? BossPhase.Phase2 : number == 3 ? BossPhase.Phase3 : BossPhase.Phase1;
     }
+
+    /// <summary>
+    /// The ids of the boss fight's story beats (ticket 33.8): the two transitions and the victory. The shots are in the campaign's
+    /// <c>Beats</c> (32's beat data); the fight asks for them by these ids and answers the cues their shots raise.
+    /// </summary>
+    public static class BossBeats
+    {
+        public const string Transition12 = "boss-transition-12", Transition23 = "boss-transition-23", Victory = "boss-victory";
+
+        /// <summary>Seconds a transition lasts when no beat plays (after a retry, or in a scene played alone); the world still changes.</summary>
+        public const float QuickTransitionSeconds = 1.5f;
+
+        // The cues the beats' shots raise (a shot's cue is raised as the shot starts)
+        public const string CopterRises = "copter-rises", BalconyFalls = "balcony-falls", CopterDown = "copter-down", CrownFlies = "crown-flies",
+            PrimeClimbs = "prime-climbs", Shrink = "shrink", CrownRolls = "crown-rolls", Cheer = "cheer", PixelBreak = "pixel-break";
+
+        /// <summary>The beat that plays for a transition; null for any other phase.</summary>
+        public static string ForTransition(BossPhase phase) =>
+            phase == BossPhase.Transition12 ? Transition12 : phase == BossPhase.Transition23 ? Transition23 : null;
+    }
 }

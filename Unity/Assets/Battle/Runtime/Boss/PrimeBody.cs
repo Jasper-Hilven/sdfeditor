@@ -97,6 +97,11 @@ namespace SdfBattle
         private Quaternion lastRotation;
         // The cape's and the medal's springs: angle about x and z (degrees) and their speeds
         private Vector2 capeAngle, capeSpeed, medalAngle, medalSpeed;
+        // The cape left on the floor in the victory (DropCape): where it hung
+        private bool capeDropped;
+        private Transform capeParent;
+        private Vector3 capeLocalPosition, capeLocalScale;
+        private Quaternion capeLocalRotation;
 
         public PrimeRig Rig => rig;
 
@@ -202,6 +207,38 @@ namespace SdfBattle
 
         /// <summary>The top of the cap, where the crown sits, in the world.</summary>
         public Vector3 CapTop => rig.crown != null ? rig.crown.position : transform.position + Vector3.up * 6;
+
+        /// <summary>
+        /// Leaves the cape behind on the floor at <paramref name="ground"/>, a flat puddle of blue cloth (the victory's shrink, ticket 33.8). It
+        /// stops swinging with him; <see cref="TakeCapeBack"/> puts it on again.
+        /// </summary>
+        public void DropCape(Vector3 ground, Transform parent)
+        {
+            if (rig.cape == null || capeDropped)
+                return;
+            capeDropped = true;
+            capeParent = rig.cape.parent;
+            capeLocalPosition = rig.cape.localPosition;
+            capeLocalRotation = rig.cape.localRotation;
+            capeLocalScale = rig.cape.localScale;
+            var puddleScale = rig.cape.lossyScale;
+            rig.cape.SetParent(parent, true);
+            // The cape hangs from its top edge: laid back, it covers the floor behind that edge, and thin
+            rig.cape.SetPositionAndRotation(ground + Vector3.up * 0.06f, Quaternion.Euler(90, transform.eulerAngles.y, 0));
+            rig.cape.localScale = new Vector3(puddleScale.x * 1.4f, puddleScale.y * 1.2f, puddleScale.z * 0.12f);
+        }
+
+        /// <summary>The cape back on his cap, as it was (a retry after the victory).</summary>
+        public void TakeCapeBack()
+        {
+            if (!capeDropped || rig.cape == null)
+                return;
+            capeDropped = false;
+            rig.cape.SetParent(capeParent, false);
+            rig.cape.localPosition = capeLocalPosition;
+            rig.cape.localRotation = capeLocalRotation;
+            rig.cape.localScale = capeLocalScale;
+        }
 
         /// <summary>Puts his springs at rest where he stands now (after he was moved by hand: a phase change, a retry).</summary>
         public void Settle()
@@ -342,7 +379,7 @@ namespace SdfBattle
             Spring(ref capeAngle, ref capeSpeed, capeTarget, dt);
             var medalTarget = new Vector2(Mathf.Clamp(local.z * 5, -10, 30) + flap * 0.6f, Mathf.Clamp(-local.x * 5, -25, 25));
             Spring(ref medalAngle, ref medalSpeed, medalTarget, dt);
-            if (rig.cape != null)
+            if (rig.cape != null && !capeDropped)
                 rig.cape.localRotation = Quaternion.Euler(capeAngle.x, 0, capeAngle.y);
             if (rig.medal != null)
                 rig.medal.localRotation = Quaternion.Euler(medalAngle.x, 0, medalAngle.y);

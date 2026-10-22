@@ -30,8 +30,8 @@ namespace SdfBattle
         /// <summary>Who his damage is by, in the kill feed and on the death screen.</summary>
         public const string Name = "Chanterelle Prime";
 
-        [Tooltip("Seconds a placeholder transition lasts (ticket 33.8 plays the real ones)")]
-        public float transitionSeconds = 6;
+        [Tooltip("Seconds a transition lasts when no story beat plays it (after a retry, or in a scene played alone)")]
+        public float transitionSeconds = BossBeats.QuickTransitionSeconds;
         [Tooltip("Seconds between the planner's looks at the world")]
         public float planEvery = 0.1f;
         [Tooltip("Metres from the crown he picks it up")]
@@ -45,7 +45,12 @@ namespace SdfBattle
         private float botAcc;
         private float walkAcc;
         private float transitionClock;
-        private bool halfDone;
+        // A transition has begun and not been started yet (it starts on the next frame, not inside the hit that emptied the bar)
+        private bool transitionPending;
+        // A story beat plays the transition; the match is held for the whole transition, by this
+        private bool beatPlaying, holding;
+        // A retry has happened: the transitions after it do not tell their story again (ticket 33.7's RETRY PHASE, RESTART FIGHT)
+        private bool retried;
         private int startPhase = 1;
         private bool restore;
         private bool restartRequested;
@@ -55,7 +60,20 @@ namespace SdfBattle
         private float shakeStrength;
         private bool crownHidden;
 
+        /// <summary>
+        /// Plays a story beat of the fight (ticket 33.8): its id (<see cref="BossBeats"/>), what to call with each cue its shots raise (and
+        /// a way to ask where a beat's actor stands), and what to call when it is over, true when it was skipped. Returns false when it
+        /// cannot play the beat. The campaign sets it (it owns the sequencer); with none the transitions are quick and silent and the
+        /// victory has no beat.
+        /// </summary>
+        public delegate bool BeatPlayerHook(string beatId, Action<string, Func<string, Vector3?>> cue, Action<bool> done);
+
+        public static BeatPlayerHook PlayBeat;
+
         public static Boss Current { get; private set; }
+
+        /// <summary>The story beats' props: the flying crown, the shrink, the pixel blocks.</summary>
+        public BossStaging Staging { get; private set; }
 
         public Match Match { get; private set; }
 
@@ -193,6 +211,7 @@ namespace SdfBattle
             Shield = BossShield.Create(this, Spots.shield != null ? Spots.shield.position : Spots.prime.position, Spots.shieldRadius);
             Attacks = new BossAttacks(this);
             Telegraphs = BossTelegraphs.Create(this);
+            Staging = BossStaging.Create(this);
             Hud = BossHud.Create(this);
             PrimeHurt += (hit, at) =>
             {
@@ -376,7 +395,10 @@ namespace SdfBattle
             if (State == null)
                 return;
             var dt = Time.deltaTime;
-            var playing = !Match.Held && Match.State.Phase == RoundPhase.Playing;
+            // The match is held through a transition (nobody can be hurt, the crew and turrets hold fire), by this: the fight goes on ticking
+            var playing = (!Match.Held || holding) && Match.State.Phase == RoundPhase.Playing;
+            if (playing && transitionPending)
+                BeginTransition();
             if (playing && (State.Phase == BossPhase.Intro || restartRequested))
             {
                 restartRequested = false;
@@ -678,13 +700,15 @@ namespace SdfBattle
         private void OnPhaseChanged(BossPhase phase)
         {
             transitionClock = 0;
-            halfDone = false;
+            transitionPending = BossBeats.ForTransition(phase) != null;
             planAcc = 0;
             Attacks.Update(0);
             var blueStand = Flags.Stand(Team.Blue);
             switch (phase)
             {
                 case BossPhase.Phase1:
+                    // After a win and RESTART FIGHT: Prime full size again, the floor whole
+                    Staging.Clear();
                     Arena.ShowPhase(1);
                     Arena.PutBlueStand(blueStand != null ? blueStand : null, false);
                     SetStand(blueStand, true);
@@ -694,9 +718,7 @@ namespace SdfBattle
                     CrownOnFlag(false);
                     break;
                 case BossPhase.Transition12:
-                    Body.HeldByCopter = true;
-                    Copter?.TakeOff();
-                    Arena.Cheers(0.8f);
+                    // What changes is the beat's to say (CopterRises, BalconyFalls; BeginTransition)
                     break;
                 case BossPhase.Phase2:
                     Arena.ShowPhase(2);
@@ -707,14 +729,10 @@ namespace SdfBattle
                     CrownOnFlag(false);
                     break;
                 case BossPhase.Transition23:
-                    Copter?.Retire();
-                    Arena.ShowPhase(3);
-                    Arena.HideCentrePillar();
-                    PlacePrimeByWreck();
-                    Shake(0.6f, Spots.crash.position, 60);
-                    Arena.Cheers(1);
+                    // CopterDown, CrownFlies, PrimeClimbs (BeginTransition)
                     break;
                 case BossPhase.Phase3:
+                    Staging.ClearCrown();
                     Copter?.Retire();
                     Arena.ShowPhase(3);
                     SetStand(blueStand, true);
@@ -753,24 +771,112 @@ namespace SdfBattle
             Body.Settle();
         }
 
-        // The placeholder transitions: a timer; half way the arena changes (the balcony falls)
+        // ---------------------------------------------------------------- Transitions and the victory (ticket 33.8)
+
+        // A transition begins (on the frame after the bar emptied): the match is held, so nobody can be hurt and the crew, the bots and the
+        // turrets hold fire, and the story beat plays; its cues change the world as it goes. Without a beat to play (after a retry, or no
+        // campaign) the world changes at once and a short timer ends it.
+        private void BeginTransition()
+        {
+            transitionPending = false;
+            var phase = State.Phase;
+            var id = BossBeats.ForTransition(phase);
+            if (id == null)
+                return;
+            Match.Hold();
+            holding = true;
+            transitionClock = 0;
+            if (!retried && PlayBeat != null && PlayBeat(id, Cue, skipped => EndTransition(phase)))
+            {
+                beatPlaying = true;
+                return;
+            }
+            foreach (var cue in CuesOf(phase))
+                Cue(cue, null);
+        }
+
+        private static string[] CuesOf(BossPhase phase) => phase == BossPhase.Transition12
+            ? new[] { BossBeats.CopterRises, BossBeats.BalconyFalls }
+            : new[] { BossBeats.CopterDown, BossBeats.CrownFlies, BossBeats.PrimeClimbs };
+
+        // The quick transitions' timer
         private void Transitions(float dt)
         {
+            if (beatPlaying || !holding)
+                return;
             var phase = State.Phase;
-            if (phase != BossPhase.Transition12 && phase != BossPhase.Transition23)
+            if (BossBeats.ForTransition(phase) == null)
                 return;
             transitionClock += dt;
-            if (!halfDone && transitionClock >= transitionSeconds * 0.5f)
-            {
-                halfDone = true;
-                if (phase == BossPhase.Transition12)
-                {
-                    Arena.ShowPhase(2);
-                    Shake(0.4f, Spots.prime.position, 60);
-                }
-            }
             if (transitionClock >= transitionSeconds)
+                EndTransition(phase);
+        }
+
+        // The beat is over or skipped (its cues have all been told): the match goes on and the fight to its next phase
+        private void EndTransition(BossPhase phase)
+        {
+            beatPlaying = false;
+            if (holding)
+            {
+                holding = false;
+                Match.Release();
+            }
+            if (State.Phase == phase)
                 State.FinishTransition();
+        }
+
+        /// <summary>
+        /// Plays the victory beat (the shrink, the recount, the crown, the break-up) when the campaign can; <paramref name="then"/> runs
+        /// when it is over or skipped. False when there is none to play (the end screens then come at once).
+        /// </summary>
+        public bool PlayVictoryBeat(Action then) =>
+            State != null && State.Phase == BossPhase.Victory && PlayBeat != null && PlayBeat(BossBeats.Victory, Cue, skipped => then());
+
+        /// <summary>What a beat's cue does to the world: as the story says, the arena changes or Prime does something. Several cues in one word-list are told in order.</summary>
+        public void Cue(string cues, Func<string, Vector3?> placeOf)
+        {
+            foreach (var cue in cues.Split(' '))
+                switch (cue)
+                {
+                    case BossBeats.CopterRises:
+                        Body.HeldByCopter = true;
+                        Copter?.TakeOff();
+                        Arena.Cheers(0.8f);
+                        break;
+                    case BossBeats.BalconyFalls:
+                        Arena.ShowPhase(2);
+                        Shake(0.5f, Spots.prime.position, 120);
+                        break;
+                    case BossBeats.CopterDown:
+                        Copter?.Retire();
+                        Arena.ShowPhase(3);
+                        Arena.HideCentrePillar();
+                        Shake(0.6f, Spots.crash.position, 120);
+                        Arena.Cheers(1);
+                        break;
+                    case BossBeats.CrownFlies:
+                        Staging.CrownFlies(Body.CapTop, Spots.crash.position + Vector3.up * Arena.wreckTop);
+                        Body.Rig.crown.gameObject.SetActive(false);
+                        break;
+                    case BossBeats.PrimeClimbs:
+                        PlacePrimeByWreck();
+                        break;
+                    case BossBeats.Shrink:
+                        Staging.ShrinkPrime();
+                        break;
+                    case BossBeats.CrownRolls:
+                        Arena.HideTrophy();
+                        var you = Match.You;
+                        var seven = placeOf?.Invoke(Cast.Red[1]);
+                        Staging.CrownRolls(Body.transform.position + Vector3.up * 0.3f, you != null ? you.transform.position : Body.transform.position, seven);
+                        break;
+                    case BossBeats.Cheer:
+                        Arena.Cheers(1);
+                        break;
+                    case BossBeats.PixelBreak:
+                        Staging.PixelBreak();
+                        break;
+                }
         }
 
         private void OnShieldChanged(bool up)
@@ -925,8 +1031,11 @@ namespace SdfBattle
 
         private void OnRoundReset()
         {
+            // A transition cut short by the round's reset: the match is not held by it any more
+            holding = beatPlaying = transitionPending = false;
             if (State.Phase != BossPhase.Intro)
             {
+                Staging.Clear();
                 restartRequested = true;
                 crownHidden = false;
                 Arena.HideChampionGun();
@@ -940,6 +1049,7 @@ namespace SdfBattle
         public void RetryPhase()
         {
             restore = true;
+            retried = true;
             Match.Retry();
         }
 
@@ -947,6 +1057,7 @@ namespace SdfBattle
         public void RestartFight()
         {
             restore = false;
+            retried = true;
             startPhase = 1;
             Match.Retry();
         }

@@ -290,10 +290,27 @@ namespace SdfGui
                     screen = GuiScreen.Hud;
                     return;
                 }
-                screen = Match.end.won ? GuiScreen.Victory : GuiScreen.Defeat;
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
+                // A win may have something to tell first (the final boss's victory beat, ticket 33.8): it takes the screen and calls back
+                if (Match.end.won && BeforeVictory != null && BeforeVictory(ShowEndScreen))
+                    return;
+                ShowEndScreen();
             }
+        }
+
+        /// <summary>
+        /// Something to play between the banner and the Victory screen: given what to call when it is over, returns true when it took the
+        /// win over (the campaign's boss victory beat), false to go straight to Victory. Set and cleared by the campaign.
+        /// </summary>
+        public static System.Func<System.Action, bool> BeforeVictory;
+
+        // Victory or Defeat, with the pointer freed
+        private void ShowEndScreen()
+        {
+            if (Match == null)
+                return;
+            screen = Match.end.won ? GuiScreen.Victory : GuiScreen.Defeat;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
         /// <summary>Stops the end sequence where it is and gives the time back (a retry, leaving, a new round).</summary>

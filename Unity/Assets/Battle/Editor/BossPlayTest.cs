@@ -37,6 +37,8 @@ namespace SdfBattle.Editor
         private static Match match;
         private static string shots;
         private static bool captured;
+        private static SdfGui.GuiFlow flow;
+        private static bool copterSeen, crownSeen, skipped, beatSeen, restarted, quickSeen;
 
         static BossPlayTest()
         {
@@ -105,6 +107,12 @@ namespace SdfBattle.Editor
                 shots = SessionState.GetString(ShotsKey, "");
                 Time.timeScale = Speed;
                 boss.transitionSeconds = 2;
+                // The campaign's part (ticket 33.8): the story beats play through the real sequencer, and a win may have its beat before Victory
+                flow = UnityEngine.Object.FindFirstObjectByType<SdfGui.GuiFlow>();
+                Expect(flow != null, "the arena has a GUI flow");
+                Boss.PlayBeat = (id, cue, done) => SdfCampaign.BeatPlayer.PlayBossBeat(flow, match, id, cue, done);
+                SdfGui.GuiFlow.Campaign = (command, level, value) => false;
+                SdfGui.GuiFlow.BeforeVictory = then => boss.PlayVictoryBeat(then);
                 boss.State.Planner.Started += attack => { seen.Add(attack.Kind); Note($"attack {attack.Kind} in {boss.State.Phase}"); };
                 // 42 is never killed: the test drives the rules, it does not play
                 Combat.Current.State.DamageTakenOf = victim => victim.IsBot ? 1 : 0;
@@ -122,7 +130,7 @@ namespace SdfBattle.Editor
                 errors.Add(exception.ToString());
                 step = int.MaxValue;
             }
-            if (step < 15 && now - started < 420)
+            if (step < 19 && now - started < 420)
                 return;
             if (now - started >= 420)
                 errors.Add($"Timed out in step {step}, phase {boss.State.Phase}");
@@ -196,12 +204,25 @@ namespace SdfBattle.Editor
                     state.Hurt(state.CurrentBar + 1, BossPart.Gills, bot);
                     Expect(state.Phase == BossPhase.Transition12, "bar 1 empty goes to the transition");
                     return true;
-                case 3: // the transition: the copter rises; then phase 2
+                case 3: // transition 1 to 2: the story beat plays over the held match, the copter rises with its last shot; then phase 2
                     if (state.Phase == BossPhase.Transition12)
                     {
-                        Expect(boss.Copter != null && boss.Copter.Active, "the Prime-copter rises in the transition");
+                        if (waited < 0.3f)
+                            return false;
+                        Expect(match.Held, "the match is held through the transition: nobody can be hurt, the crew holds fire");
+                        Expect(UnityEngine.Object.FindFirstObjectByType<SdfCampaign.BeatPlayer>() != null && flow.screen == SdfGui.GuiScreen.Cutscene, "the transition's beat plays on the Cutscene screen");
+                        if (!copterSeen)
+                        {
+                            if (boss.Copter != null && boss.Copter.Active)
+                            {
+                                copterSeen = true;
+                                Expect(boss.Arena.Phase == 2, "the balcony falls as the copter rises");
+                            }
+                        }
                         return false;
                     }
+                    Expect(copterSeen, "the Prime-copter rose in the transition, in step with the beat");
+                    Expect(!match.Held && flow.screen == SdfGui.GuiScreen.Hud, "the beat is over: the match goes on, the HUD is back");
                     Expect(state.Phase == BossPhase.Phase2, "phase 2 follows");
                     Expect(boss.Arena.Phase == 2, "the arena shows phase 2");
                     var crew2 = match.State.PlayersOf(Team.Blue).Count(p => p.Alive);
@@ -229,9 +250,23 @@ namespace SdfBattle.Editor
                     state.Hurt(state.CurrentBar + 1, BossPart.Gills, RedBot());
                     Expect(state.Phase == BossPhase.Transition23, "bar 2 empty goes to the second transition");
                     return true;
-                case 8:
+                case 8: // transition 2 to 3: the wreck and the flying crown with the first shot; then the beat is skipped and the rest is told at once
                     if (state.Phase == BossPhase.Transition23)
+                    {
+                        if (waited < 0.3f)
+                            return false;
+                        var beat = UnityEngine.Object.FindFirstObjectByType<SdfCampaign.BeatPlayer>();
+                        Expect(match.Held && beat != null, "the second transition's beat plays over the held match");
+                        if (!skipped)
+                        {
+                            Expect(boss.Staging.Crown != null && boss.Arena.Phase == 3, "the crown flies off and the wreck is down with the first shot");
+                            skipped = true;
+                            beat.Sequencer.Skip();
+                        }
                         return false;
+                    }
+                    Expect(skipped && !match.Held && flow.screen == SdfGui.GuiScreen.Hud, "the skipped beat hands back to the fight");
+                    Expect(boss.Staging.Crown == null, "the flying crown is gone once the crown is the flag");
                     Expect(state.Phase == BossPhase.Phase3, "phase 3 follows");
                     Expect(boss.Arena.Phase == 3, "the arena shows phase 3");
                     Expect(!boss.Copter.Active, "the copter is gone");
@@ -288,6 +323,75 @@ namespace SdfBattle.Editor
                     Expect(end.damageDealt > 0 && end.seconds > 0, "with the damage and the time");
                     Shot("hud-7-victory-banner");
                     return waited > 1;
+                case 15: // after the banner, the victory beat: Prime shrinks with pops and leaves his cape
+                    var victory = UnityEngine.Object.FindFirstObjectByType<SdfCampaign.BeatPlayer>();
+                    if (victory == null)
+                    {
+                        Expect(!beatSeen && waited < 40, "the victory beat starts after the banner");
+                        return false;
+                    }
+                    if (!beatSeen)
+                    {
+                        beatSeen = true;
+                        Expect(flow.screen == SdfGui.GuiScreen.Cutscene, "the victory beat takes the screen before Victory");
+                        Expect(victory.Sequencer.Shot.cue == BossBeats.Shrink, "it begins with the shrink");
+                        Shot("hud-8-victory-beat");
+                    }
+                    if (boss.Staging.Pops < 6 || boss.Staging.Shrinking)
+                        return false;
+                    Expect(Mathf.Abs(boss.Body.transform.localScale.x - 1) < 0.05f, $"Prime is scout size, got {boss.Body.transform.localScale}");
+                    Expect(!boss.Staging.PixelsOn, "the floor is whole until the last shot");
+                    // Skipped: the rest of the story is told at once
+                    victory.Sequencer.Skip();
+                    return true;
+                case 16: // the Victory screen follows; the crown went to 42 and on to Mushroom 7's cap, the floor breaks
+                    if (flow.screen != SdfGui.GuiScreen.Victory || waited < 4)
+                    {
+                        Expect(waited < 40, "the Victory screen follows the beat");
+                        return false;
+                    }
+                    Expect(boss.Staging.PixelsOn, "the floor breaks into pixel blocks");
+                    Expect(boss.Staging.Crown != null, "the crown is in play");
+                    var beside = boss.Staging.Crown.transform.position - match.You.transform.position;
+                    beside.y = 0;
+                    Expect(Mathf.Abs(beside.magnitude - Mathf.Sqrt(SdfCampaign.Beats.SevenRight * SdfCampaign.Beats.SevenRight + SdfCampaign.Beats.SevenForward * SdfCampaign.Beats.SevenForward)) < 0.6f,
+                        $"the crown ends on Mushroom 7's cap beside 42, {beside.magnitude:0.0} m away");
+                    Shot("hud-9-victory-screen");
+                    return true;
+                case 17: // RESTART FIGHT after the win: Prime full size, the floor whole, no leftovers
+                    if (!restarted)
+                    {
+                        restarted = true;
+                        boss.RestartFight();
+                        return false;
+                    }
+                    if (waited < 1 || state.Phase != BossPhase.Phase1 || match.State.Phase != RoundPhase.Playing)
+                        return false;
+                    Expect(boss.Body.transform.localScale.x > 4.5f, "Prime is 4.6 times again");
+                    Expect(!boss.Staging.PixelsOn && boss.Staging.Crown == null && !boss.Staging.Shrinking, "no pixel blocks or crown left");
+                    Expect(state.ShieldUp, "the fight starts over with the shield");
+                    return true;
+                case 18: // a retry skips the transitions' story: the world changes at once and a short timer ends it
+                    var any = RedBot();
+                    if (!quickSeen)
+                    {
+                        quickSeen = true;
+                        Expect(flags.TouchStand(any, Team.Blue) && flags.TouchStand(any, Team.Red), "a red capture again");
+                        state.Hurt(state.CurrentBar + 1, BossPart.Gills, any);
+                        Expect(state.Phase == BossPhase.Transition12, "bar 1 empty goes to the transition again");
+                        return false;
+                    }
+                    if (state.Phase == BossPhase.Transition12)
+                    {
+                        if (waited > 0.3f)
+                        {
+                            Expect(UnityEngine.Object.FindFirstObjectByType<SdfCampaign.BeatPlayer>() == null, "no beat plays after a retry");
+                            Expect(match.Held && boss.Copter.Active && boss.Arena.Phase == 2, "the world changes at once, the match held");
+                        }
+                        return false;
+                    }
+                    Expect(state.Phase == BossPhase.Phase2 && !match.Held, "the quick transition ends in phase 2 with the match going on");
+                    return true;
             }
             return true;
         }

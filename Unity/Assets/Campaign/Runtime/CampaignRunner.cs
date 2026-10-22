@@ -75,6 +75,9 @@ namespace SdfCampaign
                 Debug.LogWarning($"Campaign: the save was not readable ({Progress.LoadProblem}); kept under {CampaignProgress.BrokenKey}, starting fresh");
             GuiFlow.Persistent = flow;
             GuiFlow.Campaign = OnCommand;
+            // The boss fight's own beats (ticket 33.8) play through this sequencer: its transitions, and the victory before the Victory screen
+            Boss.PlayBeat = PlayBossBeat;
+            GuiFlow.BeforeVictory = PlayBossVictory;
         }
 
         private void Start()
@@ -90,6 +93,8 @@ namespace SdfCampaign
             Instance = null;
             GuiFlow.Persistent = null;
             GuiFlow.Campaign = null;
+            Boss.PlayBeat = null;
+            GuiFlow.BeforeVictory = null;
             MatchSetup.Pending = null;
         }
 
@@ -526,6 +531,24 @@ namespace SdfCampaign
                     }
                 }
             });
+        }
+
+        // ---------------------------------------------------------------- The boss fight's beats (ticket 33.8)
+
+        /// <summary>
+        /// Plays one of the boss fight's beats (<see cref="BossBeats"/>) in the arena over the running fight: the camera moves, the captions
+        /// show and the shots' cues go to the fight (<c>cue</c>), which holds the match meanwhile. There is no hand-over click: the fight
+        /// is on the HUD again as it is over or skipped (the victory goes on to the Victory screen instead), and <c>done</c> is told
+        /// whether it was skipped.
+        /// </summary>
+        private bool PlayBossBeat(string id, Action<string, Func<string, Vector3?>> cue, Action<bool> done) =>
+            BeatPlayer.PlayBossBeat(flow, match != null ? match : Match.Current, id, cue, done);
+
+        // GuiFlow's hook: the banner is over; the final boss's victory beat plays before the Victory screen
+        private bool PlayBossVictory(Action then)
+        {
+            var boss = Boss.Current;
+            return boss != null && Current != null && Current.setup != null && Current.setup.IsBoss && boss.PlayVictoryBeat(then);
         }
 
         // The scene is live: its match has read the setup in its Start, so the setup is spent

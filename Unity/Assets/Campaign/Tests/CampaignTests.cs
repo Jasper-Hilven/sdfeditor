@@ -511,7 +511,9 @@ namespace SdfCampaign.Tests
                     Assert.IsNotNull(shot.move);
                     if (!string.IsNullOrEmpty(shot.move.actor))
                         Assert.IsNotNull(beat.Actor(shot.move.actor), $"{id}: no actor {shot.move.actor}");
-                    if (!string.IsNullOrEmpty(shot.speaker) && shot.speaker != Beats.Ref)
+                    // In the boss's arena Prime is the real, giant Prime (Anchor.Prime), not a puppet of the beat
+                    var nativePrime = shot.speaker == Beats.Prime && beat.shots.Any(s => s.move.anchor == Anchor.Prime && string.IsNullOrEmpty(s.move.actor));
+                    if (!string.IsNullOrEmpty(shot.speaker) && shot.speaker != Beats.Ref && !nativePrime)
                         Assert.IsNotNull(beat.Actor(shot.speaker), $"{id}: the speaker {shot.speaker} is on the stage");
                 }
             }
@@ -589,6 +591,125 @@ namespace SdfCampaign.Tests
             var last = new BeatSequencer(new[] { beat.shots.Last() });
             last.Tick(1f, false);
             Assert.AreEqual(0, last.CaptionAlpha, "a shot with no line has no caption");
+        }
+
+        // --- the boss fight's transitions and victory (ticket 33.8) ---
+
+        static readonly string[] BossBeatIds = { BossBeats.Transition12, BossBeats.Transition23, BossBeats.Victory };
+
+        static readonly HashSet<string> KnownCues = new HashSet<string>
+        {
+            BossBeats.CopterRises, BossBeats.BalconyFalls, BossBeats.CopterDown, BossBeats.CrownFlies, BossBeats.PrimeClimbs,
+            BossBeats.Shrink, BossBeats.CrownRolls, BossBeats.Cheer, BossBeats.PixelBreak,
+        };
+
+        static IEnumerable<string> CuesOf(Beat beat) =>
+            beat.shots.SelectMany(s => s.cue.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries));
+
+        [Test]
+        public void BossBeats_AreWellFormed_TransitionsAtMostSixSeconds_VictoryAboutTwenty()
+        {
+            foreach (var id in BossBeatIds)
+            {
+                var beat = Beats.Find(id);
+                Assert.IsNotNull(beat, id);
+                Assert.IsFalse(Def.Steps.Any(s => s.id == id), "not a campaign step: the fight plays them");
+                foreach (var shot in beat.shots)
+                {
+                    Assert.IsNotNull(shot.move, id);
+                    Assert.Greater(shot.seconds, 0.5f, id);
+                    // A line is spoken by the boss's cast: Prime, the Ref, 42 (no puppet: their view)
+                    if (!string.IsNullOrEmpty(shot.line))
+                        Assert.Contains(shot.speaker, new[] { Beats.Prime, Beats.Ref, Cast.You }, $"{id}: {shot.line}");
+                    else
+                        Assert.AreEqual("", shot.speaker, "no line, no speaker");
+                    Assert.IsEmpty(shot.move.actor ?? "", "Prime and 42 are anchors in the arena, not actors");
+                    foreach (var cue in shot.cue.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries))
+                        Assert.IsTrue(KnownCues.Contains(cue), $"{id}: unknown cue '{cue}'");
+                }
+            }
+            Assert.LessOrEqual(Beats.Find(BossBeats.Transition12).Seconds, 6.001f);
+            Assert.LessOrEqual(Beats.Find(BossBeats.Transition23).Seconds, 6.001f);
+            Assert.That(Beats.Find(BossBeats.Victory).Seconds, Is.InRange(18f, 26f), "about 20 s");
+        }
+
+        [Test]
+        public void BossBeats_SayWhatTicket33Says_InOrder()
+        {
+            var t12 = Beats.Find(BossBeats.Transition12);
+            Assert.AreEqual(new[] { Beats.Prime, Beats.Ref, Beats.Prime }, t12.shots.Select(s => s.speaker).ToArray());
+            StringAssert.Contains("timeout", t12.shots[0].line);
+            StringAssert.Contains("helicopter", t12.shots[2].line);
+            CollectionAssert.AreEqual(new[] { BossBeats.CopterRises, BossBeats.BalconyFalls }, CuesOf(t12), "the copter rises as Prime asks for it");
+
+            var t23 = Beats.Find(BossBeats.Transition23);
+            Assert.AreEqual(new[] { "", Beats.Prime, Beats.Ref, Cast.You }, t23.shots.Select(s => s.speaker).ToArray(), "the pfft, Prime, the Ref, 42");
+            StringAssert.Contains("rule four", t23.shots[3].line);
+            CollectionAssert.AreEqual(new[] { BossBeats.CopterDown, BossBeats.CrownFlies, BossBeats.PrimeClimbs }, CuesOf(t23));
+
+            var victory = Beats.Find(BossBeats.Victory);
+            CollectionAssert.AreEqual(
+                new[] { BossBeats.Shrink, BossBeats.CrownRolls, BossBeats.Cheer, BossBeats.PixelBreak }, CuesOf(victory),
+                "the shrink, the crown to 42 and on, the crowd, the break-up");
+            StringAssert.Contains("recount", victory.shots[1].line);
+            StringAssert.Contains("Still second", victory.shots[2].line);
+            Assert.AreEqual(Beats.Ref, victory.shots[4].speaker);
+            Assert.AreEqual(Cast.You, victory.shots[5].speaker, "42 hands the crown on");
+            var seven = victory.Actor(Cast.Red[1]);
+            Assert.IsNotNull(seven, "Mushroom 7 is on the stage to wear the crown");
+            Assert.AreEqual(Anchor.You, seven.anchor, "beside 42");
+            Assert.AreEqual(Beats.SevenRight, seven.right);
+            Assert.AreEqual(Beats.SevenForward, seven.forward);
+        }
+
+        [Test]
+        public void BossBeats_B7_PrimeIsTheRealOneInTheArena()
+        {
+            var b7 = Beats.Find("beat-boss");
+            Assert.IsNull(b7.Actor(Beats.Prime), "he is the giant Prime of the arena, not a puppet");
+            Assert.IsTrue(b7.shots.Where(s => s.speaker == Beats.Prime).All(s => s.move.anchor == Anchor.Prime), "his shots are on him");
+            Assert.IsEmpty(CuesOf(b7), "B7 changes nothing in the arena");
+        }
+
+        [Test]
+        public void BossBeats_ThePronounsHold_AndTheOtherBeatsHaveNoCues()
+        {
+            foreach (var id in BossBeatIds)
+                foreach (var shot in Beats.Find(id).shots)
+                {
+                    var line = " " + shot.line.ToLower() + " ";
+                    if (shot.speaker == Cast.You)
+                        Assert.IsFalse(line.Contains(" she ") || line.Contains(" he "), "42 is they/them");
+                }
+            foreach (var id in new[] { "beat-fungal", "beat-chessboard", "beat-toybox", "beat-kitchen", "beat-bathroom", "beat-computer", "ending" })
+                Assert.IsEmpty(CuesOf(Beats.Find(id)), id);
+        }
+
+        [Test]
+        public void BossBeats_Skipping_HoldingTheKeysEndsAtOnce_AndAClickMovesOn()
+        {
+            foreach (var id in BossBeatIds)
+            {
+                var seq = new BeatSequencer(Beats.Find(id));
+                seq.Tick(0.4f, true);
+                seq.Tick(0.4f, true);
+                Assert.IsTrue(seq.Skipped, id + ": held for 0.7 s");
+                Assert.AreNotEqual(BeatStage.Shots, seq.Stage);
+            }
+            var clicked = new BeatSequencer(Beats.Find(BossBeats.Transition12));
+            clicked.Tick(0.5f, false);
+            clicked.Advance();
+            Assert.AreEqual(1, clicked.ShotIndex);
+        }
+
+        [Test]
+        public void BossBeats_ForTransition_NamesOnlyTheTwoTransitions()
+        {
+            Assert.AreEqual(BossBeats.Transition12, BossBeats.ForTransition(BossPhase.Transition12));
+            Assert.AreEqual(BossBeats.Transition23, BossBeats.ForTransition(BossPhase.Transition23));
+            foreach (var phase in new[] { BossPhase.Intro, BossPhase.Phase1, BossPhase.Phase2, BossPhase.Phase3, BossPhase.Victory, BossPhase.Defeat })
+                Assert.IsNull(BossBeats.ForTransition(phase), phase.ToString());
+            Assert.LessOrEqual(BossBeats.QuickTransitionSeconds, 2f, "a retry's transition is short");
         }
 
         [Test]
