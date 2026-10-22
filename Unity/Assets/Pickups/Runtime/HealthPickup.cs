@@ -69,6 +69,13 @@ namespace SdfPickups
                 StartCoroutine(Respawn());
         }
 
+        /// <summary>The cross is on the pod again at once, whatever it was waiting for (the boss fight's pods, switched off and on, ticket 33.6).</summary>
+        public void Restock()
+        {
+            StopAllCoroutines();
+            SetAvailable(true);
+        }
+
         private IEnumerator Respawn()
         {
             yield return new WaitForSeconds(respawnSeconds);

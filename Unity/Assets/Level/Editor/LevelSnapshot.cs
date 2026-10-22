@@ -197,6 +197,8 @@ namespace SdfLevel.Editor
                     ShootTrees(scene, "", Shot, EyeShot);
                 if (scene.name == "Fungal")
                     ShootFungal(scene, Shot, EyeShot);
+                if (scene.name == "Arena")
+                    ShootBoss(scene, "", Shot, EyeShot);
 
                 QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
@@ -210,6 +212,8 @@ namespace SdfLevel.Editor
                 }
                 if (scatter != null)
                     ShootFoliage(scene, directory, "_web", Shot, EyeShot);
+                if (scene.name == "Arena")
+                    ShootBoss(scene, "_web", Shot, EyeShot);
                 if (HasGroup(scatter, TreesGroup))
                     ShootTrees(scene, "_web", Shot, EyeShot);
                 if (moon is { } toMoon)
@@ -590,6 +594,92 @@ namespace SdfLevel.Editor
             eyeShot("island_below", below, Quaternion.LookRotation(new Vector3(0, -10, 0) - below));
 
             WalkIntoATree(scene, play);
+        }
+
+        /// <summary>
+        /// The final boss's arena (ticket 33.3) in each phase's layout (its phase groups shown and hidden as the boss's arena does): from
+        /// the red spawn looking east across the floor at the Royal Box (the busiest view: the crowd, the pieces and in phase 2 the
+        /// copter's place), from the blue flag stand back west, from the middle of the floor up at the stands, and from above. Each logs
+        /// what the placed models draw there (renderers in view of the level of detail each picks, a draw per material) beside the
+        /// ground's and the foliage groups' costs; the scene is left in phase 1.
+        /// </summary>
+        private static void ShootBoss(Scene scene, string suffix, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot)
+        {
+            var root = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform;
+            var arena = scene.GetRootGameObjects().Select(g => g.GetComponent<SdfBattle.BattleArena>()).FirstOrDefault(a => a != null);
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var scatter = scene.GetRootGameObjects().Select(g => g.GetComponent<InstancedScatterRenderer>()).FirstOrDefault(r => r != null);
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            var spawn = OnGround(arena.west.spawn.position) + up;
+            var stand = OnGround(arena.east.flagStand.transform.position) + up;
+            try
+            {
+                for (var phase = 1; phase <= PhaseGroup.PhaseCount; phase++)
+                {
+                    PhaseGroup.ShowPhase(root, phase);
+                    Physics.SyncTransforms();
+                    var views = new (string Name, Vector3 Position, Quaternion Rotation)[]
+                    {
+                        ("spawn_east", spawn, Quaternion.Euler(0, -90, 0)),
+                        ("blue_stand_west", stand, Quaternion.Euler(0, 90, 0)),
+                        ("stands", OnGround(new Vector3(0, 0, 0)) + up, Quaternion.Euler(-4, 0, 0)),
+                        ("above", new Vector3(0, 55, 62), Quaternion.Euler(38, 180, 0)),
+                    };
+                    foreach (var (name, position, rotation) in views)
+                    {
+                        var label = $"boss_p{phase}_{name}{suffix}";
+                        eyeShot(label, position, rotation);
+                        var (draws, triangles) = PlacedCost(scene, camera, position, rotation);
+                        Debug.Log($"SDF level: {label} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): the placed models draw {draws} times, {triangles:N0} triangles");
+                    }
+                }
+            }
+            finally
+            {
+                PhaseGroup.ShowPhase(root, 1);
+            }
+        }
+
+        /// <summary>
+        /// What the placed models (under Level/Placed, active ones only) draw in a view: each LOD group inside it at the level of detail
+        /// it picks, each renderer in view a draw per material (the ink outline is a material of its own), and its triangles.
+        /// </summary>
+        private static (int Draws, int Triangles) PlacedCost(Scene scene, Camera sceneCamera, Vector3 position, Quaternion rotation)
+        {
+            var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Count Camera", HideFlags.HideAndDontSave, typeof(Camera));
+            try
+            {
+                var camera = cameraObject.GetComponent<Camera>();
+                camera.CopyFrom(sceneCamera);
+                camera.aspect = 16f / 9f;
+                camera.transform.SetPositionAndRotation(position, rotation);
+                var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+                var halfAngle = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                int draws = 0, triangles = 0;
+                var placed = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName);
+                foreach (var group in placed.GetComponentsInChildren<LODGroup>())
+                {
+                    var lods = group.GetLODs();
+                    var scale = group.transform.lossyScale;
+                    var size = group.size * Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                    var distance = Vector3.Distance(position, group.transform.TransformPoint(group.localReferencePoint));
+                    var height = size * 0.5f * QualitySettings.lodBias / (Mathf.Max(distance, 0.01f) * halfAngle);
+                    var level = Array.FindIndex(lods, lod => height >= lod.screenRelativeTransitionHeight);
+                    if (level < 0)
+                        continue;
+                    foreach (var renderer in lods[level].renderers)
+                        if (renderer != null && GeometryUtility.TestPlanesAABB(planes, renderer.bounds))
+                        {
+                            draws += renderer.sharedMaterials.Length;
+                            triangles += renderer.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3;
+                        }
+                }
+                return (draws, triangles);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(cameraObject);
+            }
         }
 
         /// <summary>

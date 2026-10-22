@@ -273,6 +273,21 @@ namespace SdfGui
             end.canRetryEasier = !won;
         }
 
+        /// <summary>The boss fight's end made up for the end screens' snapshots (ticket 33.7): a win with a Silver medal, or a defeat in phase 2.</summary>
+        public void SampleBossEnd(bool won)
+        {
+            SampleEnd(won);
+            end.boss = true;
+            end.bossPhase = won ? 3 : 2;
+            end.bossHealthLeft = won ? 0 : 0.63f;
+            end.livesLost = won ? 2 : 3;
+            end.damageDealt = won ? 5120 : 2310;
+            end.kills = won ? 6 : 2;
+            end.seconds = won ? 512 : 301;
+            end.tip = won ? "" : "The electro-gun jumps between the sacs.";
+            end.taunt = won ? "" : "Have you considered second place? It's lovely.";
+        }
+
         /// <summary>Whether the showcase round, played to its end, was won by your team.</summary>
         public bool YourTeamWon()
         {

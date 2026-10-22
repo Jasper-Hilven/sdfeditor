@@ -5,7 +5,11 @@ using SdfBattle;
 namespace SdfCampaign
 {
     /// <summary>Where in the battle scene a beat's actors and cameras are put: a spawn zone, a flag stand, or the middle between the spawns.</summary>
-    public enum Anchor { RedSpawn, BlueSpawn, Centre, RedFlag, BlueFlag }
+    /// <remarks>
+    /// <c>Prime</c> and <c>You</c> (ticket 33.8) are the boss fight's: where Chanterelle Prime's body stands now (it moves, and it is
+    /// lifted by the copter, so a shot on it follows him) and where you stand; elsewhere they fall back to the red spawn.
+    /// </remarks>
+    public enum Anchor { RedSpawn, BlueSpawn, Centre, RedFlag, BlueFlag, Prime, You }
 
     /// <summary>
     /// A scout standing in a beat (ticket 32.7): a puppet of the team's scout, put <see cref="right"/> and <see cref="forward"/> metres from
@@ -66,7 +70,11 @@ namespace SdfCampaign
             };
     }
 
-    /// <summary>One shot of a beat: a caption line (no line, no caption), who says it, how long it lasts, and the camera move.</summary>
+    /// <summary>
+    /// One shot of a beat: a caption line (no line, no caption), who says it, how long it lasts, and the camera move. A <see cref="cue"/>
+    /// (ticket 33.8) is a word the scene that plays the beat is told as the shot starts, so the world can change in step with the story
+    /// (the balcony falls, Prime shrinks); an empty cue says nothing.
+    /// </summary>
     [Serializable]
     public sealed class BeatShot
     {
@@ -74,13 +82,15 @@ namespace SdfCampaign
         public string line;
         public float seconds;
         public CameraMove move;
+        public string cue;
 
-        public BeatShot(string speaker, string line, float seconds, CameraMove move)
+        public BeatShot(string speaker, string line, float seconds, CameraMove move, string cue = "")
         {
             this.speaker = speaker ?? "";
             this.line = line ?? "";
             this.seconds = seconds;
             this.move = move;
+            this.cue = cue ?? "";
         }
     }
 
@@ -127,6 +137,9 @@ namespace SdfCampaign
     public static class Beats
     {
         public const string Prime = "Chanterelle Prime", Ref = "Ref Puffball";
+
+        /// <summary>Where Mushroom 7 stands in the boss victory, from 42: this far to the right and ahead (the scene puts the crown on their cap there).</summary>
+        public const float SevenRight = 2.2f, SevenForward = 2f;
 
         private static Dictionary<string, Beat> all;
 
@@ -254,21 +267,58 @@ namespace SdfCampaign
                         new BeatShot(seven, "It does not seem fine.", 3.5f, CameraMove.On(seven, 160, 185, 3f, 2.5f)),
                         new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
                     }),
-                // B7: the boss's scene; Prime explains himself in person
+                // B7: the boss's scene; Prime explains himself in person, from his dais. In the arena he is the real, giant Prime (Anchor.Prime),
+                // so he is no puppet of this beat; 42 stands at the red spawn, 100 m from him, and the camera crosses the field
                 new Beat("beat-boss", "Second place",
                     new[]
                     {
                         new BeatActor(you, Team.Red, Anchor.RedSpawn, 0, 0, 0),
-                        new BeatActor(Prime, Team.Blue, Anchor.RedSpawn, 0.8f, 5.5f, 180),
                     },
                     new[]
                     {
                         new BeatShot("", "The final.", 4.5f, CameraMove.At(Anchor.RedSpawn, 190, 160, 22, 15, 7, 5, 2.5f)),
-                        new BeatShot(Prime, "Last year I lost by one capture. One! So I fixed the results. And the game. And your house.", 8f, CameraMove.On(Prime, 165, 200, 3.8f, 2.8f)),
+                        new BeatShot(Prime, "Last year I lost by one capture. One! So I fixed the results. And the game. And your house.", 8f, CameraMove.At(Anchor.Prime, 165, 200, 20, 15, 5, 6.5f, 5.5f)),
                         new BeatShot(you, "You can't fix a house.", 4f, CameraMove.On(you, 160, 190, 3.2f, 2.5f, 1.7f)),
-                        new BeatShot(Prime, "I reorganised your cutlery.", 4.5f, CameraMove.On(Prime, 205, 170, 3f, 3.8f)),
+                        new BeatShot(Prime, "I reorganised your cutlery.", 4.5f, CameraMove.At(Anchor.Prime, 205, 170, 15, 20, 6, 5, 5.5f)),
                         new BeatShot(you, "...Now it's personal.", 4f, CameraMove.On(you, 15, -10, 3.4f, 2.6f, 1.7f)),
                         new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
+                    }),
+                // The boss fight's transitions (ticket 33, section 6) and its victory (section 8): played in the arena over the fight, which is held
+                // (nobody can be hurt), and not campaign steps. Each transition is 6 s with no arrival, so skipping goes straight back to the
+                // fight. A shot's cues (BossBeats) tell the scene to change as the story does. Prime is the real, giant Prime (Anchor.Prime), the
+                // Ref speaks from the sky (a wide shot over the middle of the field), and 42 is the view from their own eyes (Anchor.You).
+                new Beat(BossBeats.Transition12, "Timeout", new BeatActor[0],
+                    new[]
+                    {
+                        new BeatShot(Prime, "Fine! FINE. Ref, I'm calling a timeout.", 2f, CameraMove.At(Anchor.Prime, 170, 190, 18, 14, 5, 6, 5.5f)),
+                        new BeatShot(Ref, "Timeouts are not in the rulebook.", 1.8f, CameraMove.At(Anchor.Centre, 180, 160, 70, 60, 30, 26, 3)),
+                        new BeatShot(Prime, "The rulebook says helicopter.", 2.2f, CameraMove.At(Anchor.Prime, 190, 150, 14, 22, 4, 10, 6),
+                            BossBeats.CopterRises + " " + BossBeats.BalconyFalls),
+                    }),
+                new Beat(BossBeats.Transition23, "Rule four", new BeatActor[0],
+                    new[]
+                    {
+                        new BeatShot("", "", 1.1f, CameraMove.At(Anchor.Prime, 150, 190, 26, 18, 9, 5, 3), BossBeats.CopterDown + " " + BossBeats.CrownFlies),
+                        new BeatShot(Prime, "My crown! Nobody touch the crown. That's an order.", 2f, CameraMove.At(Anchor.Prime, 175, 200, 14, 12, 5, 6, 5.5f), BossBeats.PrimeClimbs),
+                        new BeatShot(Ref, "A loose crown is a capturable object. Rule four.", 1.7f, CameraMove.At(Anchor.Centre, 180, 160, 70, 60, 30, 26, 3)),
+                        new BeatShot(you, "There's a rule four?", 1.2f, CameraMove.At(Anchor.You, 0, 0, 0.3f, 0.3f, 1.65f, 1.65f, 2.2f)),
+                    }),
+                // The victory (about 22 s): Prime shrinks with pops to scout size, the recount, the crown rolls to 42 and goes on Mushroom 7's cap,
+                // the arena breaks into pixel blocks
+                new Beat(BossBeats.Victory, "Still second",
+                    new[]
+                    {
+                        new BeatActor(seven, Team.Red, Anchor.You, SevenRight, SevenForward, 200),
+                    },
+                    new[]
+                    {
+                        new BeatShot("", "", 3.5f, CameraMove.At(Anchor.Prime, 160, 200, 30, 8, 9, 3, 2.5f), BossBeats.Shrink),
+                        new BeatShot(Prime, "I demand a recount.", 2.4f, CameraMove.At(Anchor.Prime, 175, 190, 4.5f, 3.5f, 1.4f, 1.2f, 0.9f)),
+                        new BeatShot(Ref, "Recount complete. Still second.", 2.8f, CameraMove.At(Anchor.Prime, 180, 140, 40, 28, 20, 14, 0.5f)),
+                        new BeatShot(Prime, "I'd like to speak to the tournament's manager.", 2.8f, CameraMove.At(Anchor.Prime, 195, 170, 3.8f, 3, 1.2f, 1.1f, 0.9f)),
+                        new BeatShot(Ref, "I am the manager.", 2.2f, CameraMove.At(Anchor.Prime, 180, 140, 40, 28, 20, 14, 0.5f)),
+                        new BeatShot(you, "Hold this. I've got a desk to get back to.", 4.5f, CameraMove.At(Anchor.You, 160, 200, 4.5f, 3.5f, 1.6f, 1.5f, 0.9f), BossBeats.CrownRolls),
+                        new BeatShot("", "", 3.5f, CameraMove.At(Anchor.Centre, 200, 150, 70, 55, 30, 26, 4), BossBeats.Cheer + " " + BossBeats.PixelBreak),
                     }),
                 // The ending: no scene to move through (it plays over Boot's backdrop, the GUI's Ending screen), so no actors and a still camera
                 new Beat(CampaignDefinition.Ending, "Ending", new BeatActor[0],

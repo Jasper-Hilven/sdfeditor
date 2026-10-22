@@ -31,12 +31,25 @@ namespace SdfGui
         [UnityEngine.Tooltip("RETRY EASIER is offered on the Defeat screen")]
         public bool canRetryEasier;
 
+        [UnityEngine.Header("The final boss (ticket 33.7)")]
+        [UnityEngine.Tooltip("The match was the boss fight: the screens show lives and damage instead of the score, and RETRY PHASE / RESTART FIGHT")]
+        public bool boss;
+        [UnityEngine.Tooltip("The phase reached, 1 to 3")]
+        public int bossPhase = 1;
+        [UnityEngine.Tooltip("Prime's health left, 0 to 1 of the whole")]
+        public float bossHealthLeft;
+        public int livesLost;
+        public int damageDealt;
+        [UnityEngine.Tooltip("The tip for the phase reached, in place of the shared ones")]
+        public string tip = "";
+
         public void Clear()
         {
-            set = won = winnerBlue = newBest = canRetryEasier = false;
-            redScore = blueScore = captures = kills = deaths = medal = 0;
-            seconds = 0;
-            taunt = "";
+            set = won = winnerBlue = newBest = canRetryEasier = boss = false;
+            redScore = blueScore = captures = kills = deaths = medal = livesLost = damageDealt = 0;
+            bossPhase = 1;
+            bossHealthLeft = seconds = 0;
+            taunt = tip = "";
         }
     }
 }

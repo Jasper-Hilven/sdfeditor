@@ -203,7 +203,7 @@ public class LevelFileTests
                                    "neutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)");
 
         var west = level.Battle!.West;
-        Assert.Equal(new Vector2(-28, -43), west.Health.At);
+        Assert.Equal(new Vector2(-28, -43), west.Health!.At);
         Assert.Equal([new Vector2(-28, 43), new Vector2(-73.5f, -9)], west.MoreHealth.Select(p => p.At));
         Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health", "pod health", "pod health"], west.Objects.Select(o => o.Name));
         Assert.Empty(level.Battle.East.MoreHealth);

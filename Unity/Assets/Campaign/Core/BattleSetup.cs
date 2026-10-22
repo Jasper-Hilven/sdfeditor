@@ -33,6 +33,20 @@ namespace SdfCampaign
         public bool sporesOn = true;
         /// <summary>Seconds a dead blue player waits before respawning (red uses the match rules' own).</summary>
         public float blueRespawnSeconds = 5;
+        /// <summary>What wins the battle: captures, or the final boss's bars (ticket 33; the clock and the capture count do not matter then).</summary>
+        public SdfBattle.MatchObjective objective;
+        /// <summary>The difficulty this setup was made for (<see cref="DifficultyRules.Apply"/> sets it); the boss fight's numbers follow it.</summary>
+        public Difficulty difficulty = Difficulty.Normal;
+        /// <summary>RETRY EASIER was pressed at least once: the boss fight takes Easy's damage and wind-up rows.</summary>
+        public bool retryEasier;
+        /// <summary>The boss fight's first phase, 1 to 3 (RETRY PHASE starts at the phase reached; RESTART FIGHT at 1).</summary>
+        public int bossStartPhase = 1;
+
+        public bool IsBoss => objective == SdfBattle.MatchObjective.Boss;
+
+        /// <summary>The boss fight's numbers for this setup's difficulty (ticket 33, section 7); the three difficulties convert by number.</summary>
+        public SdfBattle.BossRules BossRules() =>
+            SdfBattle.BossRules.For((SdfBattle.BossDifficulty)(int)difficulty, retryEasier);
 
         /// <summary>The numbers the match plays by (SdfBattle.Core cannot see this assembly, so it has its own plain copy).</summary>
         public SdfBattle.MatchSetup ToMatchSetup() => new SdfBattle.MatchSetup
@@ -46,9 +60,13 @@ namespace SdfCampaign
             capturesToWin = capturesToWin,
             timeLimitSeconds = timeLimitSeconds,
             singleRound = singleRound,
+            objective = objective,
             sporesOn = sporesOn,
             blueRespawnSeconds = blueRespawnSeconds,
             warmUp = warmUp,
+            bossDifficulty = (int)difficulty,
+            retryEasier = retryEasier,
+            bossStartPhase = bossStartPhase,
         };
 
         public BattleSetup Clone()

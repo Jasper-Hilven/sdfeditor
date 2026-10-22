@@ -60,6 +60,14 @@ namespace SdfGui.Editor
                         flow.Show(screen);
                         shoot(Path.Combine(directory, $"{screen}.png"));
                     }
+                    // The boss fight's Victory and Defeat (ticket 33.7): the same screens with the boss's numbers, buttons and words
+                    foreach (var won in new[] { true, false })
+                    {
+                        flow.Match.SampleBossEnd(won);
+                        flow.Show(won ? GuiScreen.Victory : GuiScreen.Defeat);
+                        shoot(Path.Combine(directory, won ? "VictoryBoss.png" : "DefeatBoss.png"));
+                    }
+                    flow.Match.end.Clear();
                     // The title once the campaign is complete: the gold crown on the logo's cap (ticket 32.8)
                     GuiCampaign.PreviewComplete = true;
                     flow.Show(GuiScreen.Title);

@@ -6,7 +6,10 @@
 //
 //   _SdfWind        global, set by the Wind component: xy = direction in world xz (unit), z = strength (1 = as authored), w = phase
 //                   (seconds of wind, times its speed)
-//   _ScatterWind    per draw: x = metres of sway at y metres above the model's base, z = height of the base that takes the tint (m)
+//   _CrowdCheer     global, set by the boss's arena (ticket 33.6): 0 to 1, how hard the arena's crowd cheers; the draw groups that cheer
+//                   (_ScatterWind.w = 1: the level's "crowd" group) sway up to four times as far and hop with it
+//   _ScatterWind    per draw: x = metres of sway at y metres above the model's base, z = height of the base that takes the tint (m),
+//                   w = 1 for a group that cheers with _CrowdCheer
 //   _ScatterRing    per draw, metres from _ScatterCamera to the instance's base: the ring fades in from x (none) to y (all) and out
 //                   from z (all) to w (none); x = y = -1 for no fade in
 //   _ScatterCamera  per draw: the camera the rings are measured from (the same in the shadow pass as in the colour pass)
@@ -20,6 +23,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 
 float4 _SdfWind;
+float _CrowdCheer;
 float4 _ScatterWind;
 float4 _ScatterRing;
 float4 _ScatterCamera;
@@ -39,10 +43,18 @@ float3 SdfScatterOrigin()
 // world space: neighbours move together and gusts roll across the field. A small per-instance offset keeps them out of lockstep.
 float3 SdfScatterWind(float3 positionOS)
 {
-    float strength = _SdfWind.z * _ScatterWind.x;
+    float cheer = saturate(_CrowdCheer) * _ScatterWind.w;
+    float strength = _SdfWind.z * _ScatterWind.x * (1.0 + 3.0 * cheer);
+    float3 origin = SdfScatterOrigin();
+    // The cheering crowd hops: each instance on its own beat, up to 0.2 m at full cheer, in world metres so every size hops alike
+    if (cheer > 0.0)
+    {
+        float hopBeat = frac(sin(dot(origin.xz, float2(39.346, 11.135))) * 43758.5453);
+        float hop = cheer * 0.2 * abs(sin(_Time.y * 6.0 + hopBeat * 6.2831853));
+        positionOS += mul((float3x3)UNITY_MATRIX_I_M, float3(0.0, hop, 0.0));
+    }
     if (strength <= 0.0)
         return positionOS;
-    float3 origin = SdfScatterOrigin();
     float2 direction = _SdfWind.xy;
     float along = dot(origin.xz, direction);
     float jitter = frac(sin(dot(origin.xz, float2(12.9898, 78.233))) * 43758.5453);

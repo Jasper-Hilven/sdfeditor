@@ -80,9 +80,10 @@ public sealed record BattleObject(BattleKind Kind, string? Pod, Vector2 At, floa
 /// One of the level's two battle sides, <c>west</c> (−x) or <c>east</c> (+x): its spawn place, its flag stand, its weapon pods (one or
 /// more, each a different weapon of <see cref="BattleLayout.Weapons"/>, in that list's order) and its health pod (and any more health
 /// pods, <see cref="BattleSide.MoreHealth"/>); on a level with machines (ticket 24) also its <see cref="BattleLayout.TurretsPerSide"/>
-/// turrets and its machine zone.
+/// turrets and its machine zone. On the boss layout (ticket 33.3, <see cref="LevelLayout.Boss"/>) a side may have no weapon pods and no
+/// health pod (Prime's side uses the neutral pods), so <see cref="Health"/> is null there.
 /// </summary>
-public sealed record BattleSide(string Name, BattleObject Spawn, BattleObject Flag, IReadOnlyList<BattleObject> Weapons, BattleObject Health)
+public sealed record BattleSide(string Name, BattleObject Spawn, BattleObject Flag, IReadOnlyList<BattleObject> Weapons, BattleObject? Health)
 {
     public const string West = "west";
     public const string East = "east";
@@ -101,7 +102,7 @@ public sealed record BattleSide(string Name, BattleObject Spawn, BattleObject Fl
 
     /// <summary>The spawn, the flag, the weapon pods, the health pod, any more health pods, then the turrets and the machine zone if there are any, in that order.</summary>
     public IReadOnlyList<BattleObject> Objects =>
-        [Spawn, Flag, .. Weapons, Health, .. MoreHealth, .. Turrets, .. MachineSpawn is null ? Array.Empty<BattleObject>() : [MachineSpawn]];
+        [Spawn, Flag, .. Weapons, .. Health is null ? Array.Empty<BattleObject>() : [Health], .. MoreHealth, .. Turrets, .. MachineSpawn is null ? Array.Empty<BattleObject>() : [MachineSpawn]];
 }
 
 /// <summary>
@@ -130,8 +131,8 @@ public sealed record BattleLayout(BattleSide West, BattleSide East, IReadOnlyLis
 
     public IReadOnlyList<BattleSide> Sides => [West, East];
 
-    /// <summary>Whether the sides have machines (ticket 24): turrets and a machine zone. Both sides have them or neither.</summary>
-    public bool HasMachines => West.MachineSpawn is not null;
+    /// <summary>Whether the sides have machines (ticket 24): turrets and a machine zone. Both sides have them or neither, but on the boss layout (ticket 33.3) Prime's side alone may.</summary>
+    public bool HasMachines => West.MachineSpawn is not null || East.MachineSpawn is not null;
 
     /// <summary>Every object: the west side's, the east side's, then the neutral pods.</summary>
     public IEnumerable<BattleObject> Objects => West.Objects.Concat(East.Objects).Concat(Neutral);

@@ -1,0 +1,31 @@
+# Floodlight mushroom (ticket 33.2): one of the arena's four giant floodlights, 14 m high with a cap 6 m across that glows warm gold
+# (the material arena_floodlight_cap, whose colour the boss script changes). A tall stem of fungal stone on a wide root flare, a ring
+# of shelf-fungus ruffles under the cap, the glowing cap domed above. Emissive only, no real light. The stem is the collider (a
+# capsule). The origin is the stem's foot on the ground.
+format 1
+collider capsule
+
+Detail detail=0.5
+    Union
+        Material material=arena_stone
+            SmoothUnion smoothness=0.3
+                Intersection
+                    Ellipsoid radii=(1.8, 1.0, 1.8)
+                    Translate translation=(0, 1.0, 0)
+                        Box size=(2, 1.0, 2)
+                ArbitraryRoundCone a=(0, 1.1, 0) b=(0, 11.2, 0) radiusA=1.1 radiusB=0.55
+        Material material=arena_shelf
+            Translate translation=(0, 5.0, 0)
+                Union
+                    Rotate rotation=(0, 0.3, 0)
+                        Translate translation=(0.85, 0, 0)
+                            Ellipsoid radii=(0.5, 0.14, 0.45)
+                    Rotate rotation=(0, 2.4, 0)
+                        Translate translation=(0.8, 1.2, 0)
+                            Ellipsoid radii=(0.45, 0.12, 0.4)
+        Material material=arena_floodlight_cap
+            Translate translation=(0, 11.0, 0)
+                Intersection
+                    Ellipsoid radii=(3.0, 3.0, 3.0)
+                    Translate translation=(0, 3.0, 0)
+                        Box size=(3.1, 3.0, 3.1)

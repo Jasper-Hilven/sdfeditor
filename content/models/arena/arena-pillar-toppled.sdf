@@ -1,0 +1,29 @@
+# Arena pillar, toppled (ticket 33.2): an arena pillar that has fallen, 6 m long and 1.1 m high, the knee-high cover the two east
+# pillars become in phase 3. It lies along +z with its foot at the origin end and its broken capital at z = 6 (the lichen crust on the
+# capital's face, the rest of the shaft in stone), a bracket of shelf fungus on its top. Origin: the foot end's centre on the ground,
+# 0.55 m below the axis; the shaft is 1.1 m across, sunk a little into the ground so it does not hover. The collider is convex.
+format 1
+collider convex
+
+Detail detail=0.6
+    Union
+        Material material=arena_stone
+            SmoothUnion smoothness=0.1
+                # The shaft with its foot's flare, lying on its side
+                Translate translation=(0, 0.55, 3.0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCone height=3.0 bottomRadius=0.5 topRadius=0.53
+                # The foot's flare
+                Translate translation=(0, 0.55, 0.3)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCone height=0.3 bottomRadius=0.55 topRadius=0.5
+        Material material=arena_lichen
+            Translate translation=(0, 0.55, 5.97)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RoundedCylinder radius=0.5 roundness=0.03 height=0.03
+        Material material=arena_shelf
+            Translate translation=(0.1, 1.0, 3.2)
+                Ellipsoid radii=(0.3, 0.1, 0.4)
+        Material material=arena_moss
+            Translate translation=(-0.3, 0.8, 1.2)
+                Ellipsoid radii=(0.22, 0.12, 0.35)

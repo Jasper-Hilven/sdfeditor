@@ -500,4 +500,4 @@ Left:
 - The web run of 32.10's checklist (Chrome and Safari), and open question 8 (Addressables) if the data file is large.
 - Levels 27-30 and the boss 33 slot in by data: see 32.9's "Adding a level to the campaign". Until their scenes exist those steps are
   skipped (Level Select shows "Coming soon") and the ending follows the chessboard.
-- Boss step numbers are placeholders until ticket 33.
+- The boss step is ticket 33's numbers (BossBattle in CampaignDefinition) and its scene is Arena.unity (33.9).

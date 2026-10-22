@@ -1,0 +1,31 @@
+# Royal Box balcony, fallen (ticket 33.2): what the balcony becomes at the phase 1 to 2 change: it has broken off and fallen as a ramp
+# of shelf fungus from the floor up to the dais, 12 m wide (x), 10 m long (z, in plan 9.2 m) and about 0.8 m thick, rising 4 m, with
+# a pile of broken stone at its foot and moss on its lowest part. Phase 2-3 only. The origin is the middle of the ramp's foot on the
+# ground, the ramp rising towards -z (into the box), front along +z; in the level its top end meets the dais's front. A mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.2
+    Union
+        Material material=arena_shelf
+            # The ramp: a slab turned up 23 degrees about x, its lower edge on the ground at z = 0
+            Intersection
+                Translate translation=(0, 1.6, -4.3)
+                    Rotate rotation=(0.4, 0, 0)
+                        Box size=(6, 0.4, 5.1)
+                Translate translation=(0, 3, -4.7)
+                    Box size=(7, 3, 4.7)
+        Material material=arena_stone
+            Union
+                Translate translation=(-3.0, 0.3, 0.6)
+                    Rotate rotation=(0.2, 0.7, 0.1)
+                        Box size=(0.6, 0.3, 0.5)
+                Translate translation=(1.8, 0.25, 0.9)
+                    Rotate rotation=(0.1, 0.3, 0.2)
+                        Box size=(0.5, 0.25, 0.4)
+                Translate translation=(-0.5, 0.2, 1.1)
+                    Rotate rotation=(0.3, 0.9, 0.1)
+                        Box size=(0.4, 0.2, 0.35)
+        Material material=arena_moss
+            Translate translation=(-2.5, 0.25, -0.8)
+                Ellipsoid radii=(1.0, 0.2, 0.7)

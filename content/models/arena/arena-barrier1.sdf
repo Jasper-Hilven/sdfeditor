@@ -1,0 +1,24 @@
+# Arena barrier 1 (ticket 33.2): a stone crescent with a bracket of shelf fungus at one end and moss on top. Knee cover: a stone crescent 4 m long and 0.9 m high, 1.2 m thick at its
+# middle, curving a little (convex towards +z). Players jump it, bots go round (26 §4). The origin is the crescent's middle on the
+# ground, front along +z. The collider is convex.
+format 1
+collider convex
+
+Detail detail=0.5
+    Union
+        Material material=arena_stone
+            SmoothIntersection smoothness=0.06
+                Subtraction
+                    Translate translation=(0, 0.45, -7.5)
+                        CappedCylinder radius=8 height=0.45
+                    Translate translation=(0, 0.45, -8.5)
+                        CappedCylinder radius=8 height=0.45
+                Translate translation=(0, 0.45, 0)
+                    Box size=(2, 0.45, 1)
+        # A bracket of shelf fungus at one end and a moss cushion on the top
+        Material material=arena_shelf
+            Translate translation=(1.75, 0.5, -0.1)
+                Ellipsoid radii=(0.35, 0.12, 0.3)
+        Material material=arena_moss
+            Translate translation=(-0.5, 0.85, 0.1)
+                Ellipsoid radii=(0.5, 0.08, 0.25)

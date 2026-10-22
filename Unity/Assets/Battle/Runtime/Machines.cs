@@ -110,6 +110,7 @@ namespace SdfBattle
 #endif
             var root = new GameObject(ObjectName).transform;
             root.SetParent(transform, false);
+            var bossLevel = FindFirstObjectByType<BossSpots>() != null;
             foreach (var side in new[] { arena.west, arena.east })
             {
                 if (side == null)
@@ -121,7 +122,8 @@ namespace SdfBattle
                             Add<TurretMachine>(rig, MachineKind.Turret, team, side);
                 if (side.machineSpawn == null)
                     continue;
-                for (var i = 0; i < rules.helicoptersPerSide; i++)
+                // The boss fight's blue helicopter is the Prime-copter (ticket 33.5), flown by the boss; no other
+                for (var i = 0; i < (bossLevel ? 0 : rules.helicoptersPerSide); i++)
                     Make<HelicopterMachine>(team == Team.Red ? redHelicopter : blueHelicopter, MachineKind.Helicopter, team, side, root, i);
                 for (var i = 0; i < rules.tanksPerSide; i++)
                     Make<TankMachine>(team == Team.Red ? redTank : blueTank, MachineKind.Tank, team, side, root, i);
@@ -183,6 +185,42 @@ namespace SdfBattle
                 Match.State.RoundReset -= OnRoundReset;
         }
 
+        /// <summary>Tanks of <paramref name="team"/> in play (alive).</summary>
+        public int TanksAlive(Team team)
+        {
+            var n = 0;
+            foreach (var machine in machines)
+                if (machine.Kind == MachineKind.Tank && machine.Team == team && machine.Alive)
+                    n++;
+            return n;
+        }
+
+        /// <summary>Takes every machine of a kind and team out of play, hidden (the boss fight's blue tanks wait for the Prime-copter's drop, ticket 33.5).</summary>
+        public void Stow(Team team, MachineKind kind)
+        {
+            foreach (var machine in machines)
+                if (machine.Kind == kind && machine.Team == team)
+                    machine.Stow();
+        }
+
+        /// <summary>
+        /// Drops a tank of <paramref name="team"/> that is out of play (stowed, or waiting to respawn) from the air at
+        /// <paramref name="from"/>, facing <paramref name="yaw"/>: it falls, lands with a puff and drives as the side's tanks do. Null
+        /// when every tank of the team is already in play.
+        /// </summary>
+        public TankMachine DropTank(Team team, Vector3 from, float yaw)
+        {
+            foreach (var machine in machines)
+            {
+                if (machine is TankMachine tank && tank.Team == team && !tank.Alive)
+                {
+                    tank.DropFrom(from, yaw);
+                    return tank;
+                }
+            }
+            return null;
+        }
+
         // A new round: every machine back where it starts, at full health
         private void OnRoundReset()
         {
@@ -226,7 +264,7 @@ namespace SdfBattle
             for (var i = 0; i < count; i++)
             {
                 var hit = Hits[i];
-                if (Player.Of(hit.collider) != null || Of(hit.collider) != null)
+                if (Player.Of(hit.collider) != null || Of(hit.collider) != null || PrimeCopter.Owns(hit.collider))
                     continue;
                 point = hit.point;
                 normal = hit.normal;
@@ -285,6 +323,13 @@ namespace SdfBattle
         }
 
         private static readonly IComparer<RaycastHit> Comparer = Comparer<RaycastHit>.Create(ByDistance);
+
+        /// <summary>Whether a circle of <paramref name="margin"/> metres round a point is inside the play area (the boss' dive stays on the floor).</summary>
+        public static bool PlayAreaContains(Vector3 point, float margin)
+        {
+            PlayArea(out var min, out var max);
+            return point.x - margin >= min.x && point.x + margin <= max.x && point.z - margin >= min.y && point.z + margin <= max.y;
+        }
 
         /// <summary>The play area's corners (x, z), from the scene info; a 150 x 100 m field round the origin without one.</summary>
         public static void PlayArea(out Vector2 min, out Vector2 max)

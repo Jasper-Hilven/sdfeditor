@@ -31,7 +31,10 @@ public class BattleSidesTests
     /// <summary>The least room round a battle object's edge, in metres, to a model or to another battle object.</summary>
     private const float Gap = 0.2f;
 
-    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "computer", "bathroom"];
+    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "computer", "bathroom", "arena"];
+
+    /// <summary>The levels whose sides mirror each other: all but the boss's arena (ticket 33.3: <c>layout boss</c>), which skips this check and only this one.</summary>
+    private static readonly string[] MirroredLevels = ["meadow", "fungal", "chessboard"];
 
     /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun.</summary>
     private static readonly Dictionary<string, string[]> SideWeapons = new()
@@ -52,6 +55,8 @@ public class BattleSidesTests
 
     public static TheoryData<string> Levels => new(LevelNames);
 
+    public static TheoryData<string> Mirrored => new(MirroredLevels);
+
     private static LevelDefinition Load(string name) => LevelFile.Load(Path.Combine(Content, LevelFile.FolderName, name + LevelFile.Extension));
 
     [Fact]
@@ -63,7 +68,7 @@ public class BattleSidesTests
     }
 
     [Theory]
-    [MemberData(nameof(Levels))]
+    [MemberData(nameof(Mirrored))]
     public void Level_HasBothSides_Complete_AndMirroredAcrossX(string name)
     {
         var battle = Load(name).Battle;
@@ -213,6 +218,60 @@ public class BattleSidesTests
 
     public static TheoryData<string> WithMachines => new(CastleMachineLevels);
 
+    /// <summary>
+    /// Ticket 33.3: the boss's layout is not mirrored, but everything else holds: Prime's side has the flag stand, the turrets and the
+    /// machine zone and no pods, the red side the pistol and three health pods and no machines, the neutral pods are the electro-gun and
+    /// the flamethrower, the sides lie on their own halves, the spawns face the field and the boss's spots are inside the play area.
+    /// </summary>
+    [Fact]
+    public void BossLayout_HasPrimesSideWithoutPods_AndTheRedSideWithoutMachines()
+    {
+        var level = Load("arena");
+        var battle = level.Battle!;
+
+        Assert.Equal(LevelLayout.Boss, level.Layout);
+        Assert.Equal(["pistol"], battle.West.Weapons.Select(p => p.Pod));
+        Assert.Equal(2, battle.West.MoreHealth.Count);
+        Assert.NotNull(battle.West.Health);
+        Assert.Empty(battle.East.Weapons);
+        Assert.Null(battle.East.Health);
+        Assert.Equal(BattleLayout.TurretsPerSide, battle.East.Turrets.Count);
+        Assert.NotNull(battle.East.MachineSpawn);
+        Assert.Empty(battle.West.Turrets);
+        Assert.Null(battle.West.MachineSpawn);
+        Assert.True(battle.HasMachines);
+        Assert.Equal(["electro-gun", "flamethrower"], battle.Neutral.Select(p => p.Pod));
+        Assert.All(battle.West.Objects, o => Assert.True(o.At.X < 0, $"west {o.Name}"));
+        Assert.All(battle.East.Objects, o => Assert.True(o.At.X > 0, $"east {o.Name}"));
+        Assert.InRange(battle.West.Spawn.Yaw, 45, 135);
+        Assert.InRange(battle.East.Spawn.Yaw, -180, -45);
+        var boss = level.Boss!;
+        foreach (var (name, at, _) in boss.Spots)
+            Assert.True(MathF.Abs(at.X) <= level.Play.HalfSize.X && MathF.Abs(at.Y) <= level.Play.HalfSize.Y, name);
+        // Prime stands on the dais at the blue side, the crash is mid-field, the plinth on the red side
+        Assert.True(boss.Prime.At.X > 40 && boss.Plinth.At.X < -40 && MathF.Abs(boss.Crash.At.X) < 15);
+        // The champion's plinth is a placed model where the boss section says
+        Assert.Contains(level.Placements, p => p.Model == "champion-plinth" && p.At == boss.Plinth.At);
+    }
+
+    [Fact]
+    public void BossLayout_PhaseTags_AreOnTheModelsThatChangeBetweenPhases()
+    {
+        var level = Load("arena");
+
+        var tagged = level.Placements.Where(p => p.Phases is not null).Select(p => (p.Model, Phases: p.Phases!.Value.ToString())).ToArray();
+
+        Assert.Contains(("royal-box-balcony", "1"), tagged);
+        Assert.Contains(("royal-box-balcony-fallen", "2-3"), tagged);
+        Assert.Equal(3, tagged.Count(t => t.Phases == "1-2" && t.Model.StartsWith("arena-pillar", StringComparison.Ordinal)));
+        Assert.Equal(2, tagged.Count(t => t.Model == "arena-pillar-toppled" && t.Phases == "3"));
+        // The toppled pillars lie where the east pillars stood
+        var east = level.Placements.Where(p => p.Model.StartsWith("arena-pillar", StringComparison.Ordinal) && p.At.X == 20).ToArray();
+        Assert.Equal(2, east.Length);
+        Assert.All(level.Placements.Where(p => p.Model == "arena-pillar-toppled"),
+            t => Assert.Contains(east, e => MathF.Abs(e.At.Y - t.At.Y) < 0.5f && MathF.Abs(e.At.X - t.At.X) < 3));
+    }
+
     [Fact]
     public void OverlapCheck_FindsAFlagStandMovedIntoACastleWall_AndAPodMovedOntoARock()
     {
@@ -359,6 +418,10 @@ public class BattleSidesTests
             var ground = terrain.Height(item.At.X, item.At.Y);
             foreach (var placement in level.Placements)
             {
+                // The boss level's blue flag stand is a phase 1 object (the crown is the flag in phase 3), so a model of the later
+                // phases only (the ramp the balcony falls into) is not in its way; every other object is clear of every phase's models
+                if (level.Layout == LevelLayout.Boss && item.Kind == BattleKind.Flag && item.At.X > 0 && placement.Phases is { } phases && !phases.Contains(1))
+                    continue;
                 var footprint = footprints(placement.Model)!;
                 var local = Placement2D.ToLocal(item.At - placement.At, placement.Yaw) / placement.Scale;
                 var grow = radius / placement.Scale;

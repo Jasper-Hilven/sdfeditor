@@ -108,6 +108,9 @@ namespace SdfBattle
             }
             // The campaign's setup (ticket 32.3) overrides the numbers; the rules are copied so the scene's own stay as authored
             Setup = MatchSetup.Pending;
+            // The boss's arena (ticket 33.6) played on its own: the fight's own setup, as the campaign would make it
+            if (Setup == null && BossArena.Present)
+                Setup = BossArena.DefaultSetup();
             if (Setup != null)
             {
                 rules = JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(rules));
@@ -140,6 +143,8 @@ namespace SdfBattle
                 DeathCamera.Attach(You, this);
             // Bots (ticket 23): their brains, after combat (their arsenals) and before the first round (their spawns)
             Bots.Create(this);
+            // The final boss (ticket 33.6) in a scene with his arena: after everything it drives, before the first round it resets for
+            Boss.Create(this);
             State.Begin();
             // A beat or the warm-up plays before the match (ticket 32.7): held from the first frame
             if (Setup != null && (Setup.held || Setup.warmUp))
