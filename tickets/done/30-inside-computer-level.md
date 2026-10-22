@@ -5,7 +5,7 @@ traces glowing like roads, heatsinked chips standing as buildings, capacitors as
 wall of fans along the north side and the CPU cooler as a giant fan tower in the middle. Players aside, everything in it is computer
 hardware. Built into `Assets/Scenes/Computer.unity` from `content/levels/computer.level`.
 
-It follows the ruleset in [26](done/26-level-ruleset.md) and fills in its template below. Every number not given here (pod and stand
+It follows the ruleset in [26](26-level-ruleset.md) and fills in its template below. Every number not given here (pod and stand
 radii, clearances, agent sizes, preset budgets) is the ruleset's.
 
 Depends on: 26 (ruleset), 16-25 (battle: pods, sides, match, flag, weapons, bots, machines, spores), 31 (story intro), 32 (campaign
@@ -351,16 +351,16 @@ One per agent; each merged before the next that needs it starts.
 | # | What | Needs |
 |---|---|---|
 | 30.0 | The user's yes on theme, scale (250×), the RAM bases, the machines' eyes and the data pulses | — |
-| 30.1 | Emission: `emission` in `.sdfmat`, the vertex data, `SdfToon` and `SdfToonFar` (the outline unchanged), ground regions; WebGL2 build check | 30.0 |
-| 30.2 | Room look `look=case`: steel walls, vents, LED strip, smoked glass ceiling; the chessboard unchanged | 30.1 |
-| 30.3 | Ground clutter models and the ground materials | 30.1 |
-| 30.4 | Knee cover and tall blocker models | 30.0 |
-| 30.5 | Landmarks: cooler, GPU, battery, VRM, chipset, PCIe slots, ribbon bridge, power connector, case fan; spinning parts | 30.1 |
-| 30.6 | Base: `ram-bank-red`, `ram-bank-blue` | 30.1 |
-| 30.7 | Machines: cap turret, chip tank, fan-copter per colour; `machines look=`; helicopter keep-outs | 30.0 |
-| 30.8 | Layout: `computer.level` (stubs for missing models), regions and buses, sides, scatter, draws; `BattleSidesTests` level and weapons, `ContentComputer_HasOnlyComputerParts`, bounds tests; bake | 30.3-30.6 (stubs allowed) |
-| 30.9 | Data pulses: format, bake, overlay mesh and `SdfPulse`, `PulseRules` and the boost, FX and HUD tag, EditMode tests | 30.8 |
-| 30.10 | Unity rebuild, Check Navmesh, snapshots and budgets on both presets, a full match with 7 bots, web frame time; re-mesh and rebake in the main checkout | all |
+| [30.1](30.1-emission.md) | Emission: `emission` in `.sdfmat`, the vertex data, `SdfToon` and `SdfToonFar` (the outline unchanged), ground regions; WebGL2 build check | 30.0 |
+| [30.2](30.2-case-room-look.md) | Room look `look=case`: steel walls, vents, LED strip, smoked glass ceiling; the chessboard unchanged | [30.1](30.1-emission.md) |
+| [30.3](30.3-models-clutter-and-ground.md) | Ground clutter models and the ground materials | [30.1](30.1-emission.md) |
+| [30.4](30.4-models-knee-and-tall.md) | Knee cover and tall blocker models | 30.0 |
+| [30.5](30.5-models-landmarks.md) | Landmarks: cooler, GPU, battery, VRM, chipset, PCIe slots, ribbon bridge, power connector, case fan; spinning parts | [30.1](30.1-emission.md) |
+| [30.6](30.6-ram-banks.md) | Base: `ram-bank-red`, `ram-bank-blue` | [30.1](30.1-emission.md) |
+| [30.7](30.7-computer-machines.md) | Machines: cap turret, chip tank, fan-copter per colour; `machines look=`; helicopter keep-outs | 30.0 |
+| [30.8](30.8-level-file.md) | Layout: `computer.level` (stubs for missing models), regions and buses, sides, scatter, draws; `BattleSidesTests` level and weapons, `ContentComputer_HasOnlyComputerParts`, bounds tests; bake | 30.3-30.6 (stubs allowed) |
+| [30.9](30.9-data-pulses.md) | Data pulses: format, bake, overlay mesh and `SdfPulse`, `PulseRules` and the boost, FX and HUD tag, EditMode tests | [30.8](30.8-level-file.md) |
+| [30.10](30.10-unity-build-and-check.md) | Unity rebuild, Check Navmesh, snapshots and budgets on both presets, a full match with 7 bots, web frame time; re-mesh and rebake in the main checkout | all |
 
 ## Acceptance
 
@@ -377,4 +377,14 @@ One per agent; each merged before the next that needs it starts.
 
 ## Status
 
-Not started.
+Done in code, tests and a batch build (30.1-30.10, all in this folder); left: by-eye and Play-mode checks.
+
+- 30.0 (the user's yes) was taken as given: the defaults in this ticket stand (red/blue RAM light bars, the machines keep the scouts' eyes, pulses +35% for 2.5 s). The machine line is `machines set=computer` (27.2), not `look=`.
+- Generic pieces added: emission in `.sdfmat`, the toon shaders and ground regions (UV5.z; 30.1); the `case` room look and `glow=all offset=` (30.2); a `Spinner` for parts named `Blades`, `FanWest`, `FanEast`, `Fan0..2` (30.5); helicopter keep-outs for tall placed models in rooms (30.7); `pulse` regions, the `pulses` line, `SdfPulse`, `PulseRules` and the boost with its HUD tag (30.9).
+- Content: the models in `content/models/computer/`, the `computer` machine set, `content/levels/computer.level`, ground materials `ground_pcb/trace/silk/pad`. Yaw differences from the tables above (the slots are long along x, the gate slots use yaw 90, the connector 180, the GPU 180) and the moved pods and heatsinks are in 30.8's Status.
+- Measured (30.10): busiest view 277k triangles / 98 draws on High, 202k / 81 on Web; every view under budget. Check Navmesh reaches every spawn, stand and pod; both machine zones join the tank navmesh.
+- Tests: `dotnet test` 533 + 878 passed; Unity EditMode 385 passed.
+
+Left for a human: a Play-mode match with 7 bots (bridges, nobody stuck), the pulses in motion and the boost and HUD tag, the ramps joined at the bridge feet in Check Navmesh, web frame time and a real WebGL2 build (the shaders were only compiled for the editor), the look of metals (tin and aluminium near-white), traces reading cream rather than gold, tall blockers sparse (11), and the IDE preview raymarcher not drawing emission.
+
+Main checkout after merge: re-mesh the new models (`sdf mesh content/models/computer --resolution 256 --lods 3` and the same for `content/models/machines`, or `sdf unity` as usual; about 15 min), `sdf level content/levels/computer.level --into Unity/Assets/Level/Generated/computer`, then `LevelBuilder.BuildAllInBatch` twice (prefabs first, then the scene) and Tools > SDF Machines > Rebuild Machines. Nothing generated is committed.
