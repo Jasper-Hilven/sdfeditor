@@ -1,0 +1,54 @@
+# Duplo tower 1: six large toy bricks (no brand marks) of glossy plastic, each 3.8 m long, 1.9 m wide and 1.1 m tall with eight studs on top (60 times life
+# size, as a big-brick set), stepped up one way along x and back down the other: white, peach, lilac, yellow, mint and lilac. 6.8 m tall, about 5.6 m by 2 m.
+# Tall blocker; mesh collider.
+format 1
+
+brick =
+    Union
+        Translate translation=(0, 0.55, 0)
+            RoundBox size=(1.9, 0.55, 0.95) roundness=0.07
+        Translate translation=(0, 1.2, 0)
+            Union
+                Translate translation=(-1.425, 0, -0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+                Translate translation=(-1.425, 0, 0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+                Translate translation=(-0.475, 0, -0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+                Translate translation=(-0.475, 0, 0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+                Translate translation=(0.475, 0, -0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+                Translate translation=(0.475, 0, 0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+                Translate translation=(1.425, 0, -0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+                Translate translation=(1.425, 0, 0.475)
+                    RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+
+Detail detail=0.26
+    Union
+        Material material=toy_plastic_white
+            Translate translation=(-0.9, 0, 0)
+                Rotate rotation=(0, 0, 0)
+                    $brick
+        Material material=toy_plastic_peach
+            Translate translation=(-0.3, 1.1, 0)
+                Rotate rotation=(0, -0.06, 0)
+                    $brick
+        Material material=toy_plastic_lilac
+            Translate translation=(0.3, 2.2, 0)
+                Rotate rotation=(0, 0.1, 0)
+                    $brick
+        Material material=toy_plastic_yellow
+            Translate translation=(0.9, 3.3, 0)
+                Rotate rotation=(0, 0, 0)
+                    $brick
+        Material material=toy_plastic_mint
+            Translate translation=(0.3, 4.4, 0)
+                Rotate rotation=(0, -0.1, 0)
+                    $brick
+        Material material=toy_plastic_lilac
+            Translate translation=(-0.3, 5.5, 0)
+                Rotate rotation=(0, 0.07, 0)
+                    $brick

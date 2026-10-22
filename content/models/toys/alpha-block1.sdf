@@ -1,0 +1,82 @@
+# Alpha block 1: two wooden alphabet blocks, each a 2.4 m cube (60 times life size): a lilac one (toy_paint_lilac) at the bottom and a peach-orange one
+# (toy_paint_peach) on top, turned 20 degrees, with cream letters raised on their sides: 2.4 m by 2.4 m and 4.8 m tall. Tall blocker; mesh collider.
+format 1
+
+Detail detail=0.2
+    Union
+        Translate translation=(0, 1.2, 0)
+            Union
+                Material material=toy_paint_lilac
+                    RoundBox size=(1.2, 1.2, 1.2) roundness=0.12
+                Material material=toy_paint_cream
+                    Union
+                        Rotate rotation=(0, 0, 0)
+                            Translate translation=(0, 0, 1.2)
+                                Union
+                                    Capsule a=(0.3192, 0.57, 0) b=(-0.3192, 0.57, 0) radius=0.08
+                                    Capsule a=(-0.3192, 0.57, 0) b=(-0.3192, -0.57, 0) radius=0.08
+                                    Capsule a=(-0.3192, -0.57, 0) b=(0.3192, -0.57, 0) radius=0.08
+                                    Capsule a=(-0.3192, 0, 0) b=(0.171, 0, 0) radius=0.08
+                        Rotate rotation=(0, 3.1416, 0)
+                            Translate translation=(0, 0, 1.2)
+                                Union
+                                    Capsule a=(-0.285, 0.57, 0) b=(-0.285, -0.57, 0) radius=0.08
+                                    Capsule a=(-0.285, -0.57, 0) b=(0.3192, -0.57, 0) radius=0.08
+                        Rotate rotation=(0, 1.5708, 0)
+                            Translate translation=(0, 0, 1.2)
+                                Union
+                                    Capsule a=(-0.3648, 0.57, 0) b=(0.3648, 0.57, 0) radius=0.08
+                                    Capsule a=(0, 0.57, 0) b=(0, -0.57, 0) radius=0.08
+                        Rotate rotation=(0, -1.5708, 0)
+                            Translate translation=(0, 0, 1.2)
+                                Union
+                                    Capsule a=(-0.3192, 0.57, 0) b=(-0.3192, -0.57, 0) radius=0.08
+                                    Capsule a=(0.342, 0.57, 0) b=(-0.3192, -0.057, 0) radius=0.08
+                                    Capsule a=(-0.114, 0.114, 0) b=(0.342, -0.57, 0) radius=0.08
+        Translate translation=(0.1, 3.6, 0.05)
+            Rotate rotation=(0, 0.3491, 0)
+                Union
+                    Material material=toy_paint_peach
+                        RoundBox size=(1.2, 1.2, 1.2) roundness=0.12
+                    Material material=toy_paint_cream
+                        Union
+                            Rotate rotation=(0, 0, 0)
+                                Translate translation=(0, 0, 1.2)
+                                    Union
+                                        Capsule a=(0, 0.57, 0) b=(0.285, 0.4332, 0) radius=0.08
+                                        Capsule a=(0.285, 0.4332, 0) b=(0.3648, 0, 0) radius=0.08
+                                        Capsule a=(0.3648, 0, 0) b=(0.285, -0.4332, 0) radius=0.08
+                                        Capsule a=(0.285, -0.4332, 0) b=(0, -0.57, 0) radius=0.08
+                                        Capsule a=(0, -0.57, 0) b=(-0.285, -0.4332, 0) radius=0.08
+                                        Capsule a=(-0.285, -0.4332, 0) b=(-0.3648, 0, 0) radius=0.08
+                                        Capsule a=(-0.3648, 0, 0) b=(-0.285, 0.4332, 0) radius=0.08
+                                        Capsule a=(-0.285, 0.4332, 0) b=(0, 0.57, 0) radius=0.08
+                            Rotate rotation=(0, 3.1416, 0)
+                                Translate translation=(0, 0, 1.2)
+                                    Union
+                                        Capsule a=(0.342, 0.3648, 0) b=(0.171, 0.57, 0) radius=0.08
+                                        Capsule a=(0.171, 0.57, 0) b=(-0.171, 0.57, 0) radius=0.08
+                                        Capsule a=(-0.171, 0.57, 0) b=(-0.342, 0.342, 0) radius=0.08
+                                        Capsule a=(-0.342, 0.342, 0) b=(-0.342, -0.342, 0) radius=0.08
+                                        Capsule a=(-0.342, -0.342, 0) b=(-0.171, -0.57, 0) radius=0.08
+                                        Capsule a=(-0.171, -0.57, 0) b=(0.171, -0.57, 0) radius=0.08
+                                        Capsule a=(0.171, -0.57, 0) b=(0.342, -0.3648, 0) radius=0.08
+                            Rotate rotation=(0, 1.5708, 0)
+                                Translate translation=(0, 0, 1.2)
+                                    Union
+                                        Capsule a=(-0.3648, -0.57, 0) b=(0, 0.57, 0) radius=0.08
+                                        Capsule a=(0, 0.57, 0) b=(0.3648, -0.57, 0) radius=0.08
+                                        Capsule a=(-0.2052, -0.1368, 0) b=(0.2052, -0.1368, 0) radius=0.08
+                            Rotate rotation=(0, -1.5708, 0)
+                                Translate translation=(0, 0, 1.2)
+                                    Union
+                                        Capsule a=(-0.3192, -0.57, 0) b=(-0.3192, 0.57, 0) radius=0.08
+                                        Capsule a=(-0.3192, 0.57, 0) b=(0.0912, 0.57, 0) radius=0.08
+                                        Capsule a=(0.0912, 0.57, 0) b=(0.3192, 0.399, 0) radius=0.08
+                                        Capsule a=(0.3192, 0.399, 0) b=(0.3192, 0.171, 0) radius=0.08
+                                        Capsule a=(0.3192, 0.171, 0) b=(0.0912, 0, 0) radius=0.08
+                                        Capsule a=(0.0912, 0, 0) b=(-0.3192, 0, 0) radius=0.08
+                                        Capsule a=(0.0912, 0, 0) b=(0.342, -0.171, 0) radius=0.08
+                                        Capsule a=(0.342, -0.171, 0) b=(0.342, -0.399, 0) radius=0.08
+                                        Capsule a=(0.342, -0.399, 0) b=(0.0912, -0.57, 0) radius=0.08
+                                        Capsule a=(0.0912, -0.57, 0) b=(-0.3192, -0.57, 0) radius=0.08

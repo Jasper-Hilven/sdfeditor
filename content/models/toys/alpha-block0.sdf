@@ -1,0 +1,48 @@
+# Alpha block 0: one wooden alphabet block, a 2.0 m cube of mint-green painted wood (toy_paint_mint) with cream letters (A, B, C, E) raised on its sides, tipped
+# on one bottom edge and leaning (12 degrees): 2.4 m wide and 2.4 m tall, base on y = 0 (60 times life size). Tall blocker; convex collider.
+format 1
+
+Detail detail=0.21
+    Translate translation=(0, 1.1861, 0)
+        Rotate rotation=(0, 0, 0.2094)
+            Union
+                Material material=toy_paint_mint
+                    RoundBox size=(1, 1, 1) roundness=0.12
+                Material material=toy_paint_cream
+                    Union
+                        Rotate rotation=(0, 0, 0)
+                            Translate translation=(0, 0, 1)
+                                Union
+                                    Capsule a=(-0.304, -0.475, 0) b=(0, 0.475, 0) radius=0.0667
+                                    Capsule a=(0, 0.475, 0) b=(0.304, -0.475, 0) radius=0.0667
+                                    Capsule a=(-0.171, -0.114, 0) b=(0.171, -0.114, 0) radius=0.0667
+                        Rotate rotation=(0, 3.1416, 0)
+                            Translate translation=(0, 0, 1)
+                                Union
+                                    Capsule a=(-0.266, -0.475, 0) b=(-0.266, 0.475, 0) radius=0.0667
+                                    Capsule a=(-0.266, 0.475, 0) b=(0.076, 0.475, 0) radius=0.0667
+                                    Capsule a=(0.076, 0.475, 0) b=(0.266, 0.3325, 0) radius=0.0667
+                                    Capsule a=(0.266, 0.3325, 0) b=(0.266, 0.1425, 0) radius=0.0667
+                                    Capsule a=(0.266, 0.1425, 0) b=(0.076, 0, 0) radius=0.0667
+                                    Capsule a=(0.076, 0, 0) b=(-0.266, 0, 0) radius=0.0667
+                                    Capsule a=(0.076, 0, 0) b=(0.285, -0.1425, 0) radius=0.0667
+                                    Capsule a=(0.285, -0.1425, 0) b=(0.285, -0.3325, 0) radius=0.0667
+                                    Capsule a=(0.285, -0.3325, 0) b=(0.076, -0.475, 0) radius=0.0667
+                                    Capsule a=(0.076, -0.475, 0) b=(-0.266, -0.475, 0) radius=0.0667
+                        Rotate rotation=(0, 1.5708, 0)
+                            Translate translation=(0, 0, 1)
+                                Union
+                                    Capsule a=(0.285, 0.304, 0) b=(0.1425, 0.475, 0) radius=0.0667
+                                    Capsule a=(0.1425, 0.475, 0) b=(-0.1425, 0.475, 0) radius=0.0667
+                                    Capsule a=(-0.1425, 0.475, 0) b=(-0.285, 0.285, 0) radius=0.0667
+                                    Capsule a=(-0.285, 0.285, 0) b=(-0.285, -0.285, 0) radius=0.0667
+                                    Capsule a=(-0.285, -0.285, 0) b=(-0.1425, -0.475, 0) radius=0.0667
+                                    Capsule a=(-0.1425, -0.475, 0) b=(0.1425, -0.475, 0) radius=0.0667
+                                    Capsule a=(0.1425, -0.475, 0) b=(0.285, -0.304, 0) radius=0.0667
+                        Rotate rotation=(0, -1.5708, 0)
+                            Translate translation=(0, 0, 1)
+                                Union
+                                    Capsule a=(0.266, 0.475, 0) b=(-0.266, 0.475, 0) radius=0.0667
+                                    Capsule a=(-0.266, 0.475, 0) b=(-0.266, -0.475, 0) radius=0.0667
+                                    Capsule a=(-0.266, -0.475, 0) b=(0.266, -0.475, 0) radius=0.0667
+                                    Capsule a=(-0.266, 0, 0) b=(0.1425, 0, 0) radius=0.0667
