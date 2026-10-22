@@ -38,6 +38,12 @@ namespace SdfGui
             dismissQualityHints?.onValueChanged.AddListener(v => GuiSettings.DismissQualityHints = v);
         }
 
+        private void OnDisable()
+        {
+            if (Application.isPlaying)
+                GuiSettings.Save();
+        }
+
         private void OnEnable()
         {
             if (quality != null)
