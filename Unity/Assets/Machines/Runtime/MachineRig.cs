@@ -23,6 +23,9 @@ namespace SdfMachines
         /// <summary>red or blue.</summary>
         public string team;
 
+        /// <summary>The machine set whose models it is made of (ticket 27.2): mushroom (turret-red, ...), toys (turret-toys-red, ...).</summary>
+        public string set = "mushroom";
+
         /// <summary>The piece that does not move relative to the machine: the tank's and helicopter's Body, the turret's Foot.</summary>
         public Transform body;
 

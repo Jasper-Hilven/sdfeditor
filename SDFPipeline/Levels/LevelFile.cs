@@ -53,6 +53,8 @@ namespace SDFPipeline.Levels;
 ///     fade end=200
 ///
 /// room size=(160, 160, 160)                 # a closed room over the playable area: walls on its edges, a ceiling at y=160 (see <see cref="RoomSpec"/>)
+/// room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid     # the same with the faces in the named materials, not the checker
+///      glow=north height=3 color=(1, 0.82, 0.5) light=(0, 0.77, 0.64) lightColor=(1, 0.93, 0.7) ambient=(0.45, 0.4, 0.6)
 ///
 /// sides                                     # the two battle sides, west (-x) and east (+x), see <see cref="BattleLayout"/>
 ///     west
@@ -113,7 +115,29 @@ namespace SDFPipeline.Levels;
 /// <para>
 /// The sky names a preset in content/skies/ and may override its lines (see <see cref="SkyFile"/>); without a sky line the level is
 /// baked with no sky data. The room takes a <c>size</c> (width, height, depth; across and along must be the play size) and optionally a
-/// <c>square</c> (8 m by default), the side of the checker's squares.
+/// <c>square</c> (8 m by default), the side of the checker's squares. With <c>walls</c> and <c>ceiling</c> (the names of
+/// materials/room/&lt;name&gt;.sdfmat files) the room's faces are drawn in those instead of the checker: the room may be any size, and
+/// the squares go. Unity picks the pattern by the material's name (LevelRoom). <c>glow</c> (north is +z, south -z, east +x, west -x) adds
+/// a band of emissive light along the top of that wall, <c>height</c> metres tall (3) in <c>color</c>; <c>light</c> is the direction
+/// towards the room's lamp, <c>lightColor</c> its hue and <c>ambient</c> the flat ambient light (sRGB, each part 0 to 1), each replacing
+/// the indoor default of the chessboard (overhead, warm white) when given.
+/// </para>
+/// <para>
+/// A <c>machines</c> line of its own (ticket 27.2; not the sides' <c>machines</c> zone line) names the set of machine models the level's
+/// turrets, tanks and helicopters use: <c>machines set=toys ceiling=20</c>. Without it, or with <c>set=mushroom</c>, they are the
+/// fungal machines of ticket 24 (turret-red, ...); another set has <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c> models (turret-toys-red). With it,
+/// a level with a room also gives its helicopters the room's limits (6-12 m, 16 m over bases, 3 m off the walls) under the flight
+/// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
+/// </para>
+/// <para>
+/// A <c>mover</c> (ticket 27.3; there may be several, each with its own name) is a vehicle on a fixed timetable: <c>mover train speed=7
+/// gap=0.5 phase=0</c>, with below it its closed path, <c>Stadium center=(0, 0) halfLength=12 radius=20</c> (straights along z at
+/// x = centre ± radius, half-circle ends; anticlockwise from above, arc length 0 at the east straight's south end) or <c>Polyline
+/// points=[(-10, 0), (0, 8), (10, 0)]</c> (corners, closed); optionally <c>heights keys=[(0, 0), (30, 3.8)]</c>, (arc length, y) keys
+/// of the cars' height above y = 0, linear between them and round the loop (0 everywhere by default); and its cars, head first, one
+/// <c>car toy-train-engine length=4.8</c> per line (a model from content/models/ and its length along the path). Its position is
+/// <c>speed * (round clock + phase)</c> metres along the path, <c>phase</c> in seconds, so nothing is saved; the cars follow the path's
+/// centre line, <c>gap</c> metres apart (0.5 by default). The train must be shorter than the path. See <see cref="MoverSpec"/>.
 /// </para>
 /// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
@@ -157,11 +181,12 @@ public static class LevelFile
     private const string Machines = "machines";
     private const string Flag = "flag";
     private const string Pod = "pod";
+    private const string Mover = "mover";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines, Mover];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
-    private static readonly string[] Repeatable = [Scatter, Trees, Draw];
+    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -197,6 +222,9 @@ public static class LevelFile
         SkySection? sky = null;
         RoomSpec? room = null;
         var roomLine = 0;
+        MachineSet? machineSet = null;
+        var machineSetLine = 0;
+        var movers = new List<MoverSpec>();
         (BattleSide West, BattleSide East)? sides = null;
         IReadOnlyList<BattleObject>? neutral = null;
         var seen = new Dictionary<string, int>();
@@ -255,11 +283,36 @@ public static class LevelFile
                 case Neutral:
                     neutral = ReadNeutral(line, cursor);
                     break;
+                case Mover:
+                    var mover = ReadMover(line, cursor);
+                    if (movers.FirstOrDefault(m => m.Name == mover.Name) is { } twin)
+                        throw new SdfProgramFileException(line.Number, $"Mover '{mover.Name}' is given twice, first on line {twin.Line}");
+                    movers.Add(mover);
+                    break;
+                case Machines:
+                    machineSet = ReadMachineSet(line, cursor);
+                    machineSetLine = line.Number;
+                    break;
             }
         }
         if ((sides is null) != (neutral is null))
             throw new SdfProgramFileException(seen[sides is null ? Neutral : Sides],
                 $"A level with battle sides has neutral pods between them, and the other way round; add a '{(sides is null ? Sides : Neutral)}' section");
+
+        if (machineSet is not null)
+        {
+            if (sides is null || sides.Value.West.MachineSpawn is null)
+                throw new SdfProgramFileException(machineSetLine,
+                    $"The '{Machines}' line names the models of the sides' machines, but the level's sides have no turrets and machine zone; add them to the sides, or leave the line out");
+            if (machineSet.Ceiling is not null && room is null)
+                throw new SdfProgramFileException(machineSetLine, $"'ceiling' of {Machines} is a closed room's flight ceiling; the level has no '{Room}' line");
+            if (machineSet.Ceiling is { } ceiling && room is not null && ceiling > room.Size.Y - 2)
+                throw new SdfProgramFileException(machineSetLine,
+                    $"'ceiling' of {Machines} ({FileSyntax.Number(ceiling)}) must be 2 m or more under the room's lid ({FileSyntax.Number(room.Size.Y)} m high)");
+            if (room is not null && machineSet.CeilingIn(room) is { } least && least < MachineSet.LeastCeiling)
+                throw new SdfProgramFileException(machineSetLine,
+                    $"The helicopters' flight ceiling ({FileSyntax.Number(least)} m) is under {FileSyntax.Number(MachineSet.LeastCeiling)} m, too low to clear a base; the room is too low, or give a higher 'ceiling'");
+        }
 
         foreach (var scatter in scatters.Concat(trees))
             if (drawGroups.All(g => g.Name != scatter.Group))
@@ -271,7 +324,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -420,18 +473,176 @@ public static class LevelFile
         return new BattleObject(kind == Spawn ? BattleKind.Spawn : BattleKind.Machines, null, at, yaw, line.Number) { ZoneRadius = radius };
     }
 
+    /// <summary>machines set=toys ceiling=20: the machine models and a room's helicopter ceiling (ticket 27.2).</summary>
+    private static MachineSet ReadMachineSet(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Machines, line, cursor);
+        var name = parameters.Name("set", MachineSet.Default, null)!;
+        if (!MachineSet.IsName(name))
+            throw parameters.Error("set", $"A machine set is named in lower case letters and digits, not red or blue, like set=toys; '{name}' is not");
+        float? ceiling = parameters.Has("ceiling")
+            ? parameters.Number("ceiling", null, MachineSet.LeastCeiling, 1000, $"metres over the floor, {FileSyntax.Number(MachineSet.LeastCeiling)} or more")
+            : null;
+        parameters.Done("set", "ceiling");
+        return new MachineSet(name, ceiling);
+    }
+
+    private static readonly string[] MoverShapes = ["Stadium", "Polyline"];
+
+    /// <summary>
+    /// mover train speed=7 gap=0.5 phase=0, with below it the path (<c>Stadium center=(0, 0) halfLength=12 radius=20</c> or
+    /// <c>Polyline points=[...]</c>, closed), optionally <c>heights keys=[(0, 0), (6, 3.8)]</c> and the cars, head first, as
+    /// <c>car toy-train-engine length=4.8</c> (ticket 27.3).
+    /// </summary>
+    private static MoverSpec ReadMover(SourceLine line, Cursor cursor)
+    {
+        var name = cursor.ReadName("the mover's name, like train");
+        var parameters = Parameters.Read($"mover {name}", line with { Children = [] }, cursor);
+        var speed = parameters.Number("speed", null, 0.1f, 100, "metres per second, 0.1 to 100");
+        var gap = parameters.Number("gap", 0.5f, 0, 20, "metres between the cars, 0 to 20");
+        var phase = parameters.Number("phase", 0, -100000, 100000, "seconds the timetable is ahead at the round's start");
+        parameters.Done("speed", "gap", "phase");
+
+        IReadOnlyList<Vector2>? path = null;
+        SourceLine? pathLine = null;
+        (IReadOnlyList<Vector2> Keys, SourceLine Line)? heights = null;
+        var cars = new List<MoverCar>();
+        foreach (var child in line.Children)
+        {
+            var childCursor = new Cursor(child);
+            var entry = childCursor.ReadName($"the path ({string.Join(" or ", MoverShapes)}), 'heights' or 'car'");
+            if (entry is "Stadium" or "Polyline")
+            {
+                if (path is not null)
+                    throw childCursor.Error($"Mover {name} has its path twice, first on line {pathLine!.Number}");
+                var shape = Parameters.Read($"mover {name}'s {entry}", child, childCursor);
+                if (entry == "Stadium")
+                {
+                    var center = shape.Vector2("center", new Vector2(0, 0), "a point like (0, 0)");
+                    var halfLength = shape.Number("halfLength", null, 0, 1000, "half the straights' length in metres, 0 to 1000");
+                    var radius = shape.Number("radius", null, 1, 1000, "the ends' radius in metres, 1 to 1000");
+                    shape.Done("center", "halfLength", "radius");
+                    path = MoverSpec.Stadium(center, halfLength, radius);
+                }
+                else
+                {
+                    var points = shape.Points("points", "corners like [(-10, 0), (0, 8), (10, 0)] (x, z in metres), closed by a leg back to the first");
+                    shape.Done("points");
+                    if (points.Length < 3)
+                        throw childCursor.Error($"Mover {name}'s polyline needs three corners or more to be a loop");
+                    path = points;
+                }
+                pathLine = child;
+            }
+            else if (entry == "heights")
+            {
+                if (heights is not null)
+                    throw childCursor.Error($"Mover {name} has its heights twice, first on line {heights.Value.Line.Number}");
+                var keys = Parameters.Read($"mover {name}'s heights", child, childCursor);
+                var list = keys.Points("keys", "(arc length, y) keys like [(0, 0), (30, 3.8)], metres");
+                keys.Done("keys");
+                heights = (list, child);
+            }
+            else if (entry == "car")
+            {
+                var model = childCursor.ReadFileName("a model's name, like toy-train-engine");
+                var car = Parameters.Read($"mover {name}'s car {model}", child, childCursor);
+                var length = car.Number("length", null, 0.1f, 200, "the car's length along the path in metres, 0.1 to 200");
+                car.Done("length");
+                cars.Add(new MoverCar(model, length, child.Number));
+            }
+            else
+                throw childCursor.Error($"A mover has a path ({string.Join(" or ", MoverShapes)}), 'heights' and 'car' lines; there is no '{entry}'");
+        }
+
+        if (path is null)
+            throw cursor.Error($"Mover {name} needs a path indented below it, like 'Stadium center=(0, 0) halfLength=12 radius=20'");
+        if (cars.Count == 0)
+            throw cursor.Error($"Mover {name} needs one or more cars indented below it, like 'car toy-train-engine length=4.8'");
+        var length1 = MoverSpec.PathLength(path);
+        var keyList = heights?.Keys ?? [];
+        var previous = -1f;
+        foreach (var key in keyList)
+        {
+            if (key.X < 0 || key.X >= length1)
+                throw new SdfProgramFileException(heights!.Value.Line.Number,
+                    $"Mover {name}'s height key at arc length {FileSyntax.Number(key.X)} is off the path, which is {FileSyntax.Number(length1)} m long (keys are from 0 up to its length)");
+            if (key.X <= previous)
+                throw new SdfProgramFileException(heights!.Value.Line.Number, $"Mover {name}'s height keys must go along the path, each arc length more than the one before");
+            if (key.Y is < -1000 or > 1000)
+                throw new SdfProgramFileException(heights!.Value.Line.Number, $"Mover {name}'s height {FileSyntax.Number(key.Y)} is not a height in metres");
+            previous = key.X;
+        }
+        var spec = new MoverSpec(name, speed, phase, gap, path, keyList, cars, line.Number);
+        if (spec.TrainLength > length1 - 1)
+            throw new SdfProgramFileException(line.Number,
+                $"Mover {name}'s cars and gaps take {FileSyntax.Number(spec.TrainLength)} m, but the path is {FileSyntax.Number(length1)} m round; the train would meet itself");
+        return spec;
+    }
+
+    private static readonly string[] GlowWalls = ["north", "south", "east", "west"];
+
     private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)
     {
         var parameters = Parameters.Read(Room, line, cursor);
         var size = parameters.Vector3("size", "a size like (160, 160, 160), width, height and depth in metres");
+        var walls = parameters.Name("walls", null, null);
+        var ceiling = parameters.Name("ceiling", null, null);
+        if ((walls is null) != (ceiling is null))
+            throw parameters.Error(walls is null ? "ceiling" : "walls", "The room needs both walls= and ceiling= (the materials of its faces, materials/room/<name>.sdfmat), or neither for the chessboard's checker");
+        if (walls is not null && parameters.Has("square"))
+            throw parameters.Error("square", "A room with walls= and ceiling= has no checker; leave out square");
         var square = parameters.Number("square", RoomSpec.DefaultSquare, 0.5f, 100, "a square's side in metres, 0.5 to 100");
-        parameters.Done("size", "square");
         if (size.X <= 0 || size.Y <= 0 || size.Z <= 0)
             throw parameters.Error("size", "The room needs a positive width, height and depth, like size=(160, 160, 160)");
-        foreach (var length in new[] { size.X, size.Y, size.Z })
-            if (MathF.Abs(length / square - MathF.Round(length / square)) > 1e-3f)
-                throw parameters.Error("size", $"The room's sides must be whole numbers of squares of {FileSyntax.Number(square)} m");
-        return new RoomSpec(size, square);
+        if (walls is null)
+            foreach (var length in new[] { size.X, size.Y, size.Z })
+                if (MathF.Abs(length / square - MathF.Round(length / square)) > 1e-3f)
+                    throw parameters.Error("size", $"The room's sides must be whole numbers of squares of {FileSyntax.Number(square)} m");
+
+        // glow=north height=3 color=(1, 0.82, 0.5): a band of light along the top of a wall
+        var glowWall = parameters.Name("glow", null, GlowWalls);
+        var hasHeight = parameters.Has("height");
+        var hasColor = parameters.Has("color");
+        var glowHeight = parameters.Number("height", RoomGlow.DefaultHeight, 0.1f, size.Y, $"metres, 0.1 up to the room's height ({FileSyntax.Number(size.Y)})");
+        var glowColor = hasColor ? Colour(parameters, "color") : RoomGlow.DefaultColor;
+        if (glowWall is null && (hasHeight || hasColor))
+            throw parameters.Error(hasHeight ? "height" : "color", "height= and color= belong to glow=<north, south, east or west>");
+        RoomGlow? glow = glowWall is null ? null : new RoomGlow(glowWall switch
+        {
+            "north" => RoomFace.PosZ,
+            "south" => RoomFace.NegZ,
+            "east" => RoomFace.PosX,
+            _ => RoomFace.NegX,
+        }, glowHeight, glowColor);
+
+        // light=(0, 0.77, 0.64) lightColor=(1, 0.95, 0.7) ambient=(0.4, 0.35, 0.5): the lamp's direction (towards it) and hue, the ambient
+        Vector3? direction = null;
+        if (parameters.Has("light"))
+        {
+            direction = parameters.Vector3("light", "the direction towards the lamp, like (0, 0.77, 0.64)");
+            if (direction.Value.LengthSquared() < 1e-6f)
+                throw parameters.Error("light", "The lamp's direction needs a length, like (0, 0.77, 0.64)");
+        }
+        Vector3? lampColor = parameters.Has("lightColor") ? Colour(parameters, "lightColor") : null;
+        Vector3? ambient = parameters.Has("ambient") ? Colour(parameters, "ambient") : null;
+        parameters.Done("size", "square", "walls", "ceiling", "glow", "height", "color", "light", "lightColor", "ambient");
+        return new RoomSpec(size, square)
+        {
+            Walls = walls,
+            Ceiling = ceiling,
+            Glow = glow,
+            Light = direction is null && lampColor is null && ambient is null ? null : new RoomLighting(direction, lampColor, ambient),
+        };
+    }
+
+    /// <summary>A colour like (1, 0.82, 0.5), sRGB with each part 0 to 1.</summary>
+    private static Vector3 Colour(Parameters parameters, string name)
+    {
+        var color = parameters.Vector3(name, "a colour like (1, 0.82, 0.5), each part 0 to 1");
+        return color.X is < 0 or > 1 || color.Y is < 0 or > 1 || color.Z is < 0 or > 1
+            ? throw parameters.Error(name, $"'{name}' needs a colour like (1, 0.82, 0.5), each part 0 to 1")
+            : color;
     }
 
     private static PlayArea ReadPlay(SourceLine line, Cursor cursor)

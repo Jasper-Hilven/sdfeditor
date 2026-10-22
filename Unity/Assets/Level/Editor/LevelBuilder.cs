@@ -94,8 +94,10 @@ namespace SdfLevel.Editor
         /// Version 17: the scouts' agent 5 cm wider than the capsule.
         /// Version 18: the sides' turrets and machine zones (ticket 24.2), the turrets obstacles in the navmesh.
         /// Version 19: the machines' prefabs on Battle (ticket 24.3, <see cref="SdfBattle.Machines"/>); the match without a countdown.
+        /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
+        /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
         /// </summary>
-        public const int BuilderVersion = 19;
+        public const int BuilderVersion = 21;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -124,7 +126,39 @@ namespace SdfLevel.Editor
             ambient = new Color(0.17f, 0.14f, 0.1f),
         };
 
-        /// <summary>The far plane reaches across a room's diagonal (160 m square: 226 m on the floor, 277 m to the opposite top corner) with room to spare.</summary>
+        /// <summary>
+        /// A room's lamp as its level file has it (ticket 27.1: the room block's <c>light</c>: the direction towards the lamp, its colour and
+        /// the ambient, each optional), the rest from <see cref="RoomLight"/>. x is mirrored, as everywhere.
+        /// </summary>
+        private static MushroomScene.IndoorLighting RoomLightOf(JObject data)
+        {
+            var light = data["room"]?["light"] as JObject;
+            if (light == null)
+                return RoomLight;
+            Vector3 Direction(JToken t) => new Vector3(-t[0].Value<float>(), t[1].Value<float>(), t[2].Value<float>()).normalized;
+            UnityEngine.Color Colour(JToken t) => new UnityEngine.Color(t[0].Value<float>(), t[1].Value<float>(), t[2].Value<float>());
+            return new MushroomScene.IndoorLighting
+            {
+                lightDirection = light["direction"] != null ? Direction(light["direction"]) : RoomLight.lightDirection,
+                lightColor = light["color"] != null ? Colour(light["color"]) : RoomLight.lightColor,
+                ambient = light["ambient"] != null ? Colour(light["ambient"]) : RoomLight.ambient,
+            };
+        }
+
+        /// <summary>
+        /// The far plane reaches across a room's diagonal with room to spare: at least <see cref="RoomFarPlane"/> (160 m square: 226 m on
+        /// the floor, 277 m to the opposite top corner), else the room's own diagonal (width, height, depth) times 1.25.
+        /// </summary>
+        private static float RoomFarPlaneOf(JObject data)
+        {
+            var size = data["room"]?["size"];
+            if (size == null)
+                return RoomFarPlane;
+            var diagonal = new Vector3(size[0].Value<float>(), size[1].Value<float>(), size[2].Value<float>()).magnitude;
+            return Mathf.Max(RoomFarPlane, diagonal * 1.25f);
+        }
+
+        /// <summary>The least far plane of a room's camera.</summary>
         private const float RoomFarPlane = 450;
 
         public const string LevelRootName = "Level";
@@ -425,7 +459,7 @@ namespace SdfLevel.Editor
             }
 
             var hasRoom = LevelRoom.HasRoom(data);
-            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLight : null);
+            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -490,6 +524,8 @@ namespace SdfLevel.Editor
             AssetDatabase.SaveAssets();
             var player = AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
             var battle = AddBattle(scene, data, player);
+            // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
+            var movers = AddMovers(scene, data);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
             var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
                 player, battle != null ? battle.gameObject : null);
@@ -511,7 +547,7 @@ namespace SdfLevel.Editor
                 throw new InvalidDataException("the room's squares or edges are wrong, see above");
             if (openedHere)
                 EditorSceneManager.CloseScene(scene, true);
-            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered ({scatterColliders} with colliders), {navmeshes} navmeshes");
+            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {movers} movers, {scattered:N0} scattered ({scatterColliders} with colliders), {navmeshes} navmeshes");
         }
 
         /// <summary>A corner of the play area (level.json "play" min or max) in Unity's coordinates, x mirrored.</summary>
@@ -674,6 +710,82 @@ namespace SdfLevel.Editor
                 count++;
             }
             return count;
+        }
+
+        public const string MoversName = "Movers";
+
+        /// <summary>
+        /// The level's movers (level.json "movers", ticket 27.3), under <see cref="MoversName"/> at the scene's root: one object per mover
+        /// with a <see cref="PathMover"/> and, below it, the cars in train order, each an empty object with a kinematic
+        /// <see cref="Rigidbody"/> and a <see cref="PathMoverCar"/> over an instance of its model's prefab with convex mesh colliders (a model without a collider gets a box round its
+        /// renderers). The path is in Unity's coordinates, x mirrored as for placements. The cars start where the timetable has them at clock 0.
+        /// A mover whose model has no prefab is left out, with a warning. Returns how many movers were built.
+        /// </summary>
+        private static int AddMovers(Scene scene, JObject data)
+        {
+            if (!(data["movers"] is JArray movers) || movers.Count == 0)
+                return 0;
+            var root = new GameObject(MoversName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            var count = 0;
+            foreach (var entry in movers)
+            {
+                var name = entry.Value<string>("name");
+                var cars = (JArray)entry["cars"];
+                var prefabs = cars.Select(c => AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{c.Value<string>("model")}.prefab")).ToArray();
+                if (prefabs.Any(p => p == null))
+                {
+                    Debug.LogWarning($"SDF level: the mover {name} is left out: there is no prefab for its car {cars[Array.FindIndex(prefabs, p => p == null)].Value<string>("model")}; mesh content/models (sdf unity) and let the prefabs build");
+                    continue;
+                }
+                var mover = new GameObject($"Mover {name}");
+                mover.transform.SetParent(root.transform, false);
+                var component = mover.AddComponent<PathMover>();
+                component.path = ((JArray)entry["path"]).Select(p => new Vector2(-p[0].Value<float>(), p[1].Value<float>())).ToArray();
+                component.heights = (entry["heights"] as JArray)?.Select(h => new Vector2(h[0].Value<float>(), h[1].Value<float>())).ToArray() ?? new Vector2[0];
+                component.carLengths = cars.Select(c => c.Value<float>("length")).ToArray();
+                component.speed = entry.Value<float>("speed");
+                component.gap = entry.Value<float>("gap");
+                component.phase = entry.Value<float>("phase");
+                for (var i = 0; i < prefabs.Length; i++)
+                {
+                    // The car's own object holds the body and the mover's parts, so the model's prefab instance stays unmodified
+                    // (components added to a prefab instance do not always survive the scene's save)
+                    var car = new GameObject($"{name} car {i + 1} ({cars[i].Value<string>("model")})");
+                    car.transform.SetParent(mover.transform, false);
+                    var model = (GameObject)PrefabUtility.InstantiatePrefab(prefabs[i], scene);
+                    model.transform.SetParent(car.transform, false);
+                    MakeCarCollide(car);
+                    var body = car.AddComponent<Rigidbody>();
+                    body.isKinematic = true;
+                    body.useGravity = false;
+                    body.interpolation = RigidbodyInterpolation.None;
+                    car.AddComponent<PathMoverCar>();
+                }
+                component.Place(0);
+                count++;
+            }
+            return count;
+        }
+
+        /// <summary>A car's colliders: every mesh collider convex (a moving body needs hulls); a car without one gets a box round its renderers.</summary>
+        private static void MakeCarCollide(GameObject car)
+        {
+            var meshColliders = car.GetComponentsInChildren<MeshCollider>();
+            foreach (var collider in meshColliders)
+                collider.convex = true;
+            if (meshColliders.Length > 0 || car.GetComponentInChildren<Collider>() != null)
+                return;
+            var renderers = car.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+                return;
+            var bounds = renderers[0].bounds;
+            foreach (var renderer in renderers)
+                bounds.Encapsulate(renderer.bounds);
+            var box = car.AddComponent<BoxCollider>();
+            box.center = car.transform.InverseTransformPoint(bounds.center);
+            box.size = bounds.size;
+            Debug.LogWarning($"SDF level: the mover car {car.name} has no collider; it gets a box round its renderers (give its model a convex collider)");
         }
 
         /// <summary>
@@ -1147,7 +1259,7 @@ namespace SdfLevel.Editor
                 // Surrounded by walls: no skybox to clear to, a flat colour the room never shows; far enough for the whole cube
                 camera.clearFlags = CameraClearFlags.SolidColor;
                 camera.backgroundColor = UnityEngine.Color.black;
-                camera.farClipPlane = RoomFarPlane;
+                camera.farClipPlane = RoomFarPlaneOf(data);
             }
             return player;
         }
@@ -1170,6 +1282,10 @@ namespace SdfLevel.Editor
             var root = new GameObject(BattleArena.ObjectName);
             SceneManager.MoveGameObjectToScene(root, scene);
             var arena = root.AddComponent<BattleArena>();
+            // Ticket 27.2: the set of machine models (turret-toys-red, ...; mushroom when level.json names none)
+            var machineSet = MachineSets.Of(battle.Value<string>("machineSet"));
+            if (!MachineSets.IsDefault(machineSet) && !SdfMachines.Editor.MachineBuilder.Sets().Contains(machineSet))
+                Debug.Log($"SDF level: the machine set {machineSet} has no prefabs yet (mesh content/models/machines, models like {MachineSets.PieceName("turret", machineSet, "red", "foot")}); its machines are left out until it has");
 
             void Place(Transform item, JToken entry)
             {
@@ -1233,7 +1349,7 @@ namespace SdfLevel.Editor
                 {
                     var team = id == BattleSideId.West ? "red" : "blue";
                     side.turrets = turrets.Select((turret, index) => Instance<SdfMachines.MachineRig>(sideObject.transform,
-                            SdfMachines.Editor.MachineBuilder.MachinePrefabOf("turret", team), $"Turret {index + 1}", turret))
+                            SdfMachines.Editor.MachineBuilder.MachinePrefabOf("turret", team, machineSet), $"Turret {index + 1}", turret))
                         .Where(t => t != null).ToArray();
                 }
                 if (entry["machines"] is JObject machines)
@@ -1256,7 +1372,7 @@ namespace SdfLevel.Editor
             AddMatch(root, player);
             // Ticket 24.3: the helicopters' and tanks' prefabs, which the match makes in the machine zones at its start
             if (SdfBattle.Machines.HasMachines(arena))
-                AddMachines(root);
+                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0);
             return arena;
         }
 
@@ -1300,12 +1416,14 @@ namespace SdfLevel.Editor
         /// The machines (ticket 24.3) on Battle: the red and blue tank and helicopter prefabs (Assets/Machines/Prefabs), which the match
         /// makes in each side's machine zone at its start; the turrets are the sides' own scene objects. A missing prefab logs a warning.
         /// </summary>
-        private static void AddMachines(GameObject battle)
+        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling)
         {
             var machines = battle.AddComponent<SdfBattle.Machines>();
+            machines.machineSet = machineSet;
+            machines.flightCeiling = flightCeiling;
             GameObject Load(SdfBattle.MachineKind kind, SdfBattle.Team team)
             {
-                var path = SdfBattle.Machines.PrefabPath(kind, team);
+                var path = SdfBattle.Machines.PrefabPath(kind, team, machineSet);
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (prefab == null)
                     Debug.LogWarning($"SDF level: there is no {path} for the match's machines; build it (Tools > SDF Machines > Rebuild Machines) and rebuild the level");

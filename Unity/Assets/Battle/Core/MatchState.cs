@@ -45,6 +45,12 @@ namespace SdfBattle
         /// <summary>Seconds left on the round's clock; it stays at 0 through sudden death.</summary>
         public float TimeLeft { get; private set; }
 
+        /// <summary>
+        /// Seconds since the round began, the countdown included, and on through sudden death (unlike <see cref="TimeLeft"/>): the clock the
+        /// path movers' timetables (ticket 27.3) read, so a vehicle's place is a function of it alone and a new round starts it over.
+        /// </summary>
+        public float RoundClock { get; private set; }
+
         /// <summary>Seconds left of the countdown, or of the result before the next round; 0 while playing.</summary>
         public float PhaseTimeLeft { get; private set; }
 
@@ -115,6 +121,7 @@ namespace SdfBattle
         {
             if (!Started || seconds <= 0)
                 return;
+            RoundClock += seconds;
             switch (Phase)
             {
                 case RoundPhase.Countdown:
@@ -195,6 +202,7 @@ namespace SdfBattle
             SuddenDeath = false;
             Winner = null;
             TimeLeft = Rules.roundSeconds;
+            RoundClock = 0;
             Phase = RoundPhase.Countdown;
             PhaseTimeLeft = Rules.countdownSeconds;
             foreach (var player in players)

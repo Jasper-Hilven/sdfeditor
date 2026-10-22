@@ -49,20 +49,94 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 
     /// <summary>The two battle sides and the neutral pods between them (ticket 17), or null for a level without them.</summary>
     public BattleLayout? Battle { get; init; }
+
+    /// <summary>The machine models the sides' turrets, tanks and helicopters use, and a room's flight ceiling (ticket 27.2); null for the default set.</summary>
+    public MachineSet? Machines { get; init; }
+
+    /// <summary>The vehicles that run a closed path on a timetable (ticket 27.3), in the file's order.</summary>
+    public IReadOnlyList<MoverSpec> Movers { get; init; } = [];
+
+    /// <summary>The machine set's name: <see cref="MachineSet.Default"/> without a <c>machines</c> line.</summary>
+    public string MachineSetName => Machines?.Name ?? MachineSet.Default;
 }
 
 /// <summary>
-/// A closed room of six chessboards over the playable area: the floor (the playable rectangle, centred on the origin at y = 0), four walls
-/// standing on its edges and a ceiling at y = <c>Size.Y</c> facing down. Its squares are <paramref name="Square"/> metres across and
-/// coloured by <see cref="RoomChecker"/>.
+/// Which models the level's machines (ticket 24) are, and how high its helicopters may fly (ticket 27.2): the level file's
+/// <c>machines set=toys ceiling=20</c> line. A set other than <see cref="Default"/> has its models <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c>
+/// (turret-toys-red, parts turret-toys-red-foot, ...), the default's are <c>&lt;kind&gt;-&lt;team&gt;</c> (turret-red) as ever.
+/// <paramref name="Ceiling"/> is the highest a helicopter flies over the floor, in metres, in a room level only.
+/// </summary>
+public sealed record MachineSet(string Name, float? Ceiling)
+{
+    /// <summary>The set of the meadow, fungal level and chessboard: the mushroom machines of ticket 24.</summary>
+    public const string Default = "mushroom";
+
+    public static readonly string[] Kinds = ["turret", "tank", "helicopter"];
+
+    /// <summary>The least ceiling that clears a helicopter's 16 m over the bases, and the room's height less 2 m is the most.</summary>
+    public const float LeastCeiling = 17;
+
+    /// <summary>A room's flight ceiling when the level gives none: 20 m, or 8 m under the room's lid if that is lower.</summary>
+    public static float DefaultCeiling(float roomHeight) => MathF.Min(20, roomHeight - 8);
+
+    /// <summary>Whether a name is a legal set name: lower case letters and digits, not a team's colour.</summary>
+    public static bool IsName(string name) =>
+        name.Length > 0 && name.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9') && name is not ("red" or "blue");
+
+    /// <summary>The model of a kind of machine of a team in a set: turret-red in the default set, turret-toys-red in toys.</summary>
+    public static string ModelName(string kind, string set, string team) =>
+        set == Default ? $"{kind}-{team}" : $"{kind}-{set}-{team}";
+
+    /// <summary>The ceiling a room level's helicopters fly under: the given one, else <see cref="DefaultCeiling"/>; null in a level without a room.</summary>
+    public float? CeilingIn(RoomSpec? room) => room is null ? null : Ceiling ?? DefaultCeiling(room.Size.Y);
+}
+
+/// <summary>
+/// A closed room over the playable area: the floor (the playable rectangle, centred on the origin at y = 0), four walls standing on its
+/// edges and a ceiling at y = <c>Size.Y</c> facing down. Without <see cref="Walls"/> it is six chessboards (the chessboard level): squares
+/// <paramref name="Square"/> metres across, coloured by <see cref="RoomChecker"/>, the sides whole numbers of squares. With them the
+/// walls and the ceiling are drawn in the named materials (<c>materials/room/&lt;name&gt;.sdfmat</c>; ticket 27.1), the room may be any
+/// size, and <paramref name="Square"/> is unused. The room may also name its lamp (<see cref="Light"/>) and a strip of light along the top
+/// of one wall (<see cref="Glow"/>).
 /// </summary>
 public sealed record RoomSpec(Vector3 Size, float Square)
 {
     public const float DefaultSquare = 8;
 
-    /// <summary>How many squares the room has along x, y and z.</summary>
+    /// <summary>The material of the four walls, or null for the chessboard's checker.</summary>
+    public string? Walls { get; init; }
+
+    /// <summary>The material of the ceiling; set exactly when <see cref="Walls"/> is.</summary>
+    public string? Ceiling { get; init; }
+
+    /// <summary>A band of light along the top of one wall, or null.</summary>
+    public RoomGlow? Glow { get; init; }
+
+    /// <summary>The room's lamp and ambient light where the level changes them from the indoor default, or null.</summary>
+    public RoomLighting? Light { get; init; }
+
+    /// <summary>Whether the faces are the chessboard's checker (no wall or ceiling material named).</summary>
+    public bool IsChecker => Walls is null;
+
+    /// <summary>How many squares the room has along x, y and z (the checker's; a rounded count otherwise).</summary>
     public (int X, int Y, int Z) Squares => ((int)MathF.Round(Size.X / Square), (int)MathF.Round(Size.Y / Square), (int)MathF.Round(Size.Z / Square));
 }
+
+/// <summary>
+/// A band of emissive light on a wall's top <paramref name="Height"/> metres, over its whole length: the crack of light under a propped
+/// lid. <paramref name="Wall"/> is NegZ (south), PosZ (north), NegX (west) or PosX (east); <paramref name="Color"/> is sRGB, 0 to 1.
+/// </summary>
+public sealed record RoomGlow(RoomFace Wall, float Height, Vector3 Color)
+{
+    public const float DefaultHeight = 3;
+    public static readonly Vector3 DefaultColor = new(1, 0.82f, 0.5f);
+}
+
+/// <summary>
+/// A room's light, each part null to keep the indoor default. <paramref name="Direction"/> points from the room towards the lamp (so
+/// (0, 1, 0) is a lamp overhead), <paramref name="Color"/> and <paramref name="Ambient"/> are sRGB, 0 to 1.
+/// </summary>
+public sealed record RoomLighting(Vector3? Direction, Vector3? Color, Vector3? Ambient);
 
 /// <summary>
 /// The playable rectangle, centred on the origin. It is flat but for a gentle unevenness of up to <paramref name="NoiseAmplitude"/>

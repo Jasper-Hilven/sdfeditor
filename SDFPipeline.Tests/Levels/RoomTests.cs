@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using SDFPipeline.Levels;
+using SDFPipeline.Materials;
 using SDFPipeline.ProgramFiles;
 using SDFProject.ProgramDefinition;
 
@@ -162,10 +163,154 @@ public class RoomTests
                     Assert.Equal(RoomChecker.IsDark(Faces[f], u, v, n), rows[v][u] == '1');
             }
             Assert.True(baked.ChunkFiles.Count > 0);
+            // None of the walls-and-ceiling blocks, and the square and dark rows as ever
+            foreach (var name in new[] { "walls", "ceiling", "glow", "light" })
+                Assert.False(room.TryGetProperty(name, out _), name);
+            Assert.Equal(8f, room.GetProperty("square").GetSingle());
+            Assert.All(faces, f =>
+            {
+                Assert.False(f.TryGetProperty("extent", out _));
+                Assert.True(f.TryGetProperty("dark", out _));
+            });
         }
         finally
         {
             root.Delete(recursive: true);
+        }
+    }
+
+    private const string ToyBox = "format 1\nplay size=(150, 100) noise=0\n";
+
+    [Fact]
+    public void Read_TakesNamedWallsAndCeiling_GlowAndLight_OfAnySize()
+    {
+        var level = LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid glow=north height=3 color=(1, 0.8, 0.5)\n" +
+                                   "    light=(0, 0.77, 0.64) lightColor=(1, 0.93, 0.7) ambient=(0.45, 0.4, 0.6)");
+
+        var room = level.Room!;
+        Assert.Equal(new Vector3(150, 64, 100), room.Size);
+        Assert.Equal(("toybox-wall", "toybox-lid"), (room.Walls, room.Ceiling));
+        Assert.False(room.IsChecker);
+        Assert.Equal(new RoomGlow(RoomFace.PosZ, 3, new Vector3(1, 0.8f, 0.5f)), room.Glow);
+        Assert.Equal(new RoomLighting(new Vector3(0, 0.77f, 0.64f), new Vector3(1, 0.93f, 0.7f), new Vector3(0.45f, 0.4f, 0.6f)), room.Light);
+    }
+
+    [Fact]
+    public void Read_GlowTakesDefaults_AndTheLightMayBePartial()
+    {
+        var room = LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=a ceiling=b glow=west ambient=(0.2, 0.2, 0.3)").Room!;
+
+        Assert.Equal(new RoomGlow(RoomFace.NegX, RoomGlow.DefaultHeight, RoomGlow.DefaultColor), room.Glow);
+        Assert.Equal(new RoomLighting(null, null, new Vector3(0.2f, 0.2f, 0.3f)), room.Light);
+        // A checker room can have a glow too, and a room without either has neither
+        Assert.NotNull(LevelFile.Read("format 1\nplay size=(160, 160)\nroom size=(160, 160, 160) glow=south").Room!.Glow);
+        Assert.Null(LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=a ceiling=b").Room!.Glow);
+        Assert.Null(LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=a ceiling=b").Room!.Light);
+    }
+
+    [Theory]
+    [InlineData("room size=(150, 64, 100) walls=toybox-wall", 3, "needs both walls= and ceiling=")]
+    [InlineData("room size=(150, 64, 100) ceiling=toybox-lid", 3, "needs both walls= and ceiling=")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b square=8", 3, "has no checker; leave out square")]
+    [InlineData("room size=(150, 64, 100)", 3, "whole numbers of squares of 8 m")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b glow=up", 3, "'glow' of room needs one of north, south, east, west")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b height=3", 3, "belong to glow=")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b color=(1, 1, 1)", 3, "belong to glow=")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b glow=north height=70", 3, "'height' of room is 70")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b glow=north color=(2, 0, 0)", 3, "each part 0 to 1")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b light=(0, 0, 0)", 3, "needs a length")]
+    [InlineData("room size=(150, 64, 100) walls=a ceiling=b ambient=(0.5, 0.5)", 3, "'ambient' of room needs a colour")]
+    [InlineData("room size=(150, 64, 90) walls=a ceiling=b", 3, "must be the play size")]
+    public void Read_ExplainsWhatIsWrongWithARoomOfMaterials(string room, int line, string problem)
+    {
+        var exception = Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(ToyBox + room));
+
+        Assert.Equal(line, exception.Line);
+        Assert.Contains(problem, exception.Problem);
+    }
+
+    private static MaterialLibrary Library(params string[] names) =>
+        names.Aggregate(MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default),
+            (library, name) => library.With(name, MaterialDefinition.Default with { baseColor = new V3(0.5f, 0.25f, 0.125f) }));
+
+    [Fact]
+    public void Bake_ARoomOfMaterials_IsNotWholeSquares_AndWritesLooksSizesGlowAndLight()
+    {
+        var root = Directory.CreateTempSubdirectory("sdf-level-room-");
+        try
+        {
+            var level = LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid glow=north height=3 color=(1, 0.8, 0.5)\n" +
+                                       "    light=(0, 0.77, 0.64) ambient=(0.45, 0.4, 0.6)");
+            LevelBaker.Bake(level, "box", Library("toybox-wall", "toybox-lid"), root.FullName);
+            using var document = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root.FullName, LevelBaker.LevelJson)));
+            var room = document.RootElement.GetProperty("room");
+
+            Assert.Equal(new[] { 150f, 64f, 100f }, room.GetProperty("size").EnumerateArray().Select(e => e.GetSingle()));
+            // No checker: no squares, no dark rows, the lengths in metres instead (150 and 100 are not whole numbers of 8 m)
+            Assert.False(room.TryGetProperty("squares", out _));
+            Assert.False(room.TryGetProperty("square", out _));
+            var faces = room.GetProperty("faces").EnumerateArray().ToDictionary(f => f.GetProperty("face").GetString()!);
+            Assert.Equal(["floor", "ceiling", "wall-z-", "wall-z+", "wall-x-", "wall-x+"], faces.Keys);
+            Assert.All(faces.Values, f => Assert.False(f.TryGetProperty("dark", out _)));
+            float[] Extent(string face) => faces[face].GetProperty("extent").EnumerateArray().Select(e => e.GetSingle()).ToArray();
+            Assert.Equal(new[] { 150f, 100f }, Extent("floor"));
+            Assert.Equal(new[] { 150f, 100f }, Extent("ceiling"));
+            Assert.Equal(new[] { 150f, 64f }, Extent("wall-z-"));
+            Assert.Equal(new[] { 150f, 64f }, Extent("wall-z+"));
+            Assert.Equal(new[] { 100f, 64f }, Extent("wall-x-"));
+            Assert.Equal(new[] { 100f, 64f }, Extent("wall-x+"));
+            // The materials, with their parameters for Unity
+            Assert.Equal("toybox-wall", room.GetProperty("walls").GetProperty("name").GetString());
+            Assert.Equal("toybox-lid", room.GetProperty("ceiling").GetProperty("name").GetString());
+            Assert.Equal(0.5f, room.GetProperty("walls").GetProperty("parameters").GetProperty("baseColor")[0].GetSingle());
+            // The glow on the north wall (+z)
+            var glow = room.GetProperty("glow");
+            Assert.Equal(("wall-z+", 3f), (glow.GetProperty("wall").GetString(), glow.GetProperty("height").GetSingle()));
+            Assert.Equal(new[] { 1f, 0.8f, 0.5f }, glow.GetProperty("color").EnumerateArray().Select(e => e.GetSingle()));
+            // The light: the direction and ambient, the colour left to the default
+            var light = room.GetProperty("light");
+            Assert.Equal(new[] { 0f, 0.77f, 0.64f }, light.GetProperty("direction").EnumerateArray().Select(e => e.GetSingle()));
+            Assert.Equal(new[] { 0.45f, 0.4f, 0.6f }, light.GetProperty("ambient").EnumerateArray().Select(e => e.GetSingle()));
+            Assert.False(light.TryGetProperty("color", out _));
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Bake_ARoomWithAMissingMaterial_SaysWhichFileIsMissing()
+    {
+        var level = LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid");
+        var root = Directory.CreateTempSubdirectory("sdf-level-room-");
+        try
+        {
+            var exception = Assert.Throws<InvalidOperationException>(() => LevelBaker.Bake(level, "box", Library("toybox-lid"), root.FullName));
+
+            Assert.Contains("materials/room/toybox-wall.sdfmat", exception.Message);
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ContentRoomMaterials_ToyBoxWallAndLid_AreThere_WithSeams_AndNotTeamColoured()
+    {
+        // materials/ stands next to content/ in the repository root
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+        var folder = Path.Combine(Path.GetDirectoryName(content)!, "materials");
+        var library = MaterialFiles.LoadLibrary(folder);
+
+        foreach (var name in new[] { "toybox-wall", "toybox-lid" })
+        {
+            Assert.True(library.Contains(name), name);
+            var material = library.Resolve(name);
+            Assert.True(material.edgeThickness > 0, $"{name} has dark seams");
+            Assert.True(material.baseColor.x >= material.baseColor.z, $"{name} is warm, not bluish");
         }
     }
 }

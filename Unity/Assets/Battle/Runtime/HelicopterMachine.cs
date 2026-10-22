@@ -42,9 +42,12 @@ namespace SdfBattle
                 Speed = State.Stats.speed,
                 TurnSpeed = State.Stats.turnSpeed,
             };
-            // A closed room (the chessboard later) keeps it under its ceiling
+            // A room level with a machines line (ticket 27.2) gives it the room's limits: 16 m over bases, 3 m off the walls, under the level's
+            // flight ceiling. A room without (the chessboard) keeps it under 10 m over its spawn; under a sky it is free
             var scene = IMMScene.Current;
-            if (scene != null && scene.indoor)
+            if (Owner.flightCeiling > 0)
+                HelicopterLimits.Room(Owner.flightCeiling).Apply(pilot, Side.machineSpawn.position.y);
+            else if (scene != null && scene.indoor)
                 pilot.Ceiling = Side.machineSpawn.position.y + 10;
         }
 
