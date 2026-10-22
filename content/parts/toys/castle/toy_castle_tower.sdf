@@ -1,0 +1,48 @@
+# Toy castle tower (ticket 27.7): a round corner tower of cylinder blocks, origin on the middle of its foot at y = 0. Five 1 m blocks 2 m in radius, beech and
+# cream in turn, carry the ring: a yellow plank disc 2.5 m in radius whose flat top at 5.3 m is the balcony the wall-walk (5 m) steps up onto. Two blocks 1.4 m in
+# radius stand on the ring to 7.3 m, where the roof (toy_castle_roof_lilac or _mustard) is set. Four mint window blocks round the upper shaft.
+format 1
+collider mesh
+Detail detail=0.25
+    Union
+        Material material=toy_beech
+            Union
+                Translate translation=(0, 0.5, 0)
+                    Round radius=0.06
+                        CappedCylinder radius=1.94 height=0.44
+                Translate translation=(0, 2.5, 0)
+                    Round radius=0.06
+                        CappedCylinder radius=1.94 height=0.44
+                Translate translation=(0, 4.5, 0)
+                    Round radius=0.06
+                        CappedCylinder radius=1.94 height=0.44
+                Translate translation=(0, 5.8, 0)
+                    Round radius=0.06
+                        CappedCylinder radius=1.34 height=0.44
+        Material material=toy_paint_cream
+            Union
+                Translate translation=(0, 1.5, 0)
+                    Round radius=0.06
+                        CappedCylinder radius=1.94 height=0.44
+                Translate translation=(0, 3.5, 0)
+                    Round radius=0.06
+                        CappedCylinder radius=1.94 height=0.44
+                Translate translation=(0, 6.8, 0)
+                    Round radius=0.06
+                        CappedCylinder radius=1.34 height=0.44
+        # The ring, 30 cm thick, its top at 5.3 m
+        Material material=toy_paint_yellow
+            Translate translation=(0, 5.15, 0)
+                Round radius=0.05
+                    CappedCylinder radius=2.45 height=0.1
+        # Window blocks on the upper shaft
+        Material material=toy_paint_mint
+            Union
+                Translate translation=(0, 6.3, 1.42)
+                    RoundBox size=(0.3, 0.4, 0.1) roundness=0.04
+                Translate translation=(0, 6.3, -1.42)
+                    RoundBox size=(0.3, 0.4, 0.1) roundness=0.04
+                Translate translation=(1.42, 6.3, 0)
+                    RoundBox size=(0.1, 0.4, 0.3) roundness=0.04
+                Translate translation=(-1.42, 6.3, 0)
+                    RoundBox size=(0.1, 0.4, 0.3) roundness=0.04

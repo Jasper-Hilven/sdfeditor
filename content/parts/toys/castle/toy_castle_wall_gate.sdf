@@ -1,0 +1,103 @@
+# Toy castle gate bay (ticket 27.7): a toy_castle_wall_bay (5.2 m long, walk at 5 m) with the gate cut through it, a passage 3 m wide under a round arch 3.5 m
+# high, framed on both faces by a mint arch block (a ring of arch blocks and two posts). The gate tower stands on the walk: two cream slabs either side of
+# a 1.7 m wide walkway (2.3 m clear under the beech block that bridges it, so the wall-walk runs through the tower), the beech block to 9 m, a lilac lid and four small
+# corner blocks. The passage is cut 10 cm below y = 0, so its floor is the level's ground, not a face of its own in the ground's plane.
+format 1
+collider mesh
+Detail detail=0.2
+    Union
+        Subtraction
+            Union
+                # Course 0
+                Material material=toy_beech
+                    Union
+                        Translate translation=(-1.3, 0.5, 0)
+                            RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                        Translate translation=(1.3, 0.5, 0)
+                            RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                # Course 1
+                Material material=toy_paint_cream
+                    Union
+                        Translate translation=(-1.95, 1.5, 0)
+                            RoundBox size=(0.65, 0.5, 1) roundness=0.07
+                        Translate translation=(0, 1.5, 0)
+                            RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                        Translate translation=(1.95, 1.5, 0)
+                            RoundBox size=(0.65, 0.5, 1) roundness=0.07
+                # Course 2
+                Material material=toy_beech
+                    Union
+                        Translate translation=(-1.3, 2.5, 0)
+                            RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                        Translate translation=(1.3, 2.5, 0)
+                            RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                # Course 3
+                Material material=toy_paint_cream
+                    Union
+                        Translate translation=(-1.95, 3.5, 0)
+                            RoundBox size=(0.65, 0.5, 1) roundness=0.07
+                        Translate translation=(0, 3.5, 0)
+                            RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                        Translate translation=(1.95, 3.5, 0)
+                            RoundBox size=(0.65, 0.5, 1) roundness=0.07
+                # Course 4
+                Material material=toy_beech
+                    Union
+                        Translate translation=(0, 4.5, 0)
+                            RoundBox size=(2.6, 0.5, 1) roundness=0.07
+            Union
+                Translate translation=(0, 0.9, 0)
+                    Box size=(1.5, 1.1, 1.5)
+                ArbitraryCappedCylinder a=(0, 2, -2) b=(0, 2, 2) radius=1.5
+        Material material=toy_paint_mint
+            Union
+                # The frame on the outer face
+                Translate translation=(0, 2, 1.15)
+                    Subtraction
+                        Intersection
+                            Translate translation=(0, 1, 0)
+                                Box size=(2, 1, 0.15)
+                            ArbitraryCappedCylinder a=(0, 0, -1) b=(0, 0, 1) radius=1.95
+                        ArbitraryCappedCylinder a=(0, 0, -1) b=(0, 0, 1) radius=1.5
+                Translate translation=(1.725, 1, 1.15)
+                    RoundBox size=(0.225, 1, 0.15) roundness=0.05
+                Translate translation=(-1.725, 1, 1.15)
+                    RoundBox size=(0.225, 1, 0.15) roundness=0.05
+                # The frame on the inner face
+                Translate translation=(0, 2, -1.15)
+                    Subtraction
+                        Intersection
+                            Translate translation=(0, 1, 0)
+                                Box size=(2, 1, 0.15)
+                            ArbitraryCappedCylinder a=(0, 0, -1) b=(0, 0, 1) radius=1.95
+                        ArbitraryCappedCylinder a=(0, 0, -1) b=(0, 0, 1) radius=1.5
+                Translate translation=(1.725, 1, -1.15)
+                    RoundBox size=(0.225, 1, 0.15) roundness=0.05
+                Translate translation=(-1.725, 1, -1.15)
+                    RoundBox size=(0.225, 1, 0.15) roundness=0.05
+        # The gate tower: slabs either side of the walkway, the block over it, the lid and the corner blocks
+        Union
+            Material material=toy_paint_cream
+                Union
+                    Translate translation=(0, 6, 1.175)
+                        RoundBox size=(2.6, 1, 0.325) roundness=0.07
+                    Translate translation=(0, 6, -1.175)
+                        RoundBox size=(2.6, 1, 0.325) roundness=0.07
+            Material material=toy_beech
+                Union
+                    Translate translation=(0, 8, 0)
+                        RoundBox size=(2.6, 1, 1.5) roundness=0.07
+            Material material=toy_paint_lilac
+                Union
+                    Translate translation=(0, 9.15, 0)
+                        RoundBox size=(2.75, 0.15, 1.65) roundness=0.05
+            Material material=toy_paint_cream
+                Union
+                    Translate translation=(2.2, 9.6, 1.2)
+                        RoundBox size=(0.4, 0.3, 0.4) roundness=0.05
+                    Translate translation=(2.2, 9.6, -1.2)
+                        RoundBox size=(0.4, 0.3, 0.4) roundness=0.05
+                    Translate translation=(-2.2, 9.6, 1.2)
+                        RoundBox size=(0.4, 0.3, 0.4) roundness=0.05
+                    Translate translation=(-2.2, 9.6, -1.2)
+                        RoundBox size=(0.4, 0.3, 0.4) roundness=0.05

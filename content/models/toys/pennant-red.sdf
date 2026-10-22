@@ -1,0 +1,23 @@
+# Pennant red (ticket 27.7): the west side's pennant for the toy castle's towers and keep, 3 m on a beech pole with a mustard bead: a swallow-tailed cloth 1.2 m wide
+# and 2.5 m long hangs from a crossbar. The origin is the pole's foot on y = 0, the cloth hangs towards +x (turn it with yaw), flat in the x-y plane. Placed with y= on a
+# tower or the keep, like the team mushrooms. No collider. pennant-blue is the same in the east side's colour.
+format 1
+collider none
+shadows near
+
+Detail detail=0.5
+    Union
+        Material material=toy_beech
+            Union
+                Capsule a=(0, 0, 0) b=(0, 2.9, 0) radius=0.07
+                Capsule a=(0, 2.8, 0) b=(1.4, 2.8, 0) radius=0.045
+        Material material=toy_paint_mustard
+            Translate translation=(0, 2.95, 0)
+                Sphere radius=0.11
+        Material material=team_red_cloth
+            Translate translation=(0.7, 1.5, 0)
+                Subtraction
+                    Box size=(0.6, 1.25, 0.025)
+                    Translate translation=(0, -1.25, 0)
+                        Rotate rotation=(0, 0, 0.7854)
+                            Box size=(0.38, 0.38, 0.1)
