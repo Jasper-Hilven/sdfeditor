@@ -384,6 +384,48 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(Medal.Silver, p.BestMedal("meadow"));
         }
 
+        // --- the final boss's setup (ticket 33.4) ---
+
+        [Test]
+        public void BossStep_IsABossObjective_WithPrimesCrewAndSkill()
+        {
+            var setup = Def.Find("boss").setup;
+            Assert.IsTrue(setup.IsBoss);
+            Assert.AreEqual(SdfBattle.MatchObjective.Boss, setup.ToMatchSetup().objective);
+            Assert.AreEqual(4, setup.redSize);
+            Assert.AreEqual(5, setup.blueSize, "Prime's crew: four, and the Participation Award for Sore Loser");
+            Assert.AreEqual(0.70f, setup.blueSkill, 1e-4f);
+            Assert.AreEqual(0.60f, setup.redSkill, 1e-4f);
+            Assert.AreEqual(8, setup.blueRespawnSeconds);
+            Assert.IsTrue(setup.sporesOn);
+            Assert.AreEqual(1, setup.bossStartPhase);
+            Assert.IsFalse(Def.Find("computer").setup.IsBoss);
+        }
+
+        [Test]
+        public void BossSetup_FollowsTheDifficulty_AndRetryEasier()
+        {
+            var setup = Def.Find("boss").setup;
+            var easy = DifficultyRules.Apply(setup, Difficulty.Easy);
+            var normal = DifficultyRules.Apply(setup, Difficulty.Normal);
+            var hard = DifficultyRules.Apply(setup, Difficulty.Hard);
+            Assert.AreEqual(5, easy.BossRules().lives);
+            Assert.AreEqual(3, normal.BossRules().lives);
+            Assert.AreEqual(2, hard.BossRules().lives);
+            Assert.AreEqual(3750, easy.BossRules().TotalHealth);
+            Assert.AreEqual(5000, normal.BossRules().TotalHealth);
+            Assert.AreEqual(6250, hard.BossRules().TotalHealth);
+            Assert.AreEqual(0.55f, easy.blueSkill, 1e-4f, "the crew's skill is the campaign's, 0.55 / 0.7 / 0.85");
+            Assert.AreEqual(0.70f, normal.blueSkill, 1e-4f);
+            Assert.AreEqual(0.85f, hard.blueSkill, 1e-4f);
+            Assert.AreEqual(SdfBattle.MatchObjective.Boss, hard.objective, "the objective survives the copy");
+
+            var retry = DifficultyRules.Apply(setup, Difficulty.Hard, 1);
+            Assert.AreEqual(0.6f, retry.BossRules().damageScale, "Easy's damage row");
+            Assert.AreEqual(1.3f, retry.BossRules().windUpScale, "Easy's wind-up row");
+            Assert.AreEqual(6250, retry.BossRules().TotalHealth, "on the chosen difficulty's health");
+        }
+
         // --- beats, the sequencer and the warm-up (ticket 32.7) ---
 
         [Test]

@@ -27,6 +27,8 @@ namespace SdfBattle
         public float timeLimitSeconds = 600;
         /// <summary>One round only: the result ends the match for good.</summary>
         public bool singleRound = true;
+        /// <summary>What wins the match; the boss fight (ticket 33) is its own.</summary>
+        public MatchObjective objective;
         public bool sporesOn = true;
         /// <summary>Seconds a dead blue player waits; red keeps the rules' own.</summary>
         public float blueRespawnSeconds = 5;
@@ -54,6 +56,7 @@ namespace SdfBattle
             rules.capturesToWin = Math.Max(1, capturesToWin);
             rules.roundSeconds = timeLimitSeconds;
             rules.singleRound = singleRound;
+            rules.objective = objective;
             rules.blueRespawnSeconds = blueRespawnSeconds;
         }
     }

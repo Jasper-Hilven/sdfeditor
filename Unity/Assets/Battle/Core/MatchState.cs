@@ -173,7 +173,7 @@ namespace SdfBattle
                         SetPhase(RoundPhase.Playing);
                     break;
                 case RoundPhase.Playing:
-                    if (!SuddenDeath)
+                    if (!SuddenDeath && Rules.objective != MatchObjective.Boss)
                     {
                         TimeLeft = Math.Max(0, TimeLeft - seconds);
                         if (TimeLeft <= 0)
@@ -209,8 +209,23 @@ namespace SdfBattle
             if (by != null)
                 by.Captures++;
             Captured?.Invoke(team, by);
+            // The boss fight (ticket 33) counts captures but is won by the boss's bars, not by them
+            if (Rules.objective == MatchObjective.Boss)
+                return true;
             if (SuddenDeath || score[(int)team] >= Rules.capturesToWin)
                 EndRound(team);
+            return true;
+        }
+
+        /// <summary>
+        /// The boss fight is over (ticket 33): <paramref name="winner"/> is red when Prime is defeated, blue when 42 lost. Ends the round
+        /// (and the match, when single round) like a win does; nothing when the match is no boss fight or not playing.
+        /// </summary>
+        public bool EndBossFight(Team winner)
+        {
+            if (!Started || Phase != RoundPhase.Playing || Rules.objective != MatchObjective.Boss)
+                return false;
+            EndRound(winner);
             return true;
         }
 

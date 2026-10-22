@@ -2,6 +2,15 @@ using System;
 
 namespace SdfBattle
 {
+    /// <summary>What wins the match.</summary>
+    public enum MatchObjective
+    {
+        /// <summary>Capture the flag: first to <see cref="MatchRules.capturesToWin"/>, or more captures when the clock runs out.</summary>
+        Captures,
+        /// <summary>The final boss (ticket 33): captures do not win and the clock does not run; the match ends when <see cref="BossState"/> reports Prime defeated or 42 lost.</summary>
+        Boss,
+    }
+
     /// <summary>
     /// The numbers a match plays by (ticket 20, from the user): 4 vs 4, first to 3 captures, a 10 minute clock, sudden death on a tie,
     /// a 3 s countdown before each round and the result for 10 s after it, 5 s dead before a respawn, 2 s of spawn protection. Plain
@@ -34,6 +43,8 @@ namespace SdfBattle
         public bool friendlyFire;
         /// <summary>One round only (the campaign, ticket 32): the result ends the match, nothing starts a next round.</summary>
         public bool singleRound;
+        /// <summary>What wins the match; <see cref="MatchObjective.Boss"/> for the final boss fight.</summary>
+        public MatchObjective objective;
 
         /// <summary>Players in a team, you included.</summary>
         public int SizeOf(Team team) => team == Team.Blue && blueTeamSize > 0 ? blueTeamSize : teamSize;

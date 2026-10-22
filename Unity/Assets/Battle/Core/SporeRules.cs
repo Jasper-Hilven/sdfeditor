@@ -37,6 +37,16 @@ namespace SdfBattle
         [Tooltip("Capturing the enemy flag")]
         public float capture = 50;
 
+        [Header("Boss (ticket 33)")]
+        [Tooltip("Hurting Chanterelle Prime: spores per 100 damage dealt")]
+        public float bossDamagePer100 = 5;
+        [Tooltip("Bursting one of the Prime-copter's spore sacs")]
+        public float bossSac = 15;
+        [Tooltip("Bursting one of Prime's hands")]
+        public float bossHand = 20;
+        [Tooltip("Starting a stun window: the capture that drops the shield, or the sac that crashes the copter")]
+        public float bossStun = 25;
+
         [Header("Mycelium Rush")]
         [Tooltip("What the walking speed is multiplied by (on top of the flag carrier's 0.9)")]
         public float rushSpeed = 1.6f;

@@ -60,8 +60,7 @@ namespace SdfCampaign
                 new("beat-computer", StepKind.Cutscene, "Computer", "The results file"),
                 Battle(Computer, "Computer", "Inside the computer", 4, 5, 0.70f, 0.60f, 3, 12, blueRespawn: 3),
                 new("beat-boss", StepKind.Cutscene, "Boss", "Second place"),
-                // The boss's numbers are ticket 33's; these are placeholders until it lands.
-                Battle(Boss, "Boss", "Chanterelle Prime", 4, 5, 0.70f, 0.60f, 3, 12, blueRespawn: 3),
+                BossBattle(),
                 // The ending plays over Boot's backdrop (Home.unity is editor-only), like the credits
                 new(Ending, StepKind.Cutscene, "Boot", "Ending"),
                 new(Credits, StepKind.Credits, "Boot", "Credits"),
@@ -86,6 +85,28 @@ namespace SdfCampaign
                 warmUp = warmUp,
                 sporesOn = sporesOn,
                 blueRespawnSeconds = blueRespawn,
+            });
+        }
+
+        // Ticket 33: 42 and three red bots (skill 0.6) against Prime's crew, up to five blue scouts (skill 0.7 at Normal, respawning in 8 s;
+        // how many are out in each phase is BossRules'). Captures and the clock do not decide it; 42's lives and the rest of Prime's
+        // numbers per difficulty are BossRules.For.
+        static CampaignStep BossBattle()
+        {
+            return new CampaignStep(Boss, StepKind.Battle, "Boss", "Chanterelle Prime", new BattleSetup
+            {
+                redSize = 4,
+                blueSize = 5,
+                blueSkill = 0.70f,
+                redSkill = 0.60f,
+                redNames = Names(Team.Red, 4),
+                blueNames = Names(Team.Blue, 5),
+                capturesToWin = 3,
+                timeLimitSeconds = 0,
+                singleRound = true,
+                sporesOn = true,
+                blueRespawnSeconds = 8,
+                objective = MatchObjective.Boss,
             });
         }
 

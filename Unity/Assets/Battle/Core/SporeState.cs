@@ -115,6 +115,18 @@ namespace SdfBattle
                 Gain(damage.Attacker, Rules.machine);
         }
 
+        /// <summary>Damage dealt to Chanterelle Prime (ticket 33): <see cref="SporeRules.bossDamagePer100"/> per 100.</summary>
+        public void ReportBossDamage(PlayerState by, float damage) => Gain(by, Rules.bossDamagePer100 * damage / 100f);
+
+        /// <summary>A spore sac of the Prime-copter burst.</summary>
+        public void ReportBossSac(PlayerState by) => Gain(by, Rules.bossSac);
+
+        /// <summary>One of Prime's hands burst.</summary>
+        public void ReportBossHand(PlayerState by) => Gain(by, Rules.bossHand);
+
+        /// <summary>The player started a stun window on Prime: a capture, or the sac that crashed the copter.</summary>
+        public void ReportBossStun(PlayerState by) => Gain(by, Rules.bossStun);
+
         /// <summary>Lets <paramref name="seconds"/> pass: the powers' time, and Regrowth's healing in steps of a quarter second.</summary>
         public void Tick(float seconds)
         {

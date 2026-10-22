@@ -130,6 +130,19 @@ namespace SdfBattle
         }
 
         /// <summary>
+        /// Something that is not a player (Prime, ticket 33) touches a dropped flag of its own team: it goes home at once, as a team
+        /// mate's touch does (<see cref="FlagReturn.Touched"/>, no toucher). Nothing for a flag that is not dropped.
+        /// </summary>
+        public bool ReturnDropped(Team team)
+        {
+            var flag = Flag(team);
+            if (!InPlay || flag.Status != FlagStatus.Dropped)
+                return false;
+            SendHome(flag, FlagReturn.Touched, null);
+            return true;
+        }
+
+        /// <summary>
         /// The carrier lost the flag (they died): it falls at <paramref name="where"/>, or goes home at once when that is null or not
         /// reachable. Nothing when <paramref name="carrier"/> carries no flag.
         /// </summary>
