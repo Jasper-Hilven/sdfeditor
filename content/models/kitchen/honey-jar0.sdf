@@ -1,0 +1,40 @@
+# Honey jar 0: a jar of honey, 6.0 m tall with its wooden dipper and 4.8 m across (60 times life size): glass (kitchen_glass) base and rim round amber honey
+# (kitchen_honey), the honey up to 4.6 m, an oak dipper (kitchen_oak) standing in it and leaning over the rim, and a cream label band (kitchen_label_cream) with
+# mustard stripes. Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.14
+    Union
+        Material material=kitchen_glass
+            Subtraction
+                Subtraction
+                    Translate translation=(0, 2.6, 0)
+                        RoundedCylinder radius=2.4 roundness=0.4 height=2.6
+                    Translate translation=(0, 5.3, 0)
+                        CappedCylinder radius=2.15 height=0.7
+                Translate translation=(0, 2.475, 0)
+                    Box size=(3, 2.225, 3)
+        Material material=kitchen_honey
+            Intersection
+                Subtraction
+                    Translate translation=(0, 2.6, 0)
+                        RoundedCylinder radius=2.4 roundness=0.4 height=2.6
+                    Translate translation=(0, 5.3, 0)
+                        CappedCylinder radius=2.15 height=0.7
+                Translate translation=(0, 2.475, 0)
+                    Box size=(3, 2.225, 3)
+        Material material=kitchen_oak
+            Union
+                Capsule a=(0.3, 4.2, 0) b=(1.15, 5.8, 0) radius=0.14
+                Translate translation=(1.15, 5.8, 0)
+                    Sphere radius=0.2
+        Material material=kitchen_label_cream
+            Translate translation=(0, 2.6, 0)
+                CappedCylinder radius=2.42 height=0.7
+        Material material=kitchen_label_mustard
+            Union
+                Translate translation=(0, 1.8, 0)
+                    CappedCylinder radius=2.43 height=0.07
+                Translate translation=(0, 3.4, 0)
+                    CappedCylinder radius=2.43 height=0.07

@@ -1,0 +1,26 @@
+# Garlic clove 0: a garlic clove lying on its flat side, 1.8 m long and 1.0 m high (60 times life size): papery cream skin (kitchen_garlic) with ribs, a pointed
+# tip at +x and a tan root plate (kitchen_garlic_root) at -x. Knee cover. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.3
+    Union
+        Material material=kitchen_garlic
+            Subtraction
+                SmoothUnion smoothness=0.08
+                    Translate translation=(0, 0.5, 0)
+                        Ellipsoid radii=(0.8, 0.48, 0.42)
+                    ArbitraryRoundCone a=(0.3, 0.5, 0) b=(0.97, 0.64, 0) radiusA=0.34 radiusB=0.04
+                Union
+                    Translate translation=(0.05, 0.63, 0.42)
+                        Ellipsoid radii=(0.62, 0.07, 0.07)
+                    Translate translation=(0.05, 0.3, 0.4)
+                        Ellipsoid radii=(0.62, 0.07, 0.07)
+                    Translate translation=(0.05, 0.63, -0.42)
+                        Ellipsoid radii=(0.62, 0.07, 0.07)
+                    Translate translation=(0.05, 0.3, -0.4)
+                        Ellipsoid radii=(0.62, 0.07, 0.07)
+        Material material=kitchen_garlic_root
+            Translate translation=(-0.8, 0.5, 0)
+                Rotate rotation=(0, 0, 1.5708)
+                    CappedCylinder radius=0.2 height=0.05

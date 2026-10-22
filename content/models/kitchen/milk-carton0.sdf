@@ -1,0 +1,23 @@
+# Milk carton 0: a gable-top carton of milk, 14.4 m tall and 4.2 m square (60 times life size): cream card (kitchen_carton_cream) with a wide butter yellow print band
+# (kitchen_carton_yellow), a roof sloping to the front and back and a yellow fin on top. Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.3
+    Union
+        Material material=kitchen_carton_cream
+            Union
+                Translate translation=(0, 5.7, 0)
+                    RoundBox size=(2.1, 5.7, 2.1) roundness=0.1
+                Translate translation=(0, 11.4, 0)
+                    Rotate rotation=(0, 1.5708, 0)
+                        Extrusion height=2.1
+                            Triangle2D a=(-2.1, 0) b=(2.1, 0) c=(0, 2.1)
+        Material material=kitchen_carton_yellow
+            Union
+                Translate translation=(0, 5.4, 0)
+                    RoundBox size=(2.12, 1.8, 2.12) roundness=0.1
+                Translate translation=(0, 1, 0)
+                    RoundBox size=(2.11, 0.2, 2.11) roundness=0.05
+                Translate translation=(0, 13.95, 0)
+                    Box size=(2.1, 0.45, 0.1)

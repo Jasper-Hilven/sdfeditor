@@ -1,0 +1,64 @@
+# Plate stack low 0: a stack of three side plates, 10.2 m across and 3.6 m high (60 times life size): cream glaze (kitchen_crockery_cream) with a lilac rim and well
+# line (kitchen_crockery_lilac), each standing on its foot in the well of the one below, a little out of true. Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.06
+    Union
+        Translate translation=(0, 0, 0)
+            Union
+                Material material=kitchen_crockery_cream
+                    Union
+                        Translate translation=(0, 0.4, 0)
+                            CappedCylinder radius=3 height=0.4
+                        Translate translation=(0, 0.9, 0)
+                            CappedCylinder radius=4.4 height=0.1
+                        Subtraction
+                            Translate translation=(0, 1.2, 0)
+                                CappedCone height=0.3 bottomRadius=4.4 topRadius=5
+                            Translate translation=(0, 1.25, 0)
+                                CappedCone height=0.35 bottomRadius=4.2 topRadius=4.8
+                Material material=kitchen_crockery_lilac
+                    Union
+                        Translate translation=(0, 1.42, 0)
+                            Torus innerRadius=4.78 outerRadius=5.13
+                        Translate translation=(0, 1, 0)
+                            Torus innerRadius=4 outerRadius=4.2
+        Translate translation=(0.08, 1, -0.06)
+            Union
+                Material material=kitchen_crockery_cream
+                    Union
+                        Translate translation=(0, 0.4, 0)
+                            CappedCylinder radius=3 height=0.4
+                        Translate translation=(0, 0.9, 0)
+                            CappedCylinder radius=4.4 height=0.1
+                        Subtraction
+                            Translate translation=(0, 1.2, 0)
+                                CappedCone height=0.3 bottomRadius=4.4 topRadius=5
+                            Translate translation=(0, 1.25, 0)
+                                CappedCone height=0.35 bottomRadius=4.2 topRadius=4.8
+                Material material=kitchen_crockery_lilac
+                    Union
+                        Translate translation=(0, 1.42, 0)
+                            Torus innerRadius=4.78 outerRadius=5.13
+                        Translate translation=(0, 1, 0)
+                            Torus innerRadius=4 outerRadius=4.2
+        Translate translation=(0.16, 2, -0.12)
+            Union
+                Material material=kitchen_crockery_cream
+                    Union
+                        Translate translation=(0, 0.4, 0)
+                            CappedCylinder radius=3 height=0.4
+                        Translate translation=(0, 0.9, 0)
+                            CappedCylinder radius=4.4 height=0.1
+                        Subtraction
+                            Translate translation=(0, 1.2, 0)
+                                CappedCone height=0.3 bottomRadius=4.4 topRadius=5
+                            Translate translation=(0, 1.25, 0)
+                                CappedCone height=0.35 bottomRadius=4.2 topRadius=4.8
+                Material material=kitchen_crockery_lilac
+                    Union
+                        Translate translation=(0, 1.42, 0)
+                            Torus innerRadius=4.78 outerRadius=5.13
+                        Translate translation=(0, 1, 0)
+                            Torus innerRadius=4 outerRadius=4.2

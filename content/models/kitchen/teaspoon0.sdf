@@ -1,0 +1,20 @@
+# Teaspoon 0: a steel teaspoon (kitchen_steel) lying on the worktop, 8.4 m long, bowl 2.4 m wide and 0.5 m deep on the ground at the -x end, the handle rising from
+# it to 1.0 m at the +x end (60 times life size). Knee cover to a low wall. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.3
+    Material material=kitchen_steel
+        SmoothUnion smoothness=0.1
+            Intersection
+                Subtraction
+                    Translate translation=(-2.9, 0.5, 0)
+                        Ellipsoid radii=(1.3, 0.5, 1.2)
+                    Translate translation=(-2.9, 0.62, 0)
+                        Ellipsoid radii=(1.12, 0.45, 1.02)
+                Translate translation=(-2.9, 0.26, 0)
+                    Box size=(2, 0.26, 2)
+            Capsule a=(-1.7, 0.25, 0) b=(3.5, 0.78, 0) radius=0.12
+            Translate translation=(3.7, 0.84, 0)
+                Rotate rotation=(0, 0, 0.2)
+                    Ellipsoid radii=(0.55, 0.08, 0.3)

@@ -1,0 +1,14 @@
+# Sugar cube 1: a sugar cube (kitchen_sugar) 0.96 m a side, tipped up onto one bottom edge (11 degrees) and turned, with a corner chipped off: about 1.1 m
+# tall (60 times life size). Knee cover. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.25
+    Translate translation=(0, 0.5751, 0)
+        Rotate rotation=(0, 0.5, 0)
+            Rotate rotation=(0, 0, 0.2)
+                Material material=kitchen_sugar
+                    Subtraction
+                        RoundBox size=(0.48, 0.48, 0.48) roundness=0.08
+                        Translate translation=(0.46, 0.46, 0.4)
+                            Sphere radius=0.26

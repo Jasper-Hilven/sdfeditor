@@ -1,0 +1,27 @@
+# Mug tipped 0: a sage mug (kitchen_glaze_sage) lying on its side, 4.8 m high and 7 m long with the spilled coffee (kitchen_coffee) (60 times life size): its open end faces -x so
+# a player can look into it, the handle on its +z side, a cream stripe round it. Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.25
+    Union
+        Translate translation=(3.5, 2.4, 0)
+            Rotate rotation=(0, 0, 1.5708)
+                Rotate rotation=(0, 1.5708, 0)
+                    Subtraction
+                        Union
+                            Material material=kitchen_glaze_sage
+                                Union
+                                    Translate translation=(0, 3, 0)
+                                        RoundedCylinder radius=2.4 roundness=0.2 height=3
+                                    Translate translation=(2.45, 3.3, 0)
+                                        Rotate rotation=(1.5708, 0, 0)
+                                            Torus innerRadius=0.6 outerRadius=1.3
+                            Material material=kitchen_glaze_cream
+                                Translate translation=(0, 4.6, 0)
+                                    CappedCylinder radius=2.41 height=0.22
+                        Translate translation=(0, 3.5, 0)
+                            CappedCylinder radius=2.1 height=3
+        Material material=kitchen_coffee
+            Translate translation=(-2.8, 0.06, 0)
+                Ellipsoid radii=(0.7, 0.06, 0.95)
