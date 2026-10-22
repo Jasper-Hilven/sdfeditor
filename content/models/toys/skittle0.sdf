@@ -1,0 +1,34 @@
+# Skittle 0: a wooden skittle (a bowling pin of a toy set), 6 m tall and 2.4 m across its belly (60 times life size): cream painted body (toy_paint_cream) with
+# lilac stripes round the foot and the neck and a bare beech head. Tall blocker; convex collider (over 3 m it becomes mesh).
+format 1
+collider convex
+
+skittle =
+    Intersection
+        SmoothUnion smoothness=0.25
+            SmoothUnion smoothness=0.3
+                ArbitraryRoundCone a=(0, 0.75, 0) b=(0, 2, 0) radiusA=0.8 radiusB=1.2
+                ArbitraryRoundCone a=(0, 2, 0) b=(0, 4, 0) radiusA=1.2 radiusB=0.46
+            Translate translation=(0, 5.25, 0)
+                Sphere radius=0.75
+        Plane normal=(0, -1, 0) height=0
+
+Detail detail=0.36
+    Union
+        Material material=toy_paint_cream
+            $skittle
+        Material material=toy_paint_lilac
+            Intersection
+                $skittle
+                Union
+                    Translate translation=(0, 3.05, 0)
+                        Box size=(3, 0.11, 3)
+                    Translate translation=(0, 3.55, 0)
+                        Box size=(3, 0.11, 3)
+                    Translate translation=(0, 0.9, 0)
+                        Box size=(3, 0.1, 3)
+        Material material=toy_beech
+            Intersection
+                $skittle
+                Translate translation=(0, 5.2, 0)
+                    Box size=(3, 0.7, 3)

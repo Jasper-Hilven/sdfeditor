@@ -1,0 +1,13 @@
+# Bead 2: a plastic pony bead in lilac (toy_plastic_lilac), 0.54 m across and 0.4 m tall (60 times life size), standing on end on the floor,
+# a ring that is a little tilted on the floor, a round hole through it. Ground clutter: no collider.
+format 1
+
+# An eighth of the vertices its size would give it: a small plain ring
+Detail detail=0.2
+    Material material=toy_plastic_lilac
+        # Tilted on a neighbouring bead, one edge on the floor
+        Translate translation=(0, 0.25, 0)
+            Rotate rotation=(0.2, 0, 0)
+                Subtraction
+                    RoundedCylinder radius=0.27 roundness=0.12 height=0.2
+                    CappedCylinder radius=0.1 height=0.3

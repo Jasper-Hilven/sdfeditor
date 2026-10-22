@@ -1,0 +1,49 @@
+# Spinning top 0: a tin spinning top lying tipped on its rim, 4.2 m across its rim and 3.6 m tall (60 times life size): a bare tin disc and cone with a spike, a
+# lilac dome with peach and yellow bands, a mint handle with a ball knob; the axis is tipped 60 degrees so the rim touches the ground at the nearer side and the
+# spike points up over the far side. Tall blocker; mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.38
+    Translate translation=(0.5, 1.96, 0)
+        Rotate rotation=(0, 0, 1.0472)
+            Union
+                Material material=toy_tin
+                    Union
+                        RoundedCylinder radius=2.1 roundness=0.12 height=0.28
+                        Translate translation=(0, -0.75, 0)
+                            CappedCone height=0.7 bottomRadius=0.07 topRadius=1.5
+                        Translate translation=(0, -1.5, 0)
+                            Sphere radius=0.1
+                Material material=toy_paint_lilac
+                    Intersection
+                        Union
+                            Translate translation=(0, 0.1, 0)
+                                Ellipsoid radii=(1.75, 0.85, 1.75)
+                        Plane normal=(0, -1, 0) height=0
+                Material material=toy_paint_peach
+                    Intersection
+                        Intersection
+                            Union
+                                Translate translation=(0, 0.1, 0)
+                                    Ellipsoid radii=(1.75, 0.85, 1.75)
+                            Plane normal=(0, -1, 0) height=0
+                        Subtraction
+                            CappedCylinder radius=1.25 height=5
+                            CappedCylinder radius=0.9 height=5
+                Material material=toy_paint_yellow
+                    Intersection
+                        Intersection
+                            Union
+                                Translate translation=(0, 0.1, 0)
+                                    Ellipsoid radii=(1.75, 0.85, 1.75)
+                            Plane normal=(0, -1, 0) height=0
+                        Subtraction
+                            CappedCylinder radius=0.55 height=5
+                            CappedCylinder radius=0.3 height=5
+                Material material=toy_paint_mint
+                    Union
+                        Translate translation=(0, 1.6, 0)
+                            CappedCylinder radius=0.28 height=0.75
+                        Translate translation=(0, 2.55, 0)
+                            Sphere radius=0.5

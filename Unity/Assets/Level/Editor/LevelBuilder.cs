@@ -96,8 +96,9 @@ namespace SdfLevel.Editor
         /// Version 19: the machines' prefabs on Battle (ticket 24.3, <see cref="SdfBattle.Machines"/>); the match without a countdown.
         /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
         /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
+        /// Version 22: the movers' behaviour (ticket 27.10): push, damage, kill feed name, puffs, crossing distance.
         /// </summary>
-        public const int BuilderVersion = 21;
+        public const int BuilderVersion = 22;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -747,6 +748,16 @@ namespace SdfLevel.Editor
                 component.speed = entry.Value<float>("speed");
                 component.gap = entry.Value<float>("gap");
                 component.phase = entry.Value<float>("phase");
+                // What the cars do (ticket 27.10); a level.json from before has none of it, and the mover stays harmless
+                component.pushes = entry.Value<float?>("pushes") ?? 0;
+                component.damage = entry.Value<float?>("damage") ?? 0;
+                component.hazardName = entry.Value<string>("hazard") ?? name;
+                component.cooldown = entry.Value<float?>("cooldown") ?? 1;
+                component.puffEvery = entry.Value<float?>("puff") ?? 0;
+                if (entry["puffAt"] is JArray puffAt && puffAt.Count == 3)
+                    component.puffAt = new Vector3(puffAt[0].Value<float>(), puffAt[1].Value<float>(), puffAt[2].Value<float>());
+                component.whistleLead = entry.Value<float?>("whistle") ?? 0;
+                component.crossingWarn = entry.Value<float?>("crossing") ?? 0;
                 for (var i = 0; i < prefabs.Length; i++)
                 {
                     // The car's own object holds the body and the mover's parts, so the model's prefab instance stays unmodified

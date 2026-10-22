@@ -1,0 +1,21 @@
+# Toy marble 1: a toy glass marble in green glass, 0.96 m across (60 times life size), resting on the floor. A pale swirl curls through it.
+# The toon look has no see-through glass: the glass is a glossy shell with a glow from inside. Knee cover: a ball to jump on or roll round; convex collider.
+format 1
+collider convex
+
+# A fifth of the vertices its size would give it: a plain ball, the swirl's stripes holding most of them
+Detail detail=0.3
+    Translate translation=(0, 0.48, 0)
+        Union
+            Material material=toy_glass_green
+                Sphere radius=0.48
+            # The swirl: two crossed twisted vanes of pale glass, curling round the ball
+            Material material=toy_glass_swirl_green
+                Intersection
+                    Sphere radius=0.48
+                    Rotate rotation=(0.3, 0, 0.2)
+                        Union
+                            Twist amount=2.5
+                                Box size=(0.04, 0.55, 0.55)
+                            Twist amount=2.5
+                                Box size=(0.55, 0.55, 0.04)

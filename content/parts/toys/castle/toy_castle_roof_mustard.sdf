@@ -1,0 +1,13 @@
+# Toy castle roof, mustard (ticket 27.7): toy_castle_roof_lilac in mustard paint; see there.
+format 1
+collider mesh
+Detail detail=0.25
+    Material material=toy_paint_mustard
+        Union
+            Translate translation=(0, 0.1, 0)
+                Round radius=0.04
+                    CappedCylinder radius=1.96 height=0.06
+            Translate translation=(0, 1.4, 0)
+                CappedCone height=1.2 bottomRadius=1.8 topRadius=0.05
+            Translate translation=(0, 2.6, 0)
+                Sphere radius=0.14

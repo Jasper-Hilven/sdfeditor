@@ -1,0 +1,47 @@
+# Turret head, red (ticket 27.8): the upper half of the tin soldier, turning on the foot's tunic: a peach face on a short neck, a tall red
+# shako with a white band and a brass badge, red shoulders and arms bent forward, peach hands holding the rifle; the scouts' floating
+# eyes hover in front of the face.
+# Pivot: the origin is the neck's bottom on the head's axis (it turns about y); in turret-toy-red-foot it is at (0, 1.5, 0). The
+# barrel's (turret-toy-red-barrel) pivot is at (0, 0, 0.3) in this model, between the hands.
+format 1
+collider convex
+
+Detail detail=0.18
+    Union
+        Material material=toy_paint_peach
+            Union
+                Translate translation=(0, 0.04, 0)
+                    CappedCylinder radius=0.12 height=0.06
+                Translate translation=(0, 0.17, 0)
+                    Sphere radius=0.17
+                Translate translation=(0, 0.15, 0.17)
+                    Sphere radius=0.035
+                # Hands
+                SymmetryX
+                    Translate translation=(0.1, -0.03, 0.3)
+                        Sphere radius=0.075
+        Material material=machine_red_paint
+            Union
+                # Shoulders, upper arms and forearms bent forward to the rifle
+                Translate translation=(0, -0.1, 0)
+                    SymmetryX
+                        Capsule a=(0.15, 0, 0) b=(0.3, 0, 0) radius=0.09
+                SymmetryX
+                    Union
+                        ArbitraryRoundCone a=(0.3, -0.1, 0) b=(0.34, -0.38, 0.1) radiusA=0.09 radiusB=0.07
+                        ArbitraryRoundCone a=(0.34, -0.38, 0.1) b=(0.12, -0.05, 0.28) radiusA=0.07 radiusB=0.06
+                # The shako's body and its round top
+                Round radius=0.015
+                    Translate translation=(0, 0.385, 0)
+                        CappedCylinder radius=0.16 height=0.115
+        Material material=toy_plastic_white
+            Translate translation=(0, 0.28, 0)
+                CappedCylinder radius=0.19 height=0.025
+        Material material=toy_brass
+            Translate translation=(0, 0.4, 0.155)
+                Sphere radius=0.04
+        # Eyes, mirrored: the scouts' eyeballs at their own size, floating in front of the face, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.14, 0.2, 0.34)
+                Part part=eye_machine

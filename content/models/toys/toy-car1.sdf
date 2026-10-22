@@ -1,0 +1,68 @@
+# Toy car 1: a die-cast toy pickup in mint-green paint (toy_paint_mint), 3.2 m long, 1.5 m wide and 0.95 m tall (60 times life size), standing on its four
+# wheels with its nose to +z: a cab at the front with pale windows, an open bed behind it, tin hubcaps. Knee cover: climb it or go round; convex collider.
+format 1
+collider convex
+
+# The four wheels, a tyre with a tin hubcap
+wheel =
+    Rotate rotation=(0, 0, 1.5707964)
+        RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+hub =
+    Rotate rotation=(0, 0, 1.5707964)
+        CappedCylinder radius=0.16 height=0.105
+
+car =
+    Union
+        Material material=toy_paint_mint
+            Union
+                Subtraction
+                    Union
+                        # The low body, with the open bed behind the cab walled to 0.85 m
+                        Translate translation=(0, 0.45, 0)
+                            RoundBox size=(0.68, 0.2, 1.55) roundness=0.15
+                        Translate translation=(0, 0.7, -0.65)
+                            RoundBox size=(0.68, 0.15, 0.88) roundness=0.06
+                    Union
+                        SymmetryX
+                            Union
+                                Translate translation=(0.6, 0.3, 1.0)
+                                    CappedCylinder radius=0.36 height=0.14
+                                Translate translation=(0.6, 0.3, -1.0)
+                                    CappedCylinder radius=0.36 height=0.14
+                        # The bed's hollow
+                        Translate translation=(0, 0.82, -0.68)
+                            RoundBox size=(0.56, 0.2, 0.76) roundness=0.03
+                # The cab at the front
+                Translate translation=(0, 0.68, 0.55)
+                    RoundBox size=(0.6, 0.27, 0.5) roundness=0.18
+        Material material=toy_car_glass
+            Intersection
+                Translate translation=(0, 0.68, 0.55)
+                    RoundBox size=(0.6, 0.27, 0.5) roundness=0.18
+                Translate translation=(0, 0.74, 0.55)
+                    Box size=(1, 0.12, 0.38)
+        Material material=toy_plastic_white
+            SymmetryX
+                Union
+                    Translate translation=(0.4, 0.46, 1.5)
+                        Ellipsoid radii=(0.13, 0.1, 0.07)
+                    Translate translation=(0.4, 0.46, -1.52)
+                        Ellipsoid radii=(0.12, 0.08, 0.05)
+        Material material=toy_tyre
+            SymmetryX
+                Union
+                    Translate translation=(0.65, 0.3, 1.0)
+                        $wheel
+                    Translate translation=(0.65, 0.3, -1.0)
+                        $wheel
+        Material material=toy_tin
+            SymmetryX
+                Union
+                    Translate translation=(0.65, 0.3, 1.0)
+                        $hub
+                    Translate translation=(0.65, 0.3, -1.0)
+                        $hub
+
+# A fifth of the vertices its size would give it: a smooth little shell
+Detail detail=0.27
+    $car

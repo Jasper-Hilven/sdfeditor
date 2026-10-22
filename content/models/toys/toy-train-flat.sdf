@@ -1,0 +1,43 @@
+# Toy train flat wagon: a wooden toy flat wagon, 4.2 m long, 1.8 m wide, its lilac deck (toy_paint_lilac) 1.0 m above the rails (60 times life size) on four yellow
+# wheels; rideable. ORIGIN: the car's centre on the track, wheels' bottoms on y = 0, +z the direction of travel. A 0.4 m coupler bar with a ball at each end
+# (a gap of 0.8 between bodies lets the knobs touch). Convex collider.
+format 1
+collider convex
+
+Detail detail=0.4
+    Union
+        Material material=toy_paint_lilac
+            Union
+                Translate translation=(0, 0.85, 0)
+                    RoundBox size=(0.9, 0.15, 2.1) roundness=0.05
+                Translate translation=(0, 0.55, 0)
+                    Box size=(0.55, 0.2, 2)
+        Material material=toy_paint_yellow
+            Union
+                Translate translation=(-0.8, 0.45, -1.2)
+                    Rotate rotation=(0, 0, 1.5708)
+                        RoundedCylinder radius=0.45 roundness=0.04 height=0.1
+                Translate translation=(-0.8, 0.45, 1.2)
+                    Rotate rotation=(0, 0, 1.5708)
+                        RoundedCylinder radius=0.45 roundness=0.04 height=0.1
+                Translate translation=(0.8, 0.45, -1.2)
+                    Rotate rotation=(0, 0, 1.5708)
+                        RoundedCylinder radius=0.45 roundness=0.04 height=0.1
+                Translate translation=(0.8, 0.45, 1.2)
+                    Rotate rotation=(0, 0, 1.5708)
+                        RoundedCylinder radius=0.45 roundness=0.04 height=0.1
+        Material material=toy_tin
+            Union
+                Translate translation=(0, 0, 2.1)
+                    Union
+                        Translate translation=(0, 0.55, 0)
+                            ArbitraryCappedCylinder a=(0, 0, 0) b=(0, 0, 0.4) radius=0.07
+                        Translate translation=(0, 0.55, 0.4)
+                            Sphere radius=0.12
+                Translate translation=(0, 0, -2.1)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Union
+                            Translate translation=(0, 0.55, 0)
+                                ArbitraryCappedCylinder a=(0, 0, 0) b=(0, 0, 0.4) radius=0.07
+                            Translate translation=(0, 0.55, 0.4)
+                                Sphere radius=0.12

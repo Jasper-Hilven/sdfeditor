@@ -1,0 +1,22 @@
+# Toy marble 0: a toy glass marble in pale yellow glass, 0.96 m across (60 times life size), resting on the floor. A cat's eye runs through it.
+# The toon look has no see-through glass: the glass is a glossy shell with a glow from inside. Knee cover: a ball to jump on or roll round; convex collider.
+format 1
+collider convex
+
+# A fifth of the vertices its size would give it: a plain ball, the swirl's stripes holding most of them
+Detail detail=0.37
+    Translate translation=(0, 0.48, 0)
+        Union
+            Material material=toy_glass_yellow
+                Sphere radius=0.48
+            # The cat's eye: three thin vanes of milky glass through the middle, meeting along the axis, showing as three stripes round the ball
+            Material material=toy_glass_swirl
+                Intersection
+                    Sphere radius=0.48
+                    Rotate rotation=(0.4, 0.3, 0)
+                        Union
+                            Box size=(0.55, 0.03, 0.55)
+                            Rotate rotation=(0, 1.0471976, 0)
+                                Box size=(0.55, 0.03, 0.55)
+                            Rotate rotation=(0, 2.0943952, 0)
+                                Box size=(0.55, 0.03, 0.55)

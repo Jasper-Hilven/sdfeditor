@@ -358,6 +358,15 @@ public static class LevelBaker
                 speed = m.Speed,
                 phase = m.Phase,
                 gap = m.Gap,
+                // What the cars do (ticket 27.10): the hit, the kill feed's name, the puffs and how far ahead bots wait to cross
+                pushes = m.Pushes,
+                damage = m.Damage,
+                hazard = m.HazardName,
+                cooldown = m.Cooldown,
+                puff = m.Puff,
+                puffAt = Array(m.PuffAt),
+                whistle = m.Whistle,
+                crossing = m.Crossing,
                 length = m.Length,
                 path = m.Path.Select(Array).ToArray(),
                 heights = m.Heights.Count == 0 ? null : m.Heights.Select(Array).ToArray(),
@@ -416,6 +425,8 @@ public static class LevelBaker
     };
 
     private static float[] Array(Vector2 v) => [v.X, v.Y];
+
+    private static float[] Array(Vector3 v) => [v.X, v.Y, v.Z];
 
     /// <summary>
     /// The room for level.json: its size and square size, and for each face its origin corner, the directions of its u and v axes (one

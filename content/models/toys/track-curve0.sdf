@@ -1,0 +1,70 @@
+# Track curve 0: a 30 degree arc of wooden toy railway on a 20 m radius, 2.4 m wide and 0.3 m high (60 times life size): pine sleepers (toy_pine) and two dark
+# stained rails (toy_pine_dark) 1.6 m apart. No collider (the floor carries everyone: 0.3 m is under the step height).
+# The ORIGIN is the circle's centre on y = 0. The arc starts on the +z axis, at the centreline point (0, 0, 20), runs towards +x and ends at (10, 0, 17.32), 30 degrees
+# on. Twelve of them at yaw steps of 30 degrees (0, 30 ... 330) about the circle centre, all at one position, make a closed ring; a sleeper sits half a pitch
+# in from each end so the spacing carries over the seams.
+format 1
+
+Detail detail=0.12
+    Union
+        Material material=toy_pine
+            Union
+                Rotate rotation=(0, 0.0201, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.0604, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.1007, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.141, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.1812, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.2215, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.2618, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.3021, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.3424, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.3826, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.4229, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.4632, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+                Rotate rotation=(0, 0.5035, 0)
+                    Translate translation=(0, 0.06, 20)
+                        Box size=(0.16, 0.06, 1.2)
+        Material material=toy_pine_dark
+            Union
+                Intersection
+                    Subtraction
+                        Translate translation=(0, 0.2, 0)
+                            CappedCylinder radius=19.3 height=0.1
+                        Translate translation=(0, 0.2, 0)
+                            CappedCylinder radius=19.1 height=5
+                    Intersection
+                        Plane normal=(-1, 0, 0) height=0
+                        Plane normal=(0.866, 0, -0.5) height=0
+                Intersection
+                    Subtraction
+                        Translate translation=(0, 0.2, 0)
+                            CappedCylinder radius=20.9 height=0.1
+                        Translate translation=(0, 0.2, 0)
+                            CappedCylinder radius=20.7 height=5
+                    Intersection
+                        Plane normal=(-1, 0, 0) height=0
+                        Plane normal=(0.866, 0, -0.5) height=0

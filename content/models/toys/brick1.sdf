@@ -1,0 +1,22 @@
+# Brick 1: a 2 x 4 toy brick of mint green plastic (toy_plastic_mint), 1.92 m long, 0.96 m wide and 0.68 m tall including its eight round studs
+# (60 times life size), turned a little on the floor. Knee cover: jump on it or go round; convex collider.
+format 1
+collider convex
+
+stud =
+    RoundedCylinder radius=0.145 roundness=0.02 height=0.05
+
+# An eighth of the vertices its size would give it: a plain block with eight studs
+Detail detail=0.52
+    Rotate rotation=(0, 0.5, 0)
+        Material material=toy_plastic_mint
+            Union
+                Translate translation=(0, 0.29, 0)
+                    RoundBox size=(0.96, 0.29, 0.48) roundness=0.03
+                # The studs, two rows of four
+                SymmetryXZ
+                    Union
+                        Translate translation=(0.24, 0.63, 0.24)
+                            $stud
+                        Translate translation=(0.72, 0.63, 0.24)
+                            $stud

@@ -213,6 +213,8 @@ namespace SdfBattle.Tests
                 DeathLines.KindOf(new Death(Red, DeathCause.Killed, killerName: MachineRules.NameOf(MachineKind.Helicopter, Team.Blue), killerTeam: Team.Blue, weapon: "cannon")));
             Assert.AreEqual(DeathKind.Turret, DeathLines.KindOf(new Death(Red, DeathCause.Killed, killerName: "Blue turret", killerTeam: Team.Blue, weapon: "cannon")));
             Assert.AreEqual(DeathKind.Cannon, DeathLines.KindOf(new Death(Red, DeathCause.Killed, killerName: "Blue thing", killerTeam: Team.Blue, weapon: "cannon")));
+            // A hazard has a name and no team (ticket 27.10's "Toy train")
+            Assert.AreEqual(DeathKind.Hazard, DeathLines.KindOf(new Death(Red, DeathCause.Killed, killerName: "Toy train")));
             Assert.AreEqual(DeathKind.Headshot, DeathLines.KindOf(new Death(Red, DeathCause.Killed, Blue, weapon: WeaponIds.Sniper, headshot: true)));
             Assert.AreEqual(DeathKind.Flamethrower, DeathLines.KindOf(new Death(Red, DeathCause.Killed, Blue, weapon: WeaponIds.Flamethrower)));
             Assert.AreEqual(DeathKind.Generic, DeathLines.KindOf(new Death(Red, DeathCause.Killed, Blue, weapon: "spoon")));

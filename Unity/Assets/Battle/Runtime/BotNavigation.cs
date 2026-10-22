@@ -109,6 +109,46 @@ namespace SdfBattle
         /// <summary>Whether a straight walk from <paramref name="from"/> along the navmesh to <paramref name="to"/> meets no edge.</summary>
         public static bool Clear(Vector3 from, Vector3 to) => !NavMesh.Raycast(from, to, out _, Filter);
 
+        /// <summary>Metres past the track's edge a bot waits when a train is near its crossing.</summary>
+        public const float WaitBeyondEdge = 1;
+
+        /// <summary>
+        /// The crossing check (ticket 27.10): whether a bot at <paramref name="feet"/> walking the <paramref name="corners"/> from index
+        /// <paramref name="corner"/> on should stand still now, because within <paramref name="lookAhead"/> metres its way crosses the track
+        /// of a mover (with <c>crossing</c> set) whose train is within that mover's crossing distance of the place, or is on it
+        /// (<see cref="MoverCrossing"/>). It waits at the track's edge, <see cref="WaitBeyondEdge"/> short of it: a bot that is already
+        /// nearer than the track's edge is on the track and walks on to get off it.
+        /// </summary>
+        public static bool MustWait(Vector3 feet, List<Vector3> corners, int corner, float lookAhead, float clock)
+        {
+            var movers = SdfLevel.PathMover.All;
+            for (var m = 0; m < movers.Count; m++)
+            {
+                var mover = movers[m];
+                if (mover.crossingWarn <= 0 || mover.path == null || mover.carLengths == null)
+                    continue;
+                var edge = mover.TrackHalfWidth;
+                var from = new Vector2(feet.x, feet.z);
+                var walked = 0f;
+                for (var i = corner; i < corners.Count && walked < lookAhead; i++)
+                {
+                    var to = new Vector2(corners[i].x, corners[i].z);
+                    var crossings = mover.Timetable.Path.Crossings(from, to);
+                    for (var c = 0; c < crossings.Count; c++)
+                    {
+                        var distance = walked + crossings[c].Distance;
+                        if (distance > edge + WaitBeyondEdge + 0.3f || distance < edge)
+                            continue;
+                        if (MoverCrossing.Check(mover.Timetable, clock, crossings[c].Arc, mover.crossingWarn).Wait)
+                            return true;
+                    }
+                    walked += Vector2.Distance(from, to);
+                    from = to;
+                }
+            }
+            return false;
+        }
+
         /// <summary>A random point of the navmesh within <paramref name="radius"/> of <paramref name="centre"/> that the island's home reaches.</summary>
         public static bool RandomPoint(Vector3 centre, float radius, System.Random random, out Vector3 point)
         {
@@ -133,6 +173,9 @@ namespace SdfBattle
         {
             var origin = HomeOnMesh();
             if (origin == null)
+                return true;
+            // On the train's track (ticket 27.10): a car cuts the mesh there only while it passes, so a flag that lies on the track stays
+            if (SdfLevel.PathMover.OnAnyTrack(point, 0.5f))
                 return true;
             scratch ??= new NavMeshPath();
             // On the point itself, then the ground below and beside it (a flag on a rock's top is reached by jumping up from beside it)

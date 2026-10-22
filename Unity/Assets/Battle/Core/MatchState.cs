@@ -240,6 +240,13 @@ namespace SdfBattle
             victim != null && victim.Alive && !victim.Protected && Started && Phase != RoundPhase.Countdown && !Held
             && (Rules.friendlyFire || attacker != victim.Team);
 
+        /// <summary>
+        /// Whether this damage can hurt <paramref name="victim"/> now: a team's by <see cref="CanHurt(PlayerState, Team)"/>, a neutral one's
+        /// (<see cref="Damage.Neutral"/>, a hazard) by the same without the team test.
+        /// </summary>
+        public bool CanHurt(PlayerState victim, Damage damage) =>
+            damage.Neutral ? victim != null && victim.Alive && !victim.Protected && Started && Phase != RoundPhase.Countdown : CanHurt(victim, damage.AttackerTeam);
+
         private void StartRound()
         {
             Round++;

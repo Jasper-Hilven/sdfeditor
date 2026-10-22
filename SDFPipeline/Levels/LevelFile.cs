@@ -138,6 +138,12 @@ namespace SDFPipeline.Levels;
 /// <c>car toy-train-engine length=4.8</c> per line (a model from content/models/ and its length along the path). Its position is
 /// <c>speed * (round clock + phase)</c> metres along the path, <c>phase</c> in seconds, so nothing is saved; the cars follow the path's
 /// centre line, <c>gap</c> metres apart (0.5 by default). The train must be shorter than the path. See <see cref="MoverSpec"/>.
+/// Further options of the <c>mover</c> line (ticket 27.10, all off by default): <c>pushes=3 damage=20</c> make a scout or tank in a car's way
+/// get pushed that many metres off its side and take that much damage, at most once per car and victim in <c>cooldown=1</c> seconds, and
+/// <c>name="Toy train"</c> is how the kill feed names a kill by it (no weapon, credit or spores; the mover's own name, capitalised, by default);
+/// <c>puff=1 puffAt=(0, 2.7, 1.7)</c> gives a puff from the first car every second at that point of its frame, <c>whistle=2</c> one that many
+/// seconds before each climb of the path (a bridge); <c>crossing=25</c> makes a bot whose path crosses the track wait at its edge while the
+/// head is within 25 m of the crossing, or the train is on it.
 /// </para>
 /// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
@@ -501,7 +507,16 @@ public static class LevelFile
         var speed = parameters.Number("speed", null, 0.1f, 100, "metres per second, 0.1 to 100");
         var gap = parameters.Number("gap", 0.5f, 0, 20, "metres between the cars, 0 to 20");
         var phase = parameters.Number("phase", 0, -100000, 100000, "seconds the timetable is ahead at the round's start");
-        parameters.Done("speed", "gap", "phase");
+        // What the cars do to what they meet and what they give off (ticket 27.10); all off by default
+        var pushes = parameters.Number("pushes", 0, 0, 50, "metres a scout or tank in a car's way is pushed off its side, 0 to 50");
+        var damage = parameters.Number("damage", 0, 0, 1000, "damage of one hit by a car, 0 to 1000");
+        var hazardName = parameters.Name("name", null, null);
+        var cooldown = parameters.Number("cooldown", 1, 0, 60, "seconds before a car hits the same victim again, 0 to 60");
+        var puff = parameters.Number("puff", 0, 0, 600, "seconds between puffs from the first car, 0 (none) to 600");
+        var puffAt = parameters.Has("puffAt") ? parameters.Vector3("puffAt", "a point like (0, 2.5, 1.7) in the first car's frame (x right, y up, z forward)") : new Vector3(0, 2.5f, 0);
+        var whistle = parameters.Number("whistle", 0, 0, 600, "seconds before each climb a whistle puff is given, 0 (none) to 600");
+        var crossing = parameters.Number("crossing", 0, 0, 1000, "metres from the head within which bots wait to cross the track, 0 (they do not) to 1000");
+        parameters.Done("speed", "gap", "phase", "pushes", "damage", "name", "cooldown", "puff", "puffAt", "whistle", "crossing");
 
         IReadOnlyList<Vector2>? path = null;
         SourceLine? pathLine = null;
@@ -573,7 +588,10 @@ public static class LevelFile
                 throw new SdfProgramFileException(heights!.Value.Line.Number, $"Mover {name}'s height {FileSyntax.Number(key.Y)} is not a height in metres");
             previous = key.X;
         }
-        var spec = new MoverSpec(name, speed, phase, gap, path, keyList, cars, line.Number);
+        var spec = new MoverSpec(name, speed, phase, gap, path, keyList, cars, line.Number)
+        {
+            Pushes = pushes, Damage = damage, DisplayName = hazardName, Cooldown = cooldown, Puff = puff, PuffAt = puffAt, Whistle = whistle, Crossing = crossing,
+        };
         if (spec.TrainLength > length1 - 1)
             throw new SdfProgramFileException(line.Number,
                 $"Mover {name}'s cars and gaps take {FileSyntax.Number(spec.TrainLength)} m, but the path is {FileSyntax.Number(length1)} m round; the train would meet itself");

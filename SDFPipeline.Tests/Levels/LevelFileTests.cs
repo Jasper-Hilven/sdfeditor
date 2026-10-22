@@ -447,6 +447,102 @@ public class LevelFileTests
         Assert.Equal("day", level.Sky?.Preset);
     }
 
+    /// <summary>
+    /// Ticket 27.9: the toy box is one theme, toys. Every model it names (placed, scattered, strewn, or a train car) is in
+    /// models/toys/, and the toy team's machines are in models/machines/; no material, in them or in their parts, is from another
+    /// theme's folder: only toys/, machines/, the machines' eyes (the scouts' floating eyes), the team pennants' cloth in buildings/, and the ground and room materials.
+    /// </summary>
+    [Fact]
+    public void ContentToyBox_HasOnlyToys()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "toybox" + LevelFile.Extension));
+        var models = Path.Combine(content, "models");
+        var partsFolder = Path.Combine(content, ModelFiles.PartsFolderName);
+        var files = Directory.GetFiles(models, "*.sdf", SearchOption.AllDirectories)
+            .GroupBy(Path.GetFileNameWithoutExtension)
+            .ToDictionary(g => g.Key!, g => g.ToArray());
+
+        var named = level.Placements.Select(p => p.Model)
+            .Concat(level.Scatters.SelectMany(s => s.Entries.Select(e => e.Model)))
+            .Concat(level.Trees.SelectMany(t => t.Entries.Select(e => e.Model)))
+            .Concat(level.Movers.SelectMany(m => m.Cars.Select(c => c.Model)))
+            .Distinct()
+            .ToArray();
+        Assert.NotEmpty(named);
+        Assert.Equal("toy", level.MachineSetName);
+        // The toy machines: every piece of each kind and team, named as the set rule says
+        var machines = Directory.GetFiles(Path.Combine(models, "machines"), "*-toy-*.sdf").Select(Path.GetFileNameWithoutExtension).ToArray();
+        Assert.Equal(18, machines.Length);
+
+        var toys = Path.Combine(models, "toys");
+        var pending = new Stack<string>();
+        foreach (var model in named)
+        {
+            Assert.True(files.TryGetValue(model, out var paths), $"{model} is not in content/models");
+            Assert.Single(paths!);
+            Assert.True(Path.GetDirectoryName(paths![0]) == toys, $"{model} is not from models/toys/: {paths[0]}");
+            pending.Push(paths[0]);
+        }
+        foreach (var model in machines)
+            pending.Push(files[model!].Single());
+
+        var materials = new SortedSet<string>();
+        var parts = new HashSet<string>();
+        while (pending.Count > 0)
+        {
+            var text = File.ReadAllText(pending.Pop());
+            foreach (Match m in Regex.Matches(text, @"^\s*Material\s+material=(\S+)", RegexOptions.Multiline))
+                materials.Add(m.Groups[1].Value);
+            foreach (Match m in Regex.Matches(text, @"^\s*Part\s+part=(\S+)", RegexOptions.Multiline))
+                if (parts.Add(m.Groups[1].Value))
+                    foreach (var file in Directory.EnumerateFiles(partsFolder, m.Groups[1].Value + ".sdf", SearchOption.AllDirectories))
+                    {
+                        Assert.Contains(Path.GetRelativePath(partsFolder, file).Replace('\\', '/').Split('/')[0], new[] { "toys", "machines" });
+                        pending.Push(file);
+                    }
+        }
+        Assert.NotEmpty(materials);
+        var materialFolders = Directory.GetFiles(Path.Combine(content, "..", "materials"), "*.sdfmat", SearchOption.AllDirectories)
+            .ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => Path.GetFileName(Path.GetDirectoryName(f))!);
+        foreach (var material in materials)
+        {
+            Assert.True(materialFolders.TryGetValue(material, out var folder), $"{material} has no material file");
+            Assert.True(folder is "toys" or "machines" or "eye" || (folder == "buildings" && material is "team_red_cloth" or "team_blue_cloth"),
+                $"{material} is in materials/{folder}/, not a toy material");
+        }
+        // The floor and the room: their own materials, no other theme's ground
+        Assert.Equal("felt", level.Base);
+        Assert.Equal(["playmat", "road", "foam"], level.Regions.Select(r => r.Name));
+        Assert.Equal(("toybox-wall", "toybox-lid"), (level.Room!.Walls, level.Room.Ceiling));
+        Assert.Null(level.Sky);
+        Assert.Equal(0, level.Hills.Height);
+    }
+
+    /// <summary>
+    /// Every solid toy has a `collider` line (a comment about one does not make a collider: the prefab has none without the line, and a
+    /// scene built from it has nothing to bump into); the ground clutter, the track's curves and the pennants have none.
+    /// </summary>
+    [Fact]
+    public void ContentToyBox_SolidToysHaveColliders()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        string[] flat = ["puzzle-piece", "confetti", "brick-plate", "bead", "crayon-stub", "track-curve", "pennant"];
+        foreach (var file in Directory.GetFiles(Path.Combine(content, "models", "toys"), "*.sdf"))
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            var line = Regex.Match(File.ReadAllText(file), @"^collider (\w+)", RegexOptions.Multiline);
+            if (flat.Any(name.StartsWith))
+                Assert.True(!line.Success || line.Groups[1].Value == "none", $"{name} is flat and should have no collider");
+            else
+                Assert.True(line.Success && line.Groups[1].Value is "convex" or "mesh", $"{name} is solid and has no `collider convex|mesh` line");
+        }
+    }
+
     [Fact]
     public void ContentFungal_IsAValidLevel()
     {

@@ -1,0 +1,46 @@
+# Confetti 1: a patch of 8 paper dots and four-point stars in mint green paper (toy_paper_mint), each about 0.3 m across and 2 cm thick (60 times
+# life size), scattered over a patch 1.2 m wide where a party popper went off. One colour. Ground clutter: no collider.
+format 1
+
+# A paper dot and a paper star, lying flat: a thin sheet extruded from a 2D shape, 1 cm either side of the floor line
+dot =
+    Rotate rotation=(1.5707964, 0, 0)
+        Extrusion height=0.01
+            Circle radius=0.13
+star =
+    Rotate rotation=(1.5707964, 0, 0)
+        Extrusion height=0.01
+            Union2D
+                Rhombus2D size=(0.16, 0.06)
+                Rotate2D angle=1.5707964
+                    Rhombus2D size=(0.16, 0.06)
+
+# A fifth of the vertices its size would give it: flat sheets, a few hundred triangles
+Detail detail=0.3
+    Translate translation=(0, 0.01, 0)
+        Material material=toy_paper_mint
+            Union
+                Translate translation=(-0.45, 0, -0.14)
+                    Rotate rotation=(0, 0.46, 0)
+                        $dot
+                Translate translation=(-0.15, 0, 0.42)
+                    Rotate rotation=(0, 2.84, 0)
+                        $star
+                Translate translation=(0.41, 0, 0.18)
+                    Rotate rotation=(0, 0.23, 0)
+                        $dot
+                Translate translation=(0.16, 0, 0.44)
+                    Rotate rotation=(0, 1.27, 0)
+                        $dot
+                Translate translation=(0.48, 0, -0.49)
+                    Rotate rotation=(0, 0.19, 0)
+                        $star
+                Translate translation=(-0.42, 0, 0.45)
+                    Rotate rotation=(0, 0.29, 0)
+                        $dot
+                Translate translation=(0.19, 0, -0.11)
+                    Rotate rotation=(0, 0.35, 0)
+                        $dot
+                Translate translation=(-0.46, 0, -0.48)
+                    Rotate rotation=(0, 0.98, 0)
+                        $star

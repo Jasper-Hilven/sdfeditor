@@ -1,0 +1,52 @@
+# Confetti 2: a patch of 10 paper dots and four-point stars in lilac paper (toy_paper_lilac), each about 0.3 m across and 2 cm thick (60 times
+# life size), scattered over a patch 1.2 m wide where a party popper went off. One colour. Ground clutter: no collider.
+format 1
+
+# A paper dot and a paper star, lying flat: a thin sheet extruded from a 2D shape, 1 cm either side of the floor line
+dot =
+    Rotate rotation=(1.5707964, 0, 0)
+        Extrusion height=0.01
+            Circle radius=0.13
+star =
+    Rotate rotation=(1.5707964, 0, 0)
+        Extrusion height=0.01
+            Union2D
+                Rhombus2D size=(0.16, 0.06)
+                Rotate2D angle=1.5707964
+                    Rhombus2D size=(0.16, 0.06)
+
+# A fifth of the vertices its size would give it: flat sheets, a few hundred triangles
+Detail detail=0.28
+    Translate translation=(0, 0.01, 0)
+        Material material=toy_paper_lilac
+            Union
+                Translate translation=(-0.13, 0, 0.41)
+                    Rotate rotation=(0, 0.40, 0)
+                        $dot
+                Translate translation=(0.46, 0, 0.49)
+                    Rotate rotation=(0, 3.12, 0)
+                        $star
+                Translate translation=(-0.42, 0, -0.48)
+                    Rotate rotation=(0, 2.49, 0)
+                        $dot
+                Translate translation=(0.48, 0, 0.13)
+                    Rotate rotation=(0, 1.42, 0)
+                        $dot
+                Translate translation=(-0.46, 0, -0.18)
+                    Rotate rotation=(0, 2.75, 0)
+                        $star
+                Translate translation=(-0.16, 0, 0.13)
+                    Rotate rotation=(0, 2.82, 0)
+                        $dot
+                Translate translation=(-0.15, 0, -0.11)
+                    Rotate rotation=(0, 2.11, 0)
+                        $dot
+                Translate translation=(0.18, 0, -0.14)
+                    Rotate rotation=(0, 2.06, 0)
+                        $star
+                Translate translation=(0.14, 0, 0.46)
+                    Rotate rotation=(0, 1.99, 0)
+                        $dot
+                Translate translation=(-0.47, 0, 0.45)
+                    Rotate rotation=(0, 1.92, 0)
+                        $dot

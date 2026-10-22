@@ -30,6 +30,8 @@ namespace SdfBattle
         private static readonly Color FlameBand = new Color(1f, 0.42f, 0.06f);
         private static readonly Color FlameCore = new Color(1f, 0.9f, 0.45f);
         private static readonly Color Smoke = new Color(0.3f, 0.26f, 0.24f);
+        private static readonly Color SteamBand = new Color(0.9f, 0.88f, 0.84f);
+        private static readonly Color SteamCore = new Color(1f, 1f, 0.97f);
 
         private sealed class Shooter
         {
@@ -269,6 +271,19 @@ namespace SdfBattle
             if (random.Value < dt * 12)
                 particles.Emit(FxParticles.Kind.Puff, start + aim * length * random.Range(0.5f, 0.9f), random.Around(aim + Vector3.up, 0.4f) * 1.2f,
                     random.Range(0.5f, 0.9f), random.Range(0.18f, 0.3f), Smoke, Color.black, gravity: -1.2f, drag: 1.5f);
+        }
+
+        /// <summary>
+        /// The toy train's chimney puff (ticket 27.10) at <paramref name="at"/>, drifting back along <paramref name="back"/> as it rises: a
+        /// few pale toon puffs; the whistle's (<paramref name="whistle"/>) are more, bigger and rise higher, to read from across the room.
+        /// </summary>
+        public void TrainPuff(Vector3 at, Vector3 back, bool whistle)
+        {
+            var count = whistle ? 7 : 3;
+            for (var i = 0; i < count; i++)
+                particles.Emit(FxParticles.Kind.Puff, at + random.Around(Vector3.up, 0.6f) * random.Range(0, 0.25f),
+                    random.Around(Vector3.up * (whistle ? 4.5f : 2.6f) + back * 1.5f, 0.35f), random.Range(1.2f, 1.8f) * (whistle ? 1.3f : 1),
+                    random.Range(0.35f, 0.55f) * (whistle ? 1.5f : 1), SteamBand, SteamCore, gravity: -0.5f, drag: 0.8f);
         }
 
         /// <summary>A lobbed shot left the muzzle: a little puff in its colour.</summary>
