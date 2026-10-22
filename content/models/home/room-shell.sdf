@@ -1,0 +1,35 @@
+# Room shell: Mushroom 42's room, a floor 4 m across (x) and 3 m deep (z) with three walls 2.2 m high and a skirting board along them.
+# The fourth wall, at +z, is left out: that is where the camera stands. The floor's top is at y = 0 and its middle on the origin; the
+# back wall is at z = -1.5 (its inner face), the side walls at x = -2 and x = 2, all 10 cm thick. In the back wall is the window's
+# opening, 0.8 m wide and 0.7 m high with its sill at 1 m, centred on x = 0.6: the window model goes at (0.6, 1, -1.55). The
+# wallpaper's stripes are in its material, not in the mesh.
+format 1
+
+Union
+    Material material=home_floor
+        # The floor, 10 cm thick, running out under the walls
+        Translate translation=(0, -0.05, -0.05)
+            Box size=(2.1, 0.05, 1.55)
+    Material material=home_wallpaper
+        Subtraction
+            Union
+                # The back wall
+                Translate translation=(0, 1.1, -1.55)
+                    Box size=(2.1, 1.1, 0.05)
+                # The side walls
+                Translate translation=(-2.05, 1.1, -0.05)
+                    Box size=(0.05, 1.1, 1.55)
+                Translate translation=(2.05, 1.1, -0.05)
+                    Box size=(0.05, 1.1, 1.55)
+            # The window's opening, cut right through the back wall
+            Translate translation=(0.6, 1.35, -1.55)
+                Box size=(0.4, 0.35, 0.2)
+    Material material=home_wood
+        # The skirting, 10 cm high and 3 cm thick, along the back and side walls
+        Union
+            Translate translation=(0, 0.05, -1.485)
+                Box size=(2, 0.05, 0.015)
+            Translate translation=(-1.985, 0.05, 0)
+                Box size=(0.015, 0.05, 1.5)
+            Translate translation=(1.985, 0.05, 0)
+                Box size=(0.015, 0.05, 1.5)

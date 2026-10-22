@@ -1,0 +1,30 @@
+# Desk: a gamer's wooden desk 1.2 m wide (x), 0.6 m deep (z) and 0.55 m high, built for a mushroom about 1 m tall. The top is 4 cm
+# thick with rounded edges, standing on a side panel at the left and a cabinet at the right with one drawer in its front (towards
+# +z) and a brass handle on the drawer. Between them is the knee space. The feet are on the ground (y = 0), the middle of the desk
+# on the origin, the top's surface at y = 0.55.
+format 1
+
+Union
+    Material material=home_wood
+        Union
+            # The top
+            Translate translation=(0, 0.53, 0)
+                RoundBox size=(0.6, 0.02, 0.3) roundness=0.015
+            # The left side panel
+            Translate translation=(-0.57, 0.255, 0)
+                RoundBox size=(0.03, 0.255, 0.27) roundness=0.01
+            # The cabinet on the right: 40 cm wide, from the floor to the top
+            Translate translation=(0.4, 0.255, 0)
+                RoundBox size=(0.2, 0.255, 0.27) roundness=0.01
+            # The back panel between them
+            Translate translation=(-0.1, 0.38, -0.26)
+                Box size=(0.3, 0.14, 0.01)
+            # The drawer's front, standing 2 cm proud of the cabinet
+            Translate translation=(0.4, 0.4, 0.285)
+                RoundBox size=(0.18, 0.08, 0.015) roundness=0.008
+    Material material=home_gold
+        # The handle on the drawer: a bar on two posts
+        Union
+            Capsule a=(0.35, 0.4, 0.325) b=(0.45, 0.4, 0.325) radius=0.011
+            Capsule a=(0.35, 0.4, 0.295) b=(0.35, 0.4, 0.325) radius=0.008
+            Capsule a=(0.45, 0.4, 0.295) b=(0.45, 0.4, 0.325) radius=0.008

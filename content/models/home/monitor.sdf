@@ -1,0 +1,26 @@
+# Monitor: a chunky old monitor 0.8 m wide and 0.5 m high on a foot and neck, 0.65 m tall in all, standing on the desk. The bezel is
+# 6 cm wide round a 68 x 38 cm screen, which is a separate part, `screen` (content/parts/screen.sdf): a flat slab, 5 mm proud of the
+# bezel, with the picture on it. A deep hump behind the glass makes it look like a box of a monitor. The foot is on the ground
+# (y = 0, the desk's top when placed), the screen's front towards +z, the middle on the origin.
+format 1
+
+Union
+    Part part=screen
+    Material material=home_plastic
+        Union
+            # The head: 80 x 50 cm, 7 cm deep at the front, its middle 0.4 m up
+            Translate translation=(0, 0.4, 0)
+                RoundBox size=(0.4, 0.25, 0.035) roundness=0.025
+            # The hump behind
+            Translate translation=(0, 0.4, -0.1)
+                Ellipsoid radii=(0.3, 0.2, 0.1)
+            # The neck
+            Translate translation=(0, 0.1, -0.05)
+                RoundBox size=(0.05, 0.12, 0.025) roundness=0.015
+            # The foot, a flat oval slab
+            Translate translation=(0, 0.014, 0)
+                RoundBox size=(0.17, 0.014, 0.12) roundness=0.012
+    Material material=home_plastic_red
+        # A small power light in the bezel's lower right corner
+        Translate translation=(0.34, 0.18, 0.04)
+            Sphere radius=0.012

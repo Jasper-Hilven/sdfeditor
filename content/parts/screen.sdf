@@ -1,0 +1,9 @@
+# Screen: the monitor's glass, a flat slab 68 cm wide, 38 cm high and 1.6 cm deep, in the monitor's space with its front at 4 cm, 5 mm
+# proud of the bezel's face, centred on x = 0 and y = 0.4 above the monitor's foot. It is the one flat face the story capture
+# paints with a picture: the mesh has no UVs, so the screen material derives them from the vertex's _LOCAL_POSITION (u = x / 0.68 + 0.5,
+# v = (y - 0.4) / 0.382 + 0.5). Its own material here is a stand-in for that one.
+format 1
+
+Material material=home_screen
+    Translate translation=(0, 0.4, 0.032)
+        Box size=(0.34, 0.191, 0.008)
