@@ -1,0 +1,28 @@
+# Prime's stem (ticket 33.1): Chanterelle Prime's body below the cap, the chanterelle scout's stem (content/parts/chanterelle_scout.sdf,
+# copied: an edit there is not followed here) with its floating eyes and hands, at 0.72 of the scout's size so that Prime
+# assembled is 1.41 m tall, which the boss scene scales by 4.6 to 6.5 m. He carries the medal (prime-medal) and the cap (prime-cap).
+# Pivot: the origin is the middle of the base, standing on the ground, +z forward. The stem's top runs up into the cap's funnel,
+# where the cap's pivot is: prime-cap at (0, 0.9216, 0) in this model, prime-medal at (0, 0.662, 0.112).
+# The eyes (eye.0, eye.1) and hands (hand.0, hand.1) are the scout's parts, as it has them, scaled with the body.
+format 1
+
+Scale scale=(0.72, 0.72, 0.72)
+    # The scout's coordinates, shifted up 0.13 so that the base is on the ground
+    Translate translation=(0, 0.13, 0)
+        Union
+            # The stem, up into the cap's funnel (its top is at 1.24 in the scout's coordinates, the cap's pivot is at 1.15)
+            Material material=chanterelle_flesh
+                SmoothUnion smoothness=0.12
+                    Translate translation=(0, 0.62, 0)
+                        CappedCone height=0.62 bottomRadius=0.2 topRadius=0.15
+                    Translate translation=(0, 0.1, 0)
+                        Ellipsoid radii=(0.26, 0.12, 0.26)
+            # Eyes, mirrored: as the scout's
+            SymmetryX
+                Translate translation=(0.13, 0.86, 0.3)
+                    Part part=eye
+            # Hands, mirrored: as the scout's
+            SymmetryX
+                Translate translation=(0.29, 0.55, 0.1)
+                    Material material=chanterelle_flesh
+                        Part part=hand

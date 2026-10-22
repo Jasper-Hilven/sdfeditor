@@ -1,0 +1,28 @@
+# Prime's cape (ticket 33.1): a short royal blue cape with a cream fur trim, 0.65 m long (3 m at 4.6 times) and about 0.6 m wide,
+# a curved sheet hanging from the cap's back rim and wrapping a little round the cap's side. 2 cm thick, so that it has two sides.
+# Pivot: the origin is the middle of the top edge, on the cap's back rim; in prime-cap it is at (0, 0.338, -0.432). The cape swings
+# about x and z from there (a damped spring in the script). It hangs down along -y and curves round a vertical axis 0.43 m
+# in front of the pivot, the rim's own radius.
+format 1
+
+Union
+    # The cloth, from just under the fur down to the hem
+    Material material=prime_cape
+        Intersection
+            Subtraction
+                Translate translation=(0, -0.36, 0.43)
+                    CappedCylinder radius=0.43 height=0.29
+                Translate translation=(0, -0.36, 0.43)
+                    CappedCylinder radius=0.41 height=0.3
+            Translate translation=(0, -0.36, 0.05)
+                Box size=(0.31, 0.35, 0.2)
+    # The fur trim along the top edge, a little thicker, its top 2 cm above the pivot so that it sits in the cap's rim
+    Material material=prime_fur
+        Intersection
+            Subtraction
+                Translate translation=(0, -0.025, 0.43)
+                    CappedCylinder radius=0.436 height=0.045
+                Translate translation=(0, -0.025, 0.43)
+                    CappedCylinder radius=0.404 height=0.05
+            Translate translation=(0, -0.025, 0.05)
+                Box size=(0.32, 0.07, 0.2)
