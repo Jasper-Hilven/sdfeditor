@@ -670,4 +670,17 @@ telegraph readability at Ultra Low.
 
 ## Status
 
-**Not started.**
+Done in code and data (subtickets 33.1-33.9, all in this folder); left for a human look. `dotnet test`: 533 + 1129 passed; Unity EditMode: `SdfBattle.Tests` 415, `SdfCampaign.Tests` 53, all passed; `BossPlayTest` (all three phases, both transitions, the victory beat, RETRY PHASE and RESTART FIGHT) and `CampaignPlayTest` pass; Check Navmesh is OK in all three phase layouts.
+
+- **33.1 Prime's model**: `characters/prime/` (stem, cap, cape, medal; `prime-crown` reused from `home/`), `PrimeRig` and `chanterelle-prime.prefab`. Prime is scaled 0.72 of the scout so he is 1.41 m; the boss scene scales him 4.6 times (6.3 m, cap 4.4 m across).
+- **33.2 Arena models**: 19 models and 17 materials (Royal Box, corner, plinth, pillars, shelters, barriers, wall, floodlight, crowd).
+- **33.3 Level file**: `arena.level`; `layout boss`, `phases=`, `terrace=`, the `boss` section, `area=` and `facing=` on trees; `Arena.unity` with `Phase <n>` groups; a Boss navmesh agent and one bake per phase layout.
+- **33.4 Rules**: `BossRules`, `BossState`, `BossAttackPlanner`, `BossParts`, `MatchRules.Objective`, spore gains, `BattleSetup` boss fields (EditMode tests).
+- **33.5 Prime-copter**: models, rig, `PrimeCopter` (flight, dive, tank drop, sacs, crash).
+- **33.6 Runtime**: `Boss`, `PrimeBody`, `PrimeWalker`, `BossArena`, `BossTelegraphs`, shield, `_CrowdCheer`, bot temperaments and marker avoidance, the golden minigun.
+- **33.7 HUD and end screens**: `BossHud`, boss medals, Prime's taunts and tips, RETRY PHASE / RESTART FIGHT.
+- **33.8 Transitions and victory**: as 32's `Beat` data (not `content/story/boss.txt`; 32 keeps beat text as C#), B7 in the arena with the giant Prime, the shrink, pixel-block floor break-up.
+- **33.9 Balance and web check**: a fight simulation retuned the bars (1800 / 4500 / 14000 at Normal, sacs 400, daze 10 s; a Normal fight is 6.0 min for an expert, 9.1 for an average player); web preset about 145-155k triangles and 181-196 draws (draws are close to 200 in phase 3); the boss step uses scene `Arena`.
+- **Changes against the plan**: the Champion's Corner sits at (-47.5, 0) to stay inside the play area; the Royal Box at (49, 0); the machine zone at (50, -26); sun elevation 20 degrees in the level; Easy keeps Normal's bars.
+- **Left for a human**: Play-mode looks (Prime's size and poses, the copter and pendulum, telegraphs at Ultra Low, the terrace risers, the crowd), the balance by feel (phase 1 is by far the deadliest; Hard is very hard), the real web run (frame time, the crash and shatter peaks), Level Select's card image, audio (none), the path from the computer through B7 into the fight and the ending, floodlights without emission.
+- **After merging, the main checkout must**: `sdf unity --resolution 256 --lods 3` (meshes and bakes every level, including `arena`), then in Unity `LevelBuilder.BuildAllInBatch` (BuilderVersion is 25), `PrimeBuilder.BuildInBatch` and `PrimeCopterBuilder.BuildInBatch`, `Tools > SDF GUI > Rebuild Prefabs and Scene` (the Defeat and Victory prefabs carry new fields), then Check Navmesh. Open Unity once so the new shaders (`BossShield`, `BossPixels`, `BossFlash`) import. Keep one `FirstPersonController.Shove`, and take the higher `BuilderVersion` if work from elsewhere bumped it.
