@@ -1,0 +1,16 @@
+# Worktop edge (ticket 28.7): the 2.4 m oak slab (4 cm real) round the play area as a frame piece, so the ground is not drawn twice. Outside 152 x 102 m with a 0.6 m rounded
+# edge (flat top from the inner edge to 0.4 m in), top at y = 0; its inner edge is the play area's 150 x 100 m, where it meets the ground at y = 0 without a seam (a vertical cut down to y = -1.2). Below that a 1.2 m thick
+# flange runs in to 146 x 96 m (y -2.4 to -1.2, under the ground), which closes the gap to the counter-base seen from the floor. Origin at the worktop's surface centre, no collider.
+format 1
+collider none
+
+Detail detail=0.25
+    Material material=kitchen_oak
+        Subtraction
+            Translate translation=(0, -1.2, 0)
+                RoundBox size=(76, 1.2, 51) roundness=0.6
+            Union
+                Translate translation=(0, -0.1, 0)
+                    Box size=(75, 1.1, 50)
+                Translate translation=(0, -1.5, 0)
+                    Box size=(73, 1.5, 48)

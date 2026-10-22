@@ -1,0 +1,162 @@
+# Counter base (ticket 28.7): the island's cabinet base under the worktop, 146 x 96 m, from the floor (y = -55) up to y = -1.2, just under the ground at y = 0, so it never
+# shares a plane with it (the worktop-edge's flange closes the gap seen from the floor). Origin at the worktop's surface centre like kitchen-room, so the level places it at
+# (0, 0, 0). Set 3 m back under the 152 x 102 m worktop: carcass 143.6 x 93.6, door fronts 1.2 m proud to 146 x 96, a plinth 3 m further back at the floor. Sage doors and
+# drawer fronts, brass handles, on all four sides (7 doors along x, 5 along z). No collider (out of reach under the worktop). Detail 0.06 (about 1.2 m cells, near the floor of the
+# format's detail) gives about 7.2k triangles at LOD0 (budget 6k): at detail 0.1 it was 11.4k, at 0.3 18.5k, the handles and door edges cost the most.
+format 1
+collider none
+
+Detail detail=0.06
+    Union
+        Material material=kitchen_cabinet
+            Union
+                Translate translation=(0, -26.1, 0)
+                    Box size=(71.8, 24.9, 46.8)
+                Translate translation=(0, -52.5, 0)
+                    Box size=(68.8, 2.5, 43.8)
+                Translate translation=(-62.5714, -32.5, 47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(-62.5714, -8.1, 47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(-62.5714, -32.5, -47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(-62.5714, -8.1, -47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(-41.7143, -32.5, 47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(-41.7143, -8.1, 47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(-41.7143, -32.5, -47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(-41.7143, -8.1, -47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(-20.8571, -32.5, 47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(-20.8571, -8.1, 47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(-20.8571, -32.5, -47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(-20.8571, -8.1, -47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(0, -32.5, 47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(0, -8.1, 47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(0, -32.5, -47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(0, -8.1, -47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(20.8571, -32.5, 47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(20.8571, -8.1, 47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(20.8571, -32.5, -47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(20.8571, -8.1, -47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(41.7143, -32.5, 47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(41.7143, -8.1, 47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(41.7143, -32.5, -47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(41.7143, -8.1, -47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(62.5714, -32.5, 47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(62.5714, -8.1, 47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(62.5714, -32.5, -47.4)
+                    RoundBox size=(9.5286, 18, 0.6) roundness=0.4
+                Translate translation=(62.5714, -8.1, -47.4)
+                    RoundBox size=(9.5286, 5.4, 0.6) roundness=0.4
+                Translate translation=(72.4, -32.5, -38.4)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(72.4, -8.1, -38.4)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(-72.4, -32.5, -38.4)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(-72.4, -8.1, -38.4)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(72.4, -32.5, -19.2)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(72.4, -8.1, -19.2)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(-72.4, -32.5, -19.2)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(-72.4, -8.1, -19.2)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(72.4, -32.5, 0)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(72.4, -8.1, 0)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(-72.4, -32.5, 0)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(-72.4, -8.1, 0)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(72.4, -32.5, 19.2)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(72.4, -8.1, 19.2)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(-72.4, -32.5, 19.2)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(-72.4, -8.1, 19.2)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(72.4, -32.5, 38.4)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(72.4, -8.1, 38.4)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+                Translate translation=(-72.4, -32.5, 38.4)
+                    RoundBox size=(0.6, 18, 8.7) roundness=0.4
+                Translate translation=(-72.4, -8.1, 38.4)
+                    RoundBox size=(0.6, 5.4, 8.7) roundness=0.4
+        Material material=kitchen_brass
+            Union
+                Capsule a=(-57.0429, -27, 49.2) b=(-57.0429, -17, 49.2) radius=1
+                Capsule a=(-66.0714, -8, 49.2) b=(-59.0714, -8, 49.2) radius=1
+                Capsule a=(-57.0429, -27, -49.2) b=(-57.0429, -17, -49.2) radius=1
+                Capsule a=(-66.0714, -8, -49.2) b=(-59.0714, -8, -49.2) radius=1
+                Capsule a=(-36.1857, -27, 49.2) b=(-36.1857, -17, 49.2) radius=1
+                Capsule a=(-45.2143, -8, 49.2) b=(-38.2143, -8, 49.2) radius=1
+                Capsule a=(-36.1857, -27, -49.2) b=(-36.1857, -17, -49.2) radius=1
+                Capsule a=(-45.2143, -8, -49.2) b=(-38.2143, -8, -49.2) radius=1
+                Capsule a=(-15.3286, -27, 49.2) b=(-15.3286, -17, 49.2) radius=1
+                Capsule a=(-24.3571, -8, 49.2) b=(-17.3571, -8, 49.2) radius=1
+                Capsule a=(-15.3286, -27, -49.2) b=(-15.3286, -17, -49.2) radius=1
+                Capsule a=(-24.3571, -8, -49.2) b=(-17.3571, -8, -49.2) radius=1
+                Capsule a=(5.5286, -27, 49.2) b=(5.5286, -17, 49.2) radius=1
+                Capsule a=(-3.5, -8, 49.2) b=(3.5, -8, 49.2) radius=1
+                Capsule a=(5.5286, -27, -49.2) b=(5.5286, -17, -49.2) radius=1
+                Capsule a=(-3.5, -8, -49.2) b=(3.5, -8, -49.2) radius=1
+                Capsule a=(26.3857, -27, 49.2) b=(26.3857, -17, 49.2) radius=1
+                Capsule a=(17.3571, -8, 49.2) b=(24.3571, -8, 49.2) radius=1
+                Capsule a=(26.3857, -27, -49.2) b=(26.3857, -17, -49.2) radius=1
+                Capsule a=(17.3571, -8, -49.2) b=(24.3571, -8, -49.2) radius=1
+                Capsule a=(47.2429, -27, 49.2) b=(47.2429, -17, 49.2) radius=1
+                Capsule a=(38.2143, -8, 49.2) b=(45.2143, -8, 49.2) radius=1
+                Capsule a=(47.2429, -27, -49.2) b=(47.2429, -17, -49.2) radius=1
+                Capsule a=(38.2143, -8, -49.2) b=(45.2143, -8, -49.2) radius=1
+                Capsule a=(68.1, -27, 49.2) b=(68.1, -17, 49.2) radius=1
+                Capsule a=(59.0714, -8, 49.2) b=(66.0714, -8, 49.2) radius=1
+                Capsule a=(68.1, -27, -49.2) b=(68.1, -17, -49.2) radius=1
+                Capsule a=(59.0714, -8, -49.2) b=(66.0714, -8, -49.2) radius=1
+                Capsule a=(74.2, -27, -33.7) b=(74.2, -17, -33.7) radius=1
+                Capsule a=(74.2, -8, -41.9) b=(74.2, -8, -34.9) radius=1
+                Capsule a=(-74.2, -27, -33.7) b=(-74.2, -17, -33.7) radius=1
+                Capsule a=(-74.2, -8, -41.9) b=(-74.2, -8, -34.9) radius=1
+                Capsule a=(74.2, -27, -14.5) b=(74.2, -17, -14.5) radius=1
+                Capsule a=(74.2, -8, -22.7) b=(74.2, -8, -15.7) radius=1
+                Capsule a=(-74.2, -27, -14.5) b=(-74.2, -17, -14.5) radius=1
+                Capsule a=(-74.2, -8, -22.7) b=(-74.2, -8, -15.7) radius=1
+                Capsule a=(74.2, -27, 4.7) b=(74.2, -17, 4.7) radius=1
+                Capsule a=(74.2, -8, -3.5) b=(74.2, -8, 3.5) radius=1
+                Capsule a=(-74.2, -27, 4.7) b=(-74.2, -17, 4.7) radius=1
+                Capsule a=(-74.2, -8, -3.5) b=(-74.2, -8, 3.5) radius=1
+                Capsule a=(74.2, -27, 23.9) b=(74.2, -17, 23.9) radius=1
+                Capsule a=(74.2, -8, 15.7) b=(74.2, -8, 22.7) radius=1
+                Capsule a=(-74.2, -27, 23.9) b=(-74.2, -17, 23.9) radius=1
+                Capsule a=(-74.2, -8, 15.7) b=(-74.2, -8, 22.7) radius=1
+                Capsule a=(74.2, -27, 43.1) b=(74.2, -17, 43.1) radius=1
+                Capsule a=(74.2, -8, 34.9) b=(74.2, -8, 41.9) radius=1
+                Capsule a=(-74.2, -27, 43.1) b=(-74.2, -17, 43.1) radius=1
+                Capsule a=(-74.2, -8, 34.9) b=(-74.2, -8, 41.9) radius=1
