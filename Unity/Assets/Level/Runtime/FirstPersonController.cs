@@ -47,6 +47,9 @@ namespace SdfLevel
         private bool jumpWanted;
         private PathMoverCar standingOn;
         private int standingFrame = -1;
+        // Ticket 29.7: the slide on a slick (soap) zone; unused where the level has no zones
+        private Vector2 slide;
+        private bool sliding;
 
         /// <summary>Where the view looks up or down, degrees, positive down (as a camera's x rotation).</summary>
         public float Pitch => pitch;
@@ -106,6 +109,8 @@ namespace SdfLevel
             SetAim(yaw, 0);
             verticalSpeed = 0;
             standingOn = null;
+            slide = Vector2.zero;
+            sliding = false;
             move = Vector2.zero;
             jumpWanted = false;
         }
@@ -164,6 +169,27 @@ namespace SdfLevel
             standingFrame = Time.frameCount;
         }
 
+        /// <summary>
+        /// The wanted horizontal velocity changed by the zones (<see cref="SdfBattle.ZoneRules"/>): on a slick a bot walks x1.2 faster; a
+        /// player's velocity moves towards x1.3 of the wanted one by the slick's slow acceleration and braking, and keeps going in the
+        /// air after a jump off the soap until the next landing on normal ground.
+        /// </summary>
+        private Vector2 ApplyZones(Vector2 wanted)
+        {
+            var onSlick = LevelZones.Current.IsSlick(transform.position);
+            if (!readsInput)
+                return wanted * SdfBattle.ZoneRules.TopSpeedFactor(onSlick, true);
+            if (controller.isGrounded)
+                sliding = onSlick;
+            if (!sliding)
+            {
+                slide = wanted;
+                return wanted;
+            }
+            slide = SdfBattle.ZoneRules.Slide(slide, wanted * SdfBattle.ZoneRules.TopSpeedFactor(true, false), walkSpeed, Time.deltaTime);
+            return slide;
+        }
+
         private void Move()
         {
             if (controller == null || !controller.enabled)
@@ -185,8 +211,17 @@ namespace SdfLevel
                 verticalSpeed -= gravity * Time.deltaTime;
             }
             jumpWanted = false;
+            // Ticket 29.7: soap makes a player slide and speeds a bot up; a level without zones skips it
+            if (LevelZones.Current != null)
+            {
+                var zoned = ApplyZones(new Vector2(velocity.x, velocity.z));
+                velocity.x = zoned.x;
+                velocity.z = zoned.y;
+            }
             velocity.y = verticalSpeed;
             var flags = controller.Move(velocity * Time.deltaTime);
+            if (sliding)
+                slide = new Vector2(controller.velocity.x, controller.velocity.z);
             // A head against a ceiling (a gate's arch, a stair above) ends the rise
             if ((flags & CollisionFlags.Above) != 0 && verticalSpeed > 0)
                 verticalSpeed = 0;

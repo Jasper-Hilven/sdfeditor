@@ -531,6 +531,8 @@ namespace SdfLevel.Editor
             var movers = AddMovers(scene, data);
             // The level's steam and drips (ticket 29.1) likewise
             LevelAtmosphere.AddSteam(scene, data);
+            // The zone mask (ticket 29.7): slick and wet zones read by position
+            SdfLevel.Editor.LevelZonesBuilder.Add(scene, level, data, battle);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
             var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
                 player, battle != null ? battle.gameObject : null);

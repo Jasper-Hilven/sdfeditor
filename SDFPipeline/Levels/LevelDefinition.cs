@@ -65,6 +65,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The boxes the machine helicopters fly round (ticket 29.6), in the file's order.</summary>
     public IReadOnlyList<NoFlySpec> NoFly { get; init; } = [];
 
+    /// <summary>The ground regions that make players slide or conduct (ticket 29.7), in the file's order.</summary>
+    public IReadOnlyList<ZoneSpec> Zones { get; init; } = [];
+
     /// <summary>The vehicles that run a closed path on a timetable (ticket 27.3), in the file's order.</summary>
     public IReadOnlyList<MoverSpec> Movers { get; init; } = [];
 

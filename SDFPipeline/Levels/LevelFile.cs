@@ -151,6 +151,14 @@ namespace SDFPipeline.Levels;
 /// Only helicopters keep to them; scouts, tanks and shots are unaffected.
 /// </para>
 /// <para>
+/// <c>zone</c> lines (ticket 29.7, any number) give a ground region a rule: <c>zone suds slick</c> (players slide: ground acceleration x0.25,
+/// braking x0.1, top speed x1.3; bots only get x1.2 top speed) or <c>zone puddle wet</c> (a scout in it, or out of it less than 2 s ago,
+/// takes x1.5 damage from the electro gun). The region is one of the <c>regions</c> (or painted by a placement's <c>ground=</c>); a region
+/// may have both rules, one line each, and a rule is given once per region. They are baked as a byte mask over the playable area, 1 m
+/// cells (zones.bin, described under <c>zones</c> in level.json), read at runtime by position: no colliders, no navmesh change. Where
+/// regions overlap the later region wins, as it is drawn. A level without <c>zone</c> lines bakes no mask.
+/// </para>
+/// <para>
 /// A <c>mover</c> (ticket 27.3; there may be several, each with its own name) is a vehicle on a fixed timetable: <c>mover train speed=7
 /// gap=0.5 phase=0</c>, with below it its closed path, <c>Stadium center=(0, 0) halfLength=12 radius=20</c> (straights along z at
 /// x = centre ± radius, half-circle ends; anticlockwise from above, arc length 0 at the east straight's south end) or <c>Polyline
@@ -210,14 +218,15 @@ public static class LevelFile
     private const string Turret = "turret";
     private const string Machines = "machines";
     private const string NoFly = "nofly";
+    private const string Zone = "zone";
     private const string Flag = "flag";
     private const string Pod = "pod";
     private const string Mover = "mover";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Fog, Steam, Drip, Sides, Neutral, Machines, NoFly, Mover];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Fog, Steam, Drip, Sides, Neutral, Machines, NoFly, Zone, Mover];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
-    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover, Steam, Drip, NoFly];
+    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover, Steam, Drip, NoFly, Zone];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -257,6 +266,7 @@ public static class LevelFile
         var steam = new List<SteamSpec>();
         var drips = new List<DripSpec>();
         var noFly = new List<NoFlySpec>();
+        var zones = new List<ZoneSpec>();
         MachineSet? machineSet = null;
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
@@ -336,6 +346,12 @@ public static class LevelFile
                 case NoFly:
                     noFly.Add(ReadNoFly(line, cursor));
                     break;
+                case Zone:
+                    var zone = ReadZone(line, cursor);
+                    if (zones.FirstOrDefault(z => z.Region == zone.Region && z.Rule == zone.Rule) is { } sameZone)
+                        throw new SdfProgramFileException(line.Number, $"The region '{zone.Region}' is given the rule {ZoneRuleName(zone.Rule)} twice, first on line {sameZone.Line}");
+                    zones.Add(zone);
+                    break;
                 case Machines:
                     machineSet = ReadMachineSet(line, cursor);
                     machineSetLine = line.Number;
@@ -361,6 +377,12 @@ public static class LevelFile
                     $"The helicopters' flight ceiling ({FileSyntax.Number(least)} m) is under {FileSyntax.Number(MachineSet.LeastCeiling)} m, too low to clear a base; the room is too low, or give a higher 'ceiling'");
         }
 
+        // A zone names a region of the level: a listed one, or one a placement paints
+        foreach (var zone in zones)
+            if (regions.All(r => r.Name != zone.Region) && placements.All(p => p.Ground != zone.Region))
+                throw new SdfProgramFileException(zone.Line,
+                    $"The zone names the region '{zone.Region}', which the level does not have; its regions are {string.Join(", ", regions.Select(r => r.Name))}");
+
         foreach (var scatter in scatters.Concat(trees))
             if (drawGroups.All(g => g.Name != scatter.Group))
                 throw new SdfProgramFileException(scatter.Line,
@@ -371,7 +393,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, NoFly = noFly, Movers = movers,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, NoFly = noFly, Zones = zones, Movers = movers,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -532,6 +554,21 @@ public static class LevelFile
             : null;
         parameters.Done("set", "ceiling");
         return new MachineSet(name, ceiling);
+    }
+
+    private static readonly string[] ZoneRules = ["slick", "wet"];
+
+    private static string ZoneRuleName(ZoneRule rule) => rule == ZoneRule.Slick ? "slick" : "wet";
+
+    /// <summary>zone suds slick: a ground region and its rule (ticket 29.7).</summary>
+    private static ZoneSpec ReadZone(SourceLine line, Cursor cursor)
+    {
+        var region = cursor.ReadName("a region's name, like suds");
+        var rule = cursor.ReadName($"the zone's rule: {string.Join(" or ", ZoneRules)}");
+        if (!ZoneRules.Contains(rule))
+            throw cursor.Error($"A zone has no rule '{rule}'; its rules are {string.Join(" and ", ZoneRules)}");
+        cursor.ExpectEnd();
+        return new ZoneSpec(region, rule == "slick" ? ZoneRule.Slick : ZoneRule.Wet, line.Number);
     }
 
     /// <summary>nofly at=(0, 38.75) size=(51, 22.5) yaw=180: a box the helicopters fly round (ticket 29.6).</summary>
