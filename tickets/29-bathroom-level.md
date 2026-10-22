@@ -349,24 +349,18 @@ bots cannot plan round).
 
 ## Subtickets (one agent each, merged on finish)
 
-- **29.1 — Room look and steam**: per-level room materials (`room ... walls=<mat> ceiling=<mat>`), the bathroom wall checker and plain
-  ceiling, the `fog` line through the bake and `LevelBuilder`, fog in `SdfToon` and `SdfToonOutline`, the camera clear colour, the
-  window light, the steam plumes and the drip. Tests for the parser.
-- **29.2 — Floor clutter models**: suds, droplets, bubble, hairpins, swabs, bath beads, and the five ground materials.
-- **29.3 — Knee cover and tall blockers**: soap bars, sponges, ducklings, bath bombs, washcloth, caps, shampoo bottles, lotion pump,
-  toilet rolls.
-- **29.4 — Landmarks and base**: tub, riser, towel, giant duck, pyramid, bath brush, scale, drain, window, soap dish, cup, toothbrushes.
-- **29.5 — Bathroom machines**: duck tank, spray copter, hairdryer turret in red and blue; the machine set per level; the copter's no-fly
-  boxes.
-- **29.6 — Level file and tests**: `bathroom.level` with every section commented, stubs where models have not landed,
-  `BattleSidesTests.LevelNames` and its weapon table, `ContentBathroom_HasOnlyBathroom` (no model or material from another theme's
-  folder, no mushroom models other than the players' battle objects), the bake.
-- **29.7 — Slick and wet zones**: the zone mask in the bake; the player motor's slick friction; the bots' slick speed; wet scouts and the
-  electro gun's ×1.5; EditMode tests for the rules in `SdfBattle.Core`.
-- **29.8 — Unity check**: rebuild, Check Navmesh, snapshots and budgets on both presets, a full Play-mode match with 7 bots; in the main
-  checkout re-mesh and rebake after merging.
+- [29.1 — Room look and steam](29.1-room-look-and-steam.md): bathroom wall tiles and plain ceiling through 27.1's room looks, the generic `fog` line (bake, `LevelBuilder`, fog in
+  `SdfToon`/`SdfToonOutline`, camera clear colour), the window light data, the steam plumes and the drip.
+- [29.2 — Floor clutter models](29.2-models-floor-clutter.md): suds, droplets, bubble, hairpins, swabs, bath beads, and the five ground materials.
+- [29.3 — Knee cover and tall blockers](29.3-models-knee-cover-and-blockers.md): soap bars, sponges, ducklings, bath bombs, washcloth, caps, shampoo bottles, lotion pump, toilet rolls.
+- [29.4 — Big landmarks](29.4-models-big-landmarks.md): tub, riser, towel, giant duck, toilet-roll pyramid.
+- [29.5 — Small landmarks and base](29.5-models-small-landmarks-and-base.md): bath brush, scale, drain, window, soap dish, cup, toothbrushes.
+- [29.6 — Bathroom machines](29.6-bathroom-machines.md): duck tank, spray copter, hairdryer turret in red and blue as the `bathroom` set; the copters' no-fly boxes.
+- [29.7 — Slick and wet zones](29.7-slick-and-wet-zones.md): the zone mask in the bake; the player motor's slick friction; the bots' slick speed; wet scouts and the electro gun's x1.5.
+- [29.8 — Level file and tests](29.8-level-file.md): `bathroom.level` with every section commented, `BattleSidesTests.LevelNames` and its weapon table, the theme test, the bake.
+- [29.9 — Unity check](29.9-unity-check.md): rebuild, Check Navmesh, snapshots and budgets on both presets; in the main checkout re-mesh and rebake after merging.
 
-29.6 can start at once on stubs; 29.2-29.5 in parallel; 29.7 after 29.6; 29.8 last.
+Order: 29.1 to 29.9, one agent at a time (the models need no code; 29.8 needs all of them).
 
 ## Acceptance
 
