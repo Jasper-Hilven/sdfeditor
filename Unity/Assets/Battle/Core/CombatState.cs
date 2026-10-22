@@ -212,13 +212,17 @@ namespace SdfBattle
         public bool CanHurt(Team target, Team attacker) =>
             Match.Started && Match.Phase != RoundPhase.Countdown && (Match.Rules.friendlyFire || target != attacker);
 
+        /// <summary>Whether this damage can hurt a thing of team <paramref name="target"/> that is not a player: a hazard's (<see cref="Damage.Neutral"/>) can whatever the team.</summary>
+        public bool CanHurt(Team target, Damage damage) =>
+            damage.Neutral ? Match.Started && Match.Phase != RoundPhase.Countdown : CanHurt(target, damage.AttackerTeam);
+
         /// <summary>
         /// Hurts a player, if <see cref="CanHurt(PlayerState, Team)"/>: takes the amount (times <see cref="DamageTakenOf"/>) off their
         /// health (no further than 0) and at 0 reports their death with this damage's killer and weapon. Returns the health it took.
         /// </summary>
         public float Hurt(PlayerState victim, Damage damage)
         {
-            if (damage.Amount <= 0 || !CanHurt(victim, damage.AttackerTeam))
+            if (damage.Amount <= 0 || !Match.CanHurt(victim, damage))
                 return 0;
             var amount = damage.Amount * (DamageTakenOf != null ? Mathf.Max(0, DamageTakenOf(victim)) : 1);
             var taken = Mathf.Min(victim.Health, amount);

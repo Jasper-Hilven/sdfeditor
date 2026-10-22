@@ -1,0 +1,28 @@
+# Ribbon bridge 0: a grey ribbon cable draped over a PCIe slot, 16 m long (z), 5 m wide (x) and 4 m high (250 times life size): a 4 m flat top between two 38 degree
+# ramps, the cable folded flat at both feet (0.9 m), its sides closed down to the board (pc_ribbon_grey) and a dark-grey pin-1 stripe along the top's -x edge
+# (pc_ribbon_stripe). Mesh collider.
+format 1
+
+# A solid trapezoid profile extruded across the cable, the flat feet, and the stripe as a slice of the profile pushed 8 cm out
+Detail detail=0.57
+    Union
+        Material material=pc_ribbon_grey
+            Union
+                Translate translation=(0, 2, 0)
+                    Rotate rotation=(0, 1.571, 0)
+                        Extrusion height=2.5
+                            Trapezoid2D bottomRadius=7.12 topRadius=2 height=2
+                Union
+                    Translate translation=(0, 0.15, 7.56)
+                        Box size=(2.5, 0.15, 0.44)
+                    Translate translation=(0, 0.15, -7.56)
+                        Box size=(2.5, 0.15, 0.44)
+        Material material=pc_ribbon_stripe
+            Intersection
+                Round radius=0.08
+                    Translate translation=(0, 2, 0)
+                        Rotate rotation=(0, 1.571, 0)
+                            Extrusion height=2.5
+                                Trapezoid2D bottomRadius=7.12 topRadius=2 height=2
+                Translate translation=(-1.85, 2.5, 0)
+                    Box size=(0.35, 2.5, 9)

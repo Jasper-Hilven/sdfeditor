@@ -1,0 +1,205 @@
+# Toy castle 0, the block castle (ticket 27.7): a base for either side of the toy box, built from the parts in content/parts/toys/castle/ the way castle0 is. One
+# model serves both sides (the level turns it by yaw 90 and -90, its gate, +z, towards the middle). The curtain wall of beech and cream blocks (60 times life size)
+# is 26 m between its corner tower centres (x), and 19 m from its rear face (z = -9.5) to its front face (z = 9.5), with a wall-walk at 5 m and cream merlon blocks on
+# the outer edge: a front wall of the gate bay and two bays either side, a rear wall of five bays and a side wall of three bays each. Four round corner towers (at
+# x = +-13, z = +-7.5, with lilac and mustard cone roofs to 10 m) take the wall ends. The gate bay carries the gate tower, an arch block with the walk running through
+# the tower above. The keep of three stacked blocks (9 m, a lilac cone roof to 12 m) stands against the rear wall, and two stairs of 0.3 m steps climb along the inside
+# of the side walls to the walk. Beyond the wall (towers aside) it reaches 20 m in z and 31 m in x.
+# Floor heights (ticket 09, as castle0): the bays' walks, the gate tower's walkway and the stairs' top landing meet at 5 m; the towers' rings and the keep's ring are
+# at 5.3 m, 30 cm above the walk, a step the walk climbs onto (the joint pads of 5.15 m are not needed: the bays meet end to end under the towers). The bays under a
+# tower end inside it. The stairs end at 4.8 m, 20 cm under the walk, and step sideways onto it. No red or blue: the side's pennants (pennant-red, pennant-blue) are placed by the level.
+# Only Part uses under translates, turns, uniform scales and a symmetry, so each repeated part is meshed once and drawn per use.
+format 1
+collider mesh
+
+Union
+    # The front wall: the gate bay with its tower, and two bays either side
+    Translate translation=(0, 0, 8.5)
+        Rotate rotation=(0, 0, 0)
+            Part part=toy_castle_wall_gate
+    Translate translation=(-10.4, 0, 8.5)
+        Rotate rotation=(0, 0, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(-5.2, 0, 8.5)
+        Rotate rotation=(0, 0, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(5.2, 0, 8.5)
+        Rotate rotation=(0, 0, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(10.4, 0, 8.5)
+        Rotate rotation=(0, 0, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+
+    # The rear wall, its outer face towards -z
+    Translate translation=(-10.4, 0, -8.5)
+        Rotate rotation=(0, 3.1416, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(-5.2, 0, -8.5)
+        Rotate rotation=(0, 3.1416, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(0, 0, -8.5)
+        Rotate rotation=(0, 3.1416, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(5.2, 0, -8.5)
+        Rotate rotation=(0, 3.1416, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(10.4, 0, -8.5)
+        Rotate rotation=(0, 3.1416, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+
+    # The side walls, the west one turned to face -x and the east one +x
+    Translate translation=(-13, 0, -5.2)
+        Rotate rotation=(0, -1.5708, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(13, 0, -5.2)
+        Rotate rotation=(0, 1.5708, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(-13, 0, 0)
+        Rotate rotation=(0, -1.5708, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(13, 0, 0)
+        Rotate rotation=(0, 1.5708, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(-13, 0, 5.2)
+        Rotate rotation=(0, -1.5708, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+    Translate translation=(13, 0, 5.2)
+        Rotate rotation=(0, 1.5708, 0)
+            Union
+                Part part=toy_castle_wall_bay
+                Translate translation=(-1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(0, 5, 0.75)
+                    Part part=toy_castle_merlon
+                Translate translation=(1.7, 5, 0.75)
+                    Part part=toy_castle_merlon
+
+    # The corner towers with their roofs (lilac and mustard in turn)
+    Translate translation=(-13, 0, 7.5)
+        Union
+            Part part=toy_castle_tower
+            Translate translation=(0, 7.3, 0)
+                Part part=toy_castle_roof_lilac
+    Translate translation=(13, 0, 7.5)
+        Union
+            Part part=toy_castle_tower
+            Translate translation=(0, 7.3, 0)
+                Part part=toy_castle_roof_mustard
+    Translate translation=(-13, 0, -7.5)
+        Union
+            Part part=toy_castle_tower
+            Translate translation=(0, 7.3, 0)
+                Part part=toy_castle_roof_mustard
+    Translate translation=(13, 0, -7.5)
+        Union
+            Part part=toy_castle_tower
+            Translate translation=(0, 7.3, 0)
+                Part part=toy_castle_roof_lilac
+
+    # The keep against the rear wall
+    Translate translation=(0, 0, -4.6)
+        Part part=toy_castle_keep
+
+    # The stairs along the inside of the side walls: low end at z = 5, climbing towards -z, mirrored for the other side
+    SymmetryX
+        Translate translation=(11.5, 0, 5)
+            Rotate rotation=(0, 3.1416, 0)
+                Part part=toy_castle_stair

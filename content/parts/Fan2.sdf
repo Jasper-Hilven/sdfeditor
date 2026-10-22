@@ -1,0 +1,51 @@
+# Fan2: the blades and hub of a graphics card fan (250 times life size, 20 m across), in the fan's own space: the turning axis the z axis through the origin, the front towards +z.
+# A script spins whatever is named Fan2 about this axis (Spinner). Used by gpu0.
+format 1
+
+# A hub with eight tilted blades round it
+Material material=pc_fan_white
+    Union
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(1.571, 0, 0)
+                Round radius=0.12
+                    CappedCylinder radius=2.88 height=2.08
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 0.4)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 1.185)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 1.971)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 2.756)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 3.542)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 4.327)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 5.112)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25
+        Translate translation=(0, 0, 0.3)
+            Rotate rotation=(0, 0, 5.898)
+                Translate translation=(6.3, 0, 0)
+                    Rotate rotation=(0.5, 0, 0)
+                        RoundBox size=(3.7, 1.6, 0.3) roundness=0.25

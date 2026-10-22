@@ -1,0 +1,309 @@
+# Block tower 0: a leaning tower of alphabet blocks (60 times life size), six layers of 1.65 m painted cubes laid like a Jenga stack (a layer of three by two,
+# the next turned a quarter) under a cream-and-peach roof cone: 5.7 m by 5.7 m across and 10.5 m tall, each layer a little out of true and the whole stack leaning to +x.
+# Two blocks are missing from the third layer (y 3.3 to 4.95, the two in the middle of the long row): a 1.65 m square window through the tower along z at x = 0 (shoot
+# through it from the front or the back; the lean moves it about 0.3 m). Cream letters (A, B, E, O) on the blocks' faces, layers yellow, mint, lilac, peach, yellow.
+# Landmark; mesh collider.
+format 1
+collider mesh
+
+blk =
+    RoundBox size=(0.825, 0.825, 0.825) roundness=0.1
+
+letA =
+    Translate translation=(0, 0, 0.825)
+        Union
+            Capsule a=(-0.3, -0.45, 0) b=(0, 0.45, 0) radius=0.065
+            Capsule a=(0, 0.45, 0) b=(0.3, -0.45, 0) radius=0.065
+            Capsule a=(-0.17, -0.1, 0) b=(0.17, -0.1, 0) radius=0.065
+
+letB =
+    Translate translation=(0, 0, 0.825)
+        Union
+            Capsule a=(-0.25, -0.45, 0) b=(-0.25, 0.45, 0) radius=0.065
+            Capsule a=(-0.25, 0.45, 0) b=(0.1, 0.45, 0) radius=0.065
+            Capsule a=(0.1, 0.45, 0) b=(0.27, 0.22, 0) radius=0.065
+            Capsule a=(0.27, 0.22, 0) b=(0.1, 0, 0) radius=0.065
+            Capsule a=(0.1, 0, 0) b=(-0.25, 0, 0) radius=0.065
+            Capsule a=(0.1, 0, 0) b=(0.3, -0.22, 0) radius=0.065
+            Capsule a=(0.3, -0.22, 0) b=(0.1, -0.45, 0) radius=0.065
+            Capsule a=(0.1, -0.45, 0) b=(-0.25, -0.45, 0) radius=0.065
+
+letE =
+    Translate translation=(0, 0, 0.825)
+        Union
+            Capsule a=(0.25, 0.45, 0) b=(-0.25, 0.45, 0) radius=0.065
+            Capsule a=(-0.25, 0.45, 0) b=(-0.25, -0.45, 0) radius=0.065
+            Capsule a=(-0.25, -0.45, 0) b=(0.25, -0.45, 0) radius=0.065
+            Capsule a=(-0.25, 0, 0) b=(0.15, 0, 0) radius=0.065
+
+letO =
+    Translate translation=(0, 0, 0.825)
+        Rotate rotation=(1.5708, 0, 0)
+            Torus innerRadius=0.25 outerRadius=0.5
+
+Detail detail=0.25
+    Union
+        Translate translation=(0, 0.82, 0)
+            Rotate rotation=(0, 0, 0)
+                Union
+                    Translate translation=(-1.65, 0, -0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(-1.65, 0, 0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+                    Translate translation=(0, 0, -0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(0, 0, 0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+                    Translate translation=(1.65, 0, -0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(1.65, 0, 0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+        Translate translation=(0.1, 2.47, 0)
+            Rotate rotation=(0, 0.07, 0)
+                Union
+                    Translate translation=(-0.825, 0, -1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(-0.825, 0, 0)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+                    Translate translation=(-0.825, 0, 1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(0.825, 0, -1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+                    Translate translation=(0.825, 0, 0)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(0.825, 0, 1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+        Translate translation=(0.25, 4.12, 0)
+            Rotate rotation=(0, -0.06, 0)
+                Union
+                    Translate translation=(-1.65, 0, -0.825)
+                        Union
+                            Material material=toy_paint_lilac
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(-1.65, 0, 0.825)
+                        Union
+                            Material material=toy_paint_lilac
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+                    Translate translation=(1.65, 0, -0.825)
+                        Union
+                            Material material=toy_paint_lilac
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(1.65, 0, 0.825)
+                        Union
+                            Material material=toy_paint_lilac
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+        Translate translation=(0.45, 5.77, 0)
+            Rotate rotation=(0, 0.1, 0)
+                Union
+                    Translate translation=(-0.825, 0, -1.65)
+                        Union
+                            Material material=toy_paint_peach
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(-0.825, 0, 0)
+                        Union
+                            Material material=toy_paint_peach
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+                    Translate translation=(-0.825, 0, 1.65)
+                        Union
+                            Material material=toy_paint_peach
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(0.825, 0, -1.65)
+                        Union
+                            Material material=toy_paint_peach
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+                    Translate translation=(0.825, 0, 0)
+                        Union
+                            Material material=toy_paint_peach
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(0.825, 0, 1.65)
+                        Union
+                            Material material=toy_paint_peach
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+        Translate translation=(0.7, 7.42, 0)
+            Rotate rotation=(0, -0.04, 0)
+                Union
+                    Translate translation=(-1.65, 0, -0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(-1.65, 0, 0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+                    Translate translation=(0, 0, -0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(0, 0, 0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+                    Translate translation=(1.65, 0, -0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(1.65, 0, 0.825)
+                        Union
+                            Material material=toy_paint_yellow
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+        Translate translation=(1.0, 9.07, 0)
+            Rotate rotation=(0, 0.06, 0)
+                Union
+                    Translate translation=(-0.825, 0, -1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(-0.825, 0, 0)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+                    Translate translation=(-0.825, 0, 1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 3.1416, 0)
+                                    $letE
+                    Translate translation=(0.825, 0, -1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, -1.5708, 0)
+                                    $letO
+                    Translate translation=(0.825, 0, 0)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 0, 0)
+                                    $letA
+                    Translate translation=(0.825, 0, 1.65)
+                        Union
+                            Material material=toy_paint_mint
+                                $blk
+                            Material material=toy_paint_cream
+                                Rotate rotation=(0, 1.5708, 0)
+                                    $letB
+        Translate translation=(1.0, 9.9, 0)
+            Rotate rotation=(0, -0.05, 0)
+                Union
+                    Material material=toy_paint_cream
+                        CappedCone height=0.3 bottomRadius=1.5 topRadius=0.6
+                    Material material=toy_paint_peach
+                        Translate translation=(0, 0.25, 0)
+                            Sphere radius=0.35

@@ -1,0 +1,53 @@
+# Crayon pile 0: four wax crayons in a heap, 5.4 m long each and 0.48 m round (60 times life size), lying along x: a yellow, a sage green and a purple
+# side by side and a peach-orange one in the groove on top of them, each with a cream paper wrapper (toy_paper_wrapper) round most of it and a blunt
+# cone of wax at the tip. 5.4 m long, about 2 m wide and 1 m tall. Knee cover: jump on it or go round; convex collider.
+format 1
+collider convex
+
+# One crayon's wax along y, centred on the origin: a tube and a blunt cone at the +y tip
+wax =
+    Union
+        Translate translation=(0, -0.25, 0)
+            CappedCylinder radius=0.24 height=2.45
+        Translate translation=(0, 2.45, 0)
+            CappedCone height=0.25 bottomRadius=0.24 topRadius=0.07
+# Its paper wrapper, round the lower end up to a little under halfway
+wrapper =
+    Translate translation=(0, -1.7, 0)
+        CappedCylinder radius=0.25 height=1.0
+
+# A fifth of the vertices its size would give it: plain tubes
+Detail detail=0.37
+    Union
+        # The yellow one, on the left, a little crooked
+        Translate translation=(-0.15, 0.24, -0.5)
+            Rotate rotation=(0, -0.08, 1.5707964)
+                Union
+                    Material material=toy_wax_yellow
+                        $wax
+                    Material material=toy_paper_wrapper
+                        $wrapper
+        # The green one in the middle, pushed out the other way
+        Translate translation=(0.15, 0.24, 0.0)
+            Rotate rotation=(0, 0.05, 1.5707964)
+                Union
+                    Material material=toy_wax_green
+                        $wax
+                    Material material=toy_paper_wrapper
+                        $wrapper
+        # The purple one on the right
+        Translate translation=(-0.05, 0.24, 0.5)
+            Rotate rotation=(0, 0.1, 1.5707964)
+                Union
+                    Material material=toy_wax_purple
+                        $wax
+                    Material material=toy_paper_wrapper
+                        $wrapper
+        # The peach-orange one on top, in the groove
+        Translate translation=(0.05, 0.65, 0.0)
+            Rotate rotation=(0, 0.02, 1.5707964)
+                Union
+                    Material material=toy_wax_orange
+                        $wax
+                    Material material=toy_paper_wrapper
+                        $wrapper

@@ -171,6 +171,8 @@ namespace SdfLevel.Editor
             public Vector2 Dovetail;
             /// <summary>Where the cross battens lie, as fractions of the face's length along v (below 0 for none), and their width.</summary>
             public Vector3 Battens = new Vector3(-1, -1, 3);
+            /// <summary>Set for a look drawn by SdfRoomCase.shader (the computer case, ticket 30.2, see LevelRoomCase) instead of the planks.</summary>
+            public LevelRoomCase.CaseLook Case;
         }
 
         /// <summary>
@@ -190,6 +192,27 @@ namespace SdfLevel.Editor
             },
             // The lid's underside: the same boards with two cross battens a quarter and three quarters across
             ["toybox-lid"] = new Look { Battens = new Vector3(0.25f, 0.75f, 3) },
+            // The computer case (30.2): gunmetal panels, honeycomb vents on the upper half of the west and east walls; smoked glass lid
+            // with a diagonal reflection streak and a warm patch off-centre
+            ["case-wall"] = new Look
+            {
+                Case = new LevelRoomCase.CaseLook
+                {
+                    Panels = new Vector4(16, 16, 0.06f, 0.08f),
+                    Vent = new Vector4(36, 58, 0.2f, 0.8f),
+                    VentFaces = new[] { "wall-x-", "wall-x+" },
+                },
+            },
+            ["case-glass"] = new Look
+            {
+                Case = new LevelRoomCase.CaseLook
+                {
+                    Lid = true,
+                    Streak = new Vector2(95, 10),
+                    Patch = new Vector4(0.68f, 0.3f, 56, 0.16f),
+                    PatchColor = Srgb(0xFFB06A),
+                },
+            },
         };
 
         private static Color Srgb(int rgb) => new Color(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f);
@@ -216,6 +239,8 @@ namespace SdfLevel.Editor
             var materialName = paint.Value<string>("name");
             if (!Looks.TryGetValue(materialName, out var look))
                 throw new InvalidDataException($"The room material '{materialName}' has no look in LevelRoom.Looks (it has {string.Join(", ", Looks.Keys)}); add one");
+            if (look.Case != null)
+                return LevelRoomCase.Material(name, face, materialName, look.Case, paint, LightLean);
             var parameters = new SdfGlb.Material { Name = materialName, Parameters = (JObject)paint["parameters"] };
 
             var path = $"{LevelBuilder.MaterialFolder}/{name} Room {face.Name.Replace("+", "pos").Replace("-", "neg")}.mat";
@@ -259,22 +284,35 @@ namespace SdfLevel.Editor
 
         /// <summary>
         /// The glow strip: a quad over the top <c>height</c> metres of the named wall, a hand's width inside it, in an unlit emissive colour
-        /// brighter than the bloom's threshold. Casts no shadow, takes none, has no collider.
+        /// brighter than the bloom's threshold. Casts no shadow, takes none, has no collider. With <c>offset</c> its lower edge is that many
+        /// metres up; for the wall "all" there is a strip on each of the four walls (the computer case's LED strip, ticket 30.2).
         /// </summary>
         private static void AddGlow(Transform root, string name, string meshFolder, Face[] faces, JObject glow)
         {
             var wallName = glow.Value<string>("wall");
+            if (wallName == "all")
+            {
+                foreach (var side in faces.Where(f => f.Name.StartsWith("wall-")))
+                    AddGlowStrip(root, name, meshFolder, side, glow, "_" + side.Name.Replace("+", "pos").Replace("-", "neg"));
+                return;
+            }
             var wall = faces.FirstOrDefault(f => f.Name == wallName) ?? throw new InvalidDataException($"The room's glow is on '{wallName}', which is not a face");
+            AddGlowStrip(root, name, meshFolder, wall, glow, "");
+        }
+
+        private static void AddGlowStrip(Transform root, string name, string meshFolder, Face wall, JObject glow, string suffix)
+        {
             var height = glow.Value<float>("height");
+            var bottom = glow["offset"] != null ? glow.Value<float>("offset") : wall.Size.y - height;
             var c = glow["color"];
             var color = new Color(c[0].Value<float>(), c[1].Value<float>(), c[2].Value<float>());
 
-            var strip = new GameObject(GlowName);
+            var strip = new GameObject(GlowName + suffix);
             strip.transform.SetParent(root, false);
-            var path = $"{meshFolder}/room_glow.asset";
+            var path = $"{meshFolder}/room_glow{suffix}.asset";
             var (u, v) = (wall.U * wall.Size.x, wall.V * height);
-            var origin = wall.Origin + wall.V * (wall.Size.y - height) + wall.Normal * GlowOffset;
-            var mesh = new Mesh { name = "room_glow" };
+            var origin = wall.Origin + wall.V * bottom + wall.Normal * GlowOffset;
+            var mesh = new Mesh { name = "room_glow" + suffix };
             mesh.vertices = new[] { origin, origin + u, origin + u + v, origin + v };
             mesh.normals = Enumerable.Repeat(wall.Normal, 4).ToArray();
             mesh.uv = new[] { Vector2.zero, Vector2.right, Vector2.one, Vector2.up };

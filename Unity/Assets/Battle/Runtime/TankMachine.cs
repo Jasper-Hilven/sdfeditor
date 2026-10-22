@@ -275,6 +275,8 @@ namespace SdfBattle
                 if (machine != this && machine.Alive && (machine.transform.position - position).sqrMagnitude < 25)
                     others.Add(new Vector2(machine.transform.position.x, machine.transform.position.z));
             }
+            // The train's cars (ticket 27.10), as points down both sides of each, so it steers round them like players
+            SdfLevel.PathMover.AvoidPoints(position, 5, others);
         }
 
         /// <summary>A player standing on it (on top of its hull or turret) slides off, away from its middle.</summary>

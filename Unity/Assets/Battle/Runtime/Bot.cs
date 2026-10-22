@@ -675,6 +675,9 @@ namespace SdfBattle
                 sidestepLeft -= dt;
                 want = sidestep;
             }
+            // A train near the track it is about to cross (ticket 27.10): it waits at the track's edge until the train has passed
+            if (BotNavigation.MustWait(feet, corners, corner, 14, SdfLevel.PathMover.Clock))
+                want = Vector3.zero;
             // Ticket 33.6: in a marker of Prime's, whatever else it is up to, it steps out of it
             if (owner.Dangers.Count > 0 && BotDanger.Escape(new Vector2(feet.x, feet.z), owner.Dangers, out var way))
                 want = new Vector3(way.x, 0, way.y);

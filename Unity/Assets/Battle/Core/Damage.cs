@@ -10,7 +10,7 @@ namespace SdfBattle
     public readonly struct Damage
     {
         public Damage(float amount, string weapon, Team attackerTeam, PlayerState attacker = null, string attackerName = null, Vector3? from = null,
-            bool headshot = false, bool overTime = false)
+            bool headshot = false, bool overTime = false, bool neutral = false)
         {
             Amount = amount;
             Weapon = weapon;
@@ -20,6 +20,7 @@ namespace SdfBattle
             From = from;
             Headshot = headshot;
             OverTime = overTime;
+            Neutral = neutral;
         }
 
         public float Amount { get; }
@@ -43,6 +44,13 @@ namespace SdfBattle
         /// <summary>A burn's or a cloud's tick rather than a hit: no hit marker.</summary>
         public bool OverTime { get; }
 
+        /// <summary>
+        /// From something of no team and no player (ticket 27.10's toy train, a hazard of the level): it hurts anyone alive and not
+        /// protected, whatever their team (<see cref="MatchState.CanHurt(PlayerState, Damage)"/>), and its kill is nobody's: no credit, no
+        /// spores, a kill feed line with its <see cref="AttackerName"/> and no team colour.
+        /// </summary>
+        public bool Neutral { get; }
+
         /// <summary>A player's hit.</summary>
         public static Damage By(PlayerState attacker, string weapon, float amount, Vector3? from = null, bool headshot = false) =>
             new Damage(amount, weapon, attacker.Team, attacker, null, from, headshot);
@@ -51,13 +59,17 @@ namespace SdfBattle
         public static Damage ByMachine(string machineName, Team team, string weapon, float amount, Vector3? from = null) =>
             new Damage(amount, weapon, team, null, machineName, from);
 
+        /// <summary>A hazard's hit (ticket 27.10): a name, no team, no weapon and no player behind it.</summary>
+        public static Damage ByHazard(string hazardName, float amount, Vector3? from = null) =>
+            new Damage(amount, null, default, null, hazardName, from, neutral: true);
+
         /// <summary>The same source with another amount: a burn's or a cloud's tick.</summary>
         public Damage With(float amount, bool overTime = true, Vector3? from = null) =>
-            new Damage(amount, Weapon, AttackerTeam, Attacker, AttackerName, from ?? From, false, overTime);
+            new Damage(amount, Weapon, AttackerTeam, Attacker, AttackerName, from ?? From, false, overTime, Neutral);
 
         /// <summary>The death this damage causes: the killer, the weapon (dual pistols are pistols in the kill feed), the headshot.</summary>
         public Death ToDeath(PlayerState victim) =>
-            new Death(victim, DeathCause.Killed, Attacker, AttackerName, AttackerTeam, WeaponIds.ModelOf(Weapon), Headshot, Weapon);
+            new Death(victim, DeathCause.Killed, Attacker, AttackerName, Neutral ? (Team?)null : AttackerTeam, WeaponIds.ModelOf(Weapon), Headshot, Weapon);
     }
 
     /// <summary>

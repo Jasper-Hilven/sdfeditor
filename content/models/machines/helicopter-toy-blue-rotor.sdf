@@ -1,0 +1,13 @@
+# Helicopter rotor, blue (ticket 27.8): a silver tin hub with two long black plastic blades, a straight bar across it, spun by script so the
+# blades blur into a disc.
+# Pivot: the origin is the hub's bottom on the rotor's axis (it spins about y); in helicopter-toy-blue-body it is at (0, 0.56, 0).
+format 1
+
+Detail detail=0.6
+    Union
+        Material material=toy_tin
+            Translate translation=(0, 0.02, 0)
+                CappedCylinder radius=0.04 height=0.025
+        Material material=toy_bead_black
+            Translate translation=(0, 0.045, 0)
+                RoundBox size=(0.37, 0.012, 0.04) roundness=0.01

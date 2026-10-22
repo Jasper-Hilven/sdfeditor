@@ -1,0 +1,40 @@
+# Tank body, blue (ticket 27.8): a tin wind-up toy tank 0.76 m long: a blue enamelled hull between two silver tin track rolls with white
+# road wheels showing on the outside, a brass winding key standing on the back deck. The turret (tank-toy-blue-turret) sits on the hull's top.
+# Pivot: the origin is on the ground under the middle, +z forward. The turret's pivot is at (0, 0.3, 0) in this model.
+format 1
+collider convex
+
+Detail detail=0.28
+    Union
+        # The track rolls, mirrored either side of the hull, each a rounded block with a drum at either end
+        Material material=toy_tin
+            SymmetryX
+                Translate translation=(0.23, 0.095, 0)
+                    Union
+                        RoundBox size=(0.065, 0.085, 0.26) roundness=0.04
+                        Translate translation=(0, 0, -0.26)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                CappedCylinder radius=0.095 height=0.065
+                        Translate translation=(0, 0, 0.26)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                CappedCylinder radius=0.095 height=0.065
+        # The road wheels, three a side, white plastic discs on the roll's outer face
+        Material material=toy_plastic_white
+            SymmetryX
+                Translate translation=(0.3, 0.095, 0)
+                    LimitedRepetition spacing=0.22 limits=(0, 0, 1)
+                        Rotate rotation=(0, 0, 1.5707964)
+                            CappedCylinder radius=0.062 height=0.018
+        Material material=machine_blue_paint
+            Union
+                # The hull, and the ring the turret turns on
+                Translate translation=(0, 0.2, 0)
+                    RoundBox size=(0.165, 0.065, 0.29) roundness=0.035
+                Translate translation=(0, 0.285, 0)
+                    CappedCylinder radius=0.125 height=0.03
+        # The key: a stem up from the back deck with a flat wing on it
+        Material material=toy_brass
+            Union
+                Capsule a=(0, 0.27, -0.26) b=(0, 0.4, -0.26) radius=0.015
+                Translate translation=(0, 0.43, -0.26)
+                    RoundBox size=(0.075, 0.035, 0.014) roundness=0.01

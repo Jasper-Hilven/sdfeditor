@@ -397,7 +397,7 @@ namespace SdfBattle
         public float TakeDamage(Damage damage, Vector3 point)
         {
             var combat = Owner != null ? Owner.Combat : null;
-            var allowed = combat == null || combat.State.CanHurt(Team, damage.AttackerTeam);
+            var allowed = combat == null || combat.State.CanHurt(Team, damage);
             return State.Hurt(damage, allowed);
         }
 

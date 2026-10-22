@@ -1,0 +1,215 @@
+# The toy box: the inside of a giant wooden toy chest, full of toys, at 60 times life size (a 1.75 m scout is a 3 cm toy figure; the
+# chest's floor is 2.5 x 1.67 m, 150 x 100 m here, and its walls 1.07 m, 64 m). One theme, toys: building blocks, bricks, marbles, jacks,
+# crayons, die-cast cars, spinning tops, skittles, a ring stacker, a rocking horse, a toy Ferris wheel, a jack-in-the-box, a teddy bear,
+# a wooden train set, puzzle pieces, beads and confetti. No board games, no kitchen, nothing that grows, no red or blue toys. Two wooden
+# block castles are the bases; a toy train runs the loop round the middle all match. The chest is closed but for its lid, propped open a
+# crack along the north wall. Nothing lies outside it.
+format 1
+
+play size=(150, 100) noise=0              # the chest's floor, centred on the origin: x across, z along; flat, a chest's floor is
+seed 3
+
+# The chest: walls of painted pine planks on the floor's four edges and the lid as the ceiling at 64 m. No checker: walls and ceiling are
+# the room materials toybox-wall and toybox-lid. A band of warm light 3 m tall along the top of the north wall is the crack of the lid;
+# the lamp is that crack, cream-yellow light coming in from +z (towards the lamp (0, 0.77, 0.64): pitched 50 degrees down, no yaw), so
+# the shadows run along z and both sides are lit alike; the ambient is a soft cool lilac so the south half is not murky
+room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid
+    glow=north height=3 color=(1, 0.82, 0.5)
+    light=(0, 0.77, 0.64) lightColor=(1, 0.93, 0.7) ambient=(0.45, 0.4, 0.6)
+
+# The machines (ticket 24) are toys: wind-up tin soldiers, tin tanks and RC helicopters, the models turret-toy-<team>-..., tank-toy-...,
+# helicopter-toy-.... The helicopters fly 6 to 12 m, 16 m over the castles (roofs 12 m), under a ceiling of 20 m, 3 m off the walls
+machines set=toy ceiling=20
+
+# The floor, from 2D shapes; where regions overlap, the later one wins. Each is drawn in its material,
+# materials/ground/ground_<region>.sdfmat. The base is the felt lining; no wobble on the others, a rug and a printed road have ruled edges
+regions base=felt
+    playmat wobble=0                                # the cream play rug in the middle, under the train loop
+        RoundedBox2D center=(0, 0) size=(64, 84) radius=6
+    road wobble=0                                   # the printed grey road, the centre lane: gate to gate, bending north round the jack-in-the-box
+        Polyline points=[(-52, 0), (-17, 0), (-10, 7), (0, 8), (10, 7), (17, 0), (52, 0)] width=5
+    foam pattern=stones stone=4 grout=0.12 wobble=0 # foam play mats under each castle, 4 m tiles with seams (laid on the world grid like the castle tiles)
+        Box2D center=(-62, 0) size=(26, 34)
+        Box2D center=(62, 0) size=(26, 34)
+
+# The unique models, each from content/models/ by name, its base on the ground at (x, z), turned yaw degrees (counter-clockwise from
+# above). Every group starts with a comment line (the overlap and clearance tests read the groups from these comments)
+place
+    # The bases: the block castle, gate (+z) towards the middle, on the foam, no ground paving (the foam is the paving)
+    toy-castle0 at=(-62, 0) yaw=90 flatten=22
+    # The east castle
+    toy-castle0 at=(62, 0) yaw=-90 flatten=22
+    # West team dressing: red pennants on the four corner towers (roofs at 10 m), the gate tower (lid 9.4 m) and the keep (12 m)
+    pennant-red at=(-54.5, -13) yaw=0 y=10
+    pennant-red at=(-54.5, 13) yaw=0 y=10
+    pennant-red at=(-69.5, -13) yaw=0 y=10
+    pennant-red at=(-69.5, 13) yaw=0 y=10
+    pennant-red at=(-53.5, 0) yaw=0 y=9.4
+    pennant-red at=(-66.6, 0) yaw=0 y=12
+    # East team dressing: the same in blue, mirrored
+    pennant-blue at=(54.5, -13) yaw=180 y=10
+    pennant-blue at=(54.5, 13) yaw=180 y=10
+    pennant-blue at=(69.5, -13) yaw=180 y=10
+    pennant-blue at=(69.5, 13) yaw=180 y=10
+    pennant-blue at=(53.5, 0) yaw=180 y=9.4
+    pennant-blue at=(66.6, 0) yaw=180 y=12
+    # The centre: the jack-in-the-box, lid open, on the middle line; it blocks flag to flag and splits the centre lane
+    jack-in-the-box0 at=(0, 0) yaw=0
+    # The train loop's bridges, carrying the track over the road (arch along x), one each side of the jack-in-the-box
+    track-bridge0 at=(-20, 0) yaw=0
+    track-bridge0 at=(20, 0) yaw=0
+    # The loop's north end: six 30 degree arcs of a 20 m radius round (0, 12), from the west straight over the top to the east one
+    track-curve0 at=(0, 12) yaw=-90
+    track-curve0 at=(0, 12) yaw=-60
+    track-curve0 at=(0, 12) yaw=-30
+    track-curve0 at=(0, 12) yaw=0
+    track-curve0 at=(0, 12) yaw=30
+    track-curve0 at=(0, 12) yaw=60
+    # The loop's south end: six arcs round (0, -12)
+    track-curve0 at=(0, -12) yaw=90
+    track-curve0 at=(0, -12) yaw=120
+    track-curve0 at=(0, -12) yaw=150
+    track-curve0 at=(0, -12) yaw=180
+    track-curve0 at=(0, -12) yaw=-150
+    track-curve0 at=(0, -12) yaw=-120
+    # Leaning towers of alphabet blocks, one each side on the spawn-to-spawn line (z = 20): two blocks are missing to shoot through
+    block-tower0 at=(-32, 20) yaw=15
+    # The east tower
+    block-tower0 at=(32, 20) yaw=-15
+    # Rocking horses between the centre and south lanes, in front of the blob-gun pods
+    rocking-horse0 at=(-36, -32) yaw=30
+    # The east horse
+    rocking-horse0 at=(36, -32) yaw=-30
+    # Ring stackers in the south back corners, sheltering the castles' south approach
+    ring-stacker0 at=(-58, -40) yaw=0
+    # The east ring stacker
+    ring-stacker0 at=(58, -40) yaw=0
+    # Toy Ferris wheels in the north corners, ending the north lane's long sight line: a see-through screen before each castle
+    ferris-wheel0 at=(-56, 42) yaw=90
+    # The east wheel
+    ferris-wheel0 at=(56, 42) yaw=-90
+    # The teddy bear slumped against the south wall, its back to it, making the south lane's choke at x = 0
+    teddy0 at=(0, -45.5) yaw=0
+
+# The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its block castle. The flag stand in the courtyard
+# before the keep, clear of the stairs; the spawn zone on the open floor off the castle's north front corner, facing the middle. The
+# pistol pod north of the spawn, a quick second gun; the blob-gun pod south of the castle, for the close fights round the rocking horse;
+# a health pod behind the castle in the strip to the back wall, and two out on the north and south lanes, a little past halfway.
+# The level's own mix, pistol, blob-gun, sniper and flamethrower, which no other level has. The machines (ticket 24): four turrets per
+# side, two before the castle's front, two off its flanks, and the zone for the helicopter and tanks off the castle's back north corner
+sides
+    west
+        spawn at=(-46, 20) yaw=90 radius=2.5
+        flag at=(-60, 0)
+        pod pistol at=(-44, 33)
+        pod blob-gun at=(-46, -26)
+        pod health at=(-73.5, -8)
+        pod health at=(-24, 42)
+        pod health at=(-24, -42)
+        turret at=(-47, 10) yaw=60
+        turret at=(-47, -10) yaw=120
+        turret at=(-62, 21) yaw=30
+        turret at=(-62, -21) yaw=150
+        machines at=(-69, 24) yaw=90 radius=3
+    east
+        spawn at=(46, 20) yaw=-90 radius=2.5
+        flag at=(60, 0)
+        pod pistol at=(44, 33)
+        pod blob-gun at=(46, -26)
+        pod health at=(73.5, -8)
+        pod health at=(24, 42)
+        pod health at=(24, -42)
+        turret at=(47, 10) yaw=-60
+        turret at=(47, -10) yaw=-120
+        turret at=(62, 21) yaw=-30
+        turret at=(62, -21) yaw=-150
+        machines at=(69, 24) yaw=-90 radius=3
+# The neutral pods inside the train loop, 32 m apart: the sniper north of the jack-in-the-box, where the north half has the long sight
+# lines, the flamethrower south of it, where the close cover and the teddy's choke are. To take one you cross the track or go under a bridge
+neutral
+    pod sniper at=(0, 16)
+    pod flamethrower at=(0, -16)
+
+# The toy train: a wooden train on a fixed timetable from the round's start, anticlockwise from above at 7 m/s, a lap of 174 m in
+# about 25 s. Its path is the loop, a stadium: straights along z at x = +-20 (z -12 to 12, the bridges) and half-circle ends of radius
+# 20 round (0, +-12). Arc length 0 is the east straight's south end (20, -12), going north. The cars ride the track (0.3 m high) and
+# climb the bridges: the heights are the cars' wheel level, 0.3 m on the flat, 3.8 m on a deck, 8 m ramps either side. Each car is its
+# body length; the 0.8 m gap lets the couplers touch. Engine 4.8 m, a flat wagon (rideable) and an open wagon: 14.8 m.
+# A car knocks a scout or tank 3 m off its side for 20 damage (a kill reads "Toy train" in the feed, no credit, no spores); the engine's chimney
+# puffs every second from its top (puffAt), a whistle puff comes 2 s before each bridge; bots wait at the track's edge while the head is within 25 m of where they cross
+mover train speed=7 gap=0.8 pushes=3 damage=20 name="Toy train" puff=1 puffAt=(0, 2.7, 1.7) whistle=2 crossing=25
+    Stadium center=(0, 0) halfLength=12 radius=20
+    heights keys=[(0, 0.3), (8, 3.8), (16, 3.8), (24, 0.3), (86.83, 0.3), (94.83, 3.8), (102.83, 3.8), (110.83, 0.3)]
+    car toy-train-engine length=4.8
+    car toy-train-flat length=4.2
+    car toy-train-wagon length=4.2
+
+# The small change of the chest, scattered by the thousand and drawn instanced: puzzle pieces and confetti in drifts about 12 m wide
+# with bare felt between, and denser handfuls of the smallest bits, plates, beads and broken crayon stubs, in heaps about 6 m wide.
+# None of it blocks or is taller than a shin. reach is 0: this is a room, nothing goes under its walls. It keeps off the road (a lane)
+# and the foam (the bases' mats stay clean)
+scatter group=bits
+    puzzle-piece0
+    puzzle-piece1
+    puzzle-piece2
+    confetti0
+    confetti1
+    confetti2
+    confetti3
+    density=0.2 cluster=3 clusterScale=12 spacing=0.8 reach=0 avoid=road,foam margin=0.6 scale=(0.85, 1.15)
+scatter group=bits
+    brick-plate0
+    brick-plate1
+    bead0
+    bead1
+    bead2
+    crayon-stub0
+    density=0.05 cluster=4 clusterScale=6 spacing=0.6 reach=0 avoid=road,foam margin=0.6 scale=(0.85, 1.15)
+
+# The tall blockers that hide a player: alphabet blocks, stacks of big bricks, skittles and a tilted spinning top, 10 m off the walls,
+# in clumps 10 to 20 m wide with felt between, 3 m clear of everything placed; laid first, so the knee cover below keeps clear of them
+# (the other way round the knee cover took the room and left two); off the road and the foam
+trees group=toys
+    alpha-block0
+    alpha-block1
+    alpha-block2
+    duplo-tower0
+    duplo-tower1
+    skittle0
+    skittle1
+    spinning-top0
+    band=(-72, -10) density=0.01 spacing=9 cluster=3 clusterScale=18 avoid=road,foam scale=(0.9, 1.1) margin=3
+
+# Knee cover, drawn instanced like a meadow's trees: bricks, marbles, a heap of crayons, die-cast cars, a jack and an arch block, mostly
+# 0.6 to 1.1 m high so players jump them and bots go round, in clumps about 18 m wide. band is how far inside the floor's edge they stand
+# (negative inside it), clear of the walls
+trees group=toys
+    brick0
+    brick1
+    brick-stack0 weight=0.7
+    toy-marble0
+    toy-marble1
+    toy-marble2
+    crayon-pile0 weight=0.7
+    toy-car0 weight=0.7
+    toy-car1 weight=0.7
+    toy-car-tipped0 weight=0.5
+    jack0 weight=0.5
+    arch-block0 weight=0.7
+    band=(-74, -6) density=0.009 spacing=7 cluster=2.5 clusterScale=18 avoid=foam scale=(0.9, 1.1) margin=1.5
+
+# How the bits are drawn round the camera: the finest level to 10 m with the ink outline, the next to 25 m and the coarsest to 45 m,
+# fading out over its last 15 m, shadows from the nearest ring only; no wind, and no ground colour at their feet (tintHeight 0: a
+# felt floor is not grass). The integrated GPU / web preset draws half of them, to 0.7 times the distance
+draw bits
+    rings=[10, 25, 45] outline=1 shadows=1 blend=1 fade=15
+    lowDensity=0.5 lowDistance=0.7 tintHeight=0
+
+# How the toys are drawn: LOD0 to 25 m, LOD1 to 60 m and LOD2 beyond, never ended by distance inside the room, all with the ink
+# outline; shadows from the nearer two rings (only the nearest on the integrated GPU / web preset); no wind
+draw toys
+    rings=[25, 60, 1000] outline=3 shadows=2 lowShadows=1 blend=2 lowDistance=0.7
+
+# The castles' repeated parts (wall bays, merlons, towers, roofs, stairs), instanced through their own group like the other levels' castles
+draw castle
+    rings=[25, 60, 400] outline=2 shadows=3 lowShadows=1 blend=2 lowDistance=0.4

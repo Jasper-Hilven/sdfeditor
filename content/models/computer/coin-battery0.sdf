@@ -1,0 +1,24 @@
+# Coin battery 0: the BIOS battery, a CR2032 coin cell standing on edge in a vertical holder, 6 m wide (x), 2.5 m deep (z) and 5.5 m tall (250 times life size),
+# its face towards +z with a raised plus (a shape, not text): a tin cell (pc_tin) in a black holder (pc_epoxy_black). Convex collider.
+format 1
+
+# The holder's base and two clamps, the cell and the raised plus on its face
+Detail detail=0.96
+    Union
+        Material material=pc_epoxy_black
+            Union
+                Translate translation=(0, 0.55, 0)
+                    RoundBox size=(3, 0.55, 1.25) roundness=0.25
+                Translate translation=(-2.75, 3.1, 0)
+                    RoundBox size=(0.25, 2, 0.9) roundness=0.2
+                Translate translation=(2.75, 3.1, 0)
+                    RoundBox size=(0.25, 2, 0.9) roundness=0.2
+        Material material=pc_tin
+            Union
+                Translate translation=(0, 3, 0)
+                    Rotate rotation=(1.571, 0, 0)
+                        CappedCylinder radius=2.5 height=0.4
+                Translate translation=(0, 3, 0.5)
+                    Union
+                        Box size=(1, 0.2, 0.12)
+                        Box size=(0.2, 1, 0.12)

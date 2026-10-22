@@ -1,0 +1,47 @@
+# Turret foot, blue (ticket 27.8): the lower half of a wind-up tin soldier about 2 m high: a round silver tin stand with a brass winding key
+# on its back edge, black boots, white trousers, and a blue tunic to the collar with white cross belts and a belt. The head
+# (turret-toy-blue-head) turns on top.
+# Pivot: the origin is on the ground at the stand's axis, +z forward. The head's pivot is at (0, 1.5, 0) in this model, the tunic's flat top.
+format 1
+collider convex
+
+Detail detail=0.15
+    Union
+        # The stand and the key in its back, a stem with a flat wing
+        Material material=toy_tin
+            Translate translation=(0, 0.05, 0)
+                Round radius=0.03
+                    CappedCylinder radius=0.47 height=0.02
+        Material material=toy_brass
+            Union
+                Capsule a=(0, 0.08, -0.4) b=(0, 0.45, -0.4) radius=0.04
+                Translate translation=(0, 0.54, -0.4)
+                    RoundBox size=(0.2, 0.09, 0.035) roundness=0.02
+        # Boots and trousers
+        Material material=toy_bead_black
+            Translate translation=(0, 0.17, 0.04)
+                SymmetryX
+                    Translate translation=(0.14, 0, 0)
+                        RoundBox size=(0.1, 0.07, 0.17) roundness=0.03
+        Material material=toy_plastic_white
+            Union
+                SymmetryX
+                    Capsule a=(0.14, 0.22, 0) b=(0.14, 0.75, 0) radius=0.1
+                # The belt round the waist, and the two cross belts over the chest, cut from a slightly wider cylinder
+                Translate translation=(0, 0.78, 0)
+                    CappedCylinder radius=0.375 height=0.045
+                Intersection
+                    Translate translation=(0, 1.1, 0)
+                        CappedCylinder radius=0.37 height=0.38
+                    Union
+                        Translate translation=(0, 1.1, 0.5)
+                            Rotate rotation=(0, 0, 0.55)
+                                Box size=(0.045, 1.1, 0.5)
+                        Translate translation=(0, 1.1, 0.5)
+                            Rotate rotation=(0, 0, -0.55)
+                                Box size=(0.045, 1.1, 0.5)
+        # The tunic, to the flat top the head sits on
+        Material material=machine_blue_paint
+            Translate translation=(0, 1.08, 0)
+                Round radius=0.03
+                    CappedCylinder radius=0.31 height=0.39

@@ -1,0 +1,33 @@
+# Ring stacker 0: a toy ring stacker (60 times life size), 8 m across and 11 m tall: a round beech base, a cone peg with a yellow ball on top and five fat painted rings
+# stacked from the biggest to the smallest, in mint, yellow, peach, cream and lilac. The rings are tori sitting on the peg (their holes are wider than the peg).
+# Landmark; mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.17
+    Union
+        Material material=toy_beech
+            Union
+                Translate translation=(0, 0.4, 0)
+                    RoundedCylinder radius=3.85 roundness=0.15 height=0.25
+                Intersection
+                    ArbitraryRoundCone a=(0, 0.8, 0) b=(0, 10.4, 0) radiusA=1.7 radiusB=0.55
+                    Plane normal=(0, -1, 0) height=0
+        Material material=toy_paint_yellow
+            Translate translation=(0, 10.4, 0)
+                Sphere radius=0.7
+        Material material=toy_paint_mint
+            Translate translation=(0, 1.75, 0)
+                Torus innerRadius=2.10 outerRadius=4.00
+        Material material=toy_paint_yellow
+            Translate translation=(0, 3.60, 0)
+                Torus innerRadius=1.80 outerRadius=3.60
+        Material material=toy_paint_peach
+            Translate translation=(0, 5.35, 0)
+                Torus innerRadius=1.50 outerRadius=3.20
+        Material material=toy_paint_cream
+            Translate translation=(0, 7.00, 0)
+                Torus innerRadius=1.20 outerRadius=2.80
+        Material material=toy_paint_lilac
+            Translate translation=(0, 8.55, 0)
+                Torus innerRadius=0.90 outerRadius=2.40

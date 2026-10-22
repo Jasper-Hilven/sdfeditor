@@ -1,0 +1,30 @@
+# Big electrolytic capacitor 0: a 16 x 25 mm electrolytic capacitor, 4 m across and 6.25 m tall (250 times life size), standing on the board:
+# a black sleeve with two gold bands (pc_cap_black, pc_gold), an aluminium top with the vent cross as a shallow groove (pc_aluminium). Tall blocker: convex collider.
+format 1
+
+# A sleeve with its bands and foot, an aluminium top with the vent cross cut into it
+Detail detail=0.23
+    Union
+        Material material=pc_cap_black
+            Translate translation=(0, 3.095, 0)
+                Round radius=0.12
+                    CappedCylinder radius=1.860 height=2.975
+        Material material=pc_gold
+            Union
+                Translate translation=(0, 4.700, 0)
+                    Subtraction
+                        CappedCylinder radius=2.000 height=0.400
+                        CappedCylinder radius=1.800 height=0.500
+                Translate translation=(0, 3.700, 0)
+                    Subtraction
+                        CappedCylinder radius=2.000 height=0.120
+                        CappedCylinder radius=1.800 height=0.220
+        Material material=pc_aluminium
+            Subtraction
+                Translate translation=(0, 6.190, 0)
+                    CappedCylinder radius=1.800 height=0.06
+                Union
+                    Translate translation=(0, 6.250, 0)
+                        Box size=(1.650, 0.06, 0.28)
+                    Translate translation=(0, 6.250, 0)
+                        Box size=(0.28, 0.06, 1.650)

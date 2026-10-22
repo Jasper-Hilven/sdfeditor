@@ -156,8 +156,16 @@ namespace SdfLevel.Editor
                 {
                     // A closed room has no outside: its own views (and none of the hills', edge's or sky's)
                     ShootRoom(scene, eye, Shot, EyeShot);
+                    if (scene.name == "Toybox")
+                        ShootToyBox(scene, eye, scatter, Shot, EyeShot);
+                    if (scene.name == "Computer")
+                        ShootComputer(scene, scatter, Shot);
                     QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                     EyeShot("room_eye_web", eye, Quaternion.Euler(0, 90, 0));
+                    if (scene.name == "Toybox")
+                        ShootToyBox(scene, eye, scatter, Shot, EyeShot, "_web");
+                    if (scene.name == "Computer")
+                        ShootComputer(scene, scatter, Shot, "_web");
                     Debug.Log($"SDF level: snapshots written to {directory}");
                     return;
                 }
@@ -258,6 +266,152 @@ namespace SdfLevel.Editor
             eyeShot("room_glow", eye, Quaternion.Euler(-40, 0, 0));
             shot("room_above", new Vector3(-(half.x - 20), height - 10, -(half.y - 20)), Quaternion.LookRotation(new Vector3(1, -1.2f, 1)), 1920, 1080);
             ShootCrowd(scene, shot, eyeShot);
+        }
+
+        /// <summary>
+        /// The toy box's budget views (ticket 27.11), each logged with the instanced groups' draws and triangles, the placed models' and the
+        /// train's: from the west spawn facing the middle, the centre (the jack-in-the-box, both bridges, the train) from three sides, a
+        /// castle's gate facing the other castle, the courtyard, the wall-walk, a castle from outside, above, and the train close. <paramref name="suffix"/>
+        /// is added to the names.
+        /// </summary>
+        private static void ShootToyBox(Scene scene, Vector3 eye, InstancedScatterRenderer scatter, Action<string, Vector3, Quaternion, int, int> shot,
+            Action<string, Vector3, Quaternion> eyeShot, string suffix = "")
+        {
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            void View(string name, Vector3 position, Quaternion rotation)
+            {
+                shot(name + suffix, position, rotation, 1920, 1080);
+                Debug.Log($"SDF level: {name + suffix} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): {ToyCost(scene, camera, position, rotation, scatter)}");
+            }
+            // Unity's x is the pipeline's mirrored: the west spawn (pipeline (-46, 20)) stands at Unity x = +46 and faces -x, towards the middle
+            // (the scene's own player stands at the middle, inside the jack-in-the-box, so `eye` is not used)
+            var spawn = OnGround(new Vector3(46, 0, 20)) + up;
+            View("toy_spawn", spawn, Quaternion.Euler(0, -90, 0));
+            View("toy_spawn_flag", spawn, Quaternion.LookRotation(new Vector3(60 - 46, 0, -20)));
+            View("toy_spawn_back", spawn, Quaternion.Euler(0, 90, 0));
+            View("toy_centre_south", OnGround(new Vector3(0, 0, -34)) + up, Quaternion.Euler(-4, 0, 0));
+            View("toy_centre_east", OnGround(new Vector3(34, 0, 0)) + up, Quaternion.Euler(-4, -90, 0));
+            View("toy_centre_north", OnGround(new Vector3(0, 0, 34)) + up, Quaternion.Euler(-4, 180, 0));
+            View("toy_centre_bridge", OnGround(new Vector3(-30, 0, -9)) + up, Quaternion.Euler(-3, 70, 0));
+            var castles = Placed(scene, "toy-castle0");
+            if (castles.Length == 2)
+            {
+                var near = castles[0];
+                var far = castles[1];
+                var gate = OnGround(ModelPoint(near, 0, 0, 18)) + up;
+                View("toy_gate", gate, Quaternion.LookRotation(Vector3.ProjectOnPlane(far.position - gate, Vector3.up) + Vector3.up * 2));
+                var inside = OnGround(ModelPoint(near, 0, 0, 3)) + up;
+                View("toy_courtyard", inside, Quaternion.LookRotation(ModelDirection(near, 0, 0.1f, 1)));
+                var walk = ModelPoint(near, 9, 5.2f, 6);
+                View("toy_wall_walk", walk + up, Quaternion.LookRotation(Vector3.ProjectOnPlane(far.position - walk, Vector3.up)));
+                var outside = OnGround(ModelPoint(near, -34, 0, 24)) + up;
+                View("toy_castle_outside", outside, Quaternion.LookRotation(near.position + Vector3.up * 5 - outside));
+            }
+            View("toy_above", new Vector3(0, 90, -110), Quaternion.Euler(40, 0, 0));
+            View("toy_top", new Vector3(0, 150, 0), Quaternion.Euler(90, 0, 0));
+            var movers = scene.GetRootGameObjects().FirstOrDefault(g => g.name == LevelBuilder.MoversName);
+            if (movers != null && movers.transform.childCount > 0 && movers.transform.GetChild(0).childCount > 0)
+            {
+                var car = movers.transform.GetChild(0).GetChild(0);
+                var side = car.position + Vector3.Cross(Vector3.up, car.forward) * 9 + Vector3.up * 2.5f;
+                View("toy_train_side", side, Quaternion.LookRotation(car.position + Vector3.up - side));
+                var front = car.position + car.forward * 12 + Vector3.up * 2.5f;
+                View("toy_train_front", front, Quaternion.LookRotation(car.position + Vector3.up - front));
+            }
+        }
+
+        /// <summary>
+        /// The computer's budget views (ticket 30.10), each logged as the toy box's are: from the west spawn in four directions, from the
+        /// south-west corner, above, at the CPU cooler and at the GPU. Unity's x is the pipeline's mirrored, so the west spawn (pipeline
+        /// (-62, 21)) stands at Unity x = +62 and faces -x towards the middle.
+        /// </summary>
+        private static void ShootComputer(Scene scene, InstancedScatterRenderer scatter, Action<string, Vector3, Quaternion, int, int> shot, string suffix = "")
+        {
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            void View(string name, Vector3 position, Quaternion rotation)
+            {
+                shot(name + suffix, position, rotation, 1920, 1080);
+                Debug.Log($"SDF level: {name + suffix} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): {ToyCost(scene, camera, position, rotation, scatter)}");
+            }
+            var spawn = OnGround(new Vector3(62, 0, 21)) + up;
+            View("pc_spawn_middle", spawn, Quaternion.Euler(0, -90, 0));
+            View("pc_spawn_flag", spawn, Quaternion.LookRotation(new Vector3(10, 0, -21)));
+            View("pc_spawn_back", spawn, Quaternion.Euler(0, 90, 0));
+            View("pc_spawn_north", spawn, Quaternion.Euler(0, 0, 0));
+            View("pc_corner", OnGround(new Vector3(74, 0, -54)) + up, Quaternion.LookRotation(new Vector3(-1, 0.02f, 0.8f)));
+            View("pc_above", new Vector3(0, 80, -85), Quaternion.Euler(45, 0, 0));
+            View("pc_top", new Vector3(0, 120, 0), Quaternion.Euler(90, 0, 0));
+            View("pc_cooler", OnGround(new Vector3(26, 0, 0)) + up, Quaternion.Euler(-6, -90, 0));
+            View("pc_cooler_close", OnGround(new Vector3(14, 0, -6)) + up, Quaternion.LookRotation(new Vector3(-1, 0.25f, 0.4f)));
+            View("pc_gpu", OnGround(new Vector3(0, 0, 18)) + up, Quaternion.Euler(-8, 0, 0));
+            View("pc_bridge", OnGround(new Vector3(30, 0, 8)) + up, Quaternion.LookRotation(new Vector3(-1, 0, 0.5f)));
+            View("pc_ram", OnGround(new Vector3(48, 0, 0)) + up, Quaternion.Euler(-3, 90, 0));
+        }
+
+        /// <summary>What the toy box draws in a view: the instanced groups (bits, toys, castle parts), the placed models and the movers' cars.</summary>
+        private static string ToyCost(Scene scene, Camera sceneCamera, Vector3 position, Quaternion rotation, InstancedScatterRenderer scatter)
+        {
+            var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Count Camera", HideFlags.HideAndDontSave, typeof(Camera));
+            try
+            {
+                var camera = cameraObject.GetComponent<Camera>();
+                camera.CopyFrom(sceneCamera);
+                camera.aspect = 16f / 9f;
+                camera.transform.SetPositionAndRotation(position, rotation);
+                var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+                var halfAngle = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                int placedDraws = 0, placedTriangles = 0, moverDraws = 0, moverTriangles = 0;
+                var root = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName);
+                if (root != null)
+                    foreach (var group in root.GetComponentsInChildren<LODGroup>())
+                    {
+                        var lods = group.GetLODs();
+                        var scale = group.transform.lossyScale;
+                        var size = group.size * Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                        var distance = Vector3.Distance(position, group.transform.TransformPoint(group.localReferencePoint));
+                        var height = size * 0.5f * QualitySettings.lodBias / (Mathf.Max(distance, 0.01f) * halfAngle);
+                        var level = Array.FindIndex(lods, lod => height >= lod.screenRelativeTransitionHeight);
+                        if (level < 0)
+                            continue;
+                        foreach (var renderer in lods[level].renderers)
+                            if (renderer != null && GeometryUtility.TestPlanesAABB(planes, renderer.bounds))
+                            {
+                                placedDraws++;
+                                placedTriangles += renderer.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3;
+                            }
+                    }
+                // The cars count at their LOD0 when in view (the least favourable)
+                var movers = scene.GetRootGameObjects().FirstOrDefault(g => g.name == LevelBuilder.MoversName);
+                if (movers != null)
+                    foreach (var group in movers.GetComponentsInChildren<LODGroup>())
+                        foreach (var renderer in group.GetLODs()[0].renderers)
+                            if (renderer != null && GeometryUtility.TestPlanesAABB(planes, renderer.bounds))
+                            {
+                                moverDraws++;
+                                moverTriangles += renderer.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3;
+                            }
+                var groups = "";
+                var instancedDraws = 0;
+                var instancedTriangles = 0;
+                if (scatter != null && scatter.LastFrame.DrawsPerGroup != null)
+                {
+                    var frame = scatter.LastFrame;
+                    groups = string.Join(", ", scatter.groups.Select((g, i) => i < frame.DrawsPerGroup.Length
+                        ? $"{g.name} {frame.DrawsPerGroup[i]} draws {frame.TrianglesPerGroup[i]:N0} tri" : g.name));
+                    instancedDraws = frame.Draws + frame.OutlineDraws;
+                    instancedTriangles = frame.Triangles + frame.OutlineTriangles;
+                }
+                var ground = TrianglesInView(scene, "Ground", sceneCamera, position, rotation);
+                return $"TOTAL {ground + placedTriangles + moverTriangles + instancedTriangles:N0} tri, {instancedDraws + placedDraws + moverDraws} draws (ground chunks not counted as draws); " +
+                       $"ground {ground:N0} tri; instanced {instancedDraws} draws {instancedTriangles:N0} tri incl. outlines [{groups}]; " +
+                       $"placed models {placedDraws} draws {placedTriangles:N0} tri; movers {moverDraws} draws {moverTriangles:N0} tri";
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(cameraObject);
+            }
         }
 
         /// <summary>

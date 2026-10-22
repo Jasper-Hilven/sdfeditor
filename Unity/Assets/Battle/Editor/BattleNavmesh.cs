@@ -248,6 +248,9 @@ namespace SdfBattle.Editor
         [MenuItem("Tools/SDF Battle/Check Navmesh")]
         public static void CheckAll() => Debug.Log(Report());
 
+        /// <summary>For batch mode (<c>-executeMethod SdfBattle.Editor.NavmeshCheck.CheckAllInBatch</c>): the report goes to the log.</summary>
+        public static void CheckAllInBatch() => Debug.Log(Report());
+
         public static string Report()
         {
             var report = new StringBuilder("Navmesh check (ticket 23)\n");
@@ -550,7 +553,9 @@ namespace SdfBattle.Editor
                             joined++;
                     }
                     report.Append($"  {side.Value<string>("side")} castle, upper floors: {joined} of {found} spots joined to the ground\n");
-                    if (found == 0 || joined < found * 0.8f)
+                    // A level with no castle (the computer) has no upper floors to join
+                    var hasCastle = ((JArray)data["placements"]).Any(p => p.Value<string>("model")?.Contains("castle") == true);
+                    if ((found == 0 && hasCastle) || joined < found * 0.8f)
                         problems++;
                 }
 

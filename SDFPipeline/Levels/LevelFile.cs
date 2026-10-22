@@ -118,7 +118,8 @@ namespace SDFPipeline.Levels;
 /// <c>square</c> (8 m by default), the side of the checker's squares. With <c>walls</c> and <c>ceiling</c> (the names of
 /// materials/room/&lt;name&gt;.sdfmat files) the room's faces are drawn in those instead of the checker: the room may be any size, and
 /// the squares go. Unity picks the pattern by the material's name (LevelRoom). <c>glow</c> (north is +z, south -z, east +x, west -x) adds
-/// a band of emissive light along the top of that wall, <c>height</c> metres tall (3) in <c>color</c>; <c>light</c> is the direction
+/// a band of emissive light along the top of that wall (<c>all</c>: all round the four walls), <c>height</c> metres tall (3) in <c>color</c>,
+/// its lower edge <c>offset</c> metres up if given (ticket 30.2) instead of its top edge on the wall's top; <c>light</c> is the direction
 /// towards the room's lamp, <c>lightColor</c> its hue and <c>ambient</c> the flat ambient light (sRGB, each part 0 to 1), each replacing
 /// the indoor default of the chessboard (overhead, warm white) when given.
 /// </para>
@@ -138,6 +139,20 @@ namespace SDFPipeline.Levels;
 /// <c>car toy-train-engine length=4.8</c> per line (a model from content/models/ and its length along the path). Its position is
 /// <c>speed * (round clock + phase)</c> metres along the path, <c>phase</c> in seconds, so nothing is saved; the cars follow the path's
 /// centre line, <c>gap</c> metres apart (0.5 by default). The train must be shorter than the path. See <see cref="MoverSpec"/>.
+/// Further options of the <c>mover</c> line (ticket 27.10, all off by default): <c>pushes=3 damage=20</c> make a scout or tank in a car's way
+/// get pushed that many metres off its side and take that much damage, at most once per car and victim in <c>cooldown=1</c> seconds, and
+/// <c>name="Toy train"</c> is how the kill feed names a kill by it (no weapon, credit or spores; the mover's own name, capitalised, by default);
+/// <c>puff=1 puffAt=(0, 2.7, 1.7)</c> gives a puff from the first car every second at that point of its frame, <c>whistle=2</c> one that many
+/// seconds before each climb of the path (a bridge); <c>crossing=25</c> makes a bot whose path crosses the track wait at its edge while the
+/// head is within 25 m of the crossing, or the train is on it.
+/// </para>
+/// <para>
+/// Data pulses (ticket 30.9) are bright bands that run along region polylines and speed a scout up. A region's <c>Polyline</c> may carry
+/// the flag <c>pulse</c> (<c>Polyline points=[...] width=0.8 pulse</c>, with no <c>noise</c>): the pulses run along it from its first point
+/// to its last. One <c>pulses</c> line gives their numbers, each optional: <c>pulses every=4 speed=18 length=3 boost=1.35 for=2.5</c>, a pulse
+/// of <c>length</c> metres leaving the first point every <c>every</c> seconds at <c>speed</c> metres per second; a scout on the line within
+/// 1.5 m of one gets <c>boost</c> times its move speed for <c>for</c> seconds, refreshed by the next, never stacked. The flag and the line go
+/// together: neither may be given alone. See <see cref="PulseSpec"/>.
 /// </para>
 /// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
@@ -197,8 +212,9 @@ public static class LevelFile
     private const string Mover = "mover";
     private const string Layout = "layout";
     private const string Boss = "boss";
+    private const string Pulses = "pulses";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines, Mover, Layout, Boss];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines, Mover, Pulses, Layout, Boss];
 
     /// <summary>The layouts a <c>layout</c> line names: mirrored is the default and need not be written.</summary>
     private static readonly string[] Layouts = ["mirrored", "boss"];
@@ -246,6 +262,7 @@ public static class LevelFile
         MachineSet? machineSet = null;
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
+        PulseSpec? pulses = null;
         (BattleSide West, BattleSide East)? sides = null;
         IReadOnlyList<BattleObject>? neutral = null;
         // The layout decides how the sides are read (the boss's east side need not have the west's pods), so it is read first, wherever it is
@@ -332,6 +349,9 @@ public static class LevelFile
                     boss = ReadBoss(line, cursor);
                     bossLine = line.Number;
                     break;
+                case Pulses:
+                    pulses = ReadPulses(line, cursor);
+                    break;
             }
         }
         if (layout == LevelLayout.Boss)
@@ -348,6 +368,14 @@ public static class LevelFile
             if (placements.FirstOrDefault(p => p.Phases is not null) is { } phased)
                 throw new SdfProgramFileException(phased.Line, $"'phases' tags a model for the boss fight's phases, in a boss level; add '{Layout} {Layouts[1]}'");
         }
+        // The pulses line and the flagged polylines go together (ticket 30.9)
+        var pulseLines = regions.SelectMany(r => r.Shapes).OfType<PolylineRegion>().Count(p => p.Pulse);
+        if (pulses is not null && pulseLines == 0)
+            throw new SdfProgramFileException(pulses.Line,
+                $"The '{Pulses}' line says how the data pulses run, but no region polyline has the 'pulse' flag; add it to a Polyline, like 'Polyline points=[...] width=0.8 pulse'");
+        if (pulses is null && pulseLines > 0)
+            throw new SdfProgramFileException(seen[Regions],
+                $"{pulseLines} polyline(s) have the 'pulse' flag, so the level needs a '{Pulses}' line, like '{Pulses} every=4 speed=18 length=3 boost=1.35 for=2.5'");
         if ((sides is null) != (neutral is null))
             throw new SdfProgramFileException(seen[sides is null ? Neutral : Sides],
                 $"A level with battle sides has neutral pods between them, and the other way round; add a '{(sides is null ? Sides : Neutral)}' section");
@@ -377,7 +405,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers, Layout = layout, Boss = boss,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers, Pulses = pulses, Layout = layout, Boss = boss,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -592,6 +620,26 @@ public static class LevelFile
         return new MachineSet(name, ceiling);
     }
 
+    /// <summary>
+    /// pulses every=4 speed=18 length=3 boost=1.35 for=2.5 (ticket 30.9): how the data pulses run along the polylines flagged
+    /// <c>pulse</c>. Every parameter has the default shown.
+    /// </summary>
+    private static PulseSpec ReadPulses(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Pulses, line, cursor);
+        var every = parameters.Number("every", PulseSpec.DefaultEvery, 0.5f, 600, "seconds between pulses, 0.5 to 600");
+        var speed = parameters.Number("speed", PulseSpec.DefaultSpeed, 0.5f, 200, "metres per second, 0.5 to 200");
+        var length = parameters.Number("length", PulseSpec.DefaultLength, 0.5f, 100, "a pulse's length in metres, 0.5 to 100");
+        var boost = parameters.Number("boost", PulseSpec.DefaultBoost, 1, 5, "the move speed factor, 1 to 5");
+        var duration = parameters.Number("for", PulseSpec.DefaultFor, 0.1f, 60, "seconds the boost lasts, 0.1 to 60");
+        parameters.Done("every", "speed", "length", "boost", "for");
+        var spec = new PulseSpec(every, speed, length, boost, duration, line.Number);
+        // A pulse and the reach round it (1.5 m either side, the boost's) must be shorter than the gap to the next, or the line never rests
+        if (length + 2 * 1.5f >= spec.Period)
+            throw cursor.Error($"Pulses {FileSyntax.Number(length)} m long, every {FileSyntax.Number(every)} s at {FileSyntax.Number(speed)} m/s (a pulse every {FileSyntax.Number(spec.Period)} m), would fill the line; make them shorter or rarer");
+        return spec;
+    }
+
     private static readonly string[] MoverShapes = ["Stadium", "Polyline"];
 
     /// <summary>
@@ -606,7 +654,16 @@ public static class LevelFile
         var speed = parameters.Number("speed", null, 0.1f, 100, "metres per second, 0.1 to 100");
         var gap = parameters.Number("gap", 0.5f, 0, 20, "metres between the cars, 0 to 20");
         var phase = parameters.Number("phase", 0, -100000, 100000, "seconds the timetable is ahead at the round's start");
-        parameters.Done("speed", "gap", "phase");
+        // What the cars do to what they meet and what they give off (ticket 27.10); all off by default
+        var pushes = parameters.Number("pushes", 0, 0, 50, "metres a scout or tank in a car's way is pushed off its side, 0 to 50");
+        var damage = parameters.Number("damage", 0, 0, 1000, "damage of one hit by a car, 0 to 1000");
+        var hazardName = parameters.Name("name", null, null);
+        var cooldown = parameters.Number("cooldown", 1, 0, 60, "seconds before a car hits the same victim again, 0 to 60");
+        var puff = parameters.Number("puff", 0, 0, 600, "seconds between puffs from the first car, 0 (none) to 600");
+        var puffAt = parameters.Has("puffAt") ? parameters.Vector3("puffAt", "a point like (0, 2.5, 1.7) in the first car's frame (x right, y up, z forward)") : new Vector3(0, 2.5f, 0);
+        var whistle = parameters.Number("whistle", 0, 0, 600, "seconds before each climb a whistle puff is given, 0 (none) to 600");
+        var crossing = parameters.Number("crossing", 0, 0, 1000, "metres from the head within which bots wait to cross the track, 0 (they do not) to 1000");
+        parameters.Done("speed", "gap", "phase", "pushes", "damage", "name", "cooldown", "puff", "puffAt", "whistle", "crossing");
 
         IReadOnlyList<Vector2>? path = null;
         SourceLine? pathLine = null;
@@ -678,14 +735,17 @@ public static class LevelFile
                 throw new SdfProgramFileException(heights!.Value.Line.Number, $"Mover {name}'s height {FileSyntax.Number(key.Y)} is not a height in metres");
             previous = key.X;
         }
-        var spec = new MoverSpec(name, speed, phase, gap, path, keyList, cars, line.Number);
+        var spec = new MoverSpec(name, speed, phase, gap, path, keyList, cars, line.Number)
+        {
+            Pushes = pushes, Damage = damage, DisplayName = hazardName, Cooldown = cooldown, Puff = puff, PuffAt = puffAt, Whistle = whistle, Crossing = crossing,
+        };
         if (spec.TrainLength > length1 - 1)
             throw new SdfProgramFileException(line.Number,
                 $"Mover {name}'s cars and gaps take {FileSyntax.Number(spec.TrainLength)} m, but the path is {FileSyntax.Number(length1)} m round; the train would meet itself");
         return spec;
     }
 
-    private static readonly string[] GlowWalls = ["north", "south", "east", "west"];
+    private static readonly string[] GlowWalls = ["north", "south", "east", "west", "all"];
 
     private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)
     {
@@ -711,15 +771,19 @@ public static class LevelFile
         var hasColor = parameters.Has("color");
         var glowHeight = parameters.Number("height", RoomGlow.DefaultHeight, 0.1f, size.Y, $"metres, 0.1 up to the room's height ({FileSyntax.Number(size.Y)})");
         var glowColor = hasColor ? Colour(parameters, "color") : RoomGlow.DefaultColor;
-        if (glowWall is null && (hasHeight || hasColor))
-            throw parameters.Error(hasHeight ? "height" : "color", "height= and color= belong to glow=<north, south, east or west>");
+        // offset=3: the strip's lower edge is that many metres up (else its top edge is the wall's top)
+        var hasOffset = parameters.Has("offset");
+        var glowOffset = parameters.Number("offset", 0, 0, size.Y - glowHeight, $"metres, 0 up to the room's height less the strip's ({FileSyntax.Number(size.Y - glowHeight)})");
+        if (glowWall is null && (hasHeight || hasColor || hasOffset))
+            throw parameters.Error(hasHeight ? "height" : hasColor ? "color" : "offset", "height=, color= and offset= belong to glow=<north, south, east, west or all>");
         RoomGlow? glow = glowWall is null ? null : new RoomGlow(glowWall switch
         {
             "north" => RoomFace.PosZ,
             "south" => RoomFace.NegZ,
             "east" => RoomFace.PosX,
-            _ => RoomFace.NegX,
-        }, glowHeight, glowColor);
+            "west" => RoomFace.NegX,
+            _ => null,
+        }, glowHeight, glowColor) { Offset = hasOffset ? glowOffset : null };
 
         // light=(0, 0.77, 0.64) lightColor=(1, 0.95, 0.7) ambient=(0.4, 0.35, 0.5): the lamp's direction (towards it) and hue, the ambient
         Vector3? direction = null;
@@ -731,7 +795,7 @@ public static class LevelFile
         }
         Vector3? lampColor = parameters.Has("lightColor") ? Colour(parameters, "lightColor") : null;
         Vector3? ambient = parameters.Has("ambient") ? Colour(parameters, "ambient") : null;
-        parameters.Done("size", "square", "walls", "ceiling", "glow", "height", "color", "light", "lightColor", "ambient");
+        parameters.Done("size", "square", "walls", "ceiling", "glow", "height", "color", "offset", "light", "lightColor", "ambient");
         return new RoomSpec(size, square)
         {
             Walls = walls,
@@ -907,8 +971,12 @@ public static class LevelFile
                 break;
             case "Polyline":
                 var points = parameters.Points("points", "points like [(-45, 0), (-10, 6), (20, -4)]");
-                shape = new PolylineRegion(points, parameters.Number("width", null, 0, 1000, "a width in metres"), noise, noiseScale);
-                parameters.Done("points", "width", "noise", "noiseScale");
+                var width = parameters.Number("width", null, 0, 1000, "a width in metres");
+                var pulse = parameters.Flag("pulse");
+                if (pulse && noise > 0)
+                    throw parameters.Error("noise", "A polyline with the 'pulse' flag is drawn straight (the pulses follow its line); give it noise=0");
+                shape = new PolylineRegion(points, width, noise, noiseScale) { Pulse = pulse };
+                parameters.Done("points", "width", "noise", "noiseScale", "pulse");
                 break;
             default:
                 var center = parameters.Vector2("center", "a centre like (-62, 0)");
@@ -1072,6 +1140,9 @@ public static class LevelFile
     /// </summary>
     private sealed class Parameters
     {
+        /// <summary>The parameters that are flags, written as their bare name.</summary>
+        private static readonly string[] Flags = ["pulse"];
+
         private readonly string owner;
         private readonly Dictionary<string, (RawValue Value, Cursor Cursor)> values = [];
         private readonly Dictionary<string, Cursor> taken = [];
@@ -1105,6 +1176,13 @@ public static class LevelFile
             while (!cursor.AtEnd)
             {
                 var name = cursor.ReadName("a parameter like name=value");
+                // A flag stands alone, like the polyline's pulse
+                if (Flags.Contains(name) && cursor.Peek() != '=')
+                {
+                    if (!values.TryAdd(name, (new RawName("on"), cursor)))
+                        throw cursor.Error($"Parameter '{name}' of {owner} is given twice");
+                    continue;
+                }
                 cursor.Expect('=');
                 var value = cursor.ReadValue();
                 // A range of phases is written 1-2 (ticket 33.3)
@@ -1239,6 +1317,17 @@ public static class LevelFile
             return given.Value is RawName { Name: var value } && (choices is null || choices.Contains(value))
                 ? value
                 : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
+        }
+
+        /// <summary>A flag written as its bare name (<c>pulse</c>) or <c>pulse=on</c>; false when left out.</summary>
+        public bool Flag(string name)
+        {
+            if (!values.Remove(name, out var given))
+                return false;
+            taken[name] = given.Cursor;
+            return given.Value is RawName { Name: "on" }
+                ? true
+                : throw given.Cursor.Error($"'{name}' of {owner} is a flag: write '{name}' alone, or {name}=on");
         }
 
         /// <summary>Whether the parameter is given and not taken yet.</summary>

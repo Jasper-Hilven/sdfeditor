@@ -36,6 +36,7 @@ namespace SdfStory
         private static StoryIntro active;
 
         private StoryIntroLogic logic;
+        private readonly AdvanceCooldown cooldown = new AdvanceCooldown();
         private Action onFinished;
         private int startFrame;
         private float fade = 1;
@@ -157,6 +158,9 @@ namespace SdfStory
             if (ending || logic == null)
                 return;
             ClearSelection();
+            // One press must count once, whichever of the button, the screen click and the keys reported it
+            if (!cooldown.TryAdvance(Time.unscaledTime))
+                return;
             // A press during the cross-fade lands the panel that is arriving at once
             SettleFade();
             if (logic.Next())

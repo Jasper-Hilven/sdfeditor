@@ -1,0 +1,12 @@
+# Brick plate 0: a 1 x 1 round plate of lilac toy-brick plastic (toy_plastic_lilac), 0.48 m across and 0.2 m tall (60 times life size): a flat
+# round disc with one round stud on top. Ground clutter: no collider, lying on the floor.
+format 1
+
+# An eighth of the vertices its size would give it: a small plain disc
+Detail detail=0.2
+    Material material=toy_plastic_lilac
+        Union
+            Translate translation=(0, 0.06, 0)
+                RoundedCylinder radius=0.24 roundness=0.02 height=0.06
+            Translate translation=(0, 0.16, 0)
+                RoundedCylinder radius=0.145 roundness=0.02 height=0.04

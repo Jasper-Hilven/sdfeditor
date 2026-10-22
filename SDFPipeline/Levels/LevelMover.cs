@@ -14,6 +14,33 @@ namespace SDFPipeline.Levels;
 public sealed record MoverSpec(string Name, float Speed, float Phase, float Gap, IReadOnlyList<Vector2> Path, IReadOnlyList<Vector2> Heights,
     IReadOnlyList<MoverCar> Cars, int Line)
 {
+    /// <summary>Metres a scout or tank in a car's way is pushed off its side (ticket 27.10; 0: not pushed).</summary>
+    public float Pushes { get; init; }
+
+    /// <summary>Damage of one hit by a car (0: none). A kill shows in the kill feed as <see cref="HazardName"/>, with no weapon, credit or spores.</summary>
+    public float Damage { get; init; }
+
+    /// <summary>What the kill feed calls the mover; the mover's own name when the file gives none.</summary>
+    public string? DisplayName { get; init; }
+
+    /// <summary>Seconds before one car may hit the same victim again.</summary>
+    public float Cooldown { get; init; } = 1;
+
+    /// <summary>Seconds between puffs from the first car (0: none).</summary>
+    public float Puff { get; init; }
+
+    /// <summary>Where the puff leaves the first car, in the car's own frame (x right, y up, z forward).</summary>
+    public Vector3 PuffAt { get; init; } = new(0, 2.5f, 0);
+
+    /// <summary>Seconds before each climb of the path (a bridge) the first car gives a whistle puff (0: none).</summary>
+    public float Whistle { get; init; }
+
+    /// <summary>Metres from the train's head to a crossing within which a bot waits at the track's edge (0: bots do not wait).</summary>
+    public float Crossing { get; init; }
+
+    /// <summary>The name the kill feed writes for a kill by this mover.</summary>
+    public string HazardName => DisplayName ?? (Name.Length == 0 ? Name : char.ToUpperInvariant(Name[0]) + Name[1..]);
+
     /// <summary>The path's length in metres, all the way round.</summary>
     public float Length => PathLength(Path);
 

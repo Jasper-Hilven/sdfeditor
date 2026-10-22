@@ -142,6 +142,11 @@ public static class LevelBaker
                 if (!terrain.OnIsland(corner.X, corner.Y))
                     throw new ProgramFiles.SdfProgramFileException(mover.Line, $"Mover {mover.Name}'s path goes beyond the island's edge, at ({corner.X}, {corner.Y})");
         }
+        // The pulse lines (ticket 30.9) stay on the island
+        foreach (var pulseLine in level.PulseLines)
+            foreach (var corner in pulseLine.Points)
+                if (!terrain.OnIsland(corner.X, corner.Y))
+                    throw new ProgramFiles.SdfProgramFileException(level.Pulses!.Line, $"A pulse line goes beyond the island's edge, at ({corner.X}, {corner.Y})");
         var groundColors = regions.Regions.Select(r => r.Material).Prepend(level.BaseMaterial)
             .Select(m => AverageColor(materials.Resolve(m))).ToArray();
         // The trees sections' models need their footprints too where a later section keeps clear of them (LevelScatter.KeepsClearOf),
@@ -358,7 +363,7 @@ public static class LevelBaker
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
             // flags/flag-stand-<side>.prefab) and Assets/Machines/Prefabs (turret-<team>.prefab). Null for a level without sides
-            battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level) : null,
+            battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level, HelicopterKeepOuts.Of(level, placed, FootprintOf)) : null,
             // The final boss's spots (ticket 33.3), on the boss level only: each on the ground, plus its y; the shield's dome with its radius
             boss = level.Boss is { } boss ? BossDocument(boss, terrain) : null,
             // Vehicles on a closed path and a timetable (ticket 27.3), or none: the path's corners (x, z), its length, (arc length, y)
@@ -370,11 +375,39 @@ public static class LevelBaker
                 speed = m.Speed,
                 phase = m.Phase,
                 gap = m.Gap,
+                // What the cars do (ticket 27.10): the hit, the kill feed's name, the puffs and how far ahead bots wait to cross
+                pushes = m.Pushes,
+                damage = m.Damage,
+                hazard = m.HazardName,
+                cooldown = m.Cooldown,
+                puff = m.Puff,
+                puffAt = Array(m.PuffAt),
+                whistle = m.Whistle,
+                crossing = m.Crossing,
                 length = m.Length,
                 path = m.Path.Select(Array).ToArray(),
                 heights = m.Heights.Count == 0 ? null : m.Heights.Select(Array).ToArray(),
                 cars = m.Cars.Select(c => new { model = c.Model, length = c.Length }).ToArray(),
             }).ToArray(),
+            // Data pulses (ticket 30.9), or none: a pulse leaves each line's first point every `every` seconds at `speed` m/s, `length` m long
+            // (the head in front); a scout within 1.5 m of one gets `boost` times its speed for `for` seconds. The lines are the flagged
+            // region polylines: corners (x, z), their ground height y, the trace's width, and the length. Unity builds the overlay mesh
+            // from them (UV.x = metres along the line) and the same numbers drive PulseRules; the clock is the scene's time
+            pulses = level.Pulses is { } pulse ? new
+            {
+                every = pulse.Every,
+                speed = pulse.Speed,
+                length = pulse.Length,
+                boost = pulse.Boost,
+                @for = pulse.For,
+                lines = level.PulseLines.Select(l => new
+                {
+                    width = l.Width,
+                    length = PolylineLength(l.Points),
+                    points = l.Points.Select(Array).ToArray(),
+                    y = l.Points.Select(p => terrain.Height(p.X, p.Y)).ToArray(),
+                }).ToArray(),
+            } : null,
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
@@ -387,7 +420,7 @@ public static class LevelBaker
         return new BakedLevel(folder, layout, files, triangles, skirts, maxErrors) { Regions = regions.Regions, Placements = placed, Scattered = scattered };
     }
 
-    private static object BattleDocument(BattleLayout battle, LevelTerrain terrain, LevelDefinition level)
+    private static object BattleDocument(BattleLayout battle, LevelTerrain terrain, LevelDefinition level, float[][]? keepOuts)
     {
         object Item(BattleObject item) => new
         {
@@ -404,6 +437,9 @@ public static class LevelBaker
             // the set of machine models (turret-<set>-<team>) and, in a room, the helicopters' flight ceiling over the floor in metres
             machineSet = level.Machines is { } set && set.Name != MachineSet.Default ? set.Name : null,
             flightCeiling = level.Machines?.CeilingIn(level.Room),
+            // Ticket 30.7, in a room with a machines line and models over 6 m placed in it (else left out): their footprints as
+            // [minX, minZ, maxX, maxZ], which the helicopters keep out of (HelicopterPilot.KeepOuts)
+            helicopterKeepOuts = keepOuts,
             sides = battle.Sides.Select(side => new
             {
                 side = side.Name,
@@ -440,6 +476,17 @@ public static class LevelBaker
     };
 
     private static float[] Array(Vector2 v) => [v.X, v.Y];
+
+    private static float[] Array(Vector3 v) => [v.X, v.Y, v.Z];
+
+    /// <summary>The length of the line through the points, in metres (a pulse line's, ticket 30.9).</summary>
+    private static float PolylineLength(IReadOnlyList<Vector2> points)
+    {
+        var length = 0f;
+        for (var i = 0; i + 1 < points.Count; i++)
+            length += Vector2.Distance(points[i], points[i + 1]);
+        return length;
+    }
 
     /// <summary>
     /// The room for level.json: its size and square size, and for each face its origin corner, the directions of its u and v axes (one
@@ -492,7 +539,7 @@ public static class LevelBaker
             walls = Look(room.Walls),
             ceiling = Look(room.Ceiling),
             // The emissive band along the top of a wall: the wall's face name, its height in metres and its colour (sRGB)
-            glow = room.Glow is { } glow ? new { wall = FaceName(glow.Wall), height = glow.Height, color = Vec(glow.Color) } : null,
+            glow = room.Glow is { } glow ? new { wall = glow.Wall is { } wall ? FaceName(wall) : "all", height = glow.Height, offset = glow.Offset, color = Vec(glow.Color) } : null,
             // The lamp: the direction towards it (the pipeline's axes), its colour and the ambient (sRGB); parts left out keep Unity's indoor default
             light = room.Light is { } light
                 ? new { direction = light.Direction is { } d ? Vec(d) : null, color = light.Color is { } c ? Vec(c) : null, ambient = light.Ambient is { } a ? Vec(a) : null }
@@ -534,7 +581,7 @@ public static class LevelBaker
 
     /// <summary>Each parameter by name, as the .glb files of models give them: a number, or [r, g, b] (linear) / [x, y, z].</summary>
     private static Dictionary<string, object> Parameters(MaterialDefinition material) =>
-        MaterialDefinition.Parameters.ToDictionary(p => p.Name, p => p.Get(material) is [var single] ? (object)single : p.Get(material));
+        MaterialDefinition.Listed(material).ToDictionary(p => p.Name, p => p.Get(material) is [var single] ? (object)single : p.Get(material));
 
     /// <summary>
     /// A chunk as binary glTF: a mesh and node per level of detail with only POSITION and NORMAL (the ground's material comes from

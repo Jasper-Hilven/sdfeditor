@@ -1,0 +1,45 @@
+# Toy castle wall bay (ticket 27.7): one bay of the block castle's curtain wall, 5.2 m long (x), 2 m thick, its outer face towards +z, standing on y = 0 (60 times
+# life size). Five courses of 1 m blocks, beech and cream in turn, laid in running bond (the top course is one plank, so the wall-walk is flat) with rounded edges
+# that draw the joints. The wall-walk is the top, at 5 m, the lowest of the castle's floor heights (rings 5.3 m, see toy-castle0.sdf). Neighbouring bays
+# meet end to end and run into the towers; the merlons are placed by the layout.
+format 1
+collider mesh
+Detail detail=0.2
+    Union
+        # Course 0
+        Material material=toy_beech
+            Union
+                Translate translation=(-1.3, 0.5, 0)
+                    RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                Translate translation=(1.3, 0.5, 0)
+                    RoundBox size=(1.3, 0.5, 1) roundness=0.07
+        # Course 1
+        Material material=toy_paint_cream
+            Union
+                Translate translation=(-1.95, 1.5, 0)
+                    RoundBox size=(0.65, 0.5, 1) roundness=0.07
+                Translate translation=(0, 1.5, 0)
+                    RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                Translate translation=(1.95, 1.5, 0)
+                    RoundBox size=(0.65, 0.5, 1) roundness=0.07
+        # Course 2
+        Material material=toy_beech
+            Union
+                Translate translation=(-1.3, 2.5, 0)
+                    RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                Translate translation=(1.3, 2.5, 0)
+                    RoundBox size=(1.3, 0.5, 1) roundness=0.07
+        # Course 3
+        Material material=toy_paint_cream
+            Union
+                Translate translation=(-1.95, 3.5, 0)
+                    RoundBox size=(0.65, 0.5, 1) roundness=0.07
+                Translate translation=(0, 3.5, 0)
+                    RoundBox size=(1.3, 0.5, 1) roundness=0.07
+                Translate translation=(1.95, 3.5, 0)
+                    RoundBox size=(0.65, 0.5, 1) roundness=0.07
+        # Course 4
+        Material material=toy_beech
+            Union
+                Translate translation=(0, 4.5, 0)
+                    RoundBox size=(2.6, 0.5, 1) roundness=0.07

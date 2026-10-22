@@ -1,0 +1,21 @@
+# Crayon stub 0: a broken stub of peach-orange wax crayon (toy_wax_orange) 1.2 m long and 0.48 m round (60 times life size), lying on the floor along x:
+# a cream paper wrapper (toy_paper_wrapper) round the one end, the other end snapped off on a slant. Ground clutter: no collider.
+format 1
+
+# An eighth of the vertices its size would give it: a short plain tube
+Detail detail=0.22
+    Translate translation=(0, 0.24, 0)
+        # The crayon lies along x
+        Rotate rotation=(0, 0, 1.5707964)
+            Union
+                Material material=toy_wax_orange
+                    Subtraction
+                        Translate translation=(0, 0.1, 0)
+                            CappedCylinder radius=0.24 height=0.5
+                        # The break: a slanted cut off the top end
+                        Translate translation=(0, 0.72, 0)
+                            Rotate rotation=(0, 0, 0.5)
+                                Box size=(0.6, 0.3, 0.6)
+                Material material=toy_paper_wrapper
+                    Translate translation=(0, -0.3, 0)
+                        CappedCylinder radius=0.25 height=0.3

@@ -1,0 +1,14 @@
+# Toy castle roof, lilac (ticket 27.7): the painted cone roof of a corner tower, origin at the middle of its brim on y = 0 (set at 7.3 m on the tower): a 2 m brim
+# disc, a cone 1.8 m in radius and 2.4 m high and a bead on its point, 2.7 m in all, so the tower reaches 10 m. toy_castle_roof_mustard is the same in mustard.
+format 1
+collider mesh
+Detail detail=0.25
+    Material material=toy_paint_lilac
+        Union
+            Translate translation=(0, 0.1, 0)
+                Round radius=0.04
+                    CappedCylinder radius=1.96 height=0.06
+            Translate translation=(0, 1.4, 0)
+                CappedCone height=1.2 bottomRadius=1.8 topRadius=0.05
+            Translate translation=(0, 2.6, 0)
+                Sphere radius=0.14

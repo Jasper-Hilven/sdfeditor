@@ -1,0 +1,11 @@
+# Bead 0: a plastic pony bead in peach (toy_plastic_peach), 0.54 m across and 0.4 m tall (60 times life size), standing on end on the floor,
+# a plain chunky ring, a round hole through it. Ground clutter: no collider.
+format 1
+
+# An eighth of the vertices its size would give it: a small plain ring
+Detail detail=0.18
+    Material material=toy_plastic_peach
+        Translate translation=(0, 0.2, 0)
+            Subtraction
+                RoundedCylinder radius=0.27 roundness=0.12 height=0.2
+                CappedCylinder radius=0.1 height=0.3

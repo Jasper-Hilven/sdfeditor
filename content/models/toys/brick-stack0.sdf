@@ -1,0 +1,35 @@
+# Brick stack 0: three flat toy bricks piled and staggered, each 1.92 m long and 0.96 m wide (60 times life size): a white one at the bottom, a peach one
+# turned across it, a pastel yellow one on top, with their studs showing: 2.9 m by 1.9 m and 1.05 m tall. Knee cover; convex collider.
+format 1
+collider convex
+
+stud =
+    RoundedCylinder radius=0.145 roundness=0.02 height=0.05
+
+# One flat brick, 0.32 m tall and eight studs on top, resting on y = 0
+brick =
+    Union
+        Translate translation=(0, 0.16, 0)
+            RoundBox size=(0.96, 0.16, 0.48) roundness=0.03
+        SymmetryXZ
+            Union
+                Translate translation=(0.24, 0.35, 0.24)
+                    $stud
+                Translate translation=(0.72, 0.35, 0.24)
+                    $stud
+
+# A fifth of the vertices its size would give it: plain blocks
+Detail detail=0.36
+    Translate translation=(-0.1, 0, 0)
+        Union
+            Material material=toy_plastic_white
+                Translate translation=(-0.42, 0, 0.1)
+                    $brick
+            Material material=toy_plastic_peach
+                Translate translation=(0.1, 0.32, 0)
+                    Rotate rotation=(0, 1.5707964, 0)
+                        $brick
+            Material material=toy_plastic_yellow
+                Translate translation=(0.55, 0.64, -0.1)
+                    Rotate rotation=(0, 0.15, 0)
+                        $brick

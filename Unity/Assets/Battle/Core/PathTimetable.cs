@@ -19,6 +19,13 @@ namespace SdfBattle
         public Quaternion Rotation => Quaternion.Euler(-Pitch, Yaw, 0);
     }
 
+    /// <summary>A place where a segment crosses a <see cref="ClosedPath"/>: the arc length on the path and the distance along the segment.</summary>
+    public struct PathCrossing
+    {
+        public float Arc;
+        public float Distance;
+    }
+
     /// <summary>
     /// A closed path on the ground (ticket 27.3): corners (x, z) joined by straight legs, the last back to the first, with (arc length, y)
     /// height keys, linear between them and round the loop (0 without keys). Arc length is from the first corner and wraps, so any
@@ -114,6 +121,74 @@ namespace SdfBattle
             while (leg + 1 < starts.Length && starts[leg + 1] <= arc)
                 leg++;
             return Mathf.Clamp(leg, 0, starts.Length - 1);
+        }
+
+        /// <summary>
+        /// The arc lengths where the path starts to climb: each height key whose next key (round the loop) is at least
+        /// <paramref name="minRise"/> metres higher. The toy train's bridges (ticket 27.10: a whistle puff comes before each).
+        /// </summary>
+        public List<float> ClimbStarts(float minRise)
+        {
+            var arcs = new List<float>();
+            for (var i = 0; i < heights.Length && heights.Length > 1; i++)
+            {
+                var next = heights[(i + 1) % heights.Length];
+                if (next.y - heights[i].y >= minRise)
+                    arcs.Add(heights[i].x);
+            }
+            return arcs;
+        }
+
+        /// <summary>
+        /// Where the segment from <paramref name="from"/> to <paramref name="to"/> (x, z) crosses the path, nearest to <paramref name="from"/>
+        /// first: the place on the path (arc length) and how far along the segment. A segment that runs along a leg crosses nothing.
+        /// </summary>
+        public List<PathCrossing> Crossings(Vector2 from, Vector2 to)
+        {
+            var found = new List<PathCrossing>();
+            var along = to - from;
+            var length = along.magnitude;
+            if (length < 1e-6f)
+                return found;
+            for (var leg = 0; leg < corners.Length; leg++)
+            {
+                var a = corners[leg];
+                var b = corners[(leg + 1) % corners.Length];
+                var legVector = b - a;
+                var cross = along.x * legVector.y - along.y * legVector.x;
+                if (Mathf.Abs(cross) < 1e-9f)
+                    continue;
+                var offset = a - from;
+                var t = (offset.x * legVector.y - offset.y * legVector.x) / cross;
+                var u = (offset.x * along.y - offset.y * along.x) / cross;
+                if (t < 0 || t > 1 || u < 0 || u >= 1)
+                    continue;
+                found.Add(new PathCrossing { Arc = starts[leg] + u * legVector.magnitude, Distance = t * length });
+            }
+            found.Sort((x, y) => x.Distance.CompareTo(y.Distance));
+            return found;
+        }
+
+        /// <summary>How far the point <paramref name="p"/> (x, z) is from the path, to its nearest leg; <paramref name="arc"/> is the arc length there.</summary>
+        public float DistanceTo(Vector2 p, out float arc)
+        {
+            var best = float.MaxValue;
+            arc = 0;
+            for (var leg = 0; leg < corners.Length; leg++)
+            {
+                var a = corners[leg];
+                var b = corners[(leg + 1) % corners.Length];
+                var along = b - a;
+                var lengthSquared = along.sqrMagnitude;
+                var t = lengthSquared > 0 ? Mathf.Clamp01(Vector2.Dot(p - a, along) / lengthSquared) : 0;
+                var distance = Vector2.Distance(p, a + along * t);
+                if (distance < best)
+                {
+                    best = distance;
+                    arc = starts[leg] + t * Mathf.Sqrt(lengthSquared);
+                }
+            }
+            return best;
         }
 
         /// <summary>
