@@ -1,0 +1,19 @@
+# Shelter toadstool 1 (ticket 33.2): a toadstool big enough to shelter under, a slightly squatter cap, leaning the other way: 5.5 m high, its cap 8 m across, on a stout
+# pale stem leaning a little. Overhead cover against the Prime-copter's cannon and the downdraft dive (the cap's underside is
+# 3.85 m up, under the copter's 9 m minimum height). The stem is the collider (a capsule); the cap is a part (shelter_cap1).
+# The origin is the stem's foot on the ground.
+format 1
+collider capsule
+
+Detail detail=0.25
+    Union
+        Material material=arena_stone
+            SmoothUnion smoothness=0.2
+                # The stem's bulb, flat on the ground
+                Intersection
+                    Ellipsoid radii=(0.9, 0.6, 0.9)
+                    Translate translation=(0, 0.6, 0)
+                        Box size=(2, 0.6, 2)
+                ArbitraryRoundCone a=(0, 0.7, 0) b=(-0.2, 3.95, 0) radiusA=0.7 radiusB=0.45
+        Translate translation=(-0.2, 3.85, 0)
+            Part part=shelter_cap1

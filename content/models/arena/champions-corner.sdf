@@ -1,0 +1,38 @@
+# Champion's Corner (ticket 33.2): 42's team base in the Champion's Arena, a low red-dressed podium of fungal stone 14 m wide (x) and
+# 20 m deep (z), 0.3 m high, its edges sloped to the ground (about 20 degrees, walk-on, no step) and its top paved in spore-sand flags.
+# Inlaid in the paving a red cap-shaped emblem (a ring and a half-disc cap, team red) round the flag stand's place in the middle,
+# and a red border line; shelf-fungus brackets sit on the podium's rim at the back corners. The origin is the podium's centre on
+# the ground, front along +z (turned to face the field in the level). The collider is a mesh.
+format 1
+collider mesh
+
+Detail detail=0.3
+    Union
+        Material material=arena_paving
+            Intersection
+                # The sloped sides: a box wide at the foot, 0.3 m high, the top 13.2 x 19.2
+                Translate translation=(0, 0.15, 0)
+                    RoundBox size=(7, 0.15, 10) roundness=0.02
+                Translate translation=(0, -0.7, 0)
+                    Box size=(7, 1.0, 10)
+        Material material=arena_team_red
+            Union
+                # The ring round the stand's place
+                Translate translation=(0, 0.3, 0)
+                    Subtraction
+                        CappedCylinder radius=3.2 height=0.03
+                        CappedCylinder radius=2.8 height=0.05
+                # The cap emblem on the front half: a half-disc above a narrow stem
+                Translate translation=(0, 0.3, 5.4)
+                    Intersection
+                        Ellipsoid radii=(2.2, 0.05, 2.2)
+                        Translate translation=(0, 0, 1.2)
+                            Box size=(3, 0.1, 1.2)
+                Translate translation=(0, 0.3, 7.6)
+                    Box size=(0.5, 0.03, 0.9)
+        Material material=arena_shelf
+            Union
+                Translate translation=(-6.4, 0.3, -9.2)
+                    Ellipsoid radii=(0.6, 0.2, 0.5)
+                Translate translation=(6.4, 0.3, -9.2)
+                    Ellipsoid radii=(0.6, 0.2, 0.5)

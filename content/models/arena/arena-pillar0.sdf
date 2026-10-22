@@ -1,0 +1,47 @@
+# Arena pillar 0 (ticket 33.2): a pillar of the Champion's Arena's fungal stone, 6 m high and 2.2 m round at its flared foot (the
+# blocks and joints are the material's stones pattern, not geometry). A stout shaft tapers up from the foot to a flaring capital
+# furred with lichen, with two ochre shelf-fungus brackets growing out of the shaft and moss cushions in the foot's crevices.
+# Cover that blocks the line of sight to Prime: the origin is the foot's centre on the ground, front along +z. The collider is a
+# mesh (a pillar this big would be a convex hull wider than walkable ground allows, 26 §5).
+format 1
+collider mesh
+
+Detail detail=0.5
+    Union
+        Material material=arena_stone
+            SmoothUnion smoothness=0.12
+                # The foot, flaring out to 1.1 m
+                Translate translation=(0, 0.35, 0)
+                    CappedCone height=0.35 bottomRadius=1.1 topRadius=0.92
+                # The shaft, from 0.5 to 5.5 m, tapering a little
+                Translate translation=(0, 3.0, 0)
+                    CappedCone height=2.5 bottomRadius=0.92 topRadius=0.8
+                # The capital, flaring again up to its top at 5.94 m
+                Translate translation=(0, 5.67, 0)
+                    CappedCone height=0.27 bottomRadius=0.8 topRadius=1.05
+        # The lichen crust on the capital's top, the pillar's top at 6 m
+        Material material=arena_lichen
+            Translate translation=(0, 5.94, 0)
+                RoundedCylinder radius=0.98 roundness=0.03 height=0.06
+        # Two brackets of shelf fungus on the shaft, their outer edges at 1.1 m from the axis
+        Material material=arena_shelf
+            Union
+                Translate translation=(0, 2.1, 0)
+                    Rotate rotation=(0, 0.6, 0)
+                        Translate translation=(0.8, 0, 0)
+                            Ellipsoid radii=(0.3, 0.1, 0.35)
+                Translate translation=(0, 3.5, 0)
+                    Rotate rotation=(0, 3.4, 0)
+                        Translate translation=(0.75, 0, 0)
+                            Ellipsoid radii=(0.28, 0.09, 0.3)
+        # Moss in the foot's crevices
+        Material material=arena_moss
+            Union
+                Translate translation=(0, 0.62, 0)
+                    Rotate rotation=(0, 2.2, 0)
+                        Translate translation=(0.8, 0, 0)
+                            Ellipsoid radii=(0.3, 0.14, 0.3)
+                Translate translation=(0, 0.55, 0)
+                    Rotate rotation=(0, 4.9, 0)
+                        Translate translation=(0.82, 0, 0)
+                            Ellipsoid radii=(0.25, 0.12, 0.28)

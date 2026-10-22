@@ -1,0 +1,20 @@
+# Arena wall (ticket 33.2): one 8 m segment of the wall of fungal stone round the arena floor's edge, 2.5 m high and 1 m thick, its
+# face a little battered (wider at the foot), a lichen crust and a rounded coping on top and a few moss tufts along its foot. Placed in
+# a ring of 50 by a one-off script. The origin is the segment's middle on the ground, front (the floor side) along +z. Convex.
+format 1
+collider convex
+
+Detail detail=0.35
+    Union
+        Material material=arena_stone
+            Translate translation=(0, 1.25, 0)
+                RoundBox size=(4, 1.25, 0.5) roundness=0.05
+        Material material=arena_lichen
+            Translate translation=(0, 2.44, 0)
+                RoundBox size=(3.98, 0.06, 0.48) roundness=0.03
+        Material material=arena_moss
+            Union
+                Translate translation=(-2.5, 0.12, 0.45)
+                    Ellipsoid radii=(0.5, 0.14, 0.12)
+                Translate translation=(1.8, 0.1, 0.45)
+                    Ellipsoid radii=(0.4, 0.12, 0.1)

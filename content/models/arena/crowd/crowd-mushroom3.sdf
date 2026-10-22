@@ -1,0 +1,19 @@
+# crowd-mushroom3 (ticket 33.2): a green-capped crowd member, middling and broad: 1.2 m high with a cap 0.9 m across, a plain stem and two coarse floating eyes (the
+# part eye_machine at 0.6 times) at its front. Stands in the arena's crowd, drawn instanced and swaying in the stands' wind; no
+# collider. The origin is the stem's foot, front along +z.
+format 1
+
+Detail detail=0.18
+    Union
+        Material material=crowd_flesh
+            ArbitraryRoundCone a=(0, 0.16, 0) b=(0, 0.94, 0) radiusA=0.16 radiusB=0.13
+        Material material=crowd_cap_green
+            Translate translation=(0, 0.88, 0)
+                Intersection
+                    Ellipsoid radii=(0.45, 0.32, 0.45)
+                    Translate translation=(0, 0.32, 0)
+                        Box size=(0.55, 0.32, 0.55)
+        SymmetryX
+            Translate translation=(0.1, 0.66, 0.2)
+                Scale scale=(0.6, 0.6, 0.6)
+                    Part part=eye_machine

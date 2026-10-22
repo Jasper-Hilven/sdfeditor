@@ -1,0 +1,45 @@
+# Arena pillar 1 (ticket 33.2): the other arena pillar, 6 m high and 2.2 m round at the foot: a plainer shaft than pillar 0 with a
+# capital chipped on one side (the top cut down at a slant, the lichen only on the part that is left), a broad bracket of shelf fungus
+# low on the shaft and moss round the foot. Cover for the line of sight to Prime; the origin is the foot's centre on the ground, front
+# along +z. The collider is a mesh, as pillar 0's.
+format 1
+collider mesh
+
+Detail detail=0.5
+    Union
+        Material material=arena_stone
+            SmoothUnion smoothness=0.12
+                Translate translation=(0, 0.3, 0)
+                    CappedCone height=0.3 bottomRadius=1.1 topRadius=0.95
+                Translate translation=(0, 3.0, 0)
+                    CappedCone height=2.7 bottomRadius=0.95 topRadius=0.85
+                # The capital, chipped: its top is cut by a slanted plane, 6 m at the high side and 5.6 m at the low one
+                Intersection
+                    Translate translation=(0, 5.6, 0)
+                        CappedCone height=0.4 bottomRadius=0.85 topRadius=1.05
+                    Rotate rotation=(0, 0, 0.1)
+                        Translate translation=(0, -3.5, 0)
+                            Box size=(3, 9.4, 3)
+        # The lichen on what is left of the top
+        Material material=arena_lichen
+            Intersection
+                Translate translation=(0, 5.94, 0)
+                    RoundedCylinder radius=0.98 roundness=0.03 height=0.06
+                Rotate rotation=(0, 0, 0.1)
+                    Translate translation=(-0.5, 5.2, 0)
+                        Box size=(1.8, 0.85, 3)
+        Material material=arena_shelf
+            Translate translation=(0, 1.5, 0)
+                Rotate rotation=(0, 1.9, 0)
+                    Translate translation=(0.75, 0, 0)
+                        Ellipsoid radii=(0.35, 0.12, 0.5)
+        Material material=arena_moss
+            Union
+                Translate translation=(0, 0.55, 0)
+                    Rotate rotation=(0, 0.4, 0)
+                        Translate translation=(0.85, 0, 0)
+                            Ellipsoid radii=(0.25, 0.13, 0.3)
+                Translate translation=(0, 0.5, 0)
+                    Rotate rotation=(0, 3.6, 0)
+                        Translate translation=(0.85, 0, 0)
+                            Ellipsoid radii=(0.25, 0.12, 0.3)

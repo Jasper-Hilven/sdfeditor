@@ -1,0 +1,15 @@
+# Shelter cap 1: the broad cap of a toadstool shelter (a slightly squatter cap, leaning the other way), 8 m across and 1.6 m deep, the underside at the origin. Pale shelf
+# fungus on top with moss on its crown and cream pores under it. A part, so it is a mesh of its own.
+format 1
+
+Union
+    Material material=arena_shelf
+        Intersection
+            Ellipsoid radii=(3.9, 1.5, 3.9)
+            Translate translation=(0, 1.5, 0)
+                Box size=(9, 1.5, 9)
+    Material material=arena_moss
+        Translate translation=(0, 1.4, 0)
+            Ellipsoid radii=(1.5, 0.22, 1.5)
+    Material material=arena_shelf_pores
+        CappedCylinder radius=3.6 height=0.06

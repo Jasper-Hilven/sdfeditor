@@ -1,0 +1,28 @@
+# Champion's plinth (ticket 33.2): the small plinth in the Champion's Corner where 42's golden minigun appears in phase 3, 1.2 m round
+# and 1.2 m high: a cap-shaped base like the trophy's (a wide foot, a narrow stem, a flat-topped cap) in fungal stone with a ring of
+# gold round the cap's rim and a gold button on its top where the weapon pod's pedestal sits. The origin is the foot's centre on the
+# ground, the top at y = 1.2. The collider is convex.
+format 1
+collider convex
+
+Detail detail=0.32
+    Union
+        Material material=arena_stone
+            SmoothUnion smoothness=0.04
+                # The foot
+                Translate translation=(0, 0.08, 0)
+                    CappedCone height=0.08 bottomRadius=0.6 topRadius=0.45
+                # The stem
+                ArbitraryRoundCone a=(0, 0.3, 0) b=(0, 0.8, 0) radiusA=0.3 radiusB=0.24
+                # The cap, its top flat at 1.2 m
+                Intersection
+                    Translate translation=(0, 0.85, 0)
+                        Ellipsoid radii=(0.6, 0.35, 0.6)
+                    Translate translation=(0, 0.6, 0)
+                        Box size=(1, 0.6, 1)
+        Material material=prime_gold
+            Union
+                Translate translation=(0, 0.86, 0)
+                    Torus innerRadius=0.025 outerRadius=0.585
+                Translate translation=(0, 1.19, 0)
+                    RoundedCylinder radius=0.25 roundness=0.01 height=0.012
