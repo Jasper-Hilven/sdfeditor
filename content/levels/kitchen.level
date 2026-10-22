@@ -23,6 +23,8 @@ machines set=kitchen floor=0
 # The floor, from 2D shapes; where regions overlap, the later one wins, and the worktop is honey oak. Each is drawn in its material, materials/ground/ground_<region>.sdfmat.
 # All ruled (no wobble) but the flour, which is soft. The sink is a hole: no ground inside it (no triangles, no collider, no navmesh floor), cut crisp at the bowl's 27 x 22 m
 regions base=oak
+    planks pattern=staves stone=2.4 grout=0.1 wobble=0   # the whole worktop laid as oak staves 2.4 m wide along x, 14 m long, with seams (ground_planks)
+        RoundedBox2D center=(0, 0) size=(152, 102) radius=0
     sink hole=1                                     # the sink's bowl, 13.2 m deep: a scout who falls in is dead before the bottom (deeper than Match.killDepth)
         RoundedBox2D center=(0, 31) size=(27, 22) radius=2
     steel wobble=0                                  # the sink's 1.5 m rim, flush with the oak
@@ -200,7 +202,7 @@ trees group=pantry
     vinegar-bottle0
     milk-carton0
     plate-stack-low0
-    band=(-46, -8) density=0.003 spacing=9 cluster=3 clusterScale=18 avoid=steel,hob scale=(0.9, 1.1) margin=3
+    band=(-46, -8) density=0.014 spacing=8 cluster=3 clusterScale=18 avoid=steel,hob scale=(0.9, 1.1) margin=3
 
 # Knee cover, drawn instanced like a meadow's trees: sugar cubes, cookies, a butter pat, bottle caps, a jar lid, a teaspoon, a sponge and a garlic clove, mostly 0.4 to 1.5 m
 # high with rounded or domed tops, so players jump them and bots go round, in clumps about 18 m wide
@@ -217,7 +219,7 @@ trees group=pantry
     teaspoon0
     sponge0
     garlic-clove0
-    band=(-46, -4) density=0.005 spacing=7 cluster=2.5 clusterScale=18 avoid=steel,hob scale=(0.9, 1.1) margin=1.5
+    band=(-46, -4) density=0.025 spacing=6 cluster=2.5 clusterScale=18 avoid=steel,hob scale=(0.9, 1.1) margin=1.5
 
 # How the crumbs are drawn round the camera: the finest level to 10 m with the ink outline, the next to 25 m and the coarsest to 45 m, fading out over its last 15 m, shadows from
 # the nearest ring only; no wind, and no ground colour at their feet (tintHeight 0: oak is not grass). The integrated GPU / web preset draws half of them, to 0.7 times the distance

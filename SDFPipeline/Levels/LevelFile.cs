@@ -27,6 +27,7 @@ namespace SDFPipeline.Levels;
 ///     dirt
 ///         Circle center=(-60, 0) radius=18 noise=1.2
 ///     tiles stone=0.6 grout=0.05             # drawn as stones (the region named tiles is, unless pattern=plain)
+///     planks pattern=staves stone=2.4 grout=0.1   # boards 2.4 m wide and 6 times as long, laid along x with random joints (the kitchen's oak)
 ///         RoundedBox2D center=(-62, 0) size=(14, 10) radius=1
 ///     path
 ///         Polyline points=[(-45, 0), (-10, 6), (20, -4), (45, 0)] width=3 noise=0.6
@@ -898,10 +899,13 @@ public static partial class LevelFile
             }
             if (regions.Count == GroundRegions.MaxRegions)
                 throw childCursor.Error($"A level has at most {GroundRegions.MaxRegions} regions besides grass");
-            var pattern = parameters.Name("pattern", name == GroundRegion.Tiles ? "stones" : "plain", ["plain", "stones"]) == "stones"
-                ? GroundPattern.Stones
-                : GroundPattern.Plain;
-            var stone = parameters.Number("stone", GroundRegion.DefaultStoneSize, 0.1f, 10, "the stones' length in metres, 0.1 to 10");
+            var pattern = parameters.Name("pattern", name == GroundRegion.Tiles ? "stones" : "plain", ["plain", "stones", "staves"]) switch
+            {
+                "stones" => GroundPattern.Stones,
+                "staves" => GroundPattern.Staves,
+                _ => GroundPattern.Plain,
+            };
+            var stone = parameters.Number("stone", GroundRegion.DefaultStoneSize, 0.1f, 10, "the stones' length (the staves' width) in metres, 0.1 to 10");
             var grout = parameters.Number("grout", GroundRegion.DefaultGroutWidth, 0, 0.5f, "the grout's width in metres, 0 to 0.5");
             var wobble = parameters.Number("wobble", GroundRegion.DefaultWobble, 0, 0.5f, "metres the shader wobbles the edge, 0 (straight) to 0.5");
             parameters.Done("hole", "pattern", "stone", "grout", "wobble");

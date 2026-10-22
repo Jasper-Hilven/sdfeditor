@@ -3,8 +3,8 @@
 # outside it. North (+z): a run of sage cabinets with an oak worktop at y = 0, white metro tiles to 36 m above it, a 72 x 72 m sash window (daylight, a basil pot on the sill)
 # and upper cabinets either side. West and east: the same run with upper cabinets and warm light strips under them. South: a tall cream fridge with magnets and the door.
 # Two brass pendant lamps hang over the island, their shades 65 m above the worktop. Eight materials: kitchen_wall, _slate, _tile, _cabinet, _oak, _brass, _glow, _basil.
-# Emission: the toon shader and the material format have no emission yet (30.1 adds it), so the window, the strips and the lamps' undersides are kitchen_glow, a pale warm
-# material with a strong subsurface that reads bright; when 30.1 lands, give that one material an emission amount. No collider: the room is out of reach and takes no shadows.
+# Emission: the window, the strips and the lamps' undersides are kitchen_glow, a pale warm material with emission 1 (30.1): it glows flat, in shadow too.
+# No collider: the room is out of reach and takes no shadows.
 # Plain big faces on purpose (no noise); the grid is coarse (about 1.2 m cells), so nothing thinner than 2 m is modelled.
 format 1
 collider none

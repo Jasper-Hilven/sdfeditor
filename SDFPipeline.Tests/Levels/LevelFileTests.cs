@@ -87,6 +87,22 @@ public class LevelFileTests
     }
 
     [Fact]
+    public void Read_TakesTheStavesPattern_BoardWidthAndSeam()
+    {
+        var level = LevelFile.Read(
+            """
+            format 1
+            play size=(150, 100)
+            regions base=oak
+                planks pattern=staves stone=2.4 grout=0.1 wobble=0
+                    RoundedBox2D center=(0, 0) size=(152, 102) radius=0
+            """);
+
+        var planks = level.Regions.Single();
+        Assert.Equal((GroundPattern.Staves, 2.4f, 0.1f, 0f), (planks.Pattern, planks.StoneSize, planks.GroutWidth, planks.Wobble));
+    }
+
+    [Fact]
     public void Read_TakesPlacements_ModelNamesWithHyphens()
     {
         var level = LevelFile.Read(
@@ -681,7 +697,8 @@ public class LevelFileTests
         }
         // The floor: its own ground materials, a sink hole, and no room, sky or hills (the backdrop is the room)
         Assert.Equal("oak", level.Base);
-        Assert.Equal(["steel", "hob", "flour"], level.Regions.Select(r => r.Name));
+        Assert.Equal(["planks", "steel", "hob", "flour"], level.Regions.Select(r => r.Name));
+        Assert.Equal(GroundPattern.Staves, level.Regions[0].Pattern);
         Assert.Single(level.Holes);
         Assert.Equal("kitchen-room", level.Backdrop.Model);
         Assert.Null(level.Room);

@@ -661,8 +661,12 @@ namespace SdfBattle
                 case 4:
                 {
                     var angle = (random.NextDouble() < 0.5 ? -1 : 1) * (60 + 60 * (float)random.NextDouble());
-                    sidestep = Quaternion.Euler(0, angle, 0) * (corner < corners.Count ? Flat(corners[corner] - feet).normalized : transform.forward);
-                    sidestepLeft = 0.6f;
+                    var along = corner < corners.Count ? Flat(corners[corner] - feet).normalized : transform.forward;
+                    sidestep = Quaternion.Euler(0, angle, 0) * along;
+                    // Not off an edge (a worktop's, a sink's): the other side, or none
+                    if (!BotNavigation.Clear(feet, feet + sidestep * 3))
+                        sidestep = Quaternion.Euler(0, -angle, 0) * along;
+                    sidestepLeft = BotNavigation.Clear(feet, feet + sidestep * 3) ? 0.6f : 0;
                     controller.Jump();
                     break;
                 }

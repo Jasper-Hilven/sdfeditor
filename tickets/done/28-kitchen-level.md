@@ -328,6 +328,28 @@ back ledge over the sink (the fruit bowl, tap, sink and both cereal boxes). The 
 `pantry` 26 variants. `LevelSnapshot` triangles and draws per group on both presets go in this ticket next to the meadow's and the
 chessboard's.
 
+Measured in 28.11 with `LevelSnapshot` (`-level kitchen`, 18 views on each preset; triangles include outlines; draws = instanced + placed models, the backdrop included, not the
+ground chunks or shadow passes). Busiest views first:
+
+| View | High: triangles / draws | Integrated GPU / Web: triangles / draws |
+|---|---|---|
+| Back ledge over the sink (`k_sink_ledge`: sink, tap, rolling pin, fruit bowl, cereal box, kettle) | 242k / 168 (crumbs 9k, pantry 22k, placed 206k) | 170k / 124 |
+| Hob close, towards the burners (`k_burners`) | 235k / 153 (crumbs 42k, pantry 27k, placed 160k) | 152k / 117 |
+| Across the hob from the east, plate stack beside it (`k_hob`) | 198k / 166 | 119k / 133 |
+| Window and tap from the south (`k_window`) | 194k / 127 | 121k / 87 |
+| West spawn towards the hob | 163k / 159 | 144k / 127 |
+| West spawn facing the middle | 155k / 144 (crumbs 15k, pantry 17k, placed 116k) | 137k / 111 |
+| West spawn north | 145k / 105 | 129k / 83 |
+| Pantry lane, both ways | 135k / 101 and 157k / 117 | 107k / 68 and 123k / 92 |
+| Sink from its front rim | 112k / 112 | 90k / 71 |
+| West spawn towards its flag / back (the bread box close) | 102k / 91 and 99k / 56 | 89k / 68 and 61k / 53 |
+| Bread box from the middle, cake close | 67k / 79 and 73k / 89 | 54k / 62 and 62k / 55 |
+| From above and outside / straight down | 95k / 87 and 113k / 89 | 92k / 79 and 95k / 83 |
+
+Shares: the placed models are 65-85 % of every view (the room backdrop, bread boxes, cakes, kettle, plate stacks, sink); `crumbs` at most 42k High / 15k Web in view, 22 variants and
+59-72 draws on High, at most 50 on Web; `pantry` at most 32k / 27k and at most 50 draws High, 42 Web; the bread boxes' slats (`castle` group) at most 1k. Ground chunks 0.6-6.5k. All under
+the targets (2M High; 500k and 200 draws Web): the busiest view is 242k and 168 draws on High and 170k and 133 draws on Web. No ring or density had to be lowered.
+
 ## Risks
 
 - **The ground has no holes**: the sink needs a cut-out in the worktop's floor (the island edge's code on an inner shape, or a
@@ -388,4 +410,8 @@ chessboard's.
 
 ## Status
 
-**Not started.**
+Done in code, pipeline and Unity batch (subtickets 28.1-28.11, each with its own Status): a hole in the ground (`hole=1` regions), the `backdrop` room form (a model as the room, open play-area edges, far plane, clear colour), the 18 clutter, 25 knee/tall, 12 landmark, bread box, tea towel, room/base/edge and 18 machine models, `machines set=kitchen floor=0` (helicopters hold 6 m over the worktop, never sinking into the sink), `kitchen.level` with its tests (mirror, clearances, theme, sink depth), the hob heat cycle (`heat` section, Core rules, damage, glow, Burner navmesh areas, "the hob" death line), the `staves` oak ground pattern, a Unity batch build of `Kitchen.unity` with Check Navmesh reaching every spawn, stand and pod, and 36 snapshots looked at. Worst view: 242k triangles / 168 draws High, 170k / 124 Web (table above). Main (ticket 30) was merged in; conflicts resolved in `LevelFile`, `LevelBaker`, `LevelBuilder`, `MachineMotion`, `Machines`, `BattleSidesTests`.
+
+Left (by eye / in Unity): a Play-mode match with 7 bots (no falls off the edge or into the sink, the rolling pin crossed, tanks and helicopters in kitchen forms); the burners' glow, the 10 a second damage and the kill line in motion; frame time and a WebGL2 compile of the `staves` ground branch and the emission; the hob's control strip and the flour pattern (ground shader entries, not done); the glow strip tone (white) and the tile tone (lilac); the plate stacks are 60-80% over their budgets (rims needed the finer detail).
+
+Main checkout after merging (generated files are not in git): `sdf unity --resolution 256 --lods 3` (all models; the kitchen room takes about 9 min), then `bread-box0` alone at 128 (`sdf mesh content/models/kitchen/bread-box0.sdf Unity/Assets/Mushrooms/Generated/kitchen/bread-box0.glb --resolution 128 --lods 3`; check the folder against the run config); `sdf level --into Unity/Assets/Level/Generated` (all levels); Unity `LevelBuilder.BuildAllInBatch` twice (the first builds the new prefabs and machine pieces, the second places them), Tools > SDF Machines > Rebuild Machines if the kitchen machine prefabs are missing; Tools > SDF Battle > Check Navmesh and Check Hob Navmesh. The kitchen prefabs, `Kitchen.unity` and materials made in the worktree were not committed (their guids belong to the worktree).

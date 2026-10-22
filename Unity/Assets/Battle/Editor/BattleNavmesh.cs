@@ -393,6 +393,37 @@ namespace SdfBattle.Editor
                         if (clear < 0.6f)
                             problems++;
                     }
+                // Ticket 28.11: a level with heat has each ring as its Burner area on the scouts' navmesh, and no navmesh a little past the play
+                // area's edge or in a sink placed in it (nothing to walk onto, no drop link off the worktop)
+                foreach (var ring in (data["heat"]?["rings"] as JArray) ?? new JArray())
+                {
+                    var at = new Vector3(-ring["at"][0].Value<float>(), floor, ring["at"][1].Value<float>());
+                    var group = ring.Value<int>("group");
+                    var area = NavMesh.GetAreaFromName(group <= 0 ? "Burner" : $"Burner {group + 1}");
+                    var found = NavMesh.SamplePosition(at, out var ringHit, 1.5f, filter);
+                    var onRing = found && ringHit.mask == 1 << area;
+                    report.Append($"  heat ring {ring.Value<string>("name")} at ({at.x:0.#}, {at.z:0.#}): {(onRing ? "Burner area" : "NOT the Burner area (mask " + (found ? ringHit.mask : -1) + ")")}\n");
+                    if (!onRing)
+                        problems++;
+                }
+                if (data["heat"] != null)
+                {
+                    var half = new Vector2(max[0] - min[0], max[1] - min[1]) / 2;
+                    var middle = new Vector2((max[0] + min[0]) / 2, (max[1] + min[1]) / 2);
+                    var outside = new[] { new Vector3(middle.x + half.x + 1.5f, floor, middle.y), new Vector3(middle.x - half.x - 1.5f, floor, middle.y),
+                        new Vector3(middle.x, floor, middle.y + half.y + 1.5f), new Vector3(middle.x, floor, middle.y - half.y - 1.5f) };
+                    var offEdge = outside.Count(point => NavMesh.SamplePosition(point, out _, 0.75f, filter));
+                    report.Append($"  past the play area's edge: {offEdge} of {outside.Length} probes on the navmesh\n");
+                    problems += offEdge;
+                    foreach (var sink in ((JArray)data["placements"]).Where(p => p.Value<string>("model")?.StartsWith("sink") == true))
+                    {
+                        var at = new Vector3(-sink["position"][0].Value<float>(), floor - 6, sink["position"][2].Value<float>());
+                        var inBowl = NavMesh.SamplePosition(at, out var bowlHit, 6, filter) && bowlHit.position.y < floor - 1;
+                        report.Append($"  sink at ({at.x:0.#}, {at.z:0.#}): {(inBowl ? "NAVMESH IN THE BOWL at y " + bowlHit.position.y.ToString("0.#") : "no navmesh in the bowl")}\n");
+                        if (inBowl)
+                            problems++;
+                    }
+                }
                 if (sides.All(side => side["machines"] is JObject))
                     problems += CheckTanks(name, sides, report);
 

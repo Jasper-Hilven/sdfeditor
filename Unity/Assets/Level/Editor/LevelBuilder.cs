@@ -629,13 +629,14 @@ namespace SdfLevel.Editor
                 var channel = i < channels.Count ? (JObject)channels[i] : null;
                 var region = channel == null ? null : MaterialOf(materials, channel.Value<string>("name"))
                     ?? throw new InvalidDataException($"level.json has no material for the region {channel.Value<string>("name")}; bake the level again");
-                var stones = channel?.Value<string>("pattern") == "stones";
+                var pattern = channel?.Value<string>("pattern");
+                var patternKind = pattern == "stones" ? 1 : pattern == "staves" ? 2 : 0;
                 material.SetVector($"_Region{i}Base", region == null ? Vector4.zero : Color(region, "baseColor", region.Number("emission")));
                 material.SetVector($"_Region{i}Variation", region == null ? Vector4.zero : Color(region, "variationColor", region.Number("variationScale")));
                 material.SetVector($"_Region{i}Surface", region == null ? new Vector4(0.9f, 0.3f, 0, 0.5f) : Surface(region));
                 material.SetVector($"_Region{i}Speckle", region == null ? Vector4.zero : Color(region, "speckleColor", region.Number("speckleScale")));
                 material.SetVector($"_Region{i}Pattern", region == null ? Vector4.zero
-                    : new Vector4(region.Number("speckleDensity"), region.Number("speckleSize"), stones ? 1 : 0, channel.Value<float?>("stoneSize") ?? 0.6f));
+                    : new Vector4(region.Number("speckleDensity"), region.Number("speckleSize"), patternKind, channel.Value<float?>("stoneSize") ?? 0.6f));
                 material.SetVector($"_Region{i}Grout", region == null ? Vector4.zero : Color(region, "edgeColor", channel.Value<float?>("groutWidth") ?? 0));
             }
 

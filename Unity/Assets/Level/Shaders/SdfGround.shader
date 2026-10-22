@@ -41,7 +41,7 @@ Shader "SdfMushrooms/Ground"
         _GroundRegionWobble("Region edge wobble per channel (m)", Vector) = (0.06, 0.06, 0.06, 0.06)
 
         // Each region's material as the grass's above (with its emission in the base colour's alpha), plus its pattern: x = speckle
-        // density, y = speckle size, z = 1 for stones, w = stone size (m); and the grout: rgb = colour (linear), a = width (m)
+        // density, y = speckle size, z = 1 for stones and 2 for staves (boards along x), w = stone size (m); and the grout: rgb = colour (linear), a = width (m)
         _Region0Base("Region 0 base colour and emission (0 to 1)", Vector) = (0, 0, 0, 0)
         _Region0Variation("Region 0 variation colour and scale", Vector) = (0, 0, 0, 0)
         _Region0Surface("Region 0 roughness, specular, colour variation, detail scale", Vector) = (0.9, 0.3, 0, 0.5)
@@ -220,9 +220,9 @@ Shader "SdfMushrooms/Ground"
             // uneven bond). Gives the stone's tone (0 to 1, per stone), how much of the pixel is grout, and the bevel: the direction
             // in world xz from the stone's middle towards its nearest edge, scaled by how far into the bevel the pixel is. `pixel` is the
             // pixel's size on the ground in metres, taken outside the branches that call this, where derivatives are not to be had
-            void SdfStones(float2 p, float size, float grout, float pixel, out float tone, out float groutMask, out float2 bevel)
+            void SdfStones(float2 p, float size, float aspect, float grout, float pixel, out float tone, out float groutMask, out float2 bevel)
             {
-                float2 cellSize = float2(1.3, 1.0) * size;
+                float2 cellSize = float2(aspect, 1.0) * size;
                 float row = floor(p.y / cellSize.y);
                 float2 q = float2(p.x / cellSize.x + SdfHash(float3(row, 7.13, 3.71)), p.y / cellSize.y);
                 float2 cell = floor(q);
@@ -258,7 +258,7 @@ Shader "SdfMushrooms/Ground"
 
                 float tone, groutMask;
                 float2 bevel;
-                SdfStones(positionWS.xz, max(layer.pattern.w, 0.05), layer.grout.a, pixel, tone, groutMask, bevel);
+                SdfStones(positionWS.xz, max(layer.pattern.w, 0.05), layer.pattern.z > 1.5 ? 6.0 : 1.3, layer.grout.a, pixel, tone, groutMask, bevel);
                 // Each stone its own tone between the base and the variation colour, a little lighter or darker
                 float3 stone = lerp(layer.base, layer.variation.rgb, tone * 0.85) * (0.88 + 0.24 * SdfHash(float3(tone * 97.0, 3.1, 5.9)));
                 float3 color = SdfGroundColor(layer, stone, positionWS);

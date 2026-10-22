@@ -237,8 +237,8 @@ public sealed record IslandUnderside(string Model, int Line);
 /// name it paint (see <see cref="Placement.Ground"/>).
 /// </summary>
 /// <param name="Pattern">How the material is drawn: plainly, or as stones with grout lines between them.</param>
-/// <param name="StoneSize">The stones' length in metres, for <see cref="GroundPattern.Stones"/>.</param>
-/// <param name="GroutWidth">The width of the grout lines between stones in metres, for <see cref="GroundPattern.Stones"/>.</param>
+/// <param name="StoneSize">The stones' length in metres, for <see cref="GroundPattern.Stones"/>; the boards' width for <see cref="GroundPattern.Staves"/>.</param>
+/// <param name="GroutWidth">The width of the grout lines between stones or boards in metres, for <see cref="GroundPattern.Stones"/> and <see cref="GroundPattern.Staves"/>.</param>
 /// <param name="Wobble">Metres the ground shader wobbles the region's edge with fine noise, so that it is not ruled; 0 keeps it straight.</param>
 public sealed record GroundRegion(string Name, IReadOnlyList<RegionShape> Shapes, GroundPattern Pattern, float StoneSize, float GroutWidth, float Wobble = GroundRegion.DefaultWobble)
 {
@@ -261,6 +261,9 @@ public enum GroundPattern
 
     /// <summary>A world-space offset grid of stones (an offset brick bond), with grout lines and bevelled edges, drawn by the shader.</summary>
     Stones,
+
+    /// <summary>Long boards laid along x, each row's joints shifted at random (a plank or stave floor); <see cref="GroundRegion.StoneSize"/> is the board's width.</summary>
+    Staves,
 }
 
 /// <summary>
