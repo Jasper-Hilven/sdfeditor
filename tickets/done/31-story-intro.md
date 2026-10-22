@@ -221,4 +221,20 @@ Mushroom 7: the existing `amanita-scout`.
 
 ## Status
 
-**Not started.** Presentation changed from a real-time cutscene to comic panels rendered in Unity (2026-10-22).
+Done (subtickets 31.1-31.9, in this folder): the home models and materials (`content/models/home/`, `materials/home/`), the
+placement file `content/scenes/home.txt` and `HomeBuilder` (`Home.unity`, editor-only, not in the build), the panel data
+`content/story/intro.txt` with its reader (`SDFPipeline/Story/StoryFile.cs`, copied to `Unity/Assets/Story/Editor/`), `StoryCapture` with
+the comic look (capture-only toon globals in `SdfComic.hlsl`, ink, halftone, paper), lettering and devices, the screen textures and
+warp stage, all twelve panels rendered as **JPG** (`panel-NN.jpg`, about 5.5 MB, committed as shipped art), and the `StoryIntro`
+viewer (`StoryIntro.Begin(Action onFinished)` is the hook for 32; the default loads the meadow). A test checks that no `.level` places a
+`home/` model.
+
+**After merging into the main checkout:** `sdf unity --resolution 256 --lods 3` (meshes the new `home/` models), then in Unity
+Tools > SDF Story > Build Home, and (only to re-render; the panels are committed) Tools > SDF Story > Render Panels; Tools > SDF Story >
+Build Intro Viewer after adding the music. Generated meshes are git-ignored.
+
+**Left, by eye / in Unity:** the user provides `Assets/Story/Audio/intro-music.ogg` (then rebuild the viewer prefab); a Play-mode run
+of the viewer (cross-fade, keys, letterbox at 4:3 and 21:9, the scene load at the end, button feel); the panels' taste (colours,
+balloon and burst sizes, panel 8's scale-only stretch, panel 10's face-down pose, panel 1's cap hiding the window, Prime's crown size);
+the home models in a toon render; the web build size (about +6 MB expected). The open questions above stay open (arrival place,
+teammate's name, panel split).
