@@ -143,6 +143,9 @@ namespace SdfBattle
             return pool.Count > 0 ? pool.ToArray() : null;
         }
 
+        /// <summary>The particle pool every effect draws into (ticket 24's machine bursts emit into it too).</summary>
+        public FxParticles Particles => particles;
+
         // ---------------------------------------------------------------- Shots
 
         private Shooter ShooterOf(Object owner)
@@ -246,7 +249,8 @@ namespace SdfBattle
 
         /// <summary>
         /// The flame for one frame of <paramref name="dt"/>: hot motes and a little smoke streaming from the muzzle along the aim,
-        /// spreading as they go, dying where the flame ends (<paramref name="length"/>: its range, or the wall in the way).
+        /// spreading as they go, dying where the flame ends (<paramref name="length"/>: its range, or the wall in the way). Each mote
+        /// grows from a fifth of its size over its first 0.2 s, so the flame is small at the muzzle and does not hide the view.
         /// </summary>
         public void Flame(Transform muzzle, Vector3 aim, float length, float dt, bool firstPerson)
         {
@@ -259,7 +263,8 @@ namespace SdfBattle
             {
                 var direction = random.Around(aim, 0.13f);
                 particles.Emit(FxParticles.Kind.Spore, start + direction * random.Range(0, 0.15f), direction * speed * random.Range(0.85f, 1.1f),
-                    life * random.Range(0.8f, 1f), random.Range(0.12f, 0.24f) * scale, Hdr(FlameBand, 1.3f), Hdr(FlameCore, 2.4f), gravity: -1.5f, drag: 0.3f);
+                    life * random.Range(0.8f, 1f), random.Range(0.12f, 0.24f) * scale, Hdr(FlameBand, 1.3f), Hdr(FlameCore, 2.4f), gravity: -1.5f, drag: 0.3f,
+                    growIn: 0.2f, growFrom: 0.2f);
             }
             if (random.Value < dt * 12)
                 particles.Emit(FxParticles.Kind.Puff, start + aim * length * random.Range(0.5f, 0.9f), random.Around(aim + Vector3.up, 0.4f) * 1.2f,

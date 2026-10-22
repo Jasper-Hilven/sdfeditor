@@ -1,21 +1,19 @@
-# Minigun: six steel barrels in a ring around the gun's axis, pointing along +z, their breeches in a painted body behind them: a
-# rotor housing, the receiver, a drive motor on the right, the ammunition feed on the left and spade grips at the back.
+# Minigun: a bolete grown into a rotary gun. Six pale stalks in a ring around the gun's axis are its barrels, pointing along +z, each
+# opening into a little flared lip at the muzzle and bound together by two bands of white mycelium. Their roots go into the cap: a
+# fat brown bolete cap lying on its side, its gills facing forward where the barrels come out. Behind it the cap's swollen stem is
+# the receiver, a puffball lies along it on the right (the drive motor), a cluster of spore balls on the left feeds it, and at the
+# back two little stalks with caps on top, held out on roots, are the spade grips.
 format 1
 
-# One barrel on its own axis, breech at z = 0 and muzzle at z = 1
+# One barrel on its own axis, breech at z = 0 and muzzle at z = 1: a stalk thinning forward into a flared lip, the bore through it
 barrel =
     Subtraction
-        SmoothUnion smoothness=0.006
-            # The tube
-            ArbitraryCappedCylinder a=(0, 0, 0) b=(0, 0, 1) radius=0.026
-            # A band halfway along, where a clamp would hold the barrels together
-            ArbitraryCappedCylinder a=(0, 0, 0.5) b=(0, 0, 0.53) radius=0.031
-            # The muzzle, a little thicker than the tube
-            ArbitraryCappedCylinder a=(0, 0, 0.95) b=(0, 0, 1) radius=0.033
-        # The bore, open at the muzzle and closed at the breech
-        ArbitraryCappedCylinder a=(0, 0, 0.1) b=(0, 0, 1.01) radius=0.016
+        SmoothUnion smoothness=0.01
+            ArbitraryRoundCone a=(0, 0, 0) b=(0, 0, 0.95) radiusA=0.029 radiusB=0.022
+            ArbitraryCappedCone a=(0, 0, 0.93) b=(0, 0, 1) radiusA=0.024 radiusB=0.035
+        ArbitraryCappedCylinder a=(0, 0, 0.1) b=(0, 0, 1.01) radius=0.015
 
-# The gun's axis 13.5 cm up, so the bottom of the body rests on the ground
+# The gun's axis 13.5 cm up, so the bottom of the stem and the grips rest on the ground
 Translate translation=(0, 0.135, 0)
     Union
         # Six barrels 7.5 cm from the axis, 60 degrees apart
@@ -34,30 +32,69 @@ Translate translation=(0, 0.135, 0)
                 Translate translation=(0.065, -0.0375, 0)
                     $barrel
 
-        # The body: the rotor housing around the breeches grows into the receiver behind it
-        Material material=minigun_paint
-            SmoothUnion smoothness=0.02
-                # Rotor housing, a short drum the barrels go into
-                Round radius=0.01
-                    ArbitraryCappedCylinder a=(0, 0, -0.07) b=(0, 0, 0.1) radius=0.115
-                # Receiver, a rounded box behind the housing
-                Translate translation=(0, -0.01, -0.23)
-                    RoundBox size=(0.1, 0.115, 0.17) roundness=0.025
-                # Ammunition feed on the left: a squat box the belt runs into from below
-                Translate translation=(-0.12, -0.02, -0.18)
-                    RoundBox size=(0.045, 0.06, 0.08) roundness=0.012
-
-        # Drive motor on the right, along the receiver, with a domed end at the back
-        Material material=minigun_steel
-            Union
-                ArbitraryCappedCylinder a=(0.125, 0.045, -0.33) b=(0.125, 0.045, -0.08) radius=0.042
-                Translate translation=(0.125, 0.045, -0.33)
-                    Sphere radius=0.036
-
-        # Spade grips at the back, mirrored: an upright handle on each side, held out from the receiver by an arm above and below
+        # Mycelium binding the barrels together: a thick lumpy band halfway along and a thinner one further forward, and the roots
+        # holding the grips out from the stem
         Material material=minigun_grip
-            SymmetryX
-                Union
-                    Capsule a=(0.075, -0.07, -0.48) b=(0.075, 0.07, -0.48) radius=0.018
-                    Capsule a=(0.075, 0.07, -0.48) b=(0.06, 0.07, -0.37) radius=0.013
-                    Capsule a=(0.075, -0.07, -0.48) b=(0.06, -0.07, -0.37) radius=0.013
+            Union
+                Distort amount=0.008 frequency=30
+                    Union
+                        Translate translation=(0, 0, 0.5)
+                            Rotate rotation=(1.5707964, 0, 0)
+                                Torus innerRadius=0.045 outerRadius=0.107
+                        Translate translation=(0, 0, 0.78)
+                            Rotate rotation=(1.5707964, 0, 0)
+                                Torus innerRadius=0.055 outerRadius=0.097
+                SymmetryX
+                    Union
+                        Capsule a=(0.075, 0.06, -0.48) b=(0.03, 0.06, -0.36) radius=0.014
+                        Capsule a=(0.075, -0.06, -0.48) b=(0.03, -0.08, -0.36) radius=0.014
+
+        # The cap: a fat dome lying on its side, facing back, its rim rounded and a little wavy, the barrels going into its face
+        Material material=minigun_paint
+            Union
+                Round radius=0.01
+                    Intersection
+                        Translate translation=(0, 0, 0.08)
+                            Rotate rotation=(-1.5707964, 0, 0)
+                                RadialWave amount=0.05 count=7
+                                    Ellipsoid radii=(0.155, 0.21, 0.125)
+                        Translate translation=(0, 0, -0.1)
+                            Box size=(0.2, 0.2, 0.18)
+                # Little caps on top of the grips
+                SymmetryX
+                    Translate translation=(0.075, 0.075, -0.48)
+                        Round radius=0.006
+                            Intersection
+                                Ellipsoid radii=(0.03, 0.022, 0.03)
+                                Translate translation=(0, 0.05, 0)
+                                    Box size=(0.04, 0.05, 0.04)
+
+        # The gills on the cap's face, ridged out from the axis, where the barrels come through
+        Material material=minigun_gills
+            Translate translation=(0, 0, 0.08)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.06 count=16
+                        CappedCylinder radius=0.122 height=0.01
+
+        # The stem behind the cap (the receiver), swollen in the middle, with the grips' stalks
+        Material material=minigun_stem
+            Union
+                SmoothUnion smoothness=0.04
+                    Translate translation=(0, -0.025, -0.24)
+                        Ellipsoid radii=(0.08, 0.1, 0.16)
+                    ArbitraryRoundCone a=(0, -0.01, -0.1) b=(0, -0.02, -0.38) radiusA=0.085 radiusB=0.065
+                SymmetryX
+                    ArbitraryRoundCone a=(0.075, -0.115, -0.48) b=(0.075, 0.07, -0.48) radiusA=0.018 radiusB=0.016
+
+        # The puffball along the right of the stem, where the drive motor was, and the spore balls feeding the gun on the left
+        Material material=minigun_puff
+            Union
+                Translate translation=(0.095, 0.04, -0.25)
+                    Ellipsoid radii=(0.05, 0.052, 0.12)
+                SmoothUnion smoothness=0.01
+                    Translate translation=(-0.09, -0.03, -0.2)
+                        Sphere radius=0.04
+                    Translate translation=(-0.095, -0.05, -0.27)
+                        Sphere radius=0.035
+                    Translate translation=(-0.085, 0.015, -0.26)
+                        Sphere radius=0.03

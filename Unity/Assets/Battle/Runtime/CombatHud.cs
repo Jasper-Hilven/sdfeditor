@@ -8,11 +8,9 @@ namespace SdfBattle
     /// <summary>
     /// Combat on the HUD (ticket 22), on top of what <see cref="MatchHud"/> writes into the GUI's <see cref="FakeMatch"/> (the health
     /// bar reads <see cref="PlayerState.Health"/>, the kill feed the match's deaths): the hit marker (bigger and red on a kill), the
-    /// damage direction and the red of being hit, the "eliminated" pop-up ("cap popped" for a headshot), the crosshair's spread with the
-    /// weapon's, and the four weapon slots with the one in hand marked. Ammo is unlimited, so the battle royale's spores panel (count,
-    /// bar, reload ring) becomes the slots panel: its count, bar and ring are hidden and four slot boxes (made from the pick-up
-    /// prompt's key box) with the weapons' icons go in, its label naming the weapon in hand. All of it on the GUI made at runtime, so
-    /// the GUI prefab and its showcase are unchanged.
+    /// damage direction and the red of being hit, the "eliminated" pop-up (its title one of <see cref="DeathLines"/>), the crosshair's
+    /// spread with the weapon's, and the four weapon slots (the HUD prefab's, <see cref="GuiHud.weaponSlots"/>) with the weapons' icons,
+    /// the one in hand marked and named over them.
     /// </summary>
     [DefaultExecutionOrder(-40)]
     public sealed class CombatHud : MonoBehaviour
@@ -20,21 +18,15 @@ namespace SdfBattle
         [Tooltip("Degrees of spread at which the crosshair is fully open")]
         public float fullSpread = 5;
 
-        private sealed class Slot
-        {
-            public RectTransform box;
-            public ToonShape shape;
-            public Image icon;
-            public TMP_Text number;
-        }
-
         private Combat combat;
         private MatchHud matchHud;
         private FakeMatch view;
         private GuiIconSet icons;
         private TMP_Text weaponLabel;
         private GuiBar healthBar;
-        private Slot[] slots;
+        private ToonShape[] slots;
+        private Image[] slotIcons;
+        private TMP_Text[] slotNumbers;
         private bool bound;
 
         public static CombatHud Create(Combat combat)
@@ -71,71 +63,18 @@ namespace SdfBattle
             icons = entry != null ? entry.icons : null;
             var hud = matchHud.GetComponentInChildren<GuiHud>(true);
             healthBar = hud != null ? hud.health : null;
-            BuildSlots(hud);
+            if (hud != null && hud.weaponSlots.Length >= Inventory.SlotCount)
+            {
+                weaponLabel = hud.weaponLabel;
+                slots = hud.weaponSlots;
+                slotIcons = hud.weaponIcons;
+                slotNumbers = hud.weaponNumbers;
+            }
             combat.HitLanded += OnHit;
             combat.State.Damaged += OnDamaged;
             combat.Match.State.Died += OnDied;
             bound = true;
             return true;
-        }
-
-        private void BuildSlots(GuiHud hud)
-        {
-            if (hud == null || hud.ammo == null)
-                return;
-            var panel = hud.ammo.transform.parent;
-            // Ammo is unlimited: the spores' count, bar and reload ring go, the weapons come in
-            GuiText.Show(hud.ammo, false);
-            GuiText.Show(hud.magazine, false);
-            GuiText.Show(hud.ammoBar, false);
-            GuiText.Show(hud.reloadRing, false);
-            GuiText.Show(hud.reloadLabel, false);
-            hud.ammo = null;
-            hud.magazine = null;
-            hud.ammoBar = null;
-            hud.reloadRing = null;
-            hud.reloadLabel = null;
-            var label = panel.Find("Label");
-            weaponLabel = label != null ? label.GetComponent<TMP_Text>() : null;
-            if (weaponLabel != null)
-                weaponLabel.rectTransform.sizeDelta = new Vector2(390, weaponLabel.rectTransform.sizeDelta.y);
-
-            var key = hud.pickupPrompt != null ? hud.pickupPrompt.transform.Find("Key") : null;
-            if (key == null)
-                return;
-            slots = new Slot[Inventory.SlotCount];
-            for (var i = 0; i < slots.Length; i++)
-            {
-                var box = (RectTransform)Instantiate(key.gameObject, panel, false).transform;
-                box.name = $"Slot {i + 1}";
-                box.anchorMin = box.anchorMax = box.pivot = new Vector2(0.5f, 0.5f);
-                box.anchoredPosition = new Vector2(-153 + i * 102, -10);
-                box.sizeDelta = new Vector2(88, 88);
-                var number = box.GetComponentInChildren<TMP_Text>(true);
-
-                var icon = new GameObject("Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                var iconRect = icon.rectTransform;
-                iconRect.SetParent(box, false);
-                iconRect.anchorMin = Vector2.zero;
-                iconRect.anchorMax = Vector2.one;
-                iconRect.offsetMin = new Vector2(8, 6);
-                iconRect.offsetMax = new Vector2(-6, -10);
-                icon.preserveAspect = true;
-                icon.raycastTarget = false;
-
-                if (number != null)
-                {
-                    var rect = number.rectTransform;
-                    rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
-                    rect.anchoredPosition = new Vector2(7, -3);
-                    rect.sizeDelta = new Vector2(70, 28);
-                    number.fontSize = 22;
-                    number.alignment = TextAlignmentOptions.TopLeft;
-                    number.enableAutoSizing = false;
-                    rect.SetAsLastSibling();
-                }
-                slots[i] = new Slot { box = box, shape = box.GetComponent<ToonShape>(), icon = icon, number = number };
-            }
         }
 
         private void Update()
@@ -170,24 +109,32 @@ namespace SdfBattle
             }
             if (slots == null)
                 return;
-            for (var i = 0; i < slots.Length; i++)
+            for (var i = 0; i < Inventory.SlotCount; i++)
             {
-                var slot = slots[i];
                 var id = inventory[(WeaponSlot)i];
                 var held = id != null;
                 var current = held && (int)inventory.Current == i;
-                slot.shape?.SetColor(current ? GuiPalette.Gold : held ? GuiPalette.Paper : GuiPalette.WithAlpha(GuiPalette.Night, 0.55f));
-                var scale = Vector3.one * (current ? 1.12f : 1);
-                if (slot.box.localScale != scale)
-                    slot.box.localScale = scale;
-                var sprite = held && icons != null ? icons.Get(id) : null;
-                if (slot.icon.sprite != sprite)
-                    slot.icon.sprite = sprite;
-                slot.icon.enabled = sprite != null;
-                if (slot.number != null)
+                var box = slots[i];
+                if (box != null)
                 {
-                    GuiText.Set(slot.number, i == 0 && inventory.DualPistols ? "1 x2" : (i + 1).ToString());
-                    slot.number.color = held ? GuiPalette.Ink : GuiPalette.WithAlpha(GuiPalette.Paper, 0.6f);
+                    box.SetColor(current ? GuiPalette.Gold : held ? GuiPalette.Paper : GuiPalette.WithAlpha(GuiPalette.Night, 0.55f));
+                    var scale = Vector3.one * (current ? 1.12f : 1);
+                    if (box.transform.localScale != scale)
+                        box.transform.localScale = scale;
+                }
+                var icon = i < slotIcons.Length ? slotIcons[i] : null;
+                if (icon != null)
+                {
+                    var sprite = held && icons != null ? icons.Get(id) : null;
+                    if (icon.sprite != sprite)
+                        icon.sprite = sprite;
+                    icon.enabled = sprite != null;
+                }
+                var number = i < slotNumbers.Length ? slotNumbers[i] : null;
+                if (number != null)
+                {
+                    GuiText.Set(number, i == 0 && inventory.DualPistols ? "1 x2" : (i + 1).ToString());
+                    number.color = held ? GuiPalette.Ink : GuiPalette.WithAlpha(GuiPalette.Paper, 0.6f);
                 }
             }
         }
@@ -249,6 +196,9 @@ namespace SdfBattle
             view.eliminated = 2.2f;
             view.eliminatedPlayer = death.Victim.Index;
             view.eliminatedHeadshot = death.Headshot;
+            // The kind the match's HUD made of this death (it hears of deaths first), with its revenge or streak
+            var kind = matchHud.LastVictim == death.Victim ? matchHud.LastKind : DeathLines.KindOf(death);
+            view.eliminatedTitle = DeathLines.Shared.Title(kind, GuiSettings.Gore);
             view.hitMarker = 1;
             view.hitMarkerKill = true;
         }

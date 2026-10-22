@@ -1,0 +1,30 @@
+# Chip flat 0: one giant clay poker chip lying flat on the board, 2.4 m across and 0.3 m thick, the same chip as poker-chip-stack's
+# (poker_chip_red) but in bottle green (game_chip_green), so it stays out of the teams' red and blue. Painted flush on it in white
+# (game_pip_white): eight blocks round the edge that wrap over the rim and a round disc in the middle of the top. The thin rings
+# of the stack's chips are left out, too fine for a scattered model. Ground clutter: no collider, scattered between the pieces.
+format 1
+
+# A seventh of the vertices its size would give it, about 1,500 triangles: a flat disc, its inlays just wide enough to keep their shape
+Detail detail=0.15
+    Translate translation=(0, 0.15, 0)
+        Union
+            # The chip
+            Material material=game_chip_green
+                RoundedCylinder radius=1.2 roundness=0.06 height=0.15
+            Material material=game_pip_white
+                Intersection
+                    RoundedCylinder radius=1.2 roundness=0.06 height=0.15
+                    Union
+                        # The edge blocks: two radial bars in the +x +z quarter, mirrored into the others
+                        SymmetryXZ
+                            Union
+                                Rotate rotation=(0, -0.3926991, 0)
+                                    Translate translation=(1.2, 0, 0)
+                                        Box size=(0.24, 1, 0.17)
+                                Rotate rotation=(0, -1.1780972, 0)
+                                    Translate translation=(1.2, 0, 0)
+                                        Box size=(0.24, 1, 0.17)
+                        # The inlay, through the chip: a round disc
+                        Rotate rotation=(-1.5707964, 0, 0)
+                            Extrusion height=1
+                                Circle radius=0.4

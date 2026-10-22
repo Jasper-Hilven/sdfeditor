@@ -23,8 +23,8 @@ namespace SdfLevel
 
         /// <summary>
         /// One team's half of the scene. The scenes are roughly mirrored (the meadow's two castles), so each team has a side of its own;
-        /// <see cref="elements"/> are its GameObjects that matter to the game: the level builder puts the side's spawn, flag stand and
-        /// minigun, pistol and health pods in it (ticket 17; the <see cref="SdfBattle.BattleSide"/> on Battle/West or Battle/East holds them
+        /// <see cref="elements"/> are its GameObjects that matter to the game: the level builder puts the side's spawn, flag stand,
+        /// weapon pods and health pods in it (ticket 17; the <see cref="SdfBattle.BattleSide"/> on Battle/West or Battle/East holds them
         /// by role).
         /// </summary>
         [Serializable]

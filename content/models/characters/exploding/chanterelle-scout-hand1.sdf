@@ -1,0 +1,28 @@
+# Chanterelle scout, exploding: the hand on the -x side, whole. One of the fourteen pieces the chanterelle scout bursts into, each the scout (the
+# chanterelle_scout part, so they follow its edits) intersected with a cell; the cells split all of space with no gap or overlap,
+# so the pieces fit together exactly and together are the scout. The cell is in the scout's pale inner flesh, which shows on the
+# cut faces.
+#
+# How space is cut: a plane through the top of the stem, where it flares into the funnel, takes the cap off. The cap is a Voronoi
+# of six seeds (a middle low in the funnel, with the flared top of the stem in it, and five wedges of the wavy rim with the ridges
+# under them). Below it, the chanterelle_scout_core part holds the stem and its foot clear of the floating eyes and hands: inside
+# it the stem breaks under the eyes and above the foot, and the foot in two; outside it each eye and each hand is a piece of its
+# own, whole. Low detail: debris lives a few seconds. The surface is shaded as the whole scout's (its thickness and occlusion
+# measured on the scout), so the pieces put together look like the scout itself.
+format 1
+surface part=chanterelle_scout
+
+Detail detail=0.5
+    Intersection
+        Part part=chanterelle_scout
+        Material material=chanterelle_inner
+            Subtraction
+                Intersection
+                    # Below the cut under the cap
+                    Plane normal=(0.025, 0.9995, -0.02) height=-1.1494
+                    # The -x side
+                    Plane normal=(1, 0, 0) height=0
+                    # Below the eyes
+                    Plane normal=(0, 1, 0) height=-0.705
+                # Outside the core: clear of the stem and its foot
+                Part part=chanterelle_scout_core

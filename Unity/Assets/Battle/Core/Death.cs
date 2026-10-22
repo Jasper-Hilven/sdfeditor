@@ -17,7 +17,7 @@ namespace SdfBattle
     public readonly struct Death
     {
         public Death(PlayerState victim, DeathCause cause, PlayerState killer = null, string killerName = null, Team? killerTeam = null, string weapon = null,
-            bool headshot = false)
+            bool headshot = false, string weaponId = null)
         {
             Victim = victim;
             Cause = cause;
@@ -26,6 +26,7 @@ namespace SdfBattle
             KillerTeam = killerTeam ?? killer?.Team;
             Weapon = weapon;
             Headshot = headshot;
+            WeaponId = weaponId ?? weapon;
         }
 
         public PlayerState Victim { get; }
@@ -37,6 +38,8 @@ namespace SdfBattle
         public Team? KillerTeam { get; }
         /// <summary>The weapon's id (pistol, sniper, cannon); null for a fall.</summary>
         public string Weapon { get; }
+        /// <summary>The weapon's own id, which tells dual pistols from a pistol (<see cref="Weapon"/> is the model's); the death lines use it.</summary>
+        public string WeaponId { get; }
         /// <summary>The killing shot hit the head (the sniper's, ticket 22): the kill feed shows a popped cap.</summary>
         public bool Headshot { get; }
 

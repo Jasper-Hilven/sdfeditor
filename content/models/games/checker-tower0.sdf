@@ -1,0 +1,42 @@
+# Checker tower 0: eight giant draughts, red and black, stacked 2.9 m high, each one pushed a little off the one below so the stack leans
+# over to +x, the top one 0.2 m out. Each draught (the draught part) is 1.8 m across and 0.36 m thick, tipped a
+# touch along the lean, in glossy red (game_die_red), black (game_domino_black) or ivory (game_ivory). Cover to hide behind.
+format 1
+collider convex
+
+# A twelfth of the vertices its size would give it, its draughts too, about 360 triangles a draught: plain discs, and
+# a tower is scattered cover
+Detail detail=0.08
+    Union
+        Material material=game_die_red
+            Translate translation=(0.000, 0.180, 0.000)
+                Rotate rotation=(-0.000, 0, 0.000)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(0.028, 0.535, -0.013)
+                Rotate rotation=(-0.000, 0, -0.044)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(0.005, 0.890, -0.049)
+                Rotate rotation=(-0.000, 0, -0.055)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(0.050, 1.245, 0.050)
+                Rotate rotation=(-0.000, 0, -0.048)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(0.105, 1.600, 0.014)
+                Rotate rotation=(-0.000, 0, -0.042)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(0.177, 1.955, 0.002)
+                Rotate rotation=(-0.000, 0, -0.064)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(0.132, 2.310, 0.026)
+                Rotate rotation=(-0.000, 0, -0.063)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(0.166, 2.665, 0.037)
+                Rotate rotation=(-0.000, 0, -0.064)
+                    Part part=draught

@@ -1,0 +1,211 @@
+# Game box lid: the lid of a games compendium blown up to 14 m long, 10 m tall and 3 m deep, standing on its long edge as a wall.
+# A shallow tray of bottle-green card with rounded edges: the printed top faces +z, the open side faces -z, its plain cardboard
+# inside walls 0.25 m thick. The print, flush on the face: a gold rule round the edge, a cream title band reading GAMES in chunky
+# black capitals, and below it a black-and-cream chessboard on its point and a big ivory die showing five.
+format 1
+collider convex
+
+# Two fifths of the vertices its size would give it: one big slab, seen from afar; kept under 20k triangles at 256 cells
+Detail detail=0.4
+    Translate translation=(0, 5, 0)
+        Union
+            # The lid: a rounded slab hollowed out from the back, green outside
+            Material material=game_box_green
+                Subtraction
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, -1.5)
+                        RoundBox size=(6.75, 4.75, 2.75) roundness=0.08
+            # and plain cardboard inside: the hollow's walls and floor, painted a few centimetres deep
+            Material material=game_box_inside
+                Intersection
+                    Subtraction
+                        RoundBox size=(7, 5, 1.5) roundness=0.15
+                        Translate translation=(0, 0, -1.5)
+                            RoundBox size=(6.75, 4.75, 2.75) roundness=0.08
+                    Translate translation=(0, 0, -1.5)
+                        RoundBox size=(6.8, 4.8, 2.8) roundness=0.08
+            # A gold rule round the edge of the printed face
+            Material material=card_gold
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Subtraction2D
+                                RoundedBox2D size=(6.6, 4.6) radiusTopRight=0.3 radiusBottomRight=0.3 radiusTopLeft=0.3 radiusBottomLeft=0.3
+                                RoundedBox2D size=(6.35, 4.35) radiusTopRight=0.2 radiusBottomRight=0.2 radiusTopLeft=0.2 radiusBottomLeft=0.2
+            # The title band: a cream banner edged in gold
+            Material material=card_gold
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(0, 3.0)
+                                RoundedBox2D size=(4.0, 1.05) radiusTopRight=0.25 radiusBottomRight=0.25 radiusTopLeft=0.25 radiusBottomLeft=0.25
+            Material material=card_paper
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(0, 3.0)
+                                RoundedBox2D size=(3.85, 0.9) radiusTopRight=0.18 radiusBottomRight=0.18 radiusTopLeft=0.18 radiusBottomLeft=0.18
+            # The title in chunky black capitals: GAMES
+            Material material=card_black
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Union2D
+                                Union2D
+                                    Translate2D offset=(-2.7, 3.0)
+                                        Union2D
+                                            Union2D
+                                                Translate2D offset=(0, 0.5)
+                                                    Box2D size=(0.5, 0.1)
+                                                Translate2D offset=(-0.4, 0)
+                                                    Box2D size=(0.1, 0.6)
+                                            Union2D
+                                                Translate2D offset=(0, -0.5)
+                                                    Box2D size=(0.5, 0.1)
+                                                Union2D
+                                                    Translate2D offset=(0.4, -0.25)
+                                                        Box2D size=(0.1, 0.35)
+                                                    Translate2D offset=(0.2, -0.05)
+                                                        Box2D size=(0.3, 0.1)
+                                    Translate2D offset=(-1.35, 3.0)
+                                        Union2D
+                                            Union2D
+                                                Translate2D offset=(-0.4, 0)
+                                                    Box2D size=(0.1, 0.6)
+                                                Translate2D offset=(0.4, 0)
+                                                    Box2D size=(0.1, 0.6)
+                                            Union2D
+                                                Translate2D offset=(0, 0.5)
+                                                    Box2D size=(0.5, 0.1)
+                                                Translate2D offset=(0, 0)
+                                                    Box2D size=(0.5, 0.1)
+                                Union2D
+                                    Translate2D offset=(0.0, 3.0)
+                                        Union2D
+                                            Union2D
+                                                Translate2D offset=(-0.4, 0)
+                                                    Box2D size=(0.1, 0.6)
+                                                Translate2D offset=(0.4, 0)
+                                                    Box2D size=(0.1, 0.6)
+                                            Union2D
+                                                Translate2D offset=(0, 0.5)
+                                                    Box2D size=(0.5, 0.1)
+                                                Translate2D offset=(0, 0.15)
+                                                    Box2D size=(0.1, 0.45)
+                                    Union2D
+                                        Translate2D offset=(1.35, 3.0)
+                                            Union2D
+                                                Union2D
+                                                    Translate2D offset=(-0.4, 0)
+                                                        Box2D size=(0.1, 0.6)
+                                                    Translate2D offset=(0, 0.5)
+                                                        Box2D size=(0.5, 0.1)
+                                                Union2D
+                                                    Translate2D offset=(0.05, 0)
+                                                        Box2D size=(0.45, 0.1)
+                                                    Translate2D offset=(0, -0.5)
+                                                        Box2D size=(0.5, 0.1)
+                                        Translate2D offset=(2.7, 3.0)
+                                            Union2D
+                                                Union2D
+                                                    Translate2D offset=(0, 0.5)
+                                                        Box2D size=(0.5, 0.1)
+                                                    Translate2D offset=(-0.4, 0.25)
+                                                        Box2D size=(0.1, 0.35)
+                                                Union2D
+                                                    Translate2D offset=(0, 0)
+                                                        Box2D size=(0.5, 0.1)
+                                                    Union2D
+                                                        Translate2D offset=(0.4, -0.25)
+                                                            Box2D size=(0.1, 0.35)
+                                                        Translate2D offset=(0, -0.5)
+                                                            Box2D size=(0.5, 0.1)
+            # A chessboard on its point, lower left: a gold edge round sixteen cream and black squares
+            Material material=card_gold
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(-3.2, -1.4)
+                                Rotate2D angle=0.7854
+                                    RoundedBox2D size=(1.8, 1.8) radiusTopRight=0.1 radiusBottomRight=0.1 radiusTopLeft=0.1 radiusBottomLeft=0.1
+            Material material=card_paper
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(-3.2, -1.4)
+                                Rotate2D angle=0.7854
+                                    Box2D size=(1.6, 1.6)
+            Material material=card_black
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(-3.2, -1.4)
+                                Rotate2D angle=0.7854
+                                    Union2D
+                                        Union2D
+                                            Union2D
+                                                Translate2D offset=(-1.2, -0.4)
+                                                    Box2D size=(0.4, 0.4)
+                                                Translate2D offset=(-1.2, 1.2)
+                                                    Box2D size=(0.4, 0.4)
+                                            Union2D
+                                                Translate2D offset=(-0.4, -1.2)
+                                                    Box2D size=(0.4, 0.4)
+                                                Translate2D offset=(-0.4, 0.4)
+                                                    Box2D size=(0.4, 0.4)
+                                        Union2D
+                                            Union2D
+                                                Translate2D offset=(0.4, -0.4)
+                                                    Box2D size=(0.4, 0.4)
+                                                Translate2D offset=(0.4, 1.2)
+                                                    Box2D size=(0.4, 0.4)
+                                            Union2D
+                                                Translate2D offset=(1.2, -1.2)
+                                                    Box2D size=(0.4, 0.4)
+                                                Translate2D offset=(1.2, 0.4)
+                                                    Box2D size=(0.4, 0.4)
+            # A big ivory die tipped a little, lower right, showing five
+            Material material=card_black
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(3.3, -1.2)
+                                Rotate2D angle=-0.25
+                                    RoundedBox2D size=(1.85, 1.85) radiusTopRight=0.45 radiusBottomRight=0.45 radiusTopLeft=0.45 radiusBottomLeft=0.45
+            Material material=card_paper
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(3.3, -1.2)
+                                Rotate2D angle=-0.25
+                                    RoundedBox2D size=(1.65, 1.65) radiusTopRight=0.38 radiusBottomRight=0.38 radiusTopLeft=0.38 radiusBottomLeft=0.38
+            Material material=card_black
+                Intersection
+                    RoundBox size=(7, 5, 1.5) roundness=0.15
+                    Translate translation=(0, 0, 1.6)
+                        Extrusion height=0.35
+                            Translate2D offset=(3.3, -1.2)
+                                Rotate2D angle=-0.25
+                                    Union2D
+                                        Union2D
+                                            Translate2D offset=(-0.8, -0.8)
+                                                Circle radius=0.27
+                                            Translate2D offset=(0.8, 0.8)
+                                                Circle radius=0.27
+                                        Union2D
+                                            Translate2D offset=(0, 0)
+                                                Circle radius=0.27
+                                            Union2D
+                                                Translate2D offset=(-0.8, 0.8)
+                                                    Circle radius=0.27
+                                                Translate2D offset=(0.8, -0.8)
+                                                    Circle radius=0.27

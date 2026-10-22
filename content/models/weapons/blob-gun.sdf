@@ -1,53 +1,104 @@
-# Blob gun: a chunky yellow toy-like shell with a wobbly magenta goo reservoir bulging out of a purple ring on top, a ringed
-# barrel and a flared, open muzzle. Points along +z; the bottom of the grip rests on the ground.
+# Blob gun: a chunky sulphur-yellow shelf fungus, glossy as a toy, with a wobbly blob of magenta slime mould bulging out of a purple
+# cup on top. The body is a round yellow lump with little shelves growing out of its sides, swelling forward into the barrel, which
+# opens into a yellow trumpet cap with a wavy rim, hollow at the front over purple gills. Purple gill frills ring the barrel and the
+# trumpet's lip, purple button caps stand out of each side, and the grip is a purple stalk with a bulb at its foot. Points along +z;
+# the bulb of the grip rests on the ground.
 format 1
 
 Union
-    # The shell: a round body, the barrel swelling out of it, and the flared bell of the muzzle, hollow at the front
+    # The yellow flesh: the body, the barrel swelling out of it, the trumpet at the muzzle, and the shelves on the sides
     Material material=blob_shell
         Union
             SmoothUnion smoothness=0.03
                 Translate translation=(0, 0.135, -0.05)
                     Ellipsoid radii=(0.065, 0.07, 0.14)
-                ArbitraryRoundCone a=(0, 0.135, 0.05) b=(0, 0.135, 0.19) radiusA=0.046 radiusB=0.034
+                ArbitraryRoundCone a=(0, 0.135, 0.05) b=(0, 0.135, 0.19) radiusA=0.046 radiusB=0.032
             Subtraction
-                ArbitraryCappedCone a=(0, 0.135, 0.18) b=(0, 0.135, 0.24) radiusA=0.034 radiusB=0.054
-                ArbitraryCappedCone a=(0, 0.135, 0.19) b=(0, 0.135, 0.25) radiusA=0.022 radiusB=0.044
-            Translate translation=(0, 0.075, -0.06)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Torus innerRadius=0.022 outerRadius=0.032
+                Round radius=0.004
+                    Translate translation=(0, 0.135, 0.212)
+                        Rotate rotation=(1.5707964, 0, 0)
+                            RadialWave amount=0.12 count=8
+                                CappedCone height=0.03 bottomRadius=0.032 topRadius=0.054
+                ArbitraryCappedCone a=(0, 0.135, 0.195) b=(0, 0.135, 0.255) radiusA=0.02 radiusB=0.046
+            # Shelves on the sides of the body, a big one with a smaller one above it behind
+            SymmetryX
+                Union
+                    Translate translation=(0.05, 0.115, -0.07)
+                        Rotate rotation=(0, 0, -0.25)
+                            RadialWave amount=0.1 count=5
+                                Intersection
+                                    Ellipsoid radii=(0.05, 0.01, 0.06)
+                                    Translate translation=(0.05, 0, 0)
+                                        Box size=(0.05, 0.02, 0.07)
+                    Translate translation=(0.045, 0.15, -0.12)
+                        Rotate rotation=(0, 0, -0.3)
+                            RadialWave amount=0.1 count=5
+                                Intersection
+                                    Ellipsoid radii=(0.04, 0.009, 0.045)
+                                    Translate translation=(0.04, 0, 0)
+                                        Box size=(0.04, 0.02, 0.05)
 
+    # Purple: the grip, the trigger, the frills round the barrel and the trumpet's lip, the gills inside it, the cup on top and the
+    # button caps on the sides
     Material material=blob_trim
         Union
-            # The grip
-            Translate translation=(0, 0.055, -0.1)
-                Rotate rotation=(0.28, 0, 0)
-                    RoundBox size=(0.022, 0.05, 0.027) roundness=0.016
-            # A fat trigger
+            # The grip, a stalk with a bulb at its foot, and a fat trigger
+            SmoothUnion smoothness=0.01
+                ArbitraryRoundCone a=(0, 0.09, -0.085) b=(0, 0.03, -0.108) radiusA=0.024 radiusB=0.026
+                Translate translation=(0, 0.026, -0.11)
+                    Ellipsoid radii=(0.032, 0.026, 0.036)
             Capsule a=(0, 0.09, -0.052) b=(0, 0.07, -0.058) radius=0.006
-            # Rings around the barrel and on the muzzle's lip
+            Distort amount=0.0015 frequency=50
+                Translate translation=(0, 0.075, -0.06)
+                    Rotate rotation=(0, 0, 1.5707964)
+                        Torus innerRadius=0.022 outerRadius=0.031
+            # A frill round the barrel
             Translate translation=(0, 0.135, 0.11)
                 Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.034 outerRadius=0.058
-            Translate translation=(0, 0.135, 0.24)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.042 outerRadius=0.066
-            # The ring the reservoir sits in
-            Translate translation=(0, 0.195, -0.08)
-                Torus innerRadius=0.042 outerRadius=0.07
-            # A round gauge on each side
+                    RadialWave amount=0.12 count=9
+                        RoundedCylinder radius=0.05 roundness=0.004 height=0.006
+            # The frilly lip of the trumpet, open at the front
+            Subtraction
+                Translate translation=(0, 0.135, 0.243)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RadialWave amount=0.12 count=8
+                            Torus innerRadius=0.042 outerRadius=0.064
+                ArbitraryCappedCylinder a=(0, 0.135, 0.2) b=(0, 0.135, 0.26) radius=0.043
+            # Gills deep inside the trumpet, ridged out from the bore
+            Subtraction
+                Translate translation=(0, 0.135, 0.2)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RadialWave amount=0.15 count=12
+                            CappedCylinder radius=0.03 height=0.004
+                ArbitraryCappedCylinder a=(0, 0.135, 0.18) b=(0, 0.135, 0.22) radius=0.012
+            # The cup the slime mould sits in, its rim a little wavy
+            Translate translation=(0, 0.19, -0.08)
+                RadialWave amount=0.06 count=6
+                    Subtraction
+                        Round radius=0.004
+                            CappedCone height=0.018 bottomRadius=0.045 topRadius=0.062
+                        Translate translation=(0, 0.02, 0)
+                            CappedCone height=0.018 bottomRadius=0.04 topRadius=0.055
+            # Button caps out of each side, on short stalks
             SymmetryX
-                ArbitraryCappedCylinder a=(0.04, 0.135, -0.03) b=(0.084, 0.135, -0.03) radius=0.017
+                Union
+                    ArbitraryCappedCylinder a=(0.04, 0.135, -0.03) b=(0.075, 0.135, -0.03) radius=0.009
+                    Translate translation=(0.075, 0.135, -0.03)
+                        Rotate rotation=(0, 0, -1.5707964)
+                            Intersection
+                                Ellipsoid radii=(0.022, 0.016, 0.022)
+                                Translate translation=(0, 0.02, 0)
+                                    Box size=(0.03, 0.02, 0.03)
 
-    # The goo: a lumpy reservoir on top
+    # The slime mould: a lumpy blob on top, bulging out of the cup, with a drip running down the side
     Material material=blob_goo
-        Union
-            SmoothUnion smoothness=0.012
-                Translate translation=(0, 0.225, -0.08)
-                    Sphere radius=0.048
-                Translate translation=(0.032, 0.248, -0.055)
-                    Sphere radius=0.026
-                Translate translation=(-0.03, 0.245, -0.11)
-                    Sphere radius=0.028
-                Translate translation=(0.008, 0.272, -0.095)
-                    Sphere radius=0.02
+        SmoothUnion smoothness=0.012
+            Translate translation=(0, 0.225, -0.08)
+                Sphere radius=0.048
+            Translate translation=(0.032, 0.248, -0.055)
+                Sphere radius=0.026
+            Translate translation=(-0.03, 0.245, -0.11)
+                Sphere radius=0.028
+            Translate translation=(0.008, 0.272, -0.095)
+                Sphere radius=0.02
+            ArbitraryRoundCone a=(0.05, 0.205, -0.07) b=(0.06, 0.17, -0.06) radiusA=0.01 radiusB=0.007

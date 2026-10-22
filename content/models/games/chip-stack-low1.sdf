@@ -1,0 +1,20 @@
+# Low chip stack 1: three giant poker chips (poker_chip_plain_red, poker_chip_plain_blue: the poker chip stack's chips with
+# only their boldest paint), each 2.4 m across, piled 0.96 m high, every chip turned and pushed a little off the one below,
+# the top one sliding off to -x. Hip-high cover, the poker chip stack's little sister.
+format 1
+collider convex
+
+# A tenth of the vertices its size would give it, its chips too, about 950 triangles a chip: the plain chips keep only
+# their boldest paint, and this is scattered cover
+Detail detail=0.1
+    Union
+        Translate translation=(0, 0.16, 0)
+            Rotate rotation=(0, 1.1, 0)
+                Part part=poker_chip_plain_blue
+        Translate translation=(0.1, 0.48, 0.08)
+            Rotate rotation=(0, -0.5, 0)
+                Part part=poker_chip_plain_red
+        # The top one, slid 0.4 m off the one below
+        Translate translation=(-0.28, 0.8, 0.02)
+            Rotate rotation=(0, 2.4, 0)
+                Part part=poker_chip_plain_red

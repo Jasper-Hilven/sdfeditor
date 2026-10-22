@@ -1,0 +1,48 @@
+# Giant king, fallen, the base half: a dark king of a board some five times the others' (a 30 m piece where a king is 5.6 m),
+# tipped over in resignation and broken in two in the fall; this is its foot. The base, 9.2 m across, stands up on its rim as a
+# 9.2 m wall, and the stem runs 12.5 m along -z from it, sloping down to the break, where it lies on the board 2.8 m high. Its other
+# half, king-giant-fallen-crown.sdf, lies on beyond the break. Two broken chips, 1 m and 2 m tall, lie against the stem by the
+# break on +x: steps up onto the stem's back, which climbs to 6.5 m at the foot of the base. The stem's underside is shut, under
+# 1.2 m everywhere.
+# Placements only turn a model about the vertical, so the fall is in the model: the upright half below, tipped over by
+# pi/2 + 0.2626 so the base's rim and the break both rest on the ground, and lifted until they do. Origin under the base's middle.
+format 1
+collider mesh
+
+# Three fifths of the vertices its size would give it: big, smooth turned forms seen from all over the board, the two halves
+# together some 20k triangles at 256 cells
+Detail detail=0.6
+    Material material=chess_dark
+        Union
+            Translate translation=(0, 4.728, 0)
+                Rotate rotation=(-1.8334, 0, 0)
+                    Subtraction
+                        SmoothUnion smoothness=0.2
+                            # The base: a plinth 9.2 m across and 1.1 m thick, and the cone up to the stem
+                            Translate translation=(0, 0.55, 0)
+                                RoundedCylinder radius=4.6 roundness=0.25 height=0.55
+                            Translate translation=(0, 2.0, 0)
+                                Round radius=0.12
+                                    CappedCone height=0.9 bottomRadius=3.8 topRadius=2.9
+                            # A band where the stem starts
+                            Translate translation=(0, 3.05, 0)
+                                RoundedCylinder radius=3.15 roundness=0.15 height=0.2
+                            # The stem, tapering to 1.4 m round at the break
+                            Translate translation=(0, 8.0, 0)
+                                Round radius=0.12
+                                    CappedCone height=5.0 bottomRadius=2.9 topRadius=1.4
+                        # The break: two chips knocked out of its edge
+                        Union
+                            Translate translation=(0.7, 13.0, 0.9)
+                                Rotate rotation=(0.6, 0.4, 0.3)
+                                    Box size=(0.7, 0.45, 0.6)
+                            Translate translation=(-0.9, 13.05, -0.4)
+                                Rotate rotation=(-0.4, 0.2, 0.5)
+                                    Box size=(0.55, 0.35, 0.7)
+            # The chips by the break, steps up onto the stem: 2 m tall against it, then 1 m tall beyond
+            Translate translation=(1.75, 1.0, -11.9)
+                Rotate rotation=(0.04, 0.15, -0.03)
+                    RoundBox size=(0.75, 1.0, 0.85) roundness=0.12
+            Translate translation=(3.05, 0.5, -12.3)
+                Rotate rotation=(0, -0.3, 0.05)
+                    RoundBox size=(0.7, 0.5, 0.8) roundness=0.12

@@ -32,6 +32,8 @@ namespace SdfEffects
             public float size;
             public float gravity;
             public float drag;
+            public float growIn;
+            public float growFrom;
             public Color band;
             public Color core;
         }
@@ -65,9 +67,11 @@ namespace SdfEffects
 
         /// <summary>
         /// Adds one; <paramref name="size"/> is a spark's width, a ball's radius. <paramref name="core"/> is a spark's or spore's core
-        /// colour, or the glow in a lit ball's shade.
+        /// colour, or the glow in a lit ball's shade. <paramref name="growIn"/> above 0 starts it at <paramref name="growFrom"/> of its
+        /// size and grows it to full size over that many seconds of its own age (the flame, small at the muzzle by the camera).
         /// </summary>
-        public void Emit(Kind kind, Vector3 position, Vector3 velocity, float life, float size, Color band, Color core, float gravity = 0, float drag = 0)
+        public void Emit(Kind kind, Vector3 position, Vector3 velocity, float life, float size, Color band, Color core, float gravity = 0, float drag = 0,
+            float growIn = 0, float growFrom = 1)
         {
             Ensure();
             int index;
@@ -84,7 +88,7 @@ namespace SdfEffects
             particles[index] = new Particle
             {
                 kind = kind, position = position, velocity = velocity, life = Mathf.Max(life, 1e-3f), size = size, gravity = gravity, drag = drag,
-                band = band, core = core,
+                growIn = growIn, growFrom = growFrom, band = band, core = core,
             };
         }
 
@@ -120,23 +124,26 @@ namespace SdfEffects
         private static void Draw(ref Particle p, FxBuffer fx)
         {
             var t = p.age / p.life;
+            var size = p.size;
+            if (p.growIn > 0)
+                size *= Mathf.Lerp(p.growFrom, 1, Mathf.Clamp01(p.age / p.growIn));
             switch (p.kind)
             {
                 case Kind.Spark:
                     // A streak behind it as long as 30 ms of its flight, thinning to nothing
-                    var width = p.size * (1 - t);
+                    var width = size * (1 - t);
                     fx.Streak(p.position - p.velocity * 0.03f, p.position, width * 0.4f, width, p.band, p.core, 0.45f);
                     break;
                 case Kind.Puff:
                     // Swells over the first fifth of its life, then shrinks away
                     var grow = t < 0.2f ? Mathf.SmoothStep(0.25f, 1, t / 0.2f) : 1 - Mathf.SmoothStep(0, 1, (t - 0.2f) / 0.8f);
-                    fx.Lit(p.position, p.size * grow, p.band, p.core);
+                    fx.Lit(p.position, size * grow, p.band, p.core);
                     break;
                 case Kind.Drop:
-                    fx.Lit(p.position, p.size * (t < 0.7f ? 1 : 1 - (t - 0.7f) / 0.3f), p.band, p.core);
+                    fx.Lit(p.position, size * (t < 0.7f ? 1 : 1 - (t - 0.7f) / 0.3f), p.band, p.core);
                     break;
                 case Kind.Spore:
-                    fx.Glow(p.position, p.size * (1 - 0.4f * t), p.band, p.core, 0.45f, 1 - t * t);
+                    fx.Glow(p.position, size * (1 - 0.4f * t), p.band, p.core, 0.45f, 1 - t * t);
                     break;
             }
         }

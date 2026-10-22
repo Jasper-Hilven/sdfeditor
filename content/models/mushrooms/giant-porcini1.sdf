@@ -12,8 +12,8 @@ Detail detail=0.5
                 SmoothUnion smoothness=0.35
                     Translate translation=(0, 0.65, 0)
                         Ellipsoid radii=(1.0, 0.6, 1.0)
-                    Translate translation=(0, 2.8, 0)
-                        CappedCone height=4.6 bottomRadius=0.8 topRadius=0.58
+                    # Stem: from below the bulb to 0.3 m above the cap's base (4.9), well under its top (6.3)
+                    ArbitraryCappedCone a=(0, -1.8, 0) b=(0, 5.2, 0) radiusA=0.8 radiusB=0.6326
                     Translate translation=(0, 4.7, 0)
                         CappedCylinder radius=2.1 height=0.5
             Material material=game_porcini_cap

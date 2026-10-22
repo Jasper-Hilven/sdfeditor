@@ -13,13 +13,16 @@ namespace SdfPickups.Editor
     /// <code>
     /// health-pod          HealthPickup (amount, respawn, event) and the trigger, an upright capsule over the pod
     ///   Pod               the weapon-pod prefab: the 30 cm pedestal with its convex collider, to walk onto
-    ///   Cross             SpinHover: 1 m above the pod's top, 6 rpm about the vertical axis, a small bob
-    ///     Model           the cross's prefab, moved so the middle of its bounds is on the Cross's origin and it turns on the spot
+    ///   Cross             SpinHover: 1.2 m above the pod's top, 15 rpm about the vertical axis, a bob
+    ///     Model           the cross's prefab, <see cref="CrossScale"/> times its size, moved so the middle of its bounds is on the Cross's origin and it turns on the spot
     /// </code>
     /// </summary>
     public static class HealthPodBuilder
     {
         public const string CrossModel = "health-cross";
+
+        /// <summary>How much bigger the cross floats over its pod than its model, so it reads from across the field.</summary>
+        public const float CrossScale = 1.4f;
 
         public static string PodPrefab => $"{WeaponPodBuilder.PodFolder}/health-pod.prefab";
 
@@ -73,7 +76,8 @@ namespace SdfPickups.Editor
                 model.name = "Model";
                 // The middle of the cross's bounds on the hover's origin, so it turns on the spot
                 if (WeaponPodBuilder.Measure(model) is { } crossBounds)
-                    model.transform.localPosition = -crossBounds.center;
+                    model.transform.localPosition = -crossBounds.center * CrossScale;
+                model.transform.localScale = Vector3.one * CrossScale;
 
                 var spin = hover.AddComponent<SpinHover>();
                 spin.baseHeight = podTop;

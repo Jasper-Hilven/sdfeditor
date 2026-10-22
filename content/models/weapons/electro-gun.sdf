@@ -1,66 +1,99 @@
-# Electro gun: a teal casing with a glowing glass core along its top, a copper rod out the front wound with coils that shrink
-# towards the tip, and three prongs around a charged orb at the muzzle. Points along +z; the bottom of the grip rests on the ground.
+# Electro gun: a foxfire mushroom, glowing from within. The casing is its plump deep-teal body flecked with pale glowing spots,
+# grown into the grip below, with a crest of glowing gill plates along its top where the charged core was and dark gill ribs down its
+# sides. Out of the front grows a copper stalk stacked with four bell caps that shrink towards the tip, each with dark gills under
+# it, and three thin tendrils curl forward round a glowing spore orb at the muzzle. Points along +z; the bottom of the grip rests on
+# the ground.
 format 1
 
+# One bell cap on the rod, its crown at z = 0 facing forward and its rim behind, 1 cm radius: scaled for each of the four
+bell =
+    Intersection
+        Translate translation=(0, 0, -0.012)
+            Ellipsoid radii=(0.01, 0.01, 0.012)
+        Translate translation=(0, 0, -0.005)
+            Box size=(0.012, 0.012, 0.007)
+
 Union
-    # The casing: a bulbous body with a collar where the rod leaves it, grown into the grip below
+    # The casing: a plump body with a collar where the rod leaves it, grown into the grip below
     Material material=electro_casing
         Union
             SmoothUnion smoothness=0.015
                 Translate translation=(0, 0.13, -0.1)
                     Ellipsoid radii=(0.06, 0.065, 0.14)
-                ArbitraryCappedCylinder a=(0, 0.13, 0) b=(0, 0.13, 0.05) radius=0.042
-                Translate translation=(0, 0.06, -0.15)
-                    Rotate rotation=(0.28, 0, 0)
-                        RoundBox size=(0.02, 0.05, 0.026) roundness=0.01
-            # The trigger guard, its top half in the casing
-            Translate translation=(0, 0.078, -0.085)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Torus innerRadius=0.021 outerRadius=0.03
+                ArbitraryRoundCone a=(0, 0.13, 0) b=(0, 0.13, 0.04) radiusA=0.04 radiusB=0.03
+                ArbitraryRoundCone a=(0, 0.1, -0.135) b=(0, 0.03, -0.165) radiusA=0.023 radiusB=0.025
+                Translate translation=(0, 0.024, -0.167)
+                    Ellipsoid radii=(0.03, 0.024, 0.034)
+            # The trigger guard, a loop of root, its top half in the casing
+            Distort amount=0.0015 frequency=60
+                Translate translation=(0, 0.078, -0.085)
+                    Rotate rotation=(0, 0, 1.5707964)
+                        Torus innerRadius=0.021 outerRadius=0.028
 
-    # Rubber grip panels, and insulating ribs on each side of the casing
+    # Dark gills: ribs down each side of the casing, ridges down the grip, under the bell caps, and the trigger
     Material material=electro_grip
         Union
             SymmetryX
-                Translate translation=(0.008, 0.055, -0.152)
-                    Rotate rotation=(0.28, 0, 0)
-                        RoundBox size=(0.015, 0.038, 0.02) roundness=0.007
-            SymmetryX
                 Union
-                    Capsule a=(0.058, 0.1, -0.16) b=(0.058, 0.16, -0.16) radius=0.007
-                    Capsule a=(0.06, 0.1, -0.12) b=(0.06, 0.16, -0.12) radius=0.007
-                    Capsule a=(0.058, 0.1, -0.08) b=(0.058, 0.16, -0.08) radius=0.007
-            Union
-                Capsule a=(0, 0.09, -0.078) b=(0, 0.075, -0.08) radius=0.004
-                Capsule a=(0, 0.075, -0.08) b=(0, 0.066, -0.088) radius=0.004
+                    Capsule a=(0.056, 0.1, -0.16) b=(0.056, 0.16, -0.16) radius=0.006
+                    Capsule a=(0.059, 0.1, -0.13) b=(0.059, 0.16, -0.13) radius=0.006
+                    Capsule a=(0.06, 0.1, -0.1) b=(0.06, 0.16, -0.1) radius=0.006
+                    Capsule a=(0.059, 0.1, -0.07) b=(0.059, 0.16, -0.07) radius=0.006
+                    Translate translation=(0.019, 0.065, -0.15)
+                        Rotate rotation=(0.4, 0, 0)
+                            LimitedRepetition spacing=0.008 limits=(0, 0, 1)
+                                RoundBox size=(0.006, 0.03, 0.002) roundness=0.0015
+            # Gills under each bell cap, a ridged disc behind its rim
+            Translate translation=(0, 0.13, 0.05)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.15 count=12
+                        CappedCylinder radius=0.042 height=0.003
+            Translate translation=(0, 0.13, 0.117)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.15 count=12
+                        CappedCylinder radius=0.036 height=0.003
+            Translate translation=(0, 0.13, 0.184)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.15 count=12
+                        CappedCylinder radius=0.03 height=0.003
+            Translate translation=(0, 0.13, 0.247)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.15 count=12
+                        CappedCylinder radius=0.024 height=0.003
+            Capsule a=(0, 0.09, -0.078) b=(0, 0.075, -0.08) radius=0.004
+            Capsule a=(0, 0.075, -0.08) b=(0, 0.066, -0.088) radius=0.004
 
-    # The rod, its coils, the collars that hold the core, and the prongs around the orb
+    # The copper stalk out of the front, the four bell caps stacked along it, shrinking towards the tip, and the three tendrils
+    # curling forward round the orb
     Material material=electro_copper
         Union
-            ArbitraryCappedCylinder a=(0, 0.13, 0.04) b=(0, 0.13, 0.31) radius=0.013
-            Translate translation=(0, 0.13, 0.08)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.016 outerRadius=0.048
-            Translate translation=(0, 0.13, 0.14)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.016 outerRadius=0.043
-            Translate translation=(0, 0.13, 0.2)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.016 outerRadius=0.038
-            Translate translation=(0, 0.13, 0.255)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.016 outerRadius=0.033
-            # Collars at both ends of the core
-            ArbitraryCappedCylinder a=(0, 0.205, -0.19) b=(0, 0.205, -0.17) radius=0.028
-            ArbitraryCappedCylinder a=(0, 0.205, -0.03) b=(0, 0.205, -0.01) radius=0.028
-            # Three prongs reaching forward and out from the end of the rod
+            ArbitraryRoundCone a=(0, 0.13, 0.03) b=(0, 0.13, 0.3) radiusA=0.014 radiusB=0.01
+            Translate translation=(0, 0.13, 0.1)
+                Scale scale=(4.4, 4.4, 4.4)
+                    $bell
+            Translate translation=(0, 0.13, 0.16)
+                Scale scale=(3.8, 3.8, 3.8)
+                    $bell
+            Translate translation=(0, 0.13, 0.22)
+                Scale scale=(3.2, 3.2, 3.2)
+                    $bell
+            Translate translation=(0, 0.13, 0.275)
+                Scale scale=(2.6, 2.6, 2.6)
+                    $bell
             SymmetryX
-                Capsule a=(0.006, 0.124, 0.3) b=(0.032, 0.11, 0.35) radius=0.0055
-            Capsule a=(0, 0.138, 0.3) b=(0, 0.165, 0.35) radius=0.0055
+                Union
+                    Capsule a=(0.006, 0.124, 0.29) b=(0.03, 0.11, 0.33) radius=0.005
+                    Capsule a=(0.03, 0.11, 0.33) b=(0.024, 0.115, 0.36) radius=0.004
+            Capsule a=(0, 0.138, 0.29) b=(0, 0.163, 0.33) radius=0.005
+            Capsule a=(0, 0.163, 0.33) b=(0, 0.155, 0.36) radius=0.004
 
-    # The charged core: a glowing glass tube along the top, and the orb between the prongs
+    # The glow: a crest of gill plates along the top where the core was, and the spore orb between the tendrils
     Material material=electro_core
         Union
-            Capsule a=(0, 0.205, -0.18) b=(0, 0.205, -0.02) radius=0.022
+            Intersection
+                Capsule a=(0, 0.19, -0.18) b=(0, 0.19, -0.02) radius=0.03
+                Translate translation=(0, 0.19, -0.1)
+                    LimitedRepetition spacing=0.02 limits=(0, 0, 4)
+                        RoundBox size=(0.018, 0.04, 0.004) roundness=0.002
             Translate translation=(0, 0.13, 0.34)
                 Sphere radius=0.02

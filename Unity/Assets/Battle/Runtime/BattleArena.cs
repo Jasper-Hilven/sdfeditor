@@ -33,5 +33,21 @@ namespace SdfBattle
             if (Current == this)
                 Current = null;
         }
+
+        // Every pod glows, so it is seen from afar
+        private void Start()
+        {
+            foreach (var side in new[] { west, east })
+            {
+                if (side == null)
+                    continue;
+                foreach (var pod in side.WeaponPods)
+                    PodBeacon.Add(pod, false);
+                foreach (var pod in side.HealthPods)
+                    PodBeacon.Add(pod);
+            }
+            foreach (var pod in neutralPods)
+                PodBeacon.Add(pod, true);
+        }
     }
 }

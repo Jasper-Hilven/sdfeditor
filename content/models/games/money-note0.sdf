@@ -1,0 +1,12 @@
+# Money note 0: a giant pale pink Monopoly note (game_paper_pink) 2 m long, 1 m wide and 5 cm thick, dropped on the board and
+# curling up at both short ends, as paper money does after being held in a hand, the ends about 0.2 m off the board. Plain paper,
+# no print. Ground clutter: no collider, scattered between the pieces.
+format 1
+
+# A third of the vertices its size would give it: fine enough for the thin sheet to stay whole
+Detail detail=0.3
+    Translate translation=(0, 0.025, 0)
+        Material material=game_paper_pink
+            # Bent along its length, the middle down on the board and the ends lifted
+            CheapBend amount=0.18
+                RoundBox size=(1, 0.025, 0.5) roundness=0.012

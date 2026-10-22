@@ -265,7 +265,7 @@ place
     # A domino run gone wrong
     domino-chain at=(-20.5, -6.4) yaw=58
     domino-5-5-standing at=(-27.9, -11.3) yaw=50
-    domino-6-3-lying at=(-12.5, -2.0) yaw=-24
+    domino-6-3-lying at=(-14.0, -10.0) yaw=-24
     # Stray tiles
     domino-2-6-side at=(5.6, 30.2) yaw=97
     # A tile in the east
@@ -278,7 +278,7 @@ place
     # Lone meeples
     meeple-standing at=(-4.1, -42.6) yaw=170 scale=1.2
     # A meeple that fell on the left
-    meeple-fallen at=(-33.6, 36.4) yaw=-66
+    meeple-fallen at=(-37.5, 45.5) yaw=-66
     # A meeple in the far corner
     meeple-standing at=(71.5, -70.2) yaw=225
     # Poker chips: a stack and a runaway
@@ -291,7 +291,7 @@ place
     # A house of cards amid a spilled hand
     card-house at=(2.4, 49.1) yaw=27
     card-face-down at=(9.8, 55.7) yaw=-41
-    card-three-lying at=(-1.0, 61.5) yaw=66
+    card-three-lying at=(3.0, 64.5) yaw=66
     # A card soldier on guard
     card-king-stuck at=(-29.7, -63.4) yaw=-15
     # An ace propped against a king
@@ -392,7 +392,6 @@ place
     bishop-dark at=(-47.7, -67.1) yaw=-5 scale=1.06
     king-dark at=(65.0, 39.7) yaw=-171 scale=0.89
     rook-light at=(-55.1, -65.4) yaw=-125 scale=0.98
-    pawn-light at=(-13.2, 4.1) yaw=-29 scale=1.18
     knight-dark at=(-1.5, 37.4) yaw=-175 scale=0.98
     pawn-dark at=(74.6, 52.7) yaw=-93 scale=0.86
     bishop-dark at=(23.5, 3.3) yaw=-154 scale=0.89
@@ -406,25 +405,172 @@ place
     queen-light at=(-66.5, -71.8) yaw=-27 scale=0.88
     pawn-dark at=(-4.0, 68.8) yaw=103 scale=0.89
     queen-dark at=(-51.7, -53.9) yaw=-12 scale=1.01
+    #
+    # The landmarks, few and big, each standing over the clutter where it can be seen from across the board, mirrored between the
+    # two halves so neither side has the better cover, and all well clear of the pieces, the run, the pods, stands and spawns
+    # A giant dark king, five times any other piece, tipped over in resignation right across the centre of the board and broken in
+    # two in the fall: some 33 m from the foot of its base to the tip of its cross, lying diagonally through (0, 2) from north-west
+    # to south-east, its two halves turned half round about the centre one from the other as near as a king allows. The base half,
+    # in the north-west, stands its base up 9 m high as a wall; the crown half, in the south-east, lies 7 m high at the crown. At
+    # the centre, between the two neutral pods, the break: a gap 3.8 m wide to run through from the sniper's side to the blob
+    # gun's. Either broken end lies on the board under 3 m high, and two chips lie against it (on the base half's north-east side,
+    # on the crown half's south-west), steps up onto the stem's back: from the base half's it climbs to 6.5 m, a lookout over the
+    # middle open to both sides, from the crown half's to the collar at 4 m. So the centre lane splits three ways round it: north
+    # of it past the sniper, through the break, and south of it past the blob gun. Each half 8.3 m or more from the pods' edges
+    king-giant-fallen-base at=(-14.02, 7.1) yaw=-70
+    # The crown half, 3.8 m on from the break
+    king-giant-fallen-crown at=(2.17, 1.21) yaw=-70
+    # Two Jenga towers on the straight line between the spawns (z = -4), one each side of the middle, a little off it the one north
+    # and the other south, so no one sees from spawn to spawn; shot through where the blocks are missing
+    jenga-tower0 at=(-30, -3) yaw=15
+    # The east tower
+    jenga-tower0 at=(30, -5) yaw=-165
+    # Two game box lids stood on their long edges, walls between the north and centre lanes halfway from the spawns to the middle
+    game-box-lid0 at=(-45.5, 10) yaw=-20
+    # The east lid
+    game-box-lid0 at=(45.5, 10) yaw=20
+    # Two dice towers between the centre and south lanes, in front of each side's spawn
+    dice-tower0 at=(-38, -12) yaw=30
+    # The east dice tower
+    dice-tower0 at=(38, -12) yaw=-30
+    # Houses of cards three storeys high in the far corners, slanting across them
+    card-castle0 at=(-52, 70) yaw=120
+    # The east house of cards
+    card-castle0 at=(52, 70) yaw=-120
+    # Connect Four frames by the near wall
+    connect-four0 at=(-38.5, -71.5) yaw=-15
+    # The east frame
+    connect-four0 at=(38.5, -71.5) yaw=15
+    #
+    # The tall ones that make the routes, added because the board was still an open field: closed game boxes stood on end 12 m
+    # high, a pile of four boxes 9.6 m high, two boxes leant together into a tent, two-storey walls of cards 8.5 m high and
+    # shorter, leaning Jenga towers, each mirrored between the halves like the landmarks (or alone on the middle line), 12 m or
+    # more from every pod, stand and spawn and 2 m or more from every other piece, so each gap is one two scouts pass. Between
+    # them they break the long views down the lanes and across the board and leave corridors and flanking ways to choose from.
+    # A game box on end north of each lid, 5 m from it, slanting the other way: the two together wall off the centre lane from
+    # the north, with a gate between them and a way round each end
+    game-box-standing0 at=(-46.5, 22.5) yaw=120
+    # The east one
+    game-box-standing0 at=(46.5, 22.5) yaw=-120
+    # A second box on end further out in the north lane, by the Monopoly street, cover on the way out of the base to the north
+    game-box-standing0 at=(-58, 36) yaw=120
+    # The east one
+    game-box-standing0 at=(58, 36) yaw=-120
+    # Walls of cards across the north lane's inner side, between the scrum and the far huddle in the west and along the run in
+    # the east, where they and the run make a corridor 2.7 m wide; the sniper's north-west and north-east views end at them
+    card-wall0 at=(-27, 38) yaw=60
+    # The east one
+    card-wall0 at=(27, 38) yaw=-60
+    # Game boxes on end south-west and south-east of the king, close cover by the blob gun's pod, 14 m from it
+    game-box-standing0 at=(-20, -16) yaw=30
+    # The east one
+    game-box-standing0 at=(20, -16) yaw=-30
+    # Leaning Jenga towers in the far corners of the north lane, past the flank health pods, where the houses of cards stand
+    jenga-tower1 at=(-46, 60) yaw=0
+    # The east one
+    jenga-tower1 at=(46, 60) yaw=0
+    # Two boxes leant together into a tent by each side wall in the south, its tunnel running north and south: a covered way
+    # from the base's poison gun and health pods out into the south lane
+    game-box-leaning0 at=(-70, -37) yaw=90
+    # The east one
+    game-box-leaning0 at=(70, -37) yaw=-90
+    # Game boxes on end in the south lane beside the Connect Four frames, breaking the view along the near wall
+    game-box-standing0 at=(-37.5, -61.5) yaw=60
+    # The east one
+    game-box-standing0 at=(37.5, -61.5) yaw=-60
+    # Leaning Jenga towers by the near wall at the run's south end
+    jenga-tower1 at=(-18, -70) yaw=30
+    # The east one
+    jenga-tower1 at=(18, -70) yaw=-30
+    # A pile of four game boxes on the middle line in the south lane, splitting it in two; the Pictionary timer stands on the
+    # middle line in the north lane opposite it, turned half round about the centre, splitting that one
+    game-box-stack0 at=(0, -53) yaw=0
+    # The Pictionary timer, moved here from the centre when the giant king fell there
+    hourglass0 at=(0, 57) yaw=0
+    # The domino run: a giant run of dominoes laid in an S through the middle of the board, from the north wall to the south wall,
+    # point symmetric about the centre (0, 2), each half bowed out 18 m towards one side and standing 1.55 m apart, too close to
+    # slip between. It is broken where it met a piece and round the neutral pods, which stand in its middle gates 6 m or more
+    # from the nearest tile, and in each half a stretch has toppled into a low wall of lying tiles that can be shot over. Its gaps
+    # make the lanes: north, through the gate at z = 50 and the pawn's at z = 68; the centre, round the pods and the fallen king;
+    # and south, the same turned round. The north half, from the north pod to the wall
+    domino-5-5-standing at=(7.1, 24.2) yaw=39
+    domino-5-5-standing at=(11.8, 30.4) yaw=34
+    domino-5-5-standing at=(12.6, 31.7) yaw=32
+    domino-5-5-standing at=(13.5, 33) yaw=31
+    domino-5-5-standing at=(14.2, 34.3) yaw=29
+    domino-5-5-standing at=(14.9, 35.7) yaw=26
+    domino-5-5-standing at=(15.6, 37.1) yaw=24
+    domino-5-5-standing at=(16.2, 38.5) yaw=21
+    domino-5-5-standing at=(16.7, 40) yaw=18
+    domino-5-5-standing at=(17.2, 41.5) yaw=15
+    domino-5-5-standing at=(17.5, 43) yaw=11
+    domino-5-5-standing at=(17.8, 44.5) yaw=8
+    domino-5-5-standing at=(17.9, 46.1) yaw=4
+    domino-5-5-standing at=(17.2, 53.7) yaw=-15
+    domino-6-3-lying at=(16, 57.3) yaw=-18
+    domino-6-3-lying at=(14, 61.5) yaw=-26
+    domino-6-3-lying at=(11.5, 65.4) yaw=-32
+    domino-5-5-standing at=(7.1, 71) yaw=-39
+    domino-5-5-standing at=(6.1, 72.2) yaw=-40
+    domino-5-5-standing at=(5.1, 73.4) yaw=-41
+    domino-5-5-standing at=(4.1, 74.6) yaw=-41
+    domino-5-5-standing at=(3.1, 75.7) yaw=-41
+    domino-5-5-standing at=(2.1, 76.9) yaw=-42
+    domino-5-5-standing at=(1, 78.1) yaw=-42
+    # The south half: the north half turned half round about (0, 2)
+    domino-5-5-standing at=(-7.1, -20.2) yaw=-141
+    domino-5-5-standing at=(-11.8, -26.4) yaw=-146
+    domino-5-5-standing at=(-12.6, -27.7) yaw=-148
+    domino-5-5-standing at=(-13.5, -29) yaw=-149
+    domino-5-5-standing at=(-14.2, -30.3) yaw=-151
+    domino-5-5-standing at=(-14.9, -31.7) yaw=-154
+    domino-5-5-standing at=(-15.6, -33.1) yaw=-156
+    domino-5-5-standing at=(-16.2, -34.5) yaw=-159
+    domino-5-5-standing at=(-16.7, -36) yaw=-162
+    domino-5-5-standing at=(-17.2, -37.5) yaw=-165
+    domino-5-5-standing at=(-17.5, -39) yaw=-169
+    domino-5-5-standing at=(-17.8, -40.5) yaw=-172
+    domino-5-5-standing at=(-17.9, -42.1) yaw=-176
+    domino-5-5-standing at=(-17.2, -49.7) yaw=165
+    domino-6-3-lying at=(-16, -53.3) yaw=162
+    domino-6-3-lying at=(-14, -57.5) yaw=154
+    domino-6-3-lying at=(-11.5, -61.4) yaw=148
+    domino-5-5-standing at=(-7.1, -67) yaw=141
+    domino-5-5-standing at=(-6.1, -68.2) yaw=140
+    domino-5-5-standing at=(-5.1, -69.4) yaw=139
+    domino-5-5-standing at=(-4.1, -70.6) yaw=139
+    domino-5-5-standing at=(-3.1, -71.7) yaw=139
+    domino-5-5-standing at=(-2.1, -72.9) yaw=138
+    domino-5-5-standing at=(-1, -74.1) yaw=138
 
 # The battle sides (ticket 17), west at -x and east at +x, mirrored. With no castles, each side is its back rank: the flag stand two
 # squares in from the wall on the middle line, the spawn zone (ticket 20; the default 3 m round) in front of it facing the other
-# side, the minigun and pistol pods either
-# side of the spawn and the health pod behind them by the wall, all in the gaps between the strewn pieces. The neutral pods stand on
-# the middle line, one each side of the board's centre, clear of the pieces
+# side, the two weapon pods either side of the spawn and the health pod behind them by the wall, and two more health pods out on the
+# north and south flanks, a little past halfway to the middle (as on the meadow and fungal levels), all in the gaps between the strewn
+# pieces, 10 m or more from any. The board's sides have their own weapons, not the meadow's and fungal level's minigun and pistol: the
+# electro gun, a longer-range one, on the north spot, looking out over the open board, and the poison gun, a close-range one for
+# holding the flag, on the south spot by the health pod and the stand.
+# The neutral pods stand on the middle line, one each side of the board's centre, clear of the pieces: the sniper on the north
+# one, for the long open sight lines across the flat board, and the blob gun on the south one, a short-range pick neither the
+# meadow (sniper, flamethrower) nor the fungal level (electro gun, poison gun) has. So the board uses four weapons, sniper, blob gun,
+# electro gun and poison gun, and plays differently
 sides
     west
         spawn at=(-66, -4) yaw=90
         flag at=(-72, -4)
-        pod minigun at=(-66, 6)
-        pod pistol at=(-66, -14)
+        pod electro-gun at=(-66, 6)
+        pod poison-gun at=(-66, -14)
         pod health at=(-74, -14)
+        pod health at=(-28, 64)
+        pod health at=(-28, -33)
     east
         spawn at=(66, -4) yaw=-90
         flag at=(72, -4)
-        pod minigun at=(66, 6)
-        pod pistol at=(66, -14)
+        pod electro-gun at=(66, 6)
+        pod poison-gun at=(66, -14)
         pod health at=(74, -14)
+        pod health at=(28, 64)
+        pod health at=(28, -33)
 neutral
     pod sniper at=(0, 16)
     pod blob-gun at=(0, -12)
@@ -433,3 +579,89 @@ neutral
 # pattern with the floor's (RoomChecker): the colour alternates across the edges where wall meets floor and ceiling; the four
 # vertical corners cannot alternate too (three squares meet at each cube corner), so the squares there match. The floor is the board above
 room size=(160, 160, 160)
+
+# The clutter on the board, scattered by the thousand and drawn instanced like a meadow's grass: the small change of every game
+# spilled over the table, tiddlywinks, Scrabble tiles, Monopoly notes and a few stray cards, lying in drifts about 12 m wide with
+# bare board between them; and denser handfuls of the smallest bits, dice of a second set, Trivial Pursuit wedges, a cribbage peg
+# and single poker chips, in tighter heaps about 6 m wide. None of it blocks or is taller than a shin. reach is 0: this is a room,
+# and nothing goes under its walls; margin keeps it off the placed pieces and the run
+scatter group=tokens
+    tiddlywink0
+    tiddlywink1
+    tiddlywink2
+    tiddlywink3
+    scrabble-tile0
+    scrabble-tile1
+    scrabble-tile2
+    scrabble-tile3
+    money-note0 weight=0.7
+    money-note1 weight=0.7
+    money-note2 weight=0.7
+    card-three-lying weight=0.06
+    card-face-down weight=0.06
+    density=0.22 cluster=3 clusterScale=12 spacing=0.9 reach=0 margin=0.6 scale=(0.85, 1.15)
+scatter group=tokens
+    mini-die0
+    mini-die1
+    trivia-wedge0
+    trivia-wedge1
+    trivia-wedge2
+    cribbage-peg0 weight=0.5
+    chip-flat0 weight=0.7
+    density=0.05 cluster=4 clusterScale=6 spacing=0.7 reach=0 margin=0.6 scale=(0.85, 1.15)
+
+# The pieces strewn between the placed ones, drawn instanced like a meadow's trees, at three heights. band is how far inside the
+# board's edge they stand (negative inside it), clear of the walls; they keep 6 m and their margin from the pods, and each layer
+# keeps clear of the earlier layers' pieces by its margin as it does of the placed ones, so no two cut through each other.
+# First the tall ones, which hide a player: standing pawns, rooks, bishops and knights of both colours, standing dominoes, a king
+# card stuck in the board, and leaning towers of draughts, in loose clumps about 20 m wide, 3 m clear of everything; a little
+# denser than at first (0.0045 a square metre, 7 m apart), in what the game boxes and walls leave of the board
+trees group=pieces
+    pawn-light weight=1.5
+    pawn-dark weight=1.5
+    rook-light
+    rook-dark
+    bishop-light
+    bishop-dark
+    knight-light
+    knight-dark
+    domino-5-5-standing
+    card-king-stuck weight=0.5
+    checker-tower0
+    checker-tower1
+    checker-tower2 weight=0.7
+    band=(-72, -10) density=0.0045 spacing=7 cluster=3 clusterScale=20 scale=(0.9, 1.1) margin=3
+# Then the knee-high ones, cover to crouch behind and shoot over: fallen pawns and meeples, lying and tipped dominoes, a toppled
+# house, short stacks of poker chips, marbles, Trivial Pursuit pies and a Scrabble rack, in clumps about 18 m wide, 1.5 m clear
+trees group=pieces
+    domino-6-3-lying
+    domino-2-6-side
+    pawn-light-fallen
+    pawn-dark-fallen
+    meeple-fallen
+    monopoly-house-toppled weight=0.6
+    chip-stack-low0
+    chip-stack-low1
+    marble0
+    marble1
+    trivia-pie0
+    scrabble-rack0 weight=0.5
+    band=(-74, -6) density=0.005 spacing=7 cluster=2.5 clusterScale=18 scale=(0.9, 1.1) margin=1.5
+# And a few dice of the big set, at half their size or a little more, rolled out among them
+trees group=pieces
+    die-red
+    die-ivory
+    band=(-74, -6) density=0.0015 spacing=6 scale=(0.45, 0.6) margin=1.5
+
+# How the clutter is drawn round the camera: the finest level to 10 m with the ink outline, the next to 25 m and the coarsest to
+# 45 m, fading out over its last 15 m, shadows from the nearest ring only; no wind, and no ground colour at their feet (tintHeight
+# 0: the board's squares are not grass). The integrated GPU / web preset draws half of them, to 0.7 times the distance
+draw tokens
+    rings=[10, 25, 45] outline=1 shadows=1 blend=1 fade=15
+    lowDensity=0.5 lowDistance=0.7
+
+# How the strewn pieces are drawn: like a meadow's trees, LOD0 to 25 m, LOD1 to 60 m and LOD2 beyond, never ended by distance
+# inside the room, all with the ink outline as the placed pieces have it; shadows from the nearer two rings (only the nearest on
+# the integrated GPU / web preset, which also ends LOD0 and LOD1 at 0.7 times the distance); no wind
+draw pieces
+    rings=[25, 60, 1000] outline=3 shadows=2 lowShadows=1 blend=2 lowDistance=0.7

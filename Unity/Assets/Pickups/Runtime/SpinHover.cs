@@ -4,22 +4,22 @@ namespace SdfPickups
 {
     /// <summary>
     /// Holds an object floating over its parent's origin and turns it about the vertical axis: <see cref="baseHeight"/> (the top of the
-    /// pod it floats over) plus <see cref="hoverHeight"/> up, at <see cref="revolutionsPerMinute"/> (6 rpm is 36 degrees a second),
-    /// with a small bob on top. The weapon's model is a child placed so its middle is on this object's origin, so it turns on the
+    /// pod it floats over) plus <see cref="hoverHeight"/> up, at <see cref="revolutionsPerMinute"/> (15 rpm, the default, is 90 degrees a second),
+    /// with a bob on top. The weapon's model is a child placed so its middle is on this object's origin, so it turns on the
     /// spot. The pose comes from the serialized fields every frame, so the inspector changes it live.
     /// </summary>
     public sealed class SpinHover : MonoBehaviour
     {
-        [Tooltip("Revolutions per minute about the vertical axis; 6 is one turn in ten seconds")]
-        public float revolutionsPerMinute = 6;
+        [Tooltip("Revolutions per minute about the vertical axis; 15 is one turn in four seconds")]
+        public float revolutionsPerMinute = 15;
         [Tooltip("Metres above the pod's top to the middle of the floating object")]
-        public float hoverHeight = 1;
+        public float hoverHeight = 1.2f;
         [Tooltip("Metres from the parent's origin to the pod's top; set by the pod builder from the pod's mesh")]
         public float baseHeight = 0.3f;
         [Tooltip("Half the distance of the bob up and down, in metres; 0 for none")]
-        public float bobAmplitude = 0.03f;
+        public float bobAmplitude = 0.08f;
         [Tooltip("Seconds for one bob")]
-        public float bobPeriod = 3;
+        public float bobPeriod = 2;
 
         private float angle;
 

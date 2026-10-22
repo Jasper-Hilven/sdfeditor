@@ -1,0 +1,73 @@
+# Dice tower: a boxy wooden dice tower 6 m tall, built like a little castle keep. A honey-wood tower 2.6 m square with a dark band
+# and four corner merlons round its open top, where the dice go in, and dark arrow slits on three faces. At the foot of its front
+# (+z) the chute comes out: a round-headed archway with a ramp in it, opening into a low walled tray 2.8 m square lined with green
+# felt, where an ivory die 0.9 m on a side has come to rest.
+format 1
+collider convex
+
+# Half the vertices its size would give it: big, simple forms, and dozens of game pieces lie on the board
+Detail detail=0.5
+    Union
+        # The tower and the tray in one piece, the top opening, the chute's archway and the tray's hollow cut out
+        Material material=dice_tower_wood
+            Subtraction
+                Union
+                    Translate translation=(0, 2.7, -1.2)
+                        RoundBox size=(1.3, 2.7, 1.3) roundness=0.08
+                    # The four merlons
+                    SymmetryX
+                        Union
+                            Translate translation=(0.95, 5.7, -0.25)
+                                RoundBox size=(0.35, 0.3, 0.35) roundness=0.06
+                            Translate translation=(0.95, 5.7, -2.15)
+                                RoundBox size=(0.35, 0.3, 0.35) roundness=0.06
+                    Translate translation=(0, 0.3, 1.4)
+                        RoundBox size=(1.4, 0.3, 1.4) roundness=0.08
+                Union
+                    Translate translation=(0, 5.1, -1.2)
+                        Box size=(0.85, 1, 0.85)
+                    Translate translation=(0, 0.75, -0.2)
+                        Box size=(0.85, 0.6, 0.8)
+                    ArbitraryCappedCylinder a=(0, 1.35, -1) b=(0, 1.35, 0.6) radius=0.85
+                    Translate translation=(0, 0.55, 1.4)
+                        Box size=(1.2, 0.4, 1.2)
+        # The dark band round the top, under the merlons
+        Material material=game_wood_door
+            Subtraction
+                Translate translation=(0, 5.3, -1.2)
+                    RoundBox size=(1.38, 0.12, 1.38) roundness=0.05
+                Translate translation=(0, 5.6, -1.2)
+                    Box size=(0.85, 0.5, 0.85)
+        # The arrow slits: on the front and both sides, high up
+        Material material=game_wood_door
+            Union
+                Translate translation=(0, 3.7, 0.1)
+                    RoundBox size=(0.13, 0.55, 0.04) roundness=0.03
+                SymmetryX
+                    Translate translation=(1.3, 3.7, -1.2)
+                        RoundBox size=(0.04, 0.55, 0.13) roundness=0.03
+        # The ramp in the archway, sloping down towards the tray
+        Material material=game_wood_door
+            Translate translation=(0, 0.5, -0.45)
+                Rotate rotation=(0.35, 0, 0)
+                    RoundBox size=(0.84, 0.05, 0.55) roundness=0.03
+        # The felt on the tray's floor and on into the archway
+        Material material=dice_tower_felt
+            Union
+                Translate translation=(0, 0.16, 1.4)
+                    Box size=(1.2, 0.02, 1.2)
+                Translate translation=(0, 0.16, 0)
+                    Box size=(0.85, 0.02, 0.4)
+        # The die in the tray, a red die's form at 0.4 scale in ivory, its pips painted black
+        Translate translation=(0.35, 0.62, 1.7)
+            Rotate rotation=(0, 0.5, 1.5707964)
+                Scale scale=(0.4, 0.4, 0.4)
+                    Union
+                        Material material=game_ivory
+                            Subtraction
+                                RoundBox size=(1.1, 1.1, 1.1) roundness=0.22
+                                Part part=die_pips
+                        Material material=game_pip_black
+                            Intersection
+                                RoundBox size=(1.06, 1.06, 1.06) roundness=0.22
+                                Part part=die_pips

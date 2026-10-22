@@ -1,45 +1,6 @@
 # Chanterelle scout: a slender mushroom in the blue side's blue with a thin, wavy funnel cap, ridges running down under it, floating
-# eyes and small hands.
+# eyes and small hands. The shape is the chanterelle_scout part, which the exploding pieces in exploding/ cut up as well, so it is
+# edited in content/parts/chanterelle_scout.sdf.
 format 1
 
-Union
-    # Body and cap grow into each other
-    SmoothUnion smoothness=0.1
-        Material material=chanterelle_flesh
-            SmoothUnion smoothness=0.12
-                Translate translation=(0, 0.62, 0)
-                    CappedCone height=0.62 bottomRadius=0.2 topRadius=0.15
-                Translate translation=(0, 0.1, 0)
-                    Ellipsoid radii=(0.26, 0.12, 0.26)
-        # Cap and ridges wave up and down together, seven times around
-        RadialWave amount=0.08 count=7
-            # Cap with its false gills: twelve ridges, three per quarter, only slightly blended so they stay underneath
-            SmoothUnion smoothness=0.015
-                Material material=chanterelle_cap
-                    Distort amount=0.006 frequency=3
-                        Union
-                            # Funnel: a tapered profile, thick near the stem and thin at the rim, spun around the y axis
-                            Revolution offset=0
-                                Translate2D offset=(0.12, 1.3)
-                                    Rotate2D angle=-1.0667
-                                        UnevenCapsule2D bottomRadius=0.07 topRadius=0.018 height=0.66
-                            Translate translation=(0, 1.31, 0)
-                                Ellipsoid radii=(0.2, 0.06, 0.2)
-                Material material=chanterelle_ridges
-                    SymmetryXZ
-                        Union
-                            Capsule a=(0.164, 1.24, 0.044) b=(0.58, 1.52, 0.155) radius=0.02
-                            Capsule a=(0.12, 1.24, 0.12) b=(0.424, 1.52, 0.424) radius=0.02
-                            Capsule a=(0.044, 1.24, 0.164) b=(0.155, 1.52, 0.58) radius=0.02
-
-    # Eyes, mirrored: full-size eyeballs floating in front of the stem like the hands, a few centimetres clear of it, so the body
-    # has no face of its own and the eyes can bob and roll around it cartoonishly
-    SymmetryX
-        Translate translation=(0.13, 0.86, 0.3)
-            Part part=eye
-
-    # Floating hands, mirrored, of the stem's flesh
-    SymmetryX
-        Translate translation=(0.29, 0.55, 0.1)
-            Material material=chanterelle_flesh
-                Part part=hand
+Part part=chanterelle_scout

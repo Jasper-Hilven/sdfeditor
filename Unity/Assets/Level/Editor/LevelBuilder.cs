@@ -46,7 +46,7 @@ namespace SdfLevel.Editor
     /// <item>the player, the one thing that moves: a <see cref="FirstPersonController"/> with the camera at <see cref="EyeHeight"/>;</item>
     /// <item>Battle, the level's battle layout (level.json "battle", the level file's sides and neutral pods): a <see cref="BattleArena"/>
     /// with Battle/West and Battle/East, each a <see cref="SdfBattle.BattleSide"/> over its spawn marker, flag stand
-    /// (Assets/Pickups/Flags) and minigun, pistol and health pods (Assets/Pickups/Pods), and Battle/Neutral with the two neutral pods;
+    /// (Assets/Pickups/Flags) and weapon and health pods (Assets/Pickups/Pods), and Battle/Neutral with the two neutral pods;
     /// not static, as the pods' pickups turn and hide; on it the <see cref="Match"/> (ticket 20), with the player as you, the two scout
     /// prefabs for the bots' bodies and the GUI prefab for the HUD: it makes the eight players at runtime, none are in the scene;</item>
     /// <item>SceneInfo, an <see cref="IMMScene"/> with what the game needs to know of the scene: its play area and extent, the spawn,
@@ -92,8 +92,10 @@ namespace SdfLevel.Editor
         /// <see cref="FirstPersonController.Configure"/>.
         /// Version 16: the bots' navmesh (ticket 23, <see cref="SdfBattle.Editor.BattleNavmesh"/>), Level/Navigation Scout and Tank.
         /// Version 17: the scouts' agent 5 cm wider than the capsule.
+        /// Version 18: the sides' turrets and machine zones (ticket 24.2), the turrets obstacles in the navmesh.
+        /// Version 19: the machines' prefabs on Battle (ticket 24.3, <see cref="SdfBattle.Machines"/>); the match without a countdown.
         /// </summary>
-        public const int BuilderVersion = 17;
+        public const int BuilderVersion = 19;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -133,6 +135,7 @@ namespace SdfLevel.Editor
         public const string WindName = "Wind";
         public const string NeutralName = "Neutral";
         public const string SpawnName = "Spawn";
+        public const string MachineSpawnName = "Machine Spawn";
 
         /// <summary>The bake's instances, instances.bin, copied next to the level's meshes as instances.bytes, which Unity reads as a TextAsset.</summary>
         public const string InstancesFile = "instances.bin";
@@ -368,6 +371,8 @@ namespace SdfLevel.Editor
             SdfPickups.Editor.WeaponPodBuilder.BuildStale();
             // The flag stands, over the stand's and the flags' prefabs
             SdfPickups.Editor.FlagStandBuilder.BuildStale();
+            // The machines (ticket 24), over their pieces' prefabs: the turrets stand in the battle levels
+            SdfMachines.Editor.MachineBuilder.BuildStale();
             var failed = Levels().Count(level => !Build(level));
             if (failed > 0)
                 EditorApplication.Exit(1);
@@ -1150,8 +1155,11 @@ namespace SdfLevel.Editor
         /// <summary>
         /// Battle, at the scene's root (level.json "battle"): a <see cref="BattleArena"/> over Battle/West and Battle/East, each a
         /// <see cref="SdfBattle.BattleSide"/> whose children are its Spawn (an empty marker, the side's gizmo draws it), its flag stand
-        /// (Assets/Pickups/Flags/flag-stand-&lt;side&gt;.prefab) and its minigun, pistol and health pods
-        /// (Assets/Pickups/Pods/&lt;pod&gt;-pod.prefab), and Battle/Neutral with the neutral pods. Each stands where level.json puts it,
+        /// (Assets/Pickups/Flags/flag-stand-&lt;side&gt;.prefab), its weapon pods (whichever the level file gives
+        /// it: the minigun and the pistol on most levels) and its health pods (Assets/Pickups/Pods/&lt;pod&gt;-pod.prefab), and Battle/Neutral with the neutral pods. On a level with machines (ticket 24)
+        /// each side also gets its turrets, Turret 1-4 (Assets/Machines/Prefabs/turret-&lt;team&gt;.prefab, red west, blue east; static
+        /// scene objects, where they respawn), and its Machine Spawn, an empty marker in the middle of the zone where its helicopter and
+        /// tanks start and respawn (they are made at runtime, ticket 24.3). Each stands where level.json puts it,
         /// x mirrored and yaw turned round, as the placements. A missing prefab logs a warning and leaves its reference empty; a level
         /// without sides gets no Battle and returns null.
         /// </summary>
@@ -1173,7 +1181,7 @@ namespace SdfLevel.Editor
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
                 if (prefab == null)
                 {
-                    Debug.LogWarning($"SDF level: there is no prefab {prefabPath} for the battle's {objectName}; let the pickups build (Tools > SDF Pickups)");
+                    Debug.LogWarning($"SDF level: there is no prefab {prefabPath} for the battle's {objectName}; let the pickups and machines build (Tools > SDF Pickups, Tools > SDF Machines)");
                     return null;
                 }
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
@@ -1201,19 +1209,41 @@ namespace SdfLevel.Editor
                 side.spawn = spawn;
                 side.spawnRadius = entry["spawn"].Value<float?>("radius") ?? side.spawnRadius;
                 side.flagStand = Instance<FlagStand>(sideObject.transform, FlagStandBuilder.StandPrefabOf(id), "Flag Stand", entry["flag"]);
+                var moreHealthPods = new List<HealthPickup>();
+                var weaponPods = new List<WeaponPickup>();
                 foreach (var podEntry in (JArray)entry["pods"])
                     switch (podEntry.Value<string>("pod"))
                     {
-                        case "minigun":
-                            side.minigunPod = Pod(sideObject.transform, podEntry);
-                            break;
-                        case "pistol":
-                            side.pistolPod = Pod(sideObject.transform, podEntry);
-                            break;
-                        case "health":
+                        // The first health pod, then any more (Health Pod 2, ...)
+                        case "health" when side.healthPod == null:
                             side.healthPod = Instance<HealthPickup>(sideObject.transform, HealthPodBuilder.PodPrefab, "Health Pod", podEntry);
                             break;
+                        case "health":
+                            moreHealthPods.Add(Instance<HealthPickup>(sideObject.transform, HealthPodBuilder.PodPrefab, $"Health Pod {moreHealthPods.Count + 2}", podEntry));
+                            break;
+                        // Every other pod is one of the side's weapons, whichever the level file gives it (Minigun Pod, Electro-gun Pod)
+                        default:
+                            weaponPods.Add(Pod(sideObject.transform, podEntry));
+                            break;
                     }
+                side.weaponPods = weaponPods.Where(p => p != null).ToArray();
+                side.moreHealthPods = moreHealthPods.Where(p => p != null).ToArray();
+                // Ticket 24: the turrets, in the side's team colour, and the machine zone
+                if (entry["turrets"] is JArray turrets)
+                {
+                    var team = id == BattleSideId.West ? "red" : "blue";
+                    side.turrets = turrets.Select((turret, index) => Instance<SdfMachines.MachineRig>(sideObject.transform,
+                            SdfMachines.Editor.MachineBuilder.MachinePrefabOf("turret", team), $"Turret {index + 1}", turret))
+                        .Where(t => t != null).ToArray();
+                }
+                if (entry["machines"] is JObject machines)
+                {
+                    var machineSpawn = new GameObject(MachineSpawnName).transform;
+                    machineSpawn.SetParent(sideObject.transform, false);
+                    Place(machineSpawn, machines);
+                    side.machineSpawn = machineSpawn;
+                    side.machineSpawnRadius = machines.Value<float?>("radius") ?? side.machineSpawnRadius;
+                }
                 if (id == BattleSideId.West)
                     arena.west = side;
                 else
@@ -1224,12 +1254,16 @@ namespace SdfLevel.Editor
             neutral.transform.SetParent(root.transform, false);
             arena.neutralPods = ((JArray)battle["neutral"]).Select(entry => Pod(neutral.transform, entry)).Where(p => p != null).ToArray();
             AddMatch(root, player);
+            // Ticket 24.3: the helicopters' and tanks' prefabs, which the match makes in the machine zones at its start
+            if (SdfBattle.Machines.HasMachines(arena))
+                AddMachines(root);
             return arena;
         }
 
         /// <summary>
         /// The match (ticket 20) on Battle: the scene's player is you, the scouts are the bots' bodies (amanita red, chanterelle blue),
-        /// the GUI prefab its HUD. A missing prefab logs a warning; the match then plays without those bodies or without a HUD.
+        /// and an instance of the GUI prefab at the scene's root its HUD, there in the editor as it is in play (the HUD showing, its
+        /// test panel off). A missing prefab logs a warning; the match then plays without those bodies or without a HUD.
         /// </summary>
         private static void AddMatch(GameObject battle, GameObject player)
         {
@@ -1244,7 +1278,43 @@ namespace SdfLevel.Editor
             }
             match.redScout = Load($"{MushroomBuilder.PrefabFolder}/{RedScout}.prefab", "red bodies");
             match.blueScout = Load($"{MushroomBuilder.PrefabFolder}/{BlueScout}.prefab", "blue bodies");
-            match.gui = Load(SdfGui.Editor.GuiScene.GuiPrefabPath, "HUD");
+            var gui = Load(SdfGui.Editor.GuiScene.GuiPrefabPath, "HUD");
+            if (gui != null)
+            {
+                match.gui = (GameObject)PrefabUtility.InstantiatePrefab(gui, battle.scene);
+                if (match.gui.TryGetComponent<SdfGui.FakeMatch>(out var view))
+                {
+                    MatchHud.ShowRoundStart(view, match.rules);
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(view);
+                }
+                if (match.gui.TryGetComponent<SdfGui.GuiFlow>(out var flow))
+                {
+                    flow.screen = SdfGui.GuiScreen.Hud;
+                    flow.testPanel = false;
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(flow);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The machines (ticket 24.3) on Battle: the red and blue tank and helicopter prefabs (Assets/Machines/Prefabs), which the match
+        /// makes in each side's machine zone at its start; the turrets are the sides' own scene objects. A missing prefab logs a warning.
+        /// </summary>
+        private static void AddMachines(GameObject battle)
+        {
+            var machines = battle.AddComponent<SdfBattle.Machines>();
+            GameObject Load(SdfBattle.MachineKind kind, SdfBattle.Team team)
+            {
+                var path = SdfBattle.Machines.PrefabPath(kind, team);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null)
+                    Debug.LogWarning($"SDF level: there is no {path} for the match's machines; build it (Tools > SDF Machines > Rebuild Machines) and rebuild the level");
+                return prefab;
+            }
+            machines.redTank = Load(SdfBattle.MachineKind.Tank, SdfBattle.Team.Red);
+            machines.blueTank = Load(SdfBattle.MachineKind.Tank, SdfBattle.Team.Blue);
+            machines.redHelicopter = Load(SdfBattle.MachineKind.Helicopter, SdfBattle.Team.Red);
+            machines.blueHelicopter = Load(SdfBattle.MachineKind.Helicopter, SdfBattle.Team.Blue);
         }
 
         /// <summary>The scouts the bots are drawn as: red (west) the amanita scout, blue (east) the chanterelle scout.</summary>

@@ -39,6 +39,11 @@ namespace SdfGui
         public int victim;
         public int weapon;
         public bool headshot;
+        [Tooltip("The feed's line (SdfBattle.DeathLines: {killer}, {victim}, {icon} where the weapon's icon sits); empty for the plain " +
+                 "names around the icon")]
+        public string line;
+        [Tooltip("The killer's kills in a row, for a streak's line")]
+        public int streak;
         [Tooltip("Seconds since it happened; the kill feed fades it out")]
         public float age;
     }
@@ -88,6 +93,13 @@ namespace SdfGui
         [Tooltip("Who eliminated you, -1 while you are alive")]
         public int killedBy = -1;
         public int killedByWeapon;
+        [Tooltip("Who eliminated you when it is no player (rich text: a machine in its team's colour, battle scenes); empty otherwise")]
+        public string killedByName;
+        [Tooltip("The death screen's title for how you died (SdfBattle.DeathLines); empty for the plain one")]
+        public string killedTitle;
+        [Tooltip("The death screen's lines under it ({killer}, {weapon}, {streak}); empty for the plain ones")]
+        public string killedDetail;
+        public int killedStreak;
         [Tooltip("Who the camera follows once you are out")]
         public int spectating = -1;
         public List<FakeKill> feed = new List<FakeKill>();
@@ -117,6 +129,8 @@ namespace SdfGui
         public float eliminated;
         public int eliminatedPlayer;
         public bool eliminatedHeadshot;
+        [Tooltip("The pop-up's title (SdfBattle.DeathLines); empty for the plain one")]
+        public string eliminatedTitle;
 
         [Header("Bots")]
         [Tooltip("Bots eliminate each other, crumble the island and now and then hit you")]
@@ -352,6 +366,7 @@ namespace SdfGui
             eliminated = 2.2f;
             eliminatedPlayer = victim;
             eliminatedHeadshot = headshot;
+            eliminatedTitle = SdfBattle.DeathLines.Shared.Title(KindOf(weapon, headshot), GuiSettings.Gore);
             Eliminate(you, victim, weapon, headshot);
         }
 
@@ -394,8 +409,14 @@ namespace SdfGui
             killedBy = killer;
             killedByWeapon = Random.Range(0, Weapons.Length);
             spectating = killer;
+            var headshot = Random.value < 0.3f;
+            // With no one left to do it, the island did
+            var kind = killer >= 0 ? KindOf(killedByWeapon, headshot) : SdfBattle.DeathKind.Fall;
+            killedTitle = SdfBattle.DeathLines.Shared.Title(kind, GuiSettings.Gore);
+            killedDetail = SdfBattle.DeathLines.Shared.Detail(kind, GuiSettings.Gore);
+            killedStreak = 0;
             if (killer >= 0)
-                Eliminate(killer, you, killedByWeapon, Random.value < 0.3f);
+                Eliminate(killer, you, killedByWeapon, headshot);
             else
                 You.alive = false;
         }
@@ -427,7 +448,9 @@ namespace SdfGui
             dead.placement = Alive + 1;
             if (killer >= 0)
                 players[killer].kills++;
-            feed.Add(new FakeKill { killer = killer, victim = victim, weapon = weaponIndex, headshot = headshot });
+            var names = (killer >= 0 ? players[killer].name?.Length ?? 0 : 0) + (dead.name?.Length ?? 0);
+            var line = SdfBattle.DeathLines.Shared.Feed(KindOf(weaponIndex, headshot), GuiSettings.Gore, names);
+            feed.Add(new FakeKill { killer = killer, victim = victim, weapon = weaponIndex, headshot = headshot, line = line });
             if (feed.Count > 6)
                 feed.RemoveAt(0);
             if (spectating == victim)
@@ -441,6 +464,11 @@ namespace SdfGui
                 countdown = 10;
             }
         }
+
+        /// <summary>The kind of death a weapon (an index into <see cref="Weapons"/>) deals, for its lines.</summary>
+        public static SdfBattle.DeathKind KindOf(int weaponIndex, bool headshot) =>
+            headshot ? SdfBattle.DeathKind.Headshot
+            : SdfBattle.DeathLines.KindOfWeapon(weaponIndex >= 0 && weaponIndex < Weapons.Length ? Weapons[weaponIndex] : null);
 
         private int RandomAlive(params int[] except)
         {

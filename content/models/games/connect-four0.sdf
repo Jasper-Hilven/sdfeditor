@@ -1,0 +1,79 @@
+# Connect Four: the game's upright frame blown up to 9 m wide and 7 m tall, a game half played. A glossy teal panel 7.8 m wide,
+# 6.2 m tall and 0.6 m thick, pierced by seven columns of six round holes 0.84 m across on a 1.05 m grid, stands between two posts
+# on long flat feet along z, with the release bar under it. Thirteen yellow and purple discs (in place of the toy's red, a team
+# colour here) lie stacked from the bottom in six of the columns; every other hole is open right through, to see and shoot through.
+format 1
+collider mesh
+
+# A little under half the vertices its size would give it: a landmark seen from afar, kept under 20k triangles at 256 cells
+Detail detail=0.42
+    Union
+        Material material=connect_four_frame
+            Union
+                # The panel, the holes cut through it: a 7 x 7 grid of them, the top row cut away
+                Subtraction
+                    Translate translation=(0, 3.85, 0)
+                        RoundBox size=(3.9, 3.1, 0.3) roundness=0.1
+                    Intersection
+                        Translate translation=(0, 3.75, 0)
+                            Box size=(3.8, 3.15, 1)
+                        Translate translation=(0, 4.275, 0)
+                            LimitedRepetition spacing=1.05 limits=(3, 3, 0)
+                                Rotate rotation=(1.5707964, 0, 0)
+                                    CappedCylinder radius=0.42 height=1
+                # The two posts, a little thicker than the panel
+                SymmetryX
+                    Translate translation=(4.2, 3.5, 0)
+                        RoundBox size=(0.3, 3.5, 0.42) roundness=0.1
+                # Their feet, long flat runners along z
+                SymmetryX
+                    Translate translation=(4.2, 0.2, 0)
+                        RoundBox size=(0.36, 0.2, 1.6) roundness=0.1
+                # The release bar under the panel, between the posts
+                Translate translation=(0, 0.5, 0)
+                    RoundBox size=(3.95, 0.16, 0.24) roundness=0.06
+        # The yellow discs, each a flat round counter seen in its hole from both sides
+        Material material=connect_four_yellow
+            Union
+                Translate translation=(-3.15, 1.125, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(-2.1, 2.175, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(-1.05, 1.125, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(0.0, 2.175, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(0.0, 3.225, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(1.05, 1.125, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+        # The purple discs, each a flat round counter seen in its hole from both sides
+        Material material=connect_four_purple
+            Union
+                Translate translation=(-2.1, 1.125, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(-1.05, 2.175, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(-1.05, 3.225, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(0.0, 1.125, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(0.0, 4.275, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(1.05, 2.175, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17
+                Translate translation=(3.15, 1.125, 0)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RoundedCylinder radius=0.42 roundness=0.06 height=0.17

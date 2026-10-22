@@ -4,8 +4,9 @@ using UnityEngine.UI;
 namespace SdfGui
 {
     /// <summary>
-    /// The settings: the render quality (the project's quality levels: the high preset and the integrated GPU / web preset), the gore
-    /// level, mouse sensitivity, volume, screen shake and the FPS counter. Shows the current values in the editor too.
+    /// The settings: the render quality (the project's quality levels: ultra high, high, integrated GPU / web and ultra low), the gore
+    /// level, mouse sensitivity, volume, screen shake, the FPS counter and dismissing the HUD's frame rate / quality hints. Shows the
+    /// current values in the editor too.
     /// </summary>
     [ExecuteAlways]
     public sealed class GuiSettingsMenu : MonoBehaviour
@@ -16,6 +17,7 @@ namespace SdfGui
         public Slider volume;
         public Toggle screenShake;
         public Toggle showFps;
+        public Toggle dismissQualityHints;
 
         private void Awake()
         {
@@ -29,6 +31,7 @@ namespace SdfGui
             volume?.onValueChanged.AddListener(v => GuiSettings.Volume = v);
             screenShake?.onValueChanged.AddListener(v => GuiSettings.ScreenShake = v);
             showFps?.onValueChanged.AddListener(v => GuiSettings.ShowFps = v);
+            dismissQualityHints?.onValueChanged.AddListener(v => GuiSettings.DismissQualityHints = v);
         }
 
         private void OnEnable()
@@ -47,6 +50,7 @@ namespace SdfGui
             volume?.SetValueWithoutNotify(GuiSettings.Volume);
             screenShake?.SetIsOnWithoutNotify(GuiSettings.ScreenShake);
             showFps?.SetIsOnWithoutNotify(GuiSettings.ShowFps);
+            dismissQualityHints?.SetIsOnWithoutNotify(GuiSettings.DismissQualityHints);
         }
     }
 }

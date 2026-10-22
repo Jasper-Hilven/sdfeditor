@@ -106,7 +106,7 @@ namespace SdfBattle.Tests
         [Test]
         public void AnotherWeaponOfTheSameSlot_TakesItsPlace()
         {
-            // A scene has one kind per slot, but should two meet, the newer one is in the slot
+            // Most scenes have one kind per slot, but where two meet (the chessboard), the newer one is in the slot
             var inventory = new Inventory();
             inventory.Take(WeaponIds.Sniper);
 
@@ -114,6 +114,22 @@ namespace SdfBattle.Tests
 
             Assert.AreEqual(WeaponIds.ElectroGun, inventory[WeaponSlot.LongRange]);
             Assert.IsFalse(inventory.Holds(WeaponIds.Sniper));
+        }
+
+        [Test]
+        public void Adds_OnlyAnEmptySlotOrTheSecondPistol()
+        {
+            // What a bot walks to: a weapon that adds to what it holds, not one that swaps a held one out
+            var inventory = new Inventory();
+            Assert.IsTrue(inventory.Adds(WeaponIds.Sniper));
+            Assert.IsTrue(inventory.Adds(WeaponIds.Pistol), "the second pistol");
+            inventory.Take(WeaponIds.Sniper);
+
+            Assert.IsFalse(inventory.Adds(WeaponIds.ElectroGun), "the sniper's slot is full");
+            Assert.IsTrue(inventory.CanTake(WeaponIds.ElectroGun), "walked onto, it is still taken");
+            Assert.IsFalse(inventory.Adds(WeaponIds.Sniper));
+            Assert.IsTrue(inventory.Adds(WeaponIds.PoisonGun));
+            Assert.IsFalse(inventory.Adds("banana"));
         }
 
         [Test]

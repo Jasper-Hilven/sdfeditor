@@ -1,0 +1,75 @@
+# Hourglass: a Pictionary sand timer blown up to 7 m tall. Two round dark-wood caps 4 m across, joined by three turned spindles,
+# hold a pale glass double bulb with a narrow waist; the timer is running, so the bottom of the upper bulb is still full of golden
+# sand, a thread of it runs through the waist and a pile has built up in the lower bulb. The toon look has no see-through glass,
+# so the glass is a glossy pale aqua shell and the sand is painted flush on it where it lies against the glass.
+format 1
+collider convex
+
+# Half the vertices its size would give it: big, simple forms, and dozens of game pieces lie on the board
+Detail detail=0.5
+    Union
+        # The glass: two round bulbs touching at the waist, smoothed into a narrow neck
+        Material material=hourglass_glass
+            SmoothUnion smoothness=0.3
+                Translate translation=(0, 2.1, 0)
+                    Ellipsoid radii=(1.5, 1.42, 1.5)
+                Translate translation=(0, 4.9, 0)
+                    Ellipsoid radii=(1.5, 1.42, 1.5)
+                Translate translation=(0, 3.5, 0)
+                    CappedCylinder radius=0.2 height=0.4
+        # The sand against the glass: the lower bulb filled to 2.2 m, the waist, and the bottom of the upper bulb up to 4.3 m
+        Material material=hourglass_sand
+            Intersection
+                SmoothUnion smoothness=0.3
+                    Translate translation=(0, 2.1, 0)
+                        Ellipsoid radii=(1.5, 1.42, 1.5)
+                    Translate translation=(0, 4.9, 0)
+                        Ellipsoid radii=(1.5, 1.42, 1.5)
+                    Translate translation=(0, 3.5, 0)
+                        CappedCylinder radius=0.2 height=0.4
+                Union
+                    Translate translation=(0, 1.35, 0)
+                        Box size=(2, 0.85, 2)
+                    Translate translation=(0, 3.85, 0)
+                        Box size=(2, 0.45, 2)
+        # The caps: thick round wooden discs, the glass sunk into each
+        Material material=game_wood_door
+            Union
+                Translate translation=(0, 0.3, 0)
+                    RoundedCylinder radius=2 roundness=0.12 height=0.3
+                Translate translation=(0, 6.7, 0)
+                    RoundedCylinder radius=2 roundness=0.12 height=0.3
+                # A narrower step on each cap's inner face, round the glass
+                Translate translation=(0, 0.7, 0)
+                    RoundedCylinder radius=1.55 roundness=0.08 height=0.15
+                Translate translation=(0, 6.3, 0)
+                    RoundedCylinder radius=1.55 roundness=0.08 height=0.15
+        # The three spindles, each with a bead halfway and a collar at either end
+        Material material=game_wood_door
+            Union
+                Translate translation=(1.72, 3.5, 0)
+                    Union
+                        CappedCylinder radius=0.16 height=2.9
+                        Ellipsoid radii=(0.3, 0.42, 0.3)
+                        Translate translation=(0, 2.6, 0)
+                            CappedCylinder radius=0.26 height=0.12
+                        Translate translation=(0, -2.6, 0)
+                            CappedCylinder radius=0.26 height=0.12
+                Rotate rotation=(0, 2.0943951, 0)
+                    Translate translation=(1.72, 3.5, 0)
+                        Union
+                            CappedCylinder radius=0.16 height=2.9
+                            Ellipsoid radii=(0.3, 0.42, 0.3)
+                            Translate translation=(0, 2.6, 0)
+                                CappedCylinder radius=0.26 height=0.12
+                            Translate translation=(0, -2.6, 0)
+                                CappedCylinder radius=0.26 height=0.12
+                Rotate rotation=(0, -2.0943951, 0)
+                    Translate translation=(1.72, 3.5, 0)
+                        Union
+                            CappedCylinder radius=0.16 height=2.9
+                            Ellipsoid radii=(0.3, 0.42, 0.3)
+                            Translate translation=(0, 2.6, 0)
+                                CappedCylinder radius=0.26 height=0.12
+                            Translate translation=(0, -2.6, 0)
+                                CappedCylinder radius=0.26 height=0.12

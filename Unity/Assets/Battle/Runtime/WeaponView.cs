@@ -31,6 +31,7 @@ namespace SdfBattle
         private WeaponTableAsset assets;
         private Transform viewCamera;
         private Transform[] hands;
+        private float[] reach;
         private Held current;
         private bool dual;
         private int nextMuzzle;
@@ -63,7 +64,10 @@ namespace SdfBattle
             weaponView.assets = assets;
             weaponView.viewCamera = view != null ? view.transform : null;
             if (view == null && body != null)
+            {
                 weaponView.hands = FindHands(body.transform);
+                weaponView.reach = weaponView.hands != null ? System.Array.ConvertAll(weaponView.hands, Reach) : null;
+            }
             // Every weapon made now, hidden, so picking one up mid-round makes nothing
             if (assets != null && assets.looks != null)
                 foreach (var look in assets.looks)
@@ -86,6 +90,17 @@ namespace SdfBattle
             if (a == null || b == null)
                 return a != null ? new[] { a } : b != null ? new[] { b } : null;
             return body.InverseTransformPoint(a.position).x >= body.InverseTransformPoint(b.position).x ? new[] { a, b } : new[] { b, a };
+        }
+
+        /// <summary>
+        /// How far in front of a hand's middle a weapon's grip goes, metres: most of the way to the front of the hand. A scout's hand is
+        /// a blob about 30 cm across, and a pistol (about 17 cm) gripped at its middle was all inside it, so a bot with only its pistol
+        /// looked empty-handed.
+        /// </summary>
+        private static float Reach(Transform hand)
+        {
+            var extents = Corpse.LocalBounds(hand, hand).extents;
+            return (extents.x + extents.y + extents.z) / 3 * hand.lossyScale.x * 0.8f;
         }
 
         /// <summary>Holds this weapon (dual-pistols: two pistols).</summary>
@@ -151,6 +166,8 @@ namespace SdfBattle
                         renderer.shadowCastingMode = ShadowCastingMode.Off;
                         renderer.receiveShadows = false;
                     }
+                else
+                    KeepInSight(instance);
                 var muzzle = new GameObject("Muzzle").transform;
                 muzzle.SetParent(instance.transform, false);
                 muzzle.localPosition = look.muzzle;
@@ -161,6 +178,26 @@ namespace SdfBattle
             models[model] = held;
             return held;
         }
+
+        /// <summary>
+        /// A weapon in a scout's hand is small (a pistol about 17 cm), and its model's LOD group, made for weapons lying about, culls it
+        /// below a hundredth of the screen's height: from about 15 m, so a bot shooting from further had an empty hand. Its last LOD
+        /// now stays down to <see cref="HeldCullHeight"/>, a pistol's up to about 80 m.
+        /// </summary>
+        private static void KeepInSight(GameObject instance)
+        {
+            if (!instance.TryGetComponent<LODGroup>(out var group))
+                return;
+            var lods = group.GetLODs();
+            if (lods.Length == 0)
+                return;
+            var last = lods.Length - 1;
+            lods[last].screenRelativeTransitionHeight = Mathf.Min(lods[last].screenRelativeTransitionHeight, HeldCullHeight);
+            group.SetLODs(lods);
+        }
+
+        /// <summary>The share of the screen's height below which a held weapon is no longer drawn.</summary>
+        private const float HeldCullHeight = 0.002f;
 
         private void LateUpdate()
         {
@@ -195,7 +232,7 @@ namespace SdfBattle
             }
         }
 
-        /// <summary>The weapon in the scout's hand (the left hand too for dual pistols), pointing along the aim.</summary>
+        /// <summary>The weapon in the scout's hand (the left hand too for dual pistols), held out in front of it, pointing along the aim.</summary>
         private void PlaceInHands()
         {
             var look = current.look;
@@ -205,8 +242,9 @@ namespace SdfBattle
                 var model = current.models[i];
                 if (!model.gameObject.activeSelf)
                     continue;
-                var hand = hands != null && hands.Length > 0 ? hands[Mathf.Min(i, hands.Length - 1)] : null;
-                var at = hand != null ? hand.position : arsenal.transform.position + arsenal.transform.rotation * new Vector3(0.3f * (i == 0 ? 1 : -1), 0.9f, 0.2f);
+                var which = hands != null && hands.Length > 0 ? Mathf.Min(i, hands.Length - 1) : -1;
+                var hand = which >= 0 ? hands[which] : null;
+                var at = hand != null ? hand.position + aim * Vector3.forward * reach[which] : arsenal.transform.position + arsenal.transform.rotation * new Vector3(0.3f * (i == 0 ? 1 : -1), 0.9f, 0.2f);
                 var kicked = aim * Quaternion.Euler(-6 * recoil * (dual && nextMuzzle == i ? 0.4f : 1f), 0, 0);
                 model.SetPositionAndRotation(at - kicked * (look.grip * look.handScale), kicked);
                 model.localScale = Vector3.one * look.handScale;

@@ -491,10 +491,10 @@ namespace SdfLevel.Editor
             var rows = new List<string>();
             try
             {
-                foreach (var preset in new[] { 0, QualitySettings.names.Length - 1 })
+                foreach (var preset in new[] { RenderPipelineSetup.DesktopLevel, RenderPipelineSetup.WebLevel })
                 {
                     QualitySettings.SetQualityLevel(preset, true);
-                    var tag = preset == 0 ? "high" : "web";
+                    var tag = preset == RenderPipelineSetup.DesktopLevel ? "high" : "web";
                     foreach (var (name, at, floor, horizontal) in places)
                     foreach (var distance in new[] { 2f, 6f, 15f, 40f })
                     {

@@ -41,45 +41,53 @@ place
     rock1 at=(-16, 10) yaw=160 scale=1.4
 
 # The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its castle. The flag stand stands in the courtyard
-# before the keep's door, the spawn zone (ticket 20; 2 m round, all the courtyard leaves between the flag and the gate) just inside
-# the gate facing out, and the minigun and pistol pods flank the tiled apron before the
-# gate, the health pod off to one side of them. Everything stands on the ground, which is the courtyard's floor (the castles have
-# none of their own there). The neutral pods are in the open field on the middle line, one each side of the path, clear of the
-# rocks; the scatter keeps clear of every pod, stand and spawn
+# before the keep's door; the spawn zone (ticket 20; 2 m round) lies outside the castle, beside it on its north (+z) side by the
+# front corner, on the open level plateau 9 m out from the wall and the north large tower, 8 m past the health pod and clear of
+# the path, facing out over the field like the gate (the same place as on the fungal level); the minigun and pistol pods flank
+# the tiled apron before the gate, the health pod off to one side of them, and two more health pods out on the north and south
+# flanks, a little past halfway to the middle, clear of the rocks (as on the fungal level). Everything stands on the ground, which
+# is the courtyard's floor (the castles have none of their own there). The neutral pods are in the open field on the middle line,
+# one each side of the path, clear of the rocks; the scatter keeps clear of every pod, stand and spawn
 sides
     west
-        spawn at=(-57, 0) yaw=90 radius=2
+        spawn at=(-52, 20) yaw=90 radius=2
         flag at=(-60.5, 0)
         pod minigun at=(-48, 6)
         pod pistol at=(-48, -6)
         pod health at=(-51, 11)
+        pod health at=(-28, 40)
+        pod health at=(-28, -40)
     east
-        spawn at=(57, 0) yaw=-90 radius=2
+        spawn at=(52, 20) yaw=-90 radius=2
         flag at=(60.5, 0)
         pod minigun at=(48, 6)
         pod pistol at=(48, -6)
         pod health at=(51, 11)
+        pod health at=(28, 40)
+        pod health at=(28, -40)
 neutral
     pod sniper at=(0, 32)
     pod flamethrower at=(0, -32)
 
 # The ground foliage, scattered by the thousand and drawn instanced: clumps of grass on the grass ground (which reads as grass on its
 # own; the turfs are clumps on top, not a carpet) and flowers in looser drifts, nothing on the path or tiles. density is
-# instances per square metre on average, up to cluster times that in the clusters, which are about clusterScale metres wide
+# instances per square metre on average, up to cluster times that in the clusters, which are about clusterScale metres wide; cluster
+# is kept low (1.5 and 2) so the clumps are not too dense, the same amount spread over more of the ground; density is kept a little
+# sparse (0.48 and 0.096) so the foliage does not crowd the ground
 scatter
     grass-turf0 weight=3
     grass-turf1 weight=1
     grass-turf2 weight=1.5
     grass-turf3 weight=1
     grass-turf4 weight=1
-    density=0.6 cluster=2 clusterScale=6 spacing=0.45 avoid=tiles,path margin=0.5 maxSlope=25
+    density=0.48 cluster=1.5 clusterScale=6 spacing=0.45 avoid=tiles,path margin=0.5 maxSlope=25
 scatter
     flower0 weight=2
     flower1 weight=1
     flower2 weight=0.4
     flower3 weight=1
     flower4 weight=1
-    density=0.12 cluster=3 clusterScale=10 spacing=0.6 avoid=tiles,path margin=0.8 maxSlope=20
+    density=0.096 cluster=2 clusterScale=10 spacing=0.6 avoid=tiles,path margin=0.8 maxSlope=20
 
 # The woods on the border hills, drawn instanced like the foliage. band is how far from the playable rectangle's edge they stand
 # (negative inside it). The front row climbs the inner slopes to the crest, 5 to 8 m apart, large enough that its crowns and the

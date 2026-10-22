@@ -1,0 +1,23 @@
+# Marble 0: a giant Chinese-checkers marble 0.9 m across, resting on the board, in clear emerald green glass (game_marble_emerald) with a hard glassy
+# highlight and a glow from inside. A cat's-eye swirl runs through it: two thin twisted vanes of milky glass (game_marble_swirl)
+# crossed in its middle, showing on the surface as four curling white stripes, tipped over as the marble came to rest. Low cover to crouch behind.
+format 1
+collider convex
+
+# A fifth of the vertices its size would give it, about 1,700 triangles: a plain ball, the swirl's stripes holding most of
+# them, scattered cover
+Detail detail=0.2
+    Translate translation=(0, 0.45, 0)
+        Union
+            Material material=game_marble_emerald
+                Sphere radius=0.45
+            # The swirl: the sphere cut to two crossed twisted vanes through its middle, so it lies flush in the surface
+            Material material=game_marble_swirl
+                Intersection
+                    Sphere radius=0.45
+                    Rotate rotation=(0.3, 0, 0.2)
+                        Union
+                            Twist amount=2.5
+                                Box size=(0.035, 0.5, 0.5)
+                            Twist amount=2.5
+                                Box size=(0.5, 0.5, 0.035)

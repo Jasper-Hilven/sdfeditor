@@ -72,6 +72,14 @@ namespace SdfBattle
         }
 
         /// <summary>
+        /// Whether taking this weapon adds to what is held rather than swapping a held one out: it can be taken and its slot is empty, or
+        /// it is the second pistol. Where a level's pods hold two weapons of one slot (the chessboard's sniper and electro-gun), a bot
+        /// keeps the one it has; elsewhere this is <see cref="CanTake"/>.
+        /// </summary>
+        public bool Adds(string id) =>
+            CanTake(id) && (id == WeaponIds.Pistol || slots[(int)WeaponIds.SlotOf(id).Value] == null);
+
+        /// <summary>
         /// Takes a pod's weapon into its slot (a second pistol makes two) and, with <paramref name="select"/>, takes it in hand. Returns
         /// whether it was taken; see <see cref="CanTake"/>.
         /// </summary>

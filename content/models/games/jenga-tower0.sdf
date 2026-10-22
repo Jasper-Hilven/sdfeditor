@@ -1,0 +1,174 @@
+# Jenga tower: a giant Jenga tower 11.4 m tall and 3 m square, eighteen layers of three pale birch blocks (each 3 x 0.6 x 1 m),
+# every layer turned a quarter turn on the one below, every block nudged a little off true. A game well under way: from the sixth
+# to the thirteenth layer eight blocks are pulled out, some from the sides and some from the middle, so slots and tunnels open
+# right through the tower at mid-height to see and shoot through, and two of them are laid crosswise on top.
+format 1
+collider mesh
+
+# Half the vertices its size would give it: big, simple forms, and dozens of game pieces lie on the board
+Detail detail=0.5
+    Material material=jenga_wood
+        Union
+            # Layer 1, blocks along x
+            Translate translation=(-0.021, 0.3, -1.0)
+                Rotate rotation=(0, -0.0175, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(0.018, 0.3, 0.0)
+                Rotate rotation=(0, -0.0214, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(0.004, 0.3, 1.0)
+                Rotate rotation=(0, -0.0067, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 2, blocks along z
+            Translate translation=(-1.0, 0.9, -0.053)
+                Rotate rotation=(0, 0.0004, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 0.9, -0.056)
+                Rotate rotation=(0, -0.0033, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(1.0, 0.9, -0.052)
+                Rotate rotation=(0, -0.0205, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 3, blocks along x
+            Translate translation=(-0.009, 1.5, -1.0)
+                Rotate rotation=(0, 0.0163, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.045, 1.5, 0.0)
+                Rotate rotation=(0, -0.0138, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(0.015, 1.5, 1.0)
+                Rotate rotation=(0, 0.0224, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 4, blocks along z
+            Translate translation=(-1.0, 2.1, 0.009)
+                Rotate rotation=(0, -0.0052, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 2.1, 0.057)
+                Rotate rotation=(0, -0.0227, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(1.0, 2.1, 0.043)
+                Rotate rotation=(0, -0.0105, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 5, blocks along x
+            Translate translation=(-0.043, 2.7, -1.0)
+                Rotate rotation=(0, -0.0191, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.023, 2.7, 0.0)
+                Rotate rotation=(0, 0.0158, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.038, 2.7, 1.0)
+                Rotate rotation=(0, 0.0041, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 6, blocks along z: the +z side block gone, an open slot on the front
+            Translate translation=(-1.0, 3.3, 0.017)
+                Rotate rotation=(0, -0.0064, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 3.3, 0.006)
+                Rotate rotation=(0, -0.0219, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 7, blocks along x: the middle block gone, a tunnel straight through along x
+            Translate translation=(-0.053, 3.9, -1.0)
+                Rotate rotation=(0, -0.0147, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(0.022, 3.9, 1.0)
+                Rotate rotation=(0, -0.0036, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 8, blocks along z: both side blocks gone, only the middle one left: open right through along z
+            Translate translation=(0.0, 4.5, -0.022)
+                Rotate rotation=(0, 0.0043, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 9, blocks along x: the middle block gone, a tunnel along x
+            Translate translation=(-0.006, 5.1, -1.0)
+                Rotate rotation=(0, -0.01, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(0.035, 5.1, 1.0)
+                Rotate rotation=(0, 0.0099, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 10, blocks along z
+            Translate translation=(-1.0, 5.7, -0.031)
+                Rotate rotation=(0, 0.0037, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 5.7, 0.003)
+                Rotate rotation=(0, 0.0188, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(1.0, 5.7, 0.028)
+                Rotate rotation=(0, -0.0106, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 11, blocks along x: the -z side block gone
+            Translate translation=(0.058, 6.3, 0.0)
+                Rotate rotation=(0, -0.0191, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.01, 6.3, 1.0)
+                Rotate rotation=(0, 0.0129, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 12, blocks along z: the +x side block gone
+            Translate translation=(-1.0, 6.9, -0.042)
+                Rotate rotation=(0, -0.0006, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 6.9, -0.055)
+                Rotate rotation=(0, 0.0084, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 13, blocks along x: the middle block gone, a tunnel along x
+            Translate translation=(0.032, 7.5, -1.0)
+                Rotate rotation=(0, 0.0037, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(0.045, 7.5, 1.0)
+                Rotate rotation=(0, -0.0093, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 14, blocks along z
+            Translate translation=(-1.0, 8.1, 0.023)
+                Rotate rotation=(0, 0.0047, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 8.1, 0.01)
+                Rotate rotation=(0, -0.0022, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(1.0, 8.1, 0.041)
+                Rotate rotation=(0, 0.0222, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 15, blocks along x
+            Translate translation=(-0.003, 8.7, -1.0)
+                Rotate rotation=(0, 0.0082, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.053, 8.7, 0.0)
+                Rotate rotation=(0, 0.0101, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(0.018, 8.7, 1.0)
+                Rotate rotation=(0, 0.0247, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 16, blocks along z
+            Translate translation=(-1.0, 9.3, 0.039)
+                Rotate rotation=(0, -0.0108, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 9.3, -0.014)
+                Rotate rotation=(0, 0.0084, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(1.0, 9.3, -0.057)
+                Rotate rotation=(0, -0.0019, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # Layer 17, blocks along x
+            Translate translation=(-0.04, 9.9, -1.0)
+                Rotate rotation=(0, -0.0191, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.053, 9.9, 0.0)
+                Rotate rotation=(0, 0.0134, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.044, 9.9, 1.0)
+                Rotate rotation=(0, -0.0126, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            # Layer 18, blocks along z
+            Translate translation=(-1.0, 10.5, -0.013)
+                Rotate rotation=(0, 0.0186, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(0.0, 10.5, -0.05)
+                Rotate rotation=(0, -0.0025, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            Translate translation=(1.0, 10.5, 0.006)
+                Rotate rotation=(0, 0.0192, 0)
+                    RoundBox size=(0.48, 0.298, 1.48) roundness=0.06
+            # On top, two of the pulled blocks laid crosswise as the rules ask, the second one put down askew
+            Translate translation=(0.1, 11.1, -1.0)
+                Rotate rotation=(0, 0.016, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06
+            Translate translation=(-0.25, 11.1, 0.15)
+                Rotate rotation=(0, 0.1982, 0)
+                    RoundBox size=(1.48, 0.298, 0.48) roundness=0.06

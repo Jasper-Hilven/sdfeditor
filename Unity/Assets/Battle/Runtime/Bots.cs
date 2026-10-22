@@ -95,9 +95,10 @@ namespace SdfBattle
 
             foreach (var side in new[] { arena.west, arena.east })
             {
-                AddPod(side.minigunPod, null);
-                AddPod(side.pistolPod, null);
-                AddPod(null, side.healthPod);
+                foreach (var pod in side.WeaponPods)
+                    AddPod(pod, null);
+                foreach (var pod in side.HealthPods)
+                    AddPod(null, pod);
             }
             foreach (var pod in arena.neutralPods)
                 AddPod(pod, null);

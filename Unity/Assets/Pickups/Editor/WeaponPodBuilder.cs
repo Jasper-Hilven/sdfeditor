@@ -18,7 +18,7 @@ namespace SdfPickups.Editor
     /// <code>
     /// minigun-pod         WeaponPickup (weapon id, respawn, event) and the trigger, an upright capsule over the pod
     ///   Pod               the weapon-pod prefab: the 30 cm pedestal with its convex collider, to walk onto
-    ///   Weapon            SpinHover: 1 m above the pod's top, 6 rpm about the vertical axis, a small bob
+    ///   Weapon            SpinHover: 1.2 m above the pod's top, 15 rpm about the vertical axis, a bob
     ///     Model           the weapon's prefab, <see cref="ScaleOf"/> times its size, moved so the middle of its bounds is on the
     ///                     Weapon's origin and it turns on the spot
     /// </code>
@@ -36,20 +36,21 @@ namespace SdfPickups.Editor
 
         /// <summary>Raise when the way pods are built changes, so every pod is rebuilt when the editor loads. Version 2: the health pod
         /// (<see cref="HealthPodBuilder"/>). Version 3: the weapon <see cref="WeaponScale"/> times its size. Version 4:
-        /// <see cref="ScaleOf"/>.</summary>
-        public const int BuilderVersion = 4;
+        /// <see cref="ScaleOf"/>. Version 5: bigger weapons and cross, higher and
+        /// livelier, so they read from afar.</summary>
+        public const int BuilderVersion = 5;
 
         /// <summary>How much bigger the floating weapon is than the one in the hand, so it reads from across the field.</summary>
-        public const float WeaponScale = 2.25f;
+        public const float WeaponScale = 3;
 
         /// <summary>The minigun, about a metre long in the hand, would crowd the pod at <see cref="WeaponScale"/>.</summary>
-        public const float MinigunScale = 1.5f;
+        public const float MinigunScale = 2;
 
         /// <summary>How much bigger the weapon floats over its pod than it is in the hand.</summary>
         public static float ScaleOf(string weapon) => weapon == "minigun" ? MinigunScale : WeaponScale;
 
         /// <summary>Metres from the pod's top to the middle of the weapon.</summary>
-        public const float HoverHeight = 1;
+        public const float HoverHeight = 1.2f;
 
         /// <summary>The pod's height if its mesh is not there to measure.</summary>
         public const float DefaultPodHeight = 0.3f;

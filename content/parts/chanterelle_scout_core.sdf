@@ -1,0 +1,32 @@
+# The chanterelle scout's core: the space its stem and foot fill below the cap, clear of the floating eyes and hands. Not a shape
+# to draw: the exploding pieces (content/models/characters/exploding/) cut the scout with it, so the stem pieces are the scout
+# inside it and each eye and hand is the scout outside it, whole. Its outline, turned round the stem's axis, follows the stem's
+# real width (the foot and the flare into the cap blend into it) about halfway between the stem and the eyes and hands, 1.1 to
+# 3 cm clear of each; moving those in chanterelle_scout.sdf may need it moved too.
+format 1
+
+Revolution offset=0
+    # Radius against height: straight-sided bands one above the other, each running 3 cm on into the next along its own slope, so
+    # the inside has no seam where the distance comes back to zero (a seam would show as a sheet in the pieces)
+    Union2D
+        # Round the wide foot, up to where the hands begin
+        Translate2D offset=(0, -0.06)
+            Box2D size=(0.6, 0.44)
+        # Above the foot, narrowing fast under the hands
+        Translate2D offset=(0, 0.43)
+            Trapezoid2D bottomRadius=0.3192 topRadius=0.2168 height=0.08
+        # Between the stem and the hands
+        Translate2D offset=(0, 0.52)
+            Trapezoid2D bottomRadius=0.24 topRadius=0.2 height=0.07
+        Translate2D offset=(0, 0.68)
+            Trapezoid2D bottomRadius=0.2151 topRadius=0.1939 height=0.15
+        # Between the stem and the eyes
+        Translate2D offset=(0, 0.84)
+            Trapezoid2D bottomRadius=0.199 topRadius=0.185 height=0.07
+        Translate2D offset=(0, 0.9)
+            Trapezoid2D bottomRadius=0.1782 topRadius=0.2108 height=0.05
+        # Widening with the stem where it flares into the cap
+        Translate2D offset=(0, 0.94)
+            Trapezoid2D bottomRadius=0.1755 topRadius=0.2605 height=0.05
+        Translate2D offset=(0, 1.08)
+            Trapezoid2D bottomRadius=0.1831 topRadius=0.7019 height=0.15

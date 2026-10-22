@@ -13,7 +13,8 @@ namespace SdfBattle
     /// <item>Way: the corners of its path on the navmesh (<see cref="BotNavigation"/>), found anew every one to three seconds or when the
     /// goal moves; stuck (barely moving while it walks) it jumps, then steps aside, then finds a new path, then a new goal.</item>
     /// <item>Sight: enemies in its view cone and line of sight (or close enough to hear), the last seen place remembered for a few
-    /// seconds; hurt, it turns to where the shot came from. It fights whatever its goal, the carrier of its flag first.</item>
+    /// seconds; hurt, it turns to where the shot came from. It fights whatever its goal, the carrier of its flag first. With no player
+    /// to fight it shoots at an enemy machine (ticket 24) close by in its way, but never makes one its goal.</item>
     /// <item>Aim: the reaction time and the shrinking aim error of <see cref="BotAim"/>, a turn speed, a lead and the arc for lobbed
     /// shots (<see cref="Ballistics"/>); it fires once its view is on where it means to aim.</item>
     /// <item>Weapon: the held one that suits the distance (<see cref="WeaponChoice"/>), the sniper zoomed.</item>
@@ -53,6 +54,9 @@ namespace SdfBattle
         private float lastSwitch = -10;
 
         private Player target;
+        // Ticket 24: an enemy machine in its way, shot at while no player is in sight; never a goal
+        private Machine machineTarget;
+        private float machineSeenAt = float.NegativeInfinity;
         private Vector3 lookAt;
         private float lookAtUntil;
         private float strafeSign = 1;
@@ -106,6 +110,7 @@ namespace SdfBattle
             corners.Clear();
             hasPath = false;
             target = null;
+            machineTarget = null;
             aim?.Lose();
             memory?.Forget();
             thinkIn = (float)random.NextDouble() * 0.3f;
@@ -229,7 +234,55 @@ namespace SdfBattle
                 target = null;
                 aim.Lose();
             }
+            SenseMachine(eye, forward, now);
         }
+
+        /// <summary>The aim's ids for machines, past every roster index.</summary>
+        private const int MachineAimId = 10000;
+
+        /// <summary>Metres within which it shoots at an enemy machine in its way.</summary>
+        private const float MachineReach = 25;
+
+        /// <summary>
+        /// Ticket 24: with no player to fight, the nearest enemy machine within <see cref="MachineReach"/>, in its view and line of sight,
+        /// to shoot at on its way; it never walks to one, its goals stay the flags, players and pods.
+        /// </summary>
+        private void SenseMachine(Vector3 eye, Vector3 forward, float now)
+        {
+            var machines = Machines.Current;
+            if (target != null || machines == null)
+            {
+                machineTarget = null;
+                return;
+            }
+            Machine best = null;
+            var bestDistance = MachineReach;
+            foreach (var machine in machines.All)
+            {
+                if (!machine.Alive || machine.Team == Team)
+                    continue;
+                var centre = machine.Center;
+                var distance = Vector3.Distance(eye, centre);
+                if (distance >= bestDistance || (machine != machineTarget && !BotSight.InView(eye, forward, centre, owner.skill)))
+                    continue;
+                if (machines.Visible(eye, machine))
+                    (best, bestDistance) = (machine, distance);
+            }
+            if (best != null)
+            {
+                machineTarget = best;
+                machineSeenAt = now;
+                aim.Acquire(MachineAimId + best.State.Index);
+            }
+            else if (machineTarget != null && (!machineTarget.Alive || now - machineSeenAt > 1))
+            {
+                machineTarget = null;
+                if (aim.Target >= MachineAimId)
+                    aim.Lose();
+            }
+        }
+
+        private bool MachineInSight(float now) => target == null && machineTarget != null && machineTarget.Alive && now - machineSeenAt <= SeenRecently;
 
         private bool TargetInSight(float now) =>
             target != null && target.State.Alive && memory.SinceSeen(target.State.Index, now) <= SeenRecently;
@@ -311,7 +364,7 @@ namespace SdfBattle
                     weapon = health ? null : pod.weapon.weaponId,
                     distance = Vector3.Distance(feet, pod.Position),
                     available = pod.Available,
-                    useful = health ? combat != null && combat.State.NeedsHealth(state) : inventory != null && inventory.CanTake(pod.weapon.weaponId),
+                    useful = health ? combat != null && combat.State.NeedsHealth(state) : inventory != null && inventory.Adds(pod.weapon.weaponId),
                 });
             }
         }
@@ -401,7 +454,7 @@ namespace SdfBattle
                     if (!pod.Available)
                         return false;
                     if (pod.health != null ? owner.Combat == null || !owner.Combat.State.NeedsHealth(player.State)
-                            : arsenal == null || !arsenal.Inventory.CanTake(pod.weapon.weaponId))
+                            : arsenal == null || !arsenal.Inventory.Adds(pod.weapon.weaponId))
                         return false;
                     destination = pod.Position;
                     return true;
@@ -650,6 +703,18 @@ namespace SdfBattle
                 aimed = reachable;
                 desiredAim = new Vector3(wantYaw, wantPitch, 0);
             }
+            else if (MachineInSight(now))
+            {
+                // A machine in its way: straight at its middle, with the aim's error; not with a lobbed gun
+                var to = machineTarget.Center - eye;
+                wantYaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+                wantPitch = -Mathf.Asin(Mathf.Clamp(to.y / Mathf.Max(0.01f, to.magnitude), -1, 1)) * Mathf.Rad2Deg;
+                var offset = aim.Tick(dt);
+                wantYaw += offset.x;
+                wantPitch += offset.y;
+                aimed = weapon != null && weapon.mode != FireMode.Cloud && weapon.mode != FireMode.Blob && to.magnitude <= weapon.range;
+                desiredAim = new Vector3(wantYaw, wantPitch, 0);
+            }
             else
             {
                 if (aim.Target >= 0)
@@ -728,13 +793,13 @@ namespace SdfBattle
             var weapon = arsenal.Weapon;
             var held = false;
             var zoom = false;
-            if (weapon != null && aimed && aim.Ready && TargetInSight(now))
+            if (weapon != null && aimed && aim.Ready && (TargetInSight(now) || MachineInSight(now)))
             {
                 // The flame's cone is wide; the minigun keeps its barrels spinning through small turns
                 var tolerance = weapon.mode == FireMode.Cone ? 12f : weapon.spinUp > 0 ? 6f : 2.5f;
                 var off = Mathf.Max(Mathf.Abs(Mathf.DeltaAngle(yaw, desiredAim.x)), Mathf.Abs(pitch - desiredAim.y));
                 held = off <= tolerance;
-                zoom = weapon.zoomFieldOfView > 0 && Vector3.Distance(transform.position, target.transform.position) > 12;
+                zoom = weapon.zoomFieldOfView > 0 && TargetInSight(now) && Vector3.Distance(transform.position, target.transform.position) > 12;
                 // The sniper waits for a steadier aim before each shot
                 if (weapon.zoomFieldOfView > 0 && aim.Tracked < 0.3f)
                     held = false;

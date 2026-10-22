@@ -21,7 +21,9 @@ namespace SdfBattle.Editor
     /// <item>Within the play area, from a little below the spawns to <see cref="AboveSpawn"/> over them: the courtyards, the stairs and
     /// the wall-walks (5 m) are in, the towers' caps and the keep's top, which nobody walks, and the tops of the walls round the play area
     /// are out.</item>
-    /// <item>The players' capsules and the battle objects (the pods are walked onto, the flag stands touched) are left out of it.</item>
+    /// <item>The players' capsules and the battle objects (the pods are walked onto, the flag stands touched) are left out of it; but
+    /// not the turrets (ticket 24): their colliders go in as obstacles, not walkable, so paths go round them and nothing walks on
+    /// their caps. They are static scene objects and respawn where they stood, so the navmesh holds them all the time.</item>
     /// <item><see cref="BotNavigation.ScoutAgent"/>: the players' capsule (r 0.3 m, 1.75 m high, as
     /// <see cref="SdfLevel.FirstPersonController.Configure"/> makes every player's) with 5 cm to spare round it, so paths keep off the
     /// walls' corners; step 0.4 m, slope 45 degrees; the bake makes drop links down ledges up to 6 m (off
@@ -86,6 +88,11 @@ namespace SdfBattle.Editor
                 modifier.ignoreFromBuild = true;
                 modifier.applyToChildren = true;
             }
+            // The turrets (ticket 24) are obstacles: a modifier further down the hierarchy overrides Battle's, so their colliders are
+            // collected, marked not walkable
+            foreach (var turret in new[] { arena.west, arena.east }.SelectMany(side => side.turrets ?? System.Array.Empty<SdfMachines.MachineRig>()))
+                if (turret != null)
+                    MarkObstacle(turret.gameObject);
             // The colliders where they are now (the builder just made them)
             Physics.SyncTransforms();
 
@@ -127,6 +134,21 @@ namespace SdfBattle.Editor
             }
             AssetDatabase.SaveAssets();
             return baked;
+        }
+
+        /// <summary>The navmesh area nothing walks: what is marked with it is an obstacle (Unity's built-in area 1).</summary>
+        public const int NotWalkable = 1;
+
+        /// <summary>Puts <paramref name="item"/>'s colliders, and its children's, into the bake as obstacles: not walkable.</summary>
+        public static void MarkObstacle(GameObject item)
+        {
+            var modifier = item.GetComponent<NavMeshModifier>();
+            if (modifier == null)
+                modifier = item.AddComponent<NavMeshModifier>();
+            modifier.ignoreFromBuild = false;
+            modifier.overrideArea = true;
+            modifier.area = NotWalkable;
+            modifier.applyToChildren = true;
         }
 
         /// <summary>
@@ -185,7 +207,9 @@ namespace SdfBattle.Editor
     /// Checks the baked navmeshes of every battle level without opening their scenes (ticket 23): loads each level's scout navmesh on its
     /// own and asks it whether a bot gets from its spawn to the enemy stand and every pod, how much of the castles' upper floors (the
     /// wall-walks and tower rings, 4 to 6 m over the spawn) is joined to the ground, and how many spots of open ground on a 3 m grid it
-    /// cannot reach (rock tops and the like). Tools > SDF Battle > Check Navmesh; the report goes to the console.
+    /// cannot reach (rock tops and the like); on a level with machines (ticket 24) also that the scouts' navmesh keeps off each turret,
+    /// and that the tank navmesh holds each machine zone and joins the two. Tools > SDF Battle > Check Navmesh; the report goes to the
+    /// console.
     /// </summary>
     public static class NavmeshCheck
     {
@@ -204,6 +228,54 @@ namespace SdfBattle.Editor
         {
             var p = entry["position"].ToObject<float[]>();
             return new Vector3(-p[0], p[1], p[2]);
+        }
+
+        /// <summary>
+        /// Ticket 24: each side's machine zone on the level's tank navmesh, and a tank's way from the west zone to the east one; returns
+        /// the number of problems, with a line per finding in <paramref name="report"/>.
+        /// </summary>
+        private static int CheckTanks(string name, List<JToken> sides, StringBuilder report)
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<NavMeshData>($"{SdfLevel.Editor.LevelBuilder.MeshFolder}/{name}/NavMesh {BotNavigation.TankAgent}.asset");
+            if (asset == null)
+            {
+                report.Append("  no tank navmesh (rebuild the scene)\n");
+                return 1;
+            }
+            var filter = new NavMeshQueryFilter { agentTypeID = BotNavigation.AgentTypeOf(BotNavigation.TankAgent) ?? 0, areaMask = NavMesh.AllAreas };
+            var instance = NavMesh.AddNavMeshData(asset);
+            try
+            {
+                var problems = 0;
+                var zones = new List<Vector3>();
+                foreach (var side in sides)
+                {
+                    var zone = Position(side["machines"]);
+                    var radius = side["machines"].Value<float?>("radius") ?? 3;
+                    var on = NavMesh.SamplePosition(zone, out var hit, radius, filter);
+                    if (on)
+                        zones.Add(hit.position);
+                    else
+                        problems++;
+                    report.Append($"  {side.Value<string>("side")} machine zone: {(on ? "on the tank navmesh" : "NOT ON THE TANK NAVMESH")}\n");
+                }
+                if (zones.Count == 2)
+                {
+                    var path = new NavMeshPath();
+                    var complete = NavMesh.CalculatePath(zones[0], zones[1], filter, path) && path.status == NavMeshPathStatus.PathComplete;
+                    var length = 0f;
+                    for (var i = 1; i < path.corners.Length; i++)
+                        length += Vector3.Distance(path.corners[i - 1], path.corners[i]);
+                    report.Append($"  a tank from the west machine zone to the east: {(complete ? $"reached, {length:0} m" : "NOT REACHED")}\n");
+                    if (!complete)
+                        problems++;
+                }
+                return problems;
+            }
+            finally
+            {
+                instance.Remove();
+            }
         }
 
         /// <summary>One level's report: a line per finding.</summary>
@@ -302,6 +374,22 @@ namespace SdfBattle.Editor
                         far.Add($"({hit.position.x:0}, {hit.position.y:0.0}, {hit.position.z:0})");
                 }
                 report.Append($"  open ground: {ground - unreached} of {ground} grid spots reached{(far.Count > 0 ? "; not: " + string.Join(" ", far) : "")}\n");
+
+                // Ticket 24: the turrets stand off the scouts' navmesh (obstacles, paths go round), and each machine zone is on the tanks'
+                // navmesh, joined to the other side's across the field
+                foreach (var side in sides)
+                    foreach (var turret in (side["turrets"] as JArray) ?? new JArray())
+                    {
+                        var at = Position(turret);
+                        var clear = NavMesh.SamplePosition(at, out var nearest, 4, filter)
+                            ? Vector2.Distance(new Vector2(at.x, at.z), new Vector2(nearest.position.x, nearest.position.z))
+                            : float.PositiveInfinity;
+                        report.Append($"  {side.Value<string>("side")} turret at ({at.x:0}, {at.z:0}): the navmesh {clear:0.0} m from its axis\n");
+                        if (clear < 0.6f)
+                            problems++;
+                    }
+                if (sides.All(side => side["machines"] is JObject))
+                    problems += CheckTanks(name, sides, report);
 
                 var triangulation = NavMesh.CalculateTriangulation();
                 report.Append($"  {(problems == 0 ? "OK" : problems + " PROBLEMS")}; the loaded navmeshes have {triangulation.indices.Length / 3:N0} triangles\n");

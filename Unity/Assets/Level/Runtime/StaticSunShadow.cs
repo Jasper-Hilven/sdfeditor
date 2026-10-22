@@ -38,7 +38,7 @@ namespace SdfLevel
         public int resolution = 4096;
         [Tooltip("Texels along each side on the low preset")]
         public int lowResolution = 2048;
-        [Tooltip("The quality level that uses the low resolution")]
+        [Tooltip("The highest quality level that uses the low resolution; the levels below it do too")]
         public string lowQualityLevel = "Integrated GPU / Web";
         [Tooltip("Depth bias in texels, as URP's light settings")]
         public float depthBias = 1;
@@ -80,7 +80,9 @@ namespace SdfLevel
         {
             var names = QualitySettings.names;
             var level = QualitySettings.GetQualityLevel();
-            return level >= 0 && level < names.Length && names[level] == lowQualityLevel;
+            // The quality levels go best first, so every level from the low one down is low
+            var low = System.Array.IndexOf(names, lowQualityLevel);
+            return low >= 0 && level >= low;
         }
 
         private void BeforeCameras(ScriptableRenderContext context, List<Camera> cameras)

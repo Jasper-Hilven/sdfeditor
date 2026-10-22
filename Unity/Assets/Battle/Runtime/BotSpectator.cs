@@ -6,7 +6,8 @@ namespace SdfBattle
     /// <summary>
     /// Watching a match of bots only (ticket 23's check): the scene's player stops being a player (its controller and capsule off) and
     /// its camera follows one bot from behind and above, or flies free. Tab follows the next player, Shift+Tab the one before, F
-    /// switches to the free camera and back (right mouse button held to look, WASD to fly, Q/E down and up, Shift faster). The match
+    /// switches to the free camera and back (right mouse button held to look, WASD to fly, Q/E down and up, Shift faster); M follows the
+    /// next machine (ticket 24), Shift+M the one before, Tab back to the players. The match
     /// attaches it when <see cref="Match.spectate"/> is on (in the editor: Tools > SDF Battle > Spectate Bots); the HUD then shows the
     /// first red bot, as it is the match's first player.
     /// </summary>
@@ -20,6 +21,7 @@ namespace SdfBattle
         private Match match;
         private Camera view;
         private int index;
+        private int machineIndex = -1;
         private bool free;
         private float yaw;
         private float pitch = 15;
@@ -54,6 +56,14 @@ namespace SdfBattle
                 var back = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
                 index = (index + (back ? count - 1 : 1)) % count;
                 free = false;
+                machineIndex = -1;
+            }
+            var machines = Machines.Current != null ? Machines.Current.All : null;
+            if (Input.GetKeyDown(KeyCode.M) && machines != null && machines.Count > 0)
+            {
+                var back = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                machineIndex = machineIndex < 0 ? (back ? machines.Count - 1 : 0) : (machineIndex + (back ? machines.Count - 1 : 1)) % machines.Count;
+                free = false;
             }
             if (Input.GetKeyDown(KeyCode.F))
                 free = !free;
@@ -63,17 +73,23 @@ namespace SdfBattle
                 Follow();
         }
 
+        /// <summary>The machine followed (M), or null while following a player.</summary>
+        public Machine FollowedMachine =>
+            machineIndex >= 0 && Machines.Current != null && machineIndex < Machines.Current.All.Count ? Machines.Current.All[machineIndex] : null;
+
         private void Follow()
         {
             var player = Followed;
-            if (player == null)
+            var machine = FollowedMachine;
+            if (player == null && machine == null)
                 return;
-            var head = player.transform.position + Vector3.up * 1.6f;
-            var behind = Quaternion.Euler(18, player.Controller.Yaw, 0) * Vector3.back * distance + Vector3.up * height;
+            var head = machine != null ? machine.Center + Vector3.up * (machine.Kind == MachineKind.Turret ? 1.2f : 0.8f) : player.transform.position + Vector3.up * 1.6f;
+            var yawNow = machine != null ? machine.Heading : player.Controller.Yaw;
+            var behind = Quaternion.Euler(18, yawNow, 0) * Vector3.back * distance + Vector3.up * height;
             var wanted = head + behind;
             // Not through walls: in front of what stands between
             if (Physics.SphereCast(head, 0.2f, behind.normalized, out var hit, behind.magnitude, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
-                && Player.Of(hit.collider) == null)
+                && Player.Of(hit.collider) == null && Machines.Of(hit.collider) == null)
                 wanted = head + behind.normalized * Mathf.Max(0.5f, hit.distance - 0.1f);
             var t = view.transform;
             t.position = Vector3.Lerp(t.position, wanted, Mathf.Clamp01(Time.deltaTime * 8));
@@ -105,8 +121,10 @@ namespace SdfBattle
         {
             var player = Followed;
             var bot = player != null ? player.GetComponent<Bot>() : null;
-            var text = free ? "Free camera (F: follow, Tab: next player)"
-                : $"Following {player?.name}{(bot != null ? $": {bot.goalNow} ({bot.style})" : "")}   Tab: next, F: free camera";
+            var machine = FollowedMachine;
+            var text = free ? "Free camera (F: follow, Tab: next player, M: next machine)"
+                : machine != null ? $"Following {machine.name}: {machine.doing}, {machine.State.Health.Current:0} health{(machine.Alive ? "" : $", back in {machine.State.RespawnIn:0} s")}   M: next machine, Tab: players, F: free camera"
+                : $"Following {player?.name}{(bot != null ? $": {bot.goalNow} ({bot.style})" : "")}   Tab: next, M: machines, F: free camera";
             GUI.Label(new Rect(12, Screen.height - 30, 900, 24), text);
         }
     }

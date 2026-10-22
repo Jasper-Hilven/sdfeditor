@@ -1,0 +1,54 @@
+# Giant king, fallen, the crown half: the top of the dark king of king-giant-fallen-base.sdf, a 30 m piece tipped over in
+# resignation and broken in two in the fall. From the break, where the stem lies on the board 2.8 m high, it runs 14 m along -z:
+# the rest of the stem rising to the collar, the crown 7 m across with its ball, and the cross on top lying out level at 4.5 m. Two
+# broken chips, 1 m and 2 m tall, lie against the stem by the break on -x (the base half's turned half round): steps up onto the
+# stem's back, up to the collar at 4 m. Under the stem a low wedge, under 1.3 m: shut; under the cross's arms the board is open.
+# Placements only turn a model about the vertical, so the fall is in the model: the upright half below, tipped over by
+# pi/2 - 0.2265 so the break and the crown's rim both rest on the ground, and lifted until they do. Origin under the break's middle.
+format 1
+collider mesh
+
+# Three fifths of the vertices its size would give it: big, smooth turned forms seen from all over the board, the two halves
+# together some 20k triangles at 256 cells
+Detail detail=0.6
+    Material material=chess_dark
+        Union
+            Translate translation=(0, 1.364, 0)
+                Rotate rotation=(-1.3443, 0, 0)
+                    Subtraction
+                        SmoothUnion smoothness=0.2
+                            # The stem from the break, 1.4 m round, to the collar
+                            Translate translation=(0, 3.0, 0)
+                                Round radius=0.12
+                                    CappedCone height=3.0 bottomRadius=1.4 topRadius=1.25
+                            Translate translation=(0, 6.3, 0)
+                                RoundedCylinder radius=2.75 roundness=0.15 height=0.39
+                            # The crown: flaring out to its rim, 7 m across, and the ball on it
+                            Translate translation=(0, 7.86, 0)
+                                Round radius=0.12
+                                    CappedCone height=1.37 bottomRadius=1.25 topRadius=3.43
+                            Translate translation=(0, 9.5, 0)
+                                RoundedCylinder radius=3.5 roundness=0.15 height=0.39
+                            Intersection
+                                Translate translation=(0, 9.42, 0)
+                                    Sphere radius=2.57
+                                Translate translation=(0, 11.4, 0)
+                                    Box size=(3.9, 2.1, 3.9)
+                            # The cross, its arms along x so they lie level
+                            Capsule a=(0, 11.2, 0) b=(0, 13.9, 0) radius=0.5
+                            Capsule a=(-1.64, 12.9, 0) b=(1.64, 12.9, 0) radius=0.47
+                        # The break: two chips knocked out of its edge
+                        Union
+                            Translate translation=(-0.7, 0.0, -0.9)
+                                Rotate rotation=(-0.6, -0.4, 0.3)
+                                    Box size=(0.7, 0.45, 0.6)
+                            Translate translation=(0.9, -0.05, 0.4)
+                                Rotate rotation=(0.4, -0.2, 0.5)
+                                    Box size=(0.55, 0.35, 0.7)
+            # The chips by the break, steps up onto the stem: 2 m tall against it, then 1 m tall beyond
+            Translate translation=(-1.75, 1.0, -0.6)
+                Rotate rotation=(-0.04, 0.15, 0.03)
+                    RoundBox size=(0.75, 1.0, 0.85) roundness=0.12
+            Translate translation=(-3.05, 0.5, -0.2)
+                Rotate rotation=(0, -0.3, -0.05)
+                    RoundBox size=(0.7, 0.5, 0.8) roundness=0.12

@@ -12,8 +12,8 @@ Detail detail=0.5
             SmoothUnion smoothness=0.3
                 Translate translation=(0, 0.65, 0)
                     Ellipsoid radii=(0.72, 0.5, 0.72)
-                Translate translation=(0, 3.0, 0)
-                    CappedCone height=4.6 bottomRadius=0.5 topRadius=0.34
+                # Stem: from below the bulb to 0.3 m above the cap's base (5.2), well under its top (6.4)
+                ArbitraryCappedCone a=(0, -1.6, 0) b=(0, 5.5, 0) radiusA=0.5 radiusB=0.3765
                 Translate translation=(0, 4.75, 0)
                     CappedCone height=0.6 bottomRadius=0.62 topRadius=0.4
         # Cap: the top half of a wide ellipsoid, its rim flat on the gills

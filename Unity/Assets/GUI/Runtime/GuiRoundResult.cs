@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace SdfGui
 {
     /// <summary>
-    /// The end of your round, either way: the death screen (who splattered you, with what, your place) or the round's end (the last
+    /// The end of your round, either way: the death screen (who splattered you, with what) or the round's end (the last
     /// mushroom standing, your place and kills, the wait for the next round).
     /// </summary>
     public sealed class GuiRoundResult : GuiView
@@ -26,9 +26,17 @@ namespace SdfGui
             if (death)
             {
                 var killer = m.Player(m.killedBy);
-                GuiText.Set(title, GuiSettings.Gore == 0 ? "ELIMINATED" : "SPLATTERED!");
-                GuiText.Set(detail, killer == null ? "The island got you" : $"by {GuiText.Name(killer)}\nwith the {FakeMatch.WeaponNames[Mathf.Clamp(m.killedByWeapon, 0, FakeMatch.WeaponNames.Length - 1)]}");
-                var sprite = icons != null ? icons.Weapon(m.killedByWeapon) : null;
+                // Killed by something that is no player (a machine): its name, no weapon icon
+                var named = killer == null && !string.IsNullOrEmpty(m.killedByName);
+                var weaponIndex = Mathf.Clamp(m.killedByWeapon, 0, FakeMatch.WeaponNames.Length - 1);
+                // How you died, in the words picked for it (SdfBattle.DeathLines); the plain words before any were picked
+                GuiText.Set(title, !string.IsNullOrEmpty(m.killedTitle) ? m.killedTitle : GuiSettings.Gore == 0 ? "ELIMINATED" : "SPLATTERED!");
+                GuiText.Set(detail, !string.IsNullOrEmpty(m.killedDetail)
+                    ? SdfBattle.DeathLines.Format(m.killedDetail, named ? m.killedByName : GuiText.Name(killer),
+                        weapon: SdfBattle.DeathLines.WeaponName(FakeMatch.Weapons[weaponIndex]), streak: m.killedStreak)
+                    : named ? $"by {m.killedByName}" : killer == null ? "The island got you" : $"by {GuiText.Name(killer)}\nwith the {FakeMatch.WeaponNames[weaponIndex]}");
+                // A fall has no weapon to show either
+                var sprite = icons != null && killer != null ? icons.Weapon(m.killedByWeapon) : null;
                 if (weapon != null && weapon.sprite != sprite)
                     weapon.sprite = sprite;
                 GuiText.Show(weapon, sprite != null);

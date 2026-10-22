@@ -1,78 +1,103 @@
-# Flamethrower: two red fuel tanks slung under a steel body, hoses from the tanks to a long wand inside a ribbed heat shroud, a
-# nozzle at the front with a pilot flame burning below it, a carry handle on top and a grip at the back. Points along +z; the tanks
-# and the grip rest on the ground.
+# Flamethrower: a honey fungus grown round two fire-red puffballs. The puffballs, flecked with pale warts, are the fuel tanks, slung
+# side by side under the body and bound to it by bands of dark bootlace root; roots run from their fronts up into the wand. The body
+# and the wand are honey-coloured stalk, the wand's heat shroud four wavy orange frills of gill round it, and the nozzle a flared
+# trumpet cap, open at the end, with a pilot flame burning below it from a thin stalk. A root arches over the body for a carry
+# handle, a button mushroom on its right is the gauge, and a stalk at the back is the grip. Points along +z; the puffballs and the
+# grip rest on the ground.
 format 1
 
 Union
-    # The fuel tanks, side by side under the body
+    # The puffballs, side by side under the body, each with a little puckered mouth at the front
     Material material=flame_tank
         SymmetryX
-            Capsule a=(0.042, 0.085, -0.02) b=(0.042, 0.085, 0.22) radius=0.045
+            Distort amount=0.003 frequency=25
+                Union
+                    Translate translation=(0.044, 0.085, 0.1)
+                        Ellipsoid radii=(0.047, 0.05, 0.16)
+                    ArbitraryRoundCone a=(0.044, 0.085, 0.22) b=(0.044, 0.085, 0.27) radiusA=0.02 radiusB=0.012
 
+    # Honey-coloured stalk: the body, the wand, the grip, the pilot's stalk and the gauge's stem
     Material material=flame_steel
         Union
-            # The body, and a gauge on its right
-            Translate translation=(0, 0.17, -0.08)
-                RoundBox size=(0.03, 0.035, 0.14) roundness=0.01
-            ArbitraryCappedCylinder a=(0.028, 0.175, -0.03) b=(0.038, 0.175, -0.03) radius=0.02
-            # Straps round the tanks
-            SymmetryX
-                Union
-                    Translate translation=(0.042, 0.085, 0.02)
-                        Rotate rotation=(1.5707964, 0, 0)
-                            Torus innerRadius=0.044 outerRadius=0.054
-                    Translate translation=(0.042, 0.085, 0.17)
-                        Rotate rotation=(1.5707964, 0, 0)
-                            Torus innerRadius=0.044 outerRadius=0.054
-                    # Valve caps on the front of the tanks
-                    ArbitraryCappedCylinder a=(0.042, 0.085, 0.26) b=(0.042, 0.085, 0.28) radius=0.012
-            # The carry handle, an arch over the body
-            Intersection
-                Translate translation=(0, 0.205, -0.08)
+            SmoothUnion smoothness=0.015
+                # The body, a stout stalk lying along the gun
+                ArbitraryRoundCone a=(0, 0.17, -0.2) b=(0, 0.17, 0.05) radiusA=0.036 radiusB=0.03
+                # The grip, raked back below the body's tail
+                ArbitraryRoundCone a=(0, 0.15, -0.155) b=(0, 0.045, -0.185) radiusA=0.019 radiusB=0.022
+                Translate translation=(0, 0.024, -0.188)
+                    Ellipsoid radii=(0.026, 0.024, 0.03)
+            # The wand, thinning towards the nozzle
+            ArbitraryRoundCone a=(0, 0.17, 0.04) b=(0, 0.17, 0.48) radiusA=0.022 radiusB=0.016
+            # The trigger guard, a loop of stalk, and the trigger
+            Distort amount=0.0015 frequency=60
+                Translate translation=(0, 0.125, -0.115)
                     Rotate rotation=(0, 0, 1.5707964)
-                        Torus innerRadius=0.045 outerRadius=0.062
-                Translate translation=(0, 0.3, -0.08)
-                    Box size=(0.02, 0.095, 0.1)
-            # The trigger guard
-            Translate translation=(0, 0.12, -0.115)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Torus innerRadius=0.02 outerRadius=0.028
-            # The wand, the heat shroud around its front with ribs along it, and the nozzle, open at the end
-            ArbitraryCappedCylinder a=(0, 0.17, 0.06) b=(0, 0.17, 0.47) radius=0.015
-            ArbitraryCappedCylinder a=(0, 0.17, 0.2) b=(0, 0.17, 0.46) radius=0.03
-            Translate translation=(0, 0.17, 0.24)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.026 outerRadius=0.04
-            Translate translation=(0, 0.17, 0.3)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.026 outerRadius=0.04
-            Translate translation=(0, 0.17, 0.36)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.026 outerRadius=0.04
-            Translate translation=(0, 0.17, 0.42)
-                Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.026 outerRadius=0.04
-            Subtraction
-                ArbitraryCappedCone a=(0, 0.17, 0.46) b=(0, 0.17, 0.52) radiusA=0.03 radiusB=0.022
-                ArbitraryCappedCylinder a=(0, 0.17, 0.47) b=(0, 0.17, 0.53) radius=0.012
-            # The pilot tube under the nozzle
-            Capsule a=(0, 0.14, 0.42) b=(0, 0.13, 0.43) radius=0.006
-            ArbitraryCappedCylinder a=(0, 0.13, 0.42) b=(0, 0.13, 0.5) radius=0.008
+                        Torus innerRadius=0.02 outerRadius=0.027
+            Capsule a=(0, 0.14, -0.108) b=(0, 0.125, -0.11) radius=0.004
+            Capsule a=(0, 0.125, -0.11) b=(0, 0.115, -0.118) radius=0.004
+            # The pilot's stalk under the nozzle, curving up out of the wand
+            Capsule a=(0, 0.16, 0.4) b=(0, 0.13, 0.43) radius=0.006
+            ArbitraryCappedCylinder a=(0, 0.13, 0.43) b=(0, 0.13, 0.5) radius=0.007
+            # The gauge's short stem on the right of the body
+            ArbitraryCappedCylinder a=(0.025, 0.175, -0.03) b=(0.045, 0.175, -0.03) radius=0.008
 
-    # The pilot flame, a teardrop licking forward and up from the pilot tube
+    # Orange gill frills round the wand (the heat shroud), wavy at the rim, and the trumpet cap of the nozzle, open at the end
+    Material material=flame_frill
+        Union
+            Translate translation=(0, 0.17, 0.22)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.09 count=9
+                        RoundedCylinder radius=0.042 roundness=0.003 height=0.005
+            Translate translation=(0, 0.17, 0.28)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.09 count=9
+                        RoundedCylinder radius=0.048 roundness=0.003 height=0.005
+            Translate translation=(0, 0.17, 0.34)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.09 count=9
+                        RoundedCylinder radius=0.052 roundness=0.003 height=0.005
+            Translate translation=(0, 0.17, 0.4)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.09 count=9
+                        RoundedCylinder radius=0.048 roundness=0.003 height=0.005
+            Subtraction
+                Round radius=0.003
+                    Translate translation=(0, 0.17, 0.495)
+                        Rotate rotation=(1.5707964, 0, 0)
+                            RadialWave amount=0.1 count=7
+                                CappedCone height=0.03 bottomRadius=0.017 topRadius=0.034
+                ArbitraryCappedCone a=(0, 0.17, 0.475) b=(0, 0.17, 0.535) radiusA=0.009 radiusB=0.03
+            # The gauge, a button cap on its stem
+            Translate translation=(0.047, 0.175, -0.03)
+                Rotate rotation=(0, 0, -1.5707964)
+                    Intersection
+                        Ellipsoid radii=(0.022, 0.016, 0.022)
+                        Translate translation=(0, 0.02, 0)
+                            Box size=(0.03, 0.02, 0.03)
+
+    # The pilot flame, a teardrop licking forward and up from the pilot's stalk
     Material material=flame_pilot
         ArbitraryRoundCone a=(0, 0.13, 0.508) b=(0, 0.142, 0.545) radiusA=0.01 radiusB=0.003
 
-    # The grip and trigger, and the hoses from the tanks up into the wand
+    # Dark bootlace roots: the bands round the puffballs, the roots from their mouths up into the wand, and the carry handle arching
+    # over the body
     Material material=flame_hose
-        Union
-            Translate translation=(0, 0.09, -0.17)
-                Rotate rotation=(0.28, 0, 0)
-                    RoundBox size=(0.018, 0.05, 0.023) roundness=0.009
-            Capsule a=(0, 0.135, -0.108) b=(0, 0.118, -0.11) radius=0.004
-            Capsule a=(0, 0.118, -0.11) b=(0, 0.108, -0.118) radius=0.004
-            SymmetryX
-                Union
-                    Capsule a=(0.042, 0.13, 0.12) b=(0.05, 0.16, 0.15) radius=0.009
-                    Capsule a=(0.05, 0.16, 0.15) b=(0.035, 0.172, 0.19) radius=0.009
-                    Capsule a=(0.035, 0.172, 0.19) b=(0.015, 0.17, 0.205) radius=0.009
+        Distort amount=0.002 frequency=50
+            Union
+                SymmetryX
+                    Union
+                        Translate translation=(0.044, 0.085, 0.02)
+                            Rotate rotation=(1.5707964, 0, 0)
+                                Torus innerRadius=0.044 outerRadius=0.058
+                        Translate translation=(0.044, 0.085, 0.17)
+                            Rotate rotation=(1.5707964, 0, 0)
+                                Torus innerRadius=0.04 outerRadius=0.054
+                        Capsule a=(0.044, 0.09, 0.27) b=(0.05, 0.13, 0.25) radius=0.008
+                        Capsule a=(0.05, 0.13, 0.25) b=(0.035, 0.165, 0.22) radius=0.008
+                        Capsule a=(0.035, 0.165, 0.22) b=(0.012, 0.17, 0.2) radius=0.008
+                Intersection
+                    Translate translation=(0, 0.205, -0.08)
+                        Rotate rotation=(0, 0, 1.5707964)
+                            Torus innerRadius=0.046 outerRadius=0.062
+                    Translate translation=(0, 0.3, -0.08)
+                        Box size=(0.02, 0.095, 0.1)

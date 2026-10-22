@@ -151,12 +151,12 @@ namespace SdfLevel.Editor
             var level = QualitySettings.GetQualityLevel();
             try
             {
-                QualitySettings.SetQualityLevel(0, true);
+                QualitySettings.SetQualityLevel(RenderPipelineSetup.DesktopLevel, true);
                 if (scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelRoom.RoomName) != null)
                 {
                     // A closed room has no outside: its own views (and none of the hills', edge's or sky's)
                     ShootRoom(scene, eye, Shot, EyeShot);
-                    QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
+                    QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                     EyeShot("room_eye_web", eye, Quaternion.Euler(0, 90, 0));
                     Debug.Log($"SDF level: snapshots written to {directory}");
                     return;
@@ -186,7 +186,7 @@ namespace SdfLevel.Editor
                 if (scene.name == "Fungal")
                     ShootFungal(scene, Shot, EyeShot);
 
-                QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, true);
+                QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
                 if (Placed(scene, "castle0").FirstOrDefault() is { } castleWeb)
                 {

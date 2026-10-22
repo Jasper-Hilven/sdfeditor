@@ -1,0 +1,15 @@
+# Trivia wedge 0: a giant yellow Trivial Pursuit scoring wedge (game_plastic_yellow), a sixth of a pie 0.9 m from its point to its curved
+# back and 0.28 m tall, its edges softly rounded, fallen out of its token and lying flat on the board. Ground clutter: no collider,
+# scattered between the pieces.
+format 1
+
+# An eighth of the vertices its size would give it, about 250 triangles: a simple, flat-sided block
+Detail detail=0.12
+    # Its point towards -z, moved back so the wedge sits over the origin
+    Translate translation=(0, 0.14, -0.45)
+        Material material=game_plastic_yellow
+            Round radius=0.03
+                # The 2D pie lies in the xz plane, opening towards +z
+                Rotate rotation=(1.5707964, 0, 0)
+                    Extrusion height=0.11
+                        Pie2D sinCos=(0.5, 0.8660254) radius=0.87

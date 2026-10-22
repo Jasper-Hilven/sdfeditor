@@ -201,6 +201,48 @@ public class LevelScatterTests
     }
 
     [Fact]
+    public void Trees_KeepClearOfTheEarlierTreesSectionsInTheirGroup_AfterTheRandomDraws()
+    {
+        var rocks = new DrawGroup("rocks", [20, 50], 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1);
+        var pieces = new DrawGroup("pieces", [25, 60], 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1);
+        ScatterLayer Section(string model, string group, float density, float margin) =>
+            new([new ScatterEntry(model, 1, 2)], group, density, 1, 6, 1.5f, [], margin, 90, 0, ScatterLayer.DefaultScale, 1)
+                { Band = new Vector2(-12, -1) };
+        var tall = Section("tower", "pieces", 0.08f, 0);
+        var low = Section("marble", "pieces", 0.15f, 0.5f);
+        var boulders = Section("boulder", "rocks", 0.15f, 0.5f);
+        var level = Small with
+        {
+            Scatters = [Layer(0.5f, 0.5f, reach: 0)], Trees = [tall, low, boulders], DrawGroups = [Foliage, rocks, pieces],
+        };
+        var alone = Small with { Trees = [tall, Section("marble", "pieces", 0.15f, 0.5f) with { Group = "rocks" }], DrawGroups = [rocks, pieces] };
+        // A footprint of 2 × 3 m: the earlier section's instances cover a good share of the band
+        var footprint = Rock;
+
+        var scattered = LevelScatter.Scatter(level, new LevelTerrain(level), new GroundRegions(level, _ => footprint), _ => footprint, _ => Green);
+
+        var layers = scattered.LayerCounts.Select((count, i) => scattered.Instances.Skip(scattered.LayerCounts.Take(i).Sum()).Take(count).ToArray()).ToArray();
+        var (grass, towers, marbles, stones) = (layers[0], layers[1], layers[2], layers[3]);
+        Assert.NotEmpty(towers);
+        Assert.NotEmpty(marbles);
+        static bool On(ScatteredInstance obstacle, Vector2 p, float margin)
+        {
+            var local = Placement2D.ToLocal(p - new Vector2(obstacle.Position.X, obstacle.Position.Z), obstacle.Yaw) / obstacle.Scale;
+            var grow = margin / obstacle.Scale;
+            return MathF.Abs(local.X) < 1 + grow && MathF.Abs(local.Y) < 1.5f + grow;
+        }
+        static Vector2 Flat(ScatteredInstance i) => new(i.Position.X, i.Position.Z);
+        // The later section of the same group keeps off the towers' footprints grown by its margin
+        Assert.All(marbles, m => Assert.DoesNotContain(towers, t => On(t, Flat(m), 0.5f)));
+        // The same section in another group, and the grass, may stand on them
+        Assert.Contains(stones, s => towers.Any(t => On(t, Flat(s), 0.5f)));
+        Assert.Contains(grass, g => towers.Any(t => On(t, Flat(g), 0)));
+        // After the random draws: the marbles left are those of the section on its own, less those on the towers
+        var free = Scatter(alone).Instances.Skip(towers.Length).Where(m => !towers.Any(t => On(t, Flat(m), 0.5f))).ToArray();
+        Assert.Equal(free.Select(i => i.Position), marbles.Select(i => i.Position));
+    }
+
+    [Fact]
     public void Scatter_NamesTheLineOfAnAvoidedRegionThatIsNotThere()
     {
         var level = Small with { Scatters = [Layer(1, 1, avoid: ["swamp"]) with { Line = 9 }], DrawGroups = [Foliage] };

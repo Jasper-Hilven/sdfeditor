@@ -1,65 +1,102 @@
-# Poison gun: a glass bulb of glowing toxin caged in brass on top of a grimy purple body, a hose from the bulb to the barrel, a valve
-# wheel on the left and a bulbous nozzle, open at the front. Points along +z; the bottom of the grip rests on the ground.
+# Poison gun: a deep violet webcap grown round a sac of glowing toxin. The body is its purple stalk, tapering forward into the
+# barrel, ringed with sulphur-yellow gills, and ending in a grey-violet puffball for a nozzle with a torn, frilly mouth open at the
+# front. On top the toxin sac sits in a lattice of sulphur-yellow arms like a cage fungus, a little cap on top; a root curls from
+# the sac down into the barrel, a tuft of small sulphur caps grows on the left where the valve wheel was, and the grip is a violet
+# stalk with a bulb at its foot. Points along +z; the bulb of the grip rests on the ground.
 format 1
 
 Union
-    # The body, tapering forward, with the trigger guard below
+    # The violet stalk: the body tapering forward, the grip with its bulb, and the trigger guard
     Material material=poison_metal
         Union
             SmoothUnion smoothness=0.015
-                ArbitraryRoundCone a=(0, 0.125, -0.2) b=(0, 0.125, 0.08) radiusA=0.05 radiusB=0.038
-                # The nozzle, a bulb around the end of the barrel
-                Translate translation=(0, 0.125, 0.27)
-                    Ellipsoid radii=(0.032, 0.032, 0.042)
-            Translate translation=(0, 0.075, -0.075)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Torus innerRadius=0.021 outerRadius=0.029
+                ArbitraryRoundCone a=(0, 0.125, -0.2) b=(0, 0.125, 0.08) radiusA=0.05 radiusB=0.036
+                ArbitraryRoundCone a=(0, 0.11, -0.12) b=(0, 0.035, -0.155) radiusA=0.021 radiusB=0.024
+                Translate translation=(0, 0.026, -0.158)
+                    Ellipsoid radii=(0.029, 0.026, 0.033)
+            Distort amount=0.0015 frequency=60
+                Translate translation=(0, 0.075, -0.075)
+                    Rotate rotation=(0, 0, 1.5707964)
+                        Torus innerRadius=0.021 outerRadius=0.028
 
+    # The puffball at the front, round the end of the barrel
+    Material material=poison_puff
+        Distort amount=0.002 frequency=40
+            Translate translation=(0, 0.125, 0.27)
+                Ellipsoid radii=(0.036, 0.034, 0.045)
+
+    # Sulphur-yellow flesh: the barrel, its gill rings, the puffball's mouth, the cage round the sac, its cap, and the tuft on the left
     Material material=poison_brass
         Union
-            # The barrel, and the flared lip of the nozzle, open at the front
+            # The barrel, a stalk from the body into the puffball
             ArbitraryCappedCylinder a=(0, 0.125, 0.07) b=(0, 0.125, 0.25) radius=0.018
-            Subtraction
-                ArbitraryCappedCone a=(0, 0.125, 0.29) b=(0, 0.125, 0.335) radiusA=0.024 radiusB=0.034
-                ArbitraryCappedCone a=(0, 0.125, 0.3) b=(0, 0.125, 0.34) radiusA=0.012 radiusB=0.027
-            # Rings around the barrel
+            # Gill rings round the barrel, ridged
             Translate translation=(0, 0.125, 0.13)
                 Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.016 outerRadius=0.03
+                    RadialWave amount=0.1 count=10
+                        RoundedCylinder radius=0.027 roundness=0.003 height=0.005
             Translate translation=(0, 0.125, 0.19)
                 Rotate rotation=(1.5707964, 0, 0)
-                    Torus innerRadius=0.016 outerRadius=0.03
-            # The bulb's neck and cap, and the cage around it: a band round its middle and a hoop over the top
-            ArbitraryCappedCylinder a=(0, 0.16, -0.08) b=(0, 0.185, -0.08) radius=0.038
-            Translate translation=(0, 0.318, -0.08)
-                CappedCylinder radius=0.018 height=0.008
-            Translate translation=(0, 0.25, -0.08)
-                Torus innerRadius=0.07 outerRadius=0.086
-            Translate translation=(0, 0.25, -0.08)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Torus innerRadius=0.07 outerRadius=0.084
-            # The valve wheel on the left, on a short stem
-            ArbitraryCappedCylinder a=(-0.04, 0.13, -0.02) b=(-0.07, 0.13, -0.02) radius=0.005
-            Translate translation=(-0.07, 0.13, -0.02)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Union
-                        Torus innerRadius=0.014 outerRadius=0.026
-                        CappedCylinder radius=0.008 height=0.004
+                    RadialWave amount=0.1 count=10
+                        RoundedCylinder radius=0.027 roundness=0.003 height=0.005
+            # The puffball's mouth, a torn frilly lip open at the front
+            Subtraction
+                Translate translation=(0, 0.125, 0.315)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        RadialWave amount=0.2 count=7
+                            CappedCone height=0.022 bottomRadius=0.022 topRadius=0.032
+                ArbitraryCappedCone a=(0, 0.125, 0.3) b=(0, 0.125, 0.345) radiusA=0.012 radiusB=0.027
+            # The sac's neck, where it grows out of the body
+            ArbitraryRoundCone a=(0, 0.16, -0.08) b=(0, 0.185, -0.08) radiusA=0.036 radiusB=0.03
+            # The cage round the sac: a band round its middle and three arms arching over it, a little cap where they meet on top
+            Distort amount=0.002 frequency=50
+                Union
+                    Translate translation=(0, 0.25, -0.08)
+                        Torus innerRadius=0.07 outerRadius=0.084
+                    Translate translation=(0, 0.25, -0.08)
+                        Rotate rotation=(0, 0, 1.5707964)
+                            Torus innerRadius=0.071 outerRadius=0.083
+                    Translate translation=(0, 0.25, -0.08)
+                        Rotate rotation=(0, 1.0471976, 0)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                Torus innerRadius=0.071 outerRadius=0.083
+                    Translate translation=(0, 0.25, -0.08)
+                        Rotate rotation=(0, 2.0943952, 0)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                Torus innerRadius=0.071 outerRadius=0.083
+            Translate translation=(0, 0.322, -0.08)
+                Round radius=0.004
+                    Intersection
+                        Ellipsoid radii=(0.026, 0.02, 0.026)
+                        Translate translation=(0, 0.03, 0)
+                            Box size=(0.04, 0.03, 0.04)
+            # A tuft of small caps on short stalks on the left of the body
+            Capsule a=(-0.035, 0.13, -0.02) b=(-0.066, 0.145, -0.02) radius=0.006
+            Capsule a=(-0.035, 0.12, 0.01) b=(-0.058, 0.115, 0.022) radius=0.005
+            Translate translation=(-0.068, 0.146, -0.02)
+                Rotate rotation=(0, 0, 1.3)
+                    Intersection
+                        Ellipsoid radii=(0.022, 0.014, 0.022)
+                        Translate translation=(0, 0.02, 0)
+                            Box size=(0.03, 0.02, 0.03)
+            Translate translation=(-0.06, 0.114, 0.024)
+                Rotate rotation=(0, 0.5, 1.8)
+                    Intersection
+                        Ellipsoid radii=(0.015, 0.01, 0.015)
+                        Translate translation=(0, 0.015, 0)
+                            Box size=(0.02, 0.015, 0.02)
 
-    # The toxin: a bulb of it on top
+    # The toxin: a glowing sac of it on top, in the cage
     Material material=poison_liquid
-        Union
-            Translate translation=(0, 0.25, -0.08)
-                Sphere radius=0.072
+        Translate translation=(0, 0.25, -0.08)
+            Sphere radius=0.072
 
-    # The grip and trigger, and the hose curving from the bulb down to the barrel
+    # The dark root: the trigger, and the root curling from the sac down into the barrel
     Material material=poison_hose
-        Union
-            Translate translation=(0, 0.06, -0.14)
-                Rotate rotation=(0.28, 0, 0)
-                    RoundBox size=(0.02, 0.05, 0.025) roundness=0.01
-            Capsule a=(0, 0.09, -0.068) b=(0, 0.076, -0.07) radius=0.004
-            Capsule a=(0, 0.076, -0.07) b=(0, 0.066, -0.078) radius=0.004
-            Capsule a=(0.055, 0.215, -0.03) b=(0.062, 0.18, 0.03) radius=0.01
-            Capsule a=(0.062, 0.18, 0.03) b=(0.045, 0.145, 0.09) radius=0.01
-            Capsule a=(0.045, 0.145, 0.09) b=(0.015, 0.13, 0.11) radius=0.01
+        Distort amount=0.0015 frequency=60
+            Union
+                Capsule a=(0, 0.09, -0.068) b=(0, 0.076, -0.07) radius=0.004
+                Capsule a=(0, 0.076, -0.07) b=(0, 0.066, -0.078) radius=0.004
+                Capsule a=(0.055, 0.215, -0.03) b=(0.062, 0.18, 0.03) radius=0.009
+                Capsule a=(0.062, 0.18, 0.03) b=(0.045, 0.145, 0.09) radius=0.009
+                Capsule a=(0.045, 0.145, 0.09) b=(0.015, 0.13, 0.11) radius=0.009

@@ -1,57 +1,71 @@
-# Pistol: a blued slide pointing along +z on a tan polymer frame, the grip raked back below it with stippled panels, a trigger in a
-# round guard, and a front and rear sight on top. The bottom of the grip rests on the ground.
+# Pistol: a little ink cap grown into a handgun. Its slide is the cap, a long inky bell lying along +z with pale shaggy scales, its
+# rim rolled down over smoky gills; the barrel is a short stalk poking out of the front of the cap with a flared lip round the bore.
+# The frame is a pale tan stalk lying under the cap, grown into the raked grip, a second stalk with a drooping ring under the frame,
+# gill ridges down both sides and a bulb at its foot. The trigger guard is a loop of root, the trigger a curled tendril, and the
+# sights are white warts. The bulb at the foot of the grip rests on the ground.
 format 1
 
 Union
-    # The slide, with the bore through its front and grooves on each side at the back to rack it by
+    # The cap (the slide): a half ellipsoid along the gun, rounded, its rim just below the barrel's axis
     Material material=pistol_slide
-        Subtraction
-            Union
-                Translate translation=(0, 0.13, 0.005)
-                    RoundBox size=(0.015, 0.017, 0.095) roundness=0.004
-                # Front sight, and the rear sight with a notch to look through
-                Translate translation=(0, 0.149, 0.088)
-                    RoundBox size=(0.0025, 0.004, 0.004) roundness=0.001
-                Subtraction
-                    Translate translation=(0, 0.149, -0.078)
-                        RoundBox size=(0.011, 0.004, 0.004) roundness=0.001
-                    Translate translation=(0, 0.153, -0.078)
-                        Box size=(0.003, 0.004, 0.006)
-            Union
-                ArbitraryCappedCylinder a=(0, 0.128, 0.07) b=(0, 0.128, 0.11) radius=0.0055
-                SymmetryX
-                    Union
-                        Translate translation=(0.016, 0.132, -0.055)
-                            Box size=(0.003, 0.01, 0.0015)
-                        Translate translation=(0.016, 0.132, -0.065)
-                            Box size=(0.003, 0.01, 0.0015)
-                        Translate translation=(0.016, 0.132, -0.075)
-                            Box size=(0.003, 0.01, 0.0015)
+        Round radius=0.004
+            Intersection
+                Translate translation=(0, 0.116, 0)
+                    Ellipsoid radii=(0.021, 0.031, 0.094)
+                Translate translation=(0, 0.162, 0)
+                    Box size=(0.03, 0.04, 0.11)
 
-    # The frame under the slide, grown into the raked grip, with the trigger guard below its front
+    # The gills under the cap, a slab of them between its rim and the frame, grooved along the gun
+    Material material=pistol_grip
+        Union
+            Subtraction
+                Translate translation=(0, 0.112, 0)
+                    RoundBox size=(0.017, 0.005, 0.08) roundness=0.003
+                Translate translation=(0, 0.107, 0)
+                    LimitedRepetition spacing=0.007 limits=(2, 0, 0)
+                        Box size=(0.0016, 0.004, 0.09)
+            # Gill ridges down both sides of the grip, where the stippled panels were
+            SymmetryX
+                Translate translation=(0.013, 0.052, -0.06)
+                    Rotate rotation=(0.28, 0, 0)
+                        LimitedRepetition spacing=0.007 limits=(0, 0, 1)
+                            RoundBox size=(0.004, 0.032, 0.0018) roundness=0.0015
+
+    # The stalks: the frame lying under the cap, the barrel out of the cap's front, and the grip with its ring and bulb
     Material material=pistol_frame
         Union
-            SmoothUnion smoothness=0.008
-                Translate translation=(0, 0.1, 0.01)
-                    RoundBox size=(0.0145, 0.014, 0.085) roundness=0.004
-                # The grip, its bottom further back than its top
-                Translate translation=(0, 0.052, -0.058)
-                    Rotate rotation=(0.28, 0, 0)
-                        RoundBox size=(0.015, 0.05, 0.022) roundness=0.007
-            # The trigger guard, a ring standing in the gun's plane, its top half hidden in the frame
-            Translate translation=(0, 0.078, 0.008)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Torus innerRadius=0.019 outerRadius=0.027
-
-    # Stippled panels on both sides of the grip
-    Material material=pistol_grip
-        SymmetryX
-            Translate translation=(0.006, 0.048, -0.059)
+            SmoothUnion smoothness=0.01
+                # The frame, a stalk lying along the gun, fattest at the back
+                ArbitraryRoundCone a=(0, 0.1, -0.06) b=(0, 0.1, 0.075) radiusA=0.014 radiusB=0.011
+                # The grip, its top under the back of the frame and its foot further back, swelling into a bulb
+                ArbitraryRoundCone a=(0, 0.094, -0.046) b=(0, 0.024, -0.068) radiusA=0.0135 radiusB=0.016
+                Translate translation=(0, 0.017, -0.07)
+                    Ellipsoid radii=(0.02, 0.017, 0.023)
+            # The ring, a short skirt drooping round the top of the grip
+            Translate translation=(0, 0.08, -0.05)
                 Rotate rotation=(0.28, 0, 0)
-                    RoundBox size=(0.011, 0.038, 0.018) roundness=0.005
-
-    # The trigger, curving down and back inside the guard
-    Material material=pistol_slide
-        Union
+                    Round radius=0.002
+                        CappedCone height=0.004 bottomRadius=0.021 topRadius=0.015
+            # The barrel, a short stalk out of the cap's front, its flared lip at the muzzle; the bore is cut below
+            Subtraction
+                Union
+                    ArbitraryCappedCylinder a=(0, 0.128, 0.06) b=(0, 0.128, 0.1) radius=0.0075
+                    ArbitraryCappedCone a=(0, 0.128, 0.095) b=(0, 0.128, 0.105) radiusA=0.0075 radiusB=0.0105
+                ArbitraryCappedCylinder a=(0, 0.128, 0.075) b=(0, 0.128, 0.11) radius=0.0045
+            # The trigger guard, a loop of root standing in the gun's plane, its top half grown into the frame
+            Distort amount=0.0015 frequency=60
+                Translate translation=(0, 0.078, 0.008)
+                    Rotate rotation=(0, 0, 1.5707964)
+                        Torus innerRadius=0.02 outerRadius=0.0265
+            # The trigger, a tendril curling down and back inside the guard
             Capsule a=(0, 0.09, 0.014) b=(0, 0.078, 0.013) radius=0.0035
-            Capsule a=(0, 0.078, 0.013) b=(0, 0.069, 0.006) radius=0.0035
+            Capsule a=(0, 0.078, 0.013) b=(0, 0.07, 0.005) radius=0.003
+
+    # The sights: a white wart near the front of the cap and two at the back with a gap between them to look through
+    Material material=pistol_wart
+        Union
+            Translate translation=(0, 0.146, 0.062)
+                Sphere radius=0.004
+            SymmetryX
+                Translate translation=(0.0055, 0.146, -0.062)
+                    Sphere radius=0.0042

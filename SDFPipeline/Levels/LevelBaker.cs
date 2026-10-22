@@ -123,7 +123,12 @@ public static class LevelBaker
                 throw new ProgramFiles.SdfProgramFileException(entry.Line, $"There is no model '{entry.Model}' in content/models/");
         var groundColors = regions.Regions.Select(r => r.Material).Prepend(level.BaseMaterial)
             .Select(m => AverageColor(materials.Resolve(m))).ToArray();
-        var scattered = LevelScatter.Scatter(level, terrain, regions, model => footprints[model], p =>
+        // The trees sections' models need their footprints too where a later section keeps clear of them (LevelScatter.KeepsClearOf),
+        // worked out when first asked for; with no models to be had, such an instance is only its point
+        ModelFootprint FootprintOf(string model) => footprints.TryGetValue(model, out var known)
+            ? known
+            : footprints[model] = models?.Invoke(model) ?? new ModelFootprint(Vector2.Zero, Vector2.Zero);
+        var scattered = LevelScatter.Scatter(level, terrain, regions, FootprintOf, p =>
         {
             var region = regions.At(p);
             return groundColors[region is null ? 0 : regions.Regions.ToList().IndexOf(region) + 1];
@@ -326,9 +331,10 @@ public static class LevelBaker
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
             room = level.Room is { } room ? RoomDocument(room) : null,
-            // The battle sides (west at -x, east at +x), each with its spawn, flag stand and minigun, pistol and health pods, and the
-            // neutral pods between them: position is on the ground (a castle's courtyard is), yaw in degrees as a placement's. Unity
-            // builds them from Assets/Pickups (pods/<pod>-pod.prefab, flags/flag-stand-<side>.prefab). Null for a level without sides
+            // The battle sides (west at -x, east at +x), each with its spawn, flag stand, weapon pods and health pods (and on a
+            // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
+            // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
+            // flags/flag-stand-<side>.prefab) and Assets/Machines/Prefabs (turret-<team>.prefab). Null for a level without sides
             battle = level.Battle is { } battle ? BattleDocument(battle, terrain) : null,
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
@@ -348,8 +354,9 @@ public static class LevelBaker
             pod = item.Pod,
             position = new[] { item.At.X, terrain.Height(item.At.X, item.At.Y), item.At.Y },
             yaw = item.Yaw,
-            // A spawn's zone (ticket 20): its players appear anywhere within this radius; none for a flag or pod
-            radius = item.Kind == BattleKind.Spawn ? item.ZoneRadius : (float?)null,
+            // A spawn's zone (ticket 20): its players appear anywhere within this radius; the machine zone's (ticket 24) the same for the
+            // side's helicopter and tanks; none for a flag, pod or turret
+            radius = item.IsZone ? item.ZoneRadius : (float?)null,
         };
         return new
         {
@@ -358,7 +365,12 @@ public static class LevelBaker
                 side = side.Name,
                 spawn = Item(side.Spawn),
                 flag = Item(side.Flag),
-                pods = new[] { Item(side.Minigun), Item(side.Pistol), Item(side.Health) },
+                // The weapon pods (minigun and pistol on most levels), then the health pods
+                pods = side.Weapons.Append(side.Health).Concat(side.MoreHealth).Select(Item).ToArray(),
+                // Ticket 24, on a level with machines (else left out): the side's turrets, each where it stands, facing yaw at rest
+                // (Assets/Machines/Prefabs/turret-<team>.prefab), and the zone its helicopter and tanks start and respawn in
+                turrets = side.Turrets.Count > 0 ? side.Turrets.Select(Item).ToArray() : null,
+                machines = side.MachineSpawn is { } machines ? Item(machines) : null,
             }).ToArray(),
             neutral = battle.Neutral.Select(Item).ToArray(),
         };

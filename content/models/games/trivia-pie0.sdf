@@ -1,0 +1,58 @@
+# Trivia pie: a giant Trivial Pursuit playing piece, a round token 2.1 m across and 0.8 m tall in ivory plastic (game_ivory),
+# its edge well rounded. Six wedge-shaped pockets are sunk into its top, 0.62 m deep, parted by thin spokes and a round hub in
+# the middle; three of them hold a scored wedge, yellow, green and pink (game_plastic_yellow, game_plastic_green,
+# game_plastic_pink, the colours of the loose wedges on the board), each a sixth of a pie with softly rounded edges sitting just
+# below the rim. Knee-high cover.
+format 1
+collider convex
+
+# A seventh of the vertices its size would give it, about 2,500 triangles: flat-sided pockets and wedges, scattered cover
+Detail detail=0.15
+    Union
+        # The token, the pockets cut out of it: a disc inside the outer wall, less the spokes and the hub
+        Material material=game_ivory
+            Subtraction
+                Translate translation=(0, 0.4, 0)
+                    RoundedCylinder radius=1.05 roundness=0.14 height=0.4
+                Subtraction
+                    Translate translation=(0, 0.6, 0)
+                        CappedCylinder radius=0.94 height=0.42
+                    Union
+                        CappedCylinder radius=0.13 height=1
+                        Box size=(1, 1, 0.04)
+                        Rotate rotation=(0, 1.0471976, 0)
+                            Box size=(1, 1, 0.04)
+                        Rotate rotation=(0, 2.0943951, 0)
+                            Box size=(1, 1, 0.04)
+        # The wedges: each the space of its pocket, a few millimetres in from the spokes, hub and wall
+        Union
+            # The yellow wedge
+            Material material=game_plastic_yellow
+                Round radius=0.03
+                    Subtraction
+                        Intersection
+                            Translate translation=(0, 0.48, 0)
+                                CappedCylinder radius=0.89 height=0.27
+                            Plane normal=(0.0000, 0, -1.0000) height=0.075
+                            Plane normal=(-0.8660, 0, 0.5000) height=0.075
+                        CappedCylinder radius=0.16 height=1
+            # The green wedge
+            Material material=game_plastic_green
+                Round radius=0.03
+                    Subtraction
+                        Intersection
+                            Translate translation=(0, 0.48, 0)
+                                CappedCylinder radius=0.89 height=0.27
+                            Plane normal=(0.8660, 0, 0.5000) height=0.075
+                            Plane normal=(0, 0, -1.0000) height=0.075
+                        CappedCylinder radius=0.16 height=1
+            # The pink wedge
+            Material material=game_plastic_pink
+                Round radius=0.03
+                    Subtraction
+                        Intersection
+                            Translate translation=(0, 0.48, 0)
+                                CappedCylinder radius=0.89 height=0.27
+                            Plane normal=(0.0000, 0, 1.0000) height=0.075
+                            Plane normal=(0.8660, 0, -0.5000) height=0.075
+                        CappedCylinder radius=0.16 height=1

@@ -1,0 +1,31 @@
+# Game boxes, leaning: two closed board-game boxes blown up to 12 m long, 8 m wide and 2.4 m deep, stood up on their long edges
+# 9.6 m apart and fallen in against each other until their top edges meet, a tent 7.5 m tall and 12 m long along x. Under it a
+# tunnel runs right through along x, 4.5 m wide at the floor and 3.5 m at head height, a covered corridor; its sides are walls.
+# The tangerine box leans in from -z and the plum one from +z, each with its lid on the outside face and the plain cardboard of
+# its tray showing along the inside.
+format 1
+collider mesh
+
+# An eighth of the vertices its size would give it: big plain slabs with nothing printed on them, seen from afar
+Detail detail=0.12
+    Union
+        # The tangerine box, its outer foot edge at z = -4.8, leaning in by 0.34 rad
+        Translate translation=(0, 0, -4.8)
+            Rotate rotation=(0.34, 0, 0)
+                Translate translation=(0, 4, 1.2)
+                    Union
+                        Material material=game_box_inside
+                            RoundBox size=(5.9, 3.9, 1.15) roundness=0.1
+                        Material material=game_box_orange
+                            Translate translation=(0, 0, -0.35)
+                                RoundBox size=(6, 4, 0.85) roundness=0.15
+        # The plum box, its outer foot edge at z = 4.8, leaning in from the other side
+        Translate translation=(0, 0, 4.8)
+            Rotate rotation=(-0.34, 0, 0)
+                Translate translation=(0, 4, -1.2)
+                    Union
+                        Material material=game_box_inside
+                            RoundBox size=(5.9, 3.9, 1.15) roundness=0.1
+                        Material material=game_box_purple
+                            Translate translation=(0, 0, 0.35)
+                                RoundBox size=(6, 4, 0.85) roundness=0.15

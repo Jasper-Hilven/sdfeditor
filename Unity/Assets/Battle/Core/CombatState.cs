@@ -87,6 +87,8 @@ namespace SdfBattle
     /// <item>Every (re)spawn starts with a single pistol; a death takes everything else.</item>
     /// <item>Health pods heal up to the most; a pod is not taken at full health, nor a weapon already held.</item>
     /// <item>Burns, clouds and splats act in steps of <see cref="TickSeconds"/>; clouds do not add up (one at a time hurts a player).</item>
+    /// <item>The living heal slowly by themselves below <see cref="RegenCap"/>: <see cref="RegenAmount"/> every
+    /// <see cref="RegenSeconds"/>, never past it.</item>
     /// </list>
     /// </summary>
     public sealed class CombatState
@@ -96,6 +98,12 @@ namespace SdfBattle
 
         /// <summary>A player's body, as the clouds see it: the capsule every player has (FirstPersonController).</summary>
         public const float BodyHeight = 1.75f, BodyRadius = 0.3f;
+
+        /// <summary>
+        /// The slow heal: a living player under <see cref="RegenCap"/> health gets <see cref="RegenAmount"/> back every
+        /// <see cref="RegenSeconds"/>.
+        /// </summary>
+        public const float RegenAmount = 1, RegenSeconds = 2, RegenCap = 80;
 
         /// <summary>
         /// Damage over time after a source (the flamethrower's burn, the cloud's afterpoison), on the steps of
@@ -132,9 +140,12 @@ namespace SdfBattle
             public readonly Lingering Poison = new Lingering();
             public readonly float[] SlowLeft = new float[SlowKinds];
             public readonly float[] SlowShare = new float[SlowKinds];
+            /// <summary>Seconds towards the next point of the slow heal; only runs while alive and under the cap.</summary>
+            public float RegenClock;
 
             public void Clear()
             {
+                RegenClock = 0;
                 Burn.Clear();
                 Poison.Clear();
                 System.Array.Clear(SlowLeft, 0, SlowKinds);
@@ -161,6 +172,12 @@ namespace SdfBattle
 
         /// <summary>Where a player's feet are, for the clouds and splats; the scene sets it (tests too). Without it, nobody is in one.</summary>
         public Func<PlayerState, Vector3> PositionOf { get; set; }
+
+        /// <summary>What a player's walking speed is multiplied by on top of the slows (ticket 25's Mycelium Rush); null: 1.</summary>
+        public Func<PlayerState, float> SpeedBoostOf { get; set; }
+
+        /// <summary>What the damage a player takes is multiplied by (ticket 25's Puffball Armour); null: 1.</summary>
+        public Func<PlayerState, float> DamageTakenOf { get; set; }
 
         /// <summary>The clouds and splats on the ground now.</summary>
         public IReadOnlyList<Area> Areas => areas;
@@ -196,14 +213,15 @@ namespace SdfBattle
             Match.Started && Match.Phase != RoundPhase.Countdown && (Match.Rules.friendlyFire || target != attacker);
 
         /// <summary>
-        /// Hurts a player, if <see cref="CanHurt(PlayerState, Team)"/>: takes the amount off their health (no further than 0) and at 0
-        /// reports their death with this damage's killer and weapon. Returns the health it took.
+        /// Hurts a player, if <see cref="CanHurt(PlayerState, Team)"/>: takes the amount (times <see cref="DamageTakenOf"/>) off their
+        /// health (no further than 0) and at 0 reports their death with this damage's killer and weapon. Returns the health it took.
         /// </summary>
         public float Hurt(PlayerState victim, Damage damage)
         {
             if (damage.Amount <= 0 || !CanHurt(victim, damage.AttackerTeam))
                 return 0;
-            var taken = Mathf.Min(victim.Health, damage.Amount);
+            var amount = damage.Amount * (DamageTakenOf != null ? Mathf.Max(0, DamageTakenOf(victim)) : 1);
+            var taken = Mathf.Min(victim.Health, amount);
             victim.Health -= taken;
             if (taken > 0)
                 Damaged?.Invoke(victim, damage, taken);
@@ -292,7 +310,7 @@ namespace SdfBattle
 
         public bool IsSlowed(PlayerState player) => Of(player).SlowLeft[0] > 0 || Of(player).SlowLeft[1] > 0;
 
-        /// <summary>What a player's walking speed is multiplied by: 1, or less while slowed (the strongest slow).</summary>
+        /// <summary>What a player's walking speed is multiplied by: 1, or less while slowed (the strongest slow), times <see cref="SpeedBoostOf"/>.</summary>
         public float SpeedFactor(PlayerState player)
         {
             var c = Of(player);
@@ -300,7 +318,7 @@ namespace SdfBattle
             for (var k = 0; k < SlowKinds; k++)
                 if (c.SlowLeft[k] > 0)
                     share = Mathf.Max(share, c.SlowShare[k]);
-            return 1 - Mathf.Clamp01(share);
+            return (1 - Mathf.Clamp01(share)) * (SpeedBoostOf != null ? Mathf.Max(0, SpeedBoostOf(player)) : 1);
         }
 
         /// <summary>A poison cloud or a splat on the ground, from now for its seconds.</summary>
@@ -327,7 +345,7 @@ namespace SdfBattle
 
         // ---------------------------------------------------------------- Time
 
-        /// <summary>Lets <paramref name="seconds"/> pass: burns, slows, clouds and splats.</summary>
+        /// <summary>Lets <paramref name="seconds"/> pass: burns, slows, the slow heal, clouds and splats.</summary>
         public void Tick(float seconds)
         {
             if (seconds <= 0)
@@ -338,6 +356,7 @@ namespace SdfBattle
                 for (var k = 0; k < SlowKinds; k++)
                     if (c.SlowLeft[k] > 0)
                         c.SlowLeft[k] = Mathf.Max(0, c.SlowLeft[k] - seconds);
+                Regenerate(player, c, seconds);
             }
 
             areaClock += seconds;
@@ -362,6 +381,30 @@ namespace SdfBattle
                 areas.RemoveAt(i);
                 AreaEnded?.Invoke(area);
             }
+        }
+
+        /// <summary>
+        /// The slow heal: <see cref="RegenAmount"/> every <see cref="RegenSeconds"/> while alive and under <see cref="RegenCap"/>, up to
+        /// it and no further. The clock waits at 0 otherwise, so the first point comes a full wait after dropping under the cap.
+        /// </summary>
+        private void Regenerate(PlayerState player, Combatant c, float seconds)
+        {
+            if (!player.Alive || player.Health >= RegenCap)
+            {
+                c.RegenClock = 0;
+                return;
+            }
+            c.RegenClock += seconds;
+            var added = 0f;
+            while (c.RegenClock >= RegenSeconds && player.Health < RegenCap)
+            {
+                c.RegenClock -= RegenSeconds;
+                var point = Mathf.Min(RegenAmount, RegenCap - player.Health);
+                player.Health += point;
+                added += point;
+            }
+            if (added > 0)
+                Healed?.Invoke(player, added);
         }
 
         private void Linger(PlayerState player, Lingering lingering)

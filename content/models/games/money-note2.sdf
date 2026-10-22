@@ -1,0 +1,20 @@
+# Money note 2: a giant pale green Monopoly note (game_paper_green) 2 m long and 1 m wide, crumpled: one third flat on the board, the
+# middle third folded up to a crease 0.2 m high and the last third falling back down, skewed so its far corner lifts off the board.
+# Plain paper, no print. Ground clutter: no collider, scattered between the pieces.
+format 1
+
+# A third of the vertices its size would give it: fine enough for the thin sheet to stay whole
+Detail detail=0.3
+    Material material=game_paper_green
+        Union
+            # The flat third
+            Translate translation=(-0.65, 0.025, 0)
+                RoundBox size=(0.35, 0.025, 0.5) roundness=0.012
+            # The middle third, rising to the crease
+            Translate translation=(0, 0.1125, 0)
+                Rotate rotation=(0, 0, 0.284)
+                    RoundBox size=(0.33, 0.025, 0.5) roundness=0.012
+            # The last third, falling back down, skewed
+            Translate translation=(0.6, 0.125, 0)
+                Rotate rotation=(0.05, 0, -0.26)
+                    RoundBox size=(0.38, 0.025, 0.48) roundness=0.012

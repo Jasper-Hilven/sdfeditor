@@ -58,9 +58,14 @@ namespace SDFPipeline.Levels;
 ///     west
 ///         spawn at=(-57, 0) yaw=90 radius=3
 ///         flag at=(-61, 0)
-///         pod minigun at=(-48, 5.5)
+///         pod minigun at=(-48, 5.5)            # the side's weapons, any of the seven, each once; both sides the same
 ///         pod pistol at=(-48, -5.5)
 ///         pod health at=(-51, 9)
+///         turret at=(-47, 10) yaw=60            # a level with machines (ticket 24): four turrets per side
+///         turret at=(-47, -10) yaw=120
+///         turret at=(-62, 20) yaw=30
+///         turret at=(-62, -20) yaw=150
+///         machines at=(-70, 22.5) yaw=90 radius=3  # where the side's helicopter and tanks start and respawn
 ///     east
 ///         ...
 /// neutral                                   # the pods between the sides
@@ -112,10 +117,14 @@ namespace SDFPipeline.Levels;
 /// </para>
 /// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
-/// <c>pod</c> each of minigun, pistol and health, below it; <c>neutral</c> lists exactly two pods, one of sniper or electro-gun and one
-/// of flamethrower, poison-gun or blob-gun. Each takes <c>at</c> (x, z), standing on the ground there like a placement, and optionally
+/// or more weapon <c>pod</c>s and one or more <c>pod health</c>, below it. A side's weapon pods are any of minigun, pistol, sniper,
+/// electro-gun, flamethrower, poison-gun and blob-gun, each at most once, and both sides have the same ones (most levels give each side a
+/// minigun and a pistol). <c>neutral</c> lists exactly two pods, one of sniper or electro-gun and one of flamethrower, poison-gun or
+/// blob-gun. Each takes <c>at</c> (x, z), standing on the ground there like a placement, and optionally
 /// <c>yaw</c>; a spawn also <c>radius</c>, its spawn zone (3 m by default), within which the side's players appear. A level has both
-/// sections or neither.
+/// sections or neither. A level with machines (ticket 24) gives each side exactly four <c>turret</c> lines (<c>at</c>, <c>yaw</c>: where
+/// the turret stands and the way it faces at rest) and one <c>machines</c> line (<c>at</c>, <c>yaw</c>, <c>radius</c>, 3 m by default:
+/// the zone where the side's helicopter and tanks start and respawn); both sides have them or neither.
 /// </para>
 /// </summary>
 public static class LevelFile
@@ -144,6 +153,8 @@ public static class LevelFile
     private const string Sides = "sides";
     private const string Neutral = "neutral";
     private const string Spawn = "spawn";
+    private const string Turret = "turret";
+    private const string Machines = "machines";
     private const string Flag = "flag";
     private const string Pod = "pod";
 
@@ -284,26 +295,73 @@ public static class LevelFile
         foreach (var name in new[] { BattleSide.West, BattleSide.East })
             if (!sides.ContainsKey(name))
                 throw cursor.Error($"The sides need both {BattleSide.West} and {BattleSide.East} indented below them; {name} is missing");
-        return (sides[BattleSide.West], sides[BattleSide.East]);
+        // Machines (ticket 24) on both sides or on neither
+        var (west, east) = (sides[BattleSide.West], sides[BattleSide.East]);
+        if ((west.MachineSpawn is null) != (east.MachineSpawn is null))
+        {
+            var (with, without) = west.MachineSpawn is null ? (east, west) : (west, east);
+            throw new SdfProgramFileException(lines[without.Name],
+                $"Side {with.Name} has machines (turrets and a machine zone), so side {without.Name} needs them too: {BattleLayout.TurretsPerSide} '{Turret}' lines and a '{Machines}' line");
+        }
+        // The sides mirror each other, so they have the same weapon pods
+        var (westWeapons, eastWeapons) = (west.Weapons.Select(p => p.Pod!).ToArray(), east.Weapons.Select(p => p.Pod!).ToArray());
+        if (!westWeapons.SequenceEqual(eastWeapons))
+            throw new SdfProgramFileException(lines[BattleSide.East],
+                $"The sides mirror each other, so they have the same weapon pods; west has {string.Join(", ", westWeapons)}, east {string.Join(", ", eastWeapons)}");
+        return (west, east);
     }
 
-    /// <summary>A side's objects: exactly one spawn, one flag and one pod each of <see cref="BattleLayout.SidePods"/>.</summary>
+    /// <summary>
+    /// A side's objects: exactly one spawn and one flag, one or more weapon pods, each a different one of
+    /// <see cref="BattleLayout.Weapons"/> (kept in that list's order), and one or more health pods (those after the first are
+    /// <see cref="BattleSide.MoreHealth"/>); and, on a level with
+    /// machines (ticket 24), exactly <see cref="BattleLayout.TurretsPerSide"/> turrets and one machine zone.
+    /// </summary>
     private static BattleSide ReadSide(string name, SourceLine line, Cursor cursor)
     {
         var objects = new Dictionary<string, BattleObject>();
+        var turrets = new List<BattleObject>();
+        var moreHealth = new List<BattleObject>();
+        var weapons = new List<BattleObject>();
         foreach (var child in line.Children)
         {
-            var item = ReadBattleObject($"side {name}", child, [Spawn, Flag, Pod]);
-            if (item.Kind == BattleKind.Pod && !BattleLayout.SidePods.Contains(item.Pod))
+            var item = ReadBattleObject($"side {name}", child, [Spawn, Flag, Pod, Turret, Machines]);
+            if (item.Kind == BattleKind.Pod && item.Pod != BattleLayout.Health && !BattleLayout.Weapons.Contains(item.Pod))
                 throw new SdfProgramFileException(child.Number,
-                    $"A side's pods are {string.Join(", ", BattleLayout.SidePods)}; {item.Pod} {(IsNeutralPod(item.Pod!) ? "is a neutral pod" : "is none of them")}");
+                    $"A side's pods are {BattleLayout.Health} and the weapons {string.Join(", ", BattleLayout.Weapons)}; {item.Pod} is none of them");
+            if (item.Kind == BattleKind.Turret)
+            {
+                if (turrets.Count == BattleLayout.TurretsPerSide)
+                    throw new SdfProgramFileException(child.Number,
+                        $"Side {name} has {BattleLayout.TurretsPerSide} turrets already (lines {string.Join(", ", turrets.Select(t => t.Line))}); a side has exactly {BattleLayout.TurretsPerSide}");
+                turrets.Add(item);
+                continue;
+            }
+            if (item.Kind == BattleKind.Pod && item.Pod == BattleLayout.Health && objects.ContainsKey(item.Name))
+            {
+                moreHealth.Add(item);
+                continue;
+            }
             if (objects.TryGetValue(item.Name, out var first))
                 throw new SdfProgramFileException(child.Number, $"Side {name} has its {item.Name} twice, first on line {first.Line}");
             objects[item.Name] = item;
+            if (item.Kind == BattleKind.Pod && item.Pod != BattleLayout.Health)
+                weapons.Add(item);
         }
         BattleObject Get(string what) => objects.GetValueOrDefault(what)
-            ?? throw cursor.Error($"Side {name} has no {what}; a side has a {Spawn}, a {Flag} and a {Pod} each of {string.Join(", ", BattleLayout.SidePods)}");
-        return new BattleSide(name, Get(Spawn), Get(Flag), Get($"{Pod} minigun"), Get($"{Pod} pistol"), Get($"{Pod} health"));
+            ?? throw cursor.Error($"Side {name} has no {what}; a side has a {Spawn}, a {Flag}, one or more weapon pods and one or more health pods");
+        var machines = objects.GetValueOrDefault(Machines);
+        if (machines is null && turrets.Count > 0)
+            throw cursor.Error($"Side {name} has turrets but no machine zone; a side with machines has a '{Machines}' line, like '{Machines} at=(-70, 22) radius=3'");
+        if (machines is not null && turrets.Count < BattleLayout.TurretsPerSide)
+            throw cursor.Error($"Side {name} has {turrets.Count} turrets; a side with machines has exactly {BattleLayout.TurretsPerSide} '{Turret}' lines");
+        var spawn = Get(Spawn);
+        var flag = Get(Flag);
+        if (weapons.Count == 0)
+            throw cursor.Error($"Side {name} has no weapon pod; a side has one or more, of {string.Join(", ", BattleLayout.Weapons)}, like '{Pod} minigun at=(-48, 6)'");
+        var ordered = weapons.OrderBy(p => BattleLayout.Weapons.ToList().IndexOf(p.Pod!)).ToArray();
+        return new BattleSide(name, spawn, flag, ordered, Get($"{Pod} {BattleLayout.Health}"))
+            { MoreHealth = moreHealth, Turrets = turrets, MachineSpawn = machines };
     }
 
     /// <summary>The neutral pods: exactly one of <see cref="BattleLayout.LongRange"/> and one of <see cref="BattleLayout.ShortRange"/>.</summary>
@@ -318,7 +376,7 @@ public static class LevelFile
             if (!isLong && !BattleLayout.ShortRange.Contains(pod.Pod))
                 throw new SdfProgramFileException(child.Number,
                     $"The neutral pods are one of {string.Join(", ", BattleLayout.LongRange)} and one of {string.Join(", ", BattleLayout.ShortRange)}; " +
-                    $"{pod.Pod} {(BattleLayout.SidePods.Contains(pod.Pod) ? "is a side's pod" : "is none of them")}");
+                    $"{pod.Pod} is none of them");
             ref var slot = ref isLong ? ref longRange : ref shortRange;
             if (slot is not null)
                 throw new SdfProgramFileException(child.Number,
@@ -331,9 +389,10 @@ public static class LevelFile
         return [longRange, shortRange];
     }
 
-    private static bool IsNeutralPod(string pod) => BattleLayout.LongRange.Contains(pod) || BattleLayout.ShortRange.Contains(pod);
-
-    /// <summary>A spawn, flag or pod line: its kind (a pod's pickup after it, like pod minigun), at and yaw.</summary>
+    /// <summary>
+    /// A spawn, flag, pod, turret or machines line: its kind (a pod's pickup after it, like pod minigun), at and yaw, and a zone's
+    /// radius.
+    /// </summary>
     private static BattleObject ReadBattleObject(string owner, SourceLine line, string[] kinds)
     {
         var cursor = new Cursor(line);
@@ -346,16 +405,19 @@ public static class LevelFile
         var parameters = Parameters.Read(name, line, cursor);
         var at = parameters.Vector2("at", "a point like (-58, 0), x and z in metres");
         var yaw = parameters.Number("yaw", 0, -360, 360, "degrees, -360 to 360");
-        if (kind != Spawn)
+        if (kind is not (Spawn or Machines))
         {
             parameters.Done("at", "yaw");
-            return new BattleObject(kind == Flag ? BattleKind.Flag : BattleKind.Pod, pod, at, yaw, line.Number);
+            var objectKind = kind switch { Flag => BattleKind.Flag, Turret => BattleKind.Turret, _ => BattleKind.Pod };
+            return new BattleObject(objectKind, pod, at, yaw, line.Number);
         }
-        // A spawn is a zone: the side's players appear anywhere within its radius
-        var radius = parameters.Number("radius", BattleObject.DefaultSpawnZone, BattleObject.MinSpawnZone, BattleObject.MaxSpawnZone,
-            $"metres, {FileSyntax.Number(BattleObject.MinSpawnZone)} to {FileSyntax.Number(BattleObject.MaxSpawnZone)}");
+        // A spawn is a zone: the side's players appear anywhere within its radius; the machine zone the same for its helicopter and tanks
+        var (fallback, least, greatest) = kind == Spawn
+            ? (BattleObject.DefaultSpawnZone, BattleObject.MinSpawnZone, BattleObject.MaxSpawnZone)
+            : (BattleObject.DefaultMachineZone, BattleObject.MinMachineZone, BattleObject.MaxMachineZone);
+        var radius = parameters.Number("radius", fallback, least, greatest, $"metres, {FileSyntax.Number(least)} to {FileSyntax.Number(greatest)}");
         parameters.Done("at", "yaw", "radius");
-        return new BattleObject(BattleKind.Spawn, null, at, yaw, line.Number) { ZoneRadius = radius };
+        return new BattleObject(kind == Spawn ? BattleKind.Spawn : BattleKind.Machines, null, at, yaw, line.Number) { ZoneRadius = radius };
     }
 
     private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)

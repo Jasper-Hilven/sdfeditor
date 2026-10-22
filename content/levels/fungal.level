@@ -103,7 +103,7 @@ place
     team-red-clump1 at=(-50.2, 5.6) yaw=-70 scale=0.95
     team-red-clump1 at=(-69.5, -16.5) yaw=170
     team-red-clump1 at=(-69.5, 16.5) yaw=20 scale=1.05
-    # West, in the courtyard against the side walls, clear of the gate, the spawn, the flag stand and the keep's stairs
+    # West, in the courtyard against the side walls, clear of the gate, the flag stand and the keep's stairs
     team-red-clump0 at=(-60.5, -6.6) yaw=120 scale=0.85
     team-red-clump0 at=(-60.2, 6.6) yaw=-20 scale=0.85
     # East, on the caps' crowns: the keep's (20 m up), the large towers' (15 m), the small towers' (12 m), the gate turrets' (9 m)
@@ -144,30 +144,53 @@ place
     team-blue-clump1 at=(50.2, 5.6) yaw=70 scale=0.95
     team-blue-clump1 at=(69.5, -16.5) yaw=-170
     team-blue-clump1 at=(69.5, 16.5) yaw=-20 scale=1.05
-    # East, in the courtyard against the side walls, clear of the gate, the spawn, the flag stand and the keep's stairs
+    # East, in the courtyard against the side walls, clear of the gate, the flag stand and the keep's stairs
     team-blue-clump0 at=(60.5, -6.6) yaw=-120 scale=0.85
     team-blue-clump0 at=(60.2, 6.6) yaw=20 scale=0.85
 
 # The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its castle. The flag stand stands in the middle of
-# the castle (half a metre towards the gate, clear of the keep stairs' foot), the spawn zone (ticket 20; 2.5 m across the
-# courtyard between the flag and the gate, which is what the courtyard leaves open) just inside the gate facing out; the minigun
-# and pistol pods each stand in the middle of a fairy ring near the castle, north and south of it, and the health pod out on the
-# south flank, halfway to the middle. Everything stands on the ground, which is the courtyard's floor (the castles have none of
+# the castle (half a metre towards the gate, clear of the keep stairs' foot); the spawn zone (ticket 20; 2.5 m round) lies outside
+# the castle, beside it on its north (+z) side by the front corner, on the open level plateau 9 m out from the wall and the north
+# large tower, between the front and the north flank turrets (5.5 m or more from the turrets, the clumps at the walls' foot and the
+# gate's clumps, edge to edge) and well clear of the machine zone, facing out over the field like the gate; the minigun
+# and pistol pods each stand in the middle of a fairy ring near the castle, north and south of it, and the health pods out on the
+# south and north flanks, halfway to the middle, and one behind the castle, in the strip between its back wall (south of the keep,
+# clear of the small tower and the clumps at the wall's foot) and the play area's edge. Everything stands on the ground, which is the courtyard's floor (the castles have none of
 # their own there). The neutral pods stand in two of the fairy rings nearer the middle, one north and one south of the trail; the
-# scatter keeps clear of every pod, stand and spawn
+# scatter keeps clear of every pod, stand and spawn.
+# The machines (ticket 24): four turrets per side outside the castle's walls, two before its front either side of the gate (5 m out,
+# 10 m to either side of the trail, past the gate's clumps) facing out over the field, and two off the large towers' outer sides
+# covering the north and south flanks; each turret's place is where it respawns. The machine zone, where the side's helicopter and
+# tanks start and respawn: the castle's back reaches x = -72.3 at the keep, which leaves a strip only 2.7 m deep to the play area's
+# edge (x = -75), cut by two of the team clumps, so the zone lies on the open, level plateau off the castle's back north corner,
+# behind its back line, 6 m from the large tower and clear of the plateau clump; tanks drive out to the field round the tower
 sides
     west
-        spawn at=(-57.5, 0) yaw=90 radius=2.5
+        spawn at=(-52, 20) yaw=90 radius=2.5
         flag at=(-61.5, 0)
         pod minigun at=(-46, 38)
         pod pistol at=(-44, -22)
         pod health at=(-28, -43)
+        pod health at=(-28, 43)
+        pod health at=(-73.5, -9)
+        turret at=(-47, 10) yaw=60
+        turret at=(-47, -10) yaw=120
+        turret at=(-62, 20) yaw=30
+        turret at=(-62, -20) yaw=150
+        machines at=(-70, 22.5) yaw=90 radius=3
     east
-        spawn at=(57.5, 0) yaw=-90 radius=2.5
+        spawn at=(52, 20) yaw=-90 radius=2.5
         flag at=(61.5, 0)
         pod minigun at=(46, 38)
         pod pistol at=(44, -22)
         pod health at=(28, -43)
+        pod health at=(28, 43)
+        pod health at=(73.5, -9)
+        turret at=(47, 10) yaw=-60
+        turret at=(47, -10) yaw=-120
+        turret at=(62, 20) yaw=-30
+        turret at=(62, -20) yaw=-150
+        machines at=(70, 22.5) yaw=-90 radius=3
 neutral
     pod electro-gun at=(-8, 24)
     pod poison-gun at=(18, -34)
@@ -175,21 +198,22 @@ neutral
 # The ground foliage, scattered by the thousand and drawn instanced: cushions of moss on the dirt ground (the turfs are
 # cushions on top, not a carpet) and tufts of small fungi in looser drifts, nothing on the trail.
 # density is instances per square metre on average, up to cluster times that in the clusters, which are about clusterScale
-# metres wide
+# metres wide; cluster is kept low (1.5 and 2) so the clumps are not too dense, the same amount spread over more of the ground;
+# density is kept a little sparse (0.72 and 0.288) so the foliage does not crowd the ground
 scatter
     moss-turf0 weight=3
     moss-turf1 weight=1
     moss-turf2 weight=1.5
     moss-turf3 weight=1
     moss-turf4 weight=1
-    density=1.0 cluster=2 clusterScale=6 spacing=0.4 avoid=trail margin=0.5 maxSlope=25
+    density=0.72 cluster=1.5 clusterScale=6 spacing=0.4 avoid=trail margin=0.5 maxSlope=25
 scatter
     fungi-tuft0 weight=2
     fungi-tuft1 weight=1
     fungi-tuft2 weight=0.4
     fungi-tuft3 weight=1
     fungi-tuft4 weight=1
-    density=0.4 cluster=3 clusterScale=8 spacing=0.5 avoid=trail margin=0.8 maxSlope=20
+    density=0.288 cluster=2 clusterScale=8 spacing=0.5 avoid=trail margin=0.8 maxSlope=20
 
 # The woods on the border hills, drawn instanced like the foliage. band is how far from the playable rectangle's edge they stand
 # (negative inside it). The front row of mushroom trees climbs the inner slopes to the crest, 5 to 8 m apart, their caps large
@@ -203,12 +227,12 @@ trees
     bracket-tower0 weight=1.5
     bracket-tower1 weight=0.8
     honey-cluster0
-    band=(12, 28) density=0.0105 spacing=6 scale=(0.9, 1.2) maxSlope=35
+    band=(12, 28) density=0.00945 spacing=6 scale=(0.9, 1.2) maxSlope=35
 trees
     honey-cluster0
     bracket-tower1
     inkcap0
-    band=(-3, 6) density=0.004 spacing=9 scale=(0.9, 1.2) avoid=trail margin=2
+    band=(-3, 6) density=0.0036 spacing=9 scale=(0.9, 1.2) avoid=trail margin=2
 trees group=clusters
     cap-cluster0
     cap-cluster1
@@ -216,7 +240,7 @@ trees group=clusters
     cap-cluster3
     cap-cluster4
     cap-cluster5
-    band=(27.5, 31.5) density=0.05 spacing=3.5 scale=(0.9, 1.2)
+    band=(27.5, 31.5) density=0.045 spacing=3.5 scale=(0.9, 1.2)
 
 # The field between the castles: groves of mushroom trees, clumps of them with open glades between, drawn instanced like the woods
 # and with stems that block the player. band is inside the playable rectangle, 8 m or more from its edge, so the island's edge and the
@@ -228,7 +252,7 @@ trees
     bracket-tower0 weight=0.8
     bracket-tower1 weight=1
     honey-cluster0 weight=2
-    band=(-50, -8) density=0.045 spacing=4 cluster=3 clusterScale=10 scale=(0.9, 1.2) avoid=trail margin=3 maxSlope=20
+    band=(-50, -8) density=0.0405 spacing=4 cluster=3 clusterScale=10 scale=(0.9, 1.2) avoid=trail margin=3 maxSlope=20
 
 # More giant mushrooms in the open field, the same models as the placed ones, each with the convex collider of its model (a trees
 # section takes any model with a collider: the rocks group does the same). Their own group, so that no wind bends them
@@ -237,7 +261,7 @@ trees group=giants
     giant-porcini0
     giant-porcini1
     giant-amanita-cluster0 weight=0.6
-    band=(-50, -8) density=0.003 spacing=9 scale=(0.8, 1.2) avoid=trail margin=4 maxSlope=15
+    band=(-50, -8) density=0.0027 spacing=9 scale=(0.8, 1.2) avoid=trail margin=4 maxSlope=15
 
 # Rocks in the field, scattered in the same way, with what fungi live on: stumps with brackets, a fallen log and puffballs among them
 trees group=rocks

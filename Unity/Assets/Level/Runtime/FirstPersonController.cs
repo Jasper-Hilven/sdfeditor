@@ -12,7 +12,8 @@ namespace SdfLevel
     /// and mouse feed it, WASD or the arrow keys to walk, Space to jump, the mouse to look once the view is clicked (the pointer is then
     /// locked, which is what a click asks of the web build too; Escape lets it go); without it (a bot, ticket 23) its brain calls
     /// <see cref="SetMove"/>, <see cref="SetAim"/> and <see cref="Jump"/>. <see cref="frozen"/> holds it in place (the match's
-    /// countdown). Reads the classic input manager, which the project uses, so it needs no input package.
+    /// countdown). Walks by the keys' places (<see cref="GameKeys"/>, ticket 25: ZQSD on AZERTY); the rest from the classic input
+    /// manager.
     /// </para>
     /// The camera, if any, is a child at eye height and takes the pitch; the body turns with the yaw.
     /// </summary>
@@ -23,7 +24,7 @@ namespace SdfLevel
         public const float Height = 1.75f, Radius = 0.3f;
 
         [Tooltip("Walking speed in metres per second")]
-        public float walkSpeed = 4;
+        public float walkSpeed = 4.4f;
         [Tooltip("Set by other systems: the flag carrier walks at 0.9 (ticket 21)")]
         public float speedMultiplier = 1;
         [Tooltip("Set by combat every frame: a blob's slow (ticket 22); multiplies with speedMultiplier")]
@@ -131,7 +132,7 @@ namespace SdfLevel
             if (Cursor.lockState == CursorLockMode.Locked)
                 SetAim(Yaw + Input.GetAxis("Mouse X") * lookSensitivity, pitch - Input.GetAxis("Mouse Y") * lookSensitivity);
 
-            SetMove(new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")));
+            SetMove(GameKeys.Walk());
             if (Input.GetButtonDown("Jump"))
                 Jump();
         }

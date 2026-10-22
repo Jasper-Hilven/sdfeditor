@@ -12,6 +12,8 @@ namespace SDFPipeline.Tests.Levels;
 /// Ticket 17.3: every level's battle sides and neutral pods. Each level has both sides, complete and mirrored across x = 0; nothing
 /// stands in a placed model (seen from its shape, so a flag stand in a castle's courtyard is fine and one in its wall is not), on
 /// another battle object, off the playable area or on the path's middle; the scatter keeps clear of them; the bake writes them.
+/// Ticket 24.2: the same for the machines' places on the levels that have them (the turrets and the machine zones), the turrets
+/// outside their castle's walls and the machine zone behind it, on open, level ground.
 /// </summary>
 public class BattleSidesTests
 {
@@ -30,6 +32,17 @@ public class BattleSidesTests
     private const float Gap = 0.2f;
 
     private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard"];
+
+    /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun.</summary>
+    private static readonly Dictionary<string, string[]> SideWeapons = new()
+    {
+        ["meadow"] = ["minigun", "pistol"],
+        ["fungal"] = ["minigun", "pistol"],
+        ["chessboard"] = ["electro-gun", "poison-gun"],
+    };
+
+    /// <summary>The levels whose sides have machines (ticket 24): only the fungal level for now.</summary>
+    private static readonly string[] MachineLevels = ["fungal"];
 
     public static TheoryData<string> Levels => new(LevelNames);
 
@@ -51,8 +64,15 @@ public class BattleSidesTests
 
         Assert.NotNull(battle);
         Assert.Equal([BattleSide.West, BattleSide.East], battle.Sides.Select(s => s.Name));
-        Assert.Equal([BattleKind.Spawn, BattleKind.Flag, BattleKind.Pod, BattleKind.Pod, BattleKind.Pod], battle.West.Objects.Select(o => o.Kind));
-        Assert.Equal([null, null, "minigun", "pistol", "health"], battle.West.Objects.Select(o => o.Pod));
+        Assert.Equal([BattleKind.Spawn, BattleKind.Flag, BattleKind.Pod, BattleKind.Pod, BattleKind.Pod], battle.West.Objects.Take(5).Select(o => o.Kind));
+        Assert.Equal([null, null, .. SideWeapons[name], "health"], battle.West.Objects.Take(5).Select(o => o.Pod));
+        // The machines (ticket 24) on the levels that have them: four turrets and a machine zone a side; none elsewhere
+        Assert.Equal(MachineLevels.Contains(name), battle.HasMachines);
+        foreach (var side in battle.Sides)
+        {
+            Assert.Equal(battle.HasMachines ? BattleLayout.TurretsPerSide : 0, side.Turrets.Count);
+            Assert.Equal(battle.HasMachines, side.MachineSpawn is not null);
+        }
         Assert.Equal(battle.West.Objects.Select(o => o.Name), battle.East.Objects.Select(o => o.Name));
         foreach (var (west, east) in battle.West.Objects.Zip(battle.East.Objects))
         {
@@ -108,8 +128,8 @@ public class BattleSidesTests
 
     /// <summary>
     /// Ticket 20: each side's spawn zone, where its players appear anywhere at random, is level ground: nobody spawns on a slope or a
-    /// step. Its openness (no wall, keep or stairs in it) is <see cref="BattleObjects_DoNotOverlapAPlacedModel"/>'s, as a spawn's
-    /// footprint is its whole zone.
+    /// step; and so is its machine zone (ticket 24), where its helicopter and tanks start and respawn. Their openness (no wall, keep,
+    /// stairs or rock in them) is <see cref="BattleObjects_DoNotOverlapAPlacedModel"/>'s, as a zone's footprint is all of it.
     /// </summary>
     [Theory]
     [MemberData(nameof(Levels))]
@@ -119,8 +139,8 @@ public class BattleSidesTests
         var terrain = new LevelTerrain(level);
 
         foreach (var side in level.Battle!.Sides)
+        foreach (var zone in side.Objects.Where(o => o.IsZone))
         {
-            var zone = side.Spawn;
             var heights = new List<float>();
             for (var x = -zone.ZoneRadius; x <= zone.ZoneRadius; x += 0.25f)
             for (var z = -zone.ZoneRadius; z <= zone.ZoneRadius; z += 0.25f)
@@ -128,9 +148,63 @@ public class BattleSidesTests
                     heights.Add(terrain.Height(zone.At.X + x, zone.At.Y + z));
 
             Assert.True(heights.Max() - heights.Min() < 0.2f,
-                $"{name}: the {side.Name} spawn zone (radius {zone.ZoneRadius}) rises {heights.Max() - heights.Min():0.00} m from its lowest point to its highest");
+                $"{name}: the {side.Name} {zone.Name} zone (radius {zone.ZoneRadius}) rises {heights.Max() - heights.Min():0.00} m from its lowest point to its highest");
         }
     }
+
+    /// <summary>
+    /// Ticket 24.2: on a level with machines, each side's turrets stand outside its castle's walls (a wall between the castle's middle
+    /// and the turret, so none is in a courtyard), wholly off the trail and clear of the gate, so they cover the approaches without
+    /// blocking the way out; and the machine zone lies behind the castle (beyond its middle, away from the field). That nothing of
+    /// theirs runs into a model, a team mushroom or another battle object is <see cref="BattleObjects_DoNotOverlapAPlacedModel"/>'s and
+    /// <see cref="BattleObjects_StandInThePlayArea_ClearOfEachOther_AndOffThePathsMiddle"/>'s.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(WithMachines))]
+    public void Machines_TurretsStandOutsideTheCastle_TheZoneBehindIt(string name)
+    {
+        var level = Load(name);
+        var footprints = LevelModels.In(Path.Combine(Content, "models"));
+        var regions = new GroundRegions(level, model => footprints(model)!);
+        var castles = level.Placements.Where(p => p.Model.StartsWith("castle", StringComparison.Ordinal)).ToList();
+        var shapes = new Dictionary<string, Func<Vector3, float>>();
+        var files = ModelFiles.All(Path.Combine(Content, "models")).ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => f);
+
+        var problems = new List<string>();
+        foreach (var side in level.Battle!.Sides)
+        {
+            var castle = castles.MinBy(c => Vector2.Distance(c.At, side.Flag.At))!;
+            if (!shapes.TryGetValue(castle.Model, out var shape))
+                shape = shapes[castle.Model] = new SdfCalculatorCpu().Prepare(SdfProgramFile.Load(files[castle.Model])).Distance;
+            // The gate: the middle of the castle's front (+z in its own plane), where its players come out
+            var gate = castle.At + Placement2D.ToLevel(new Vector2(0, 10), castle.Yaw) * castle.Scale;
+            foreach (var turret in side.Turrets)
+            {
+                // From the castle's middle out to the turret, 3 m up: a wall or tower on the way
+                var walled = false;
+                for (var t = 0f; t <= 1 && !walled; t += 0.01f)
+                {
+                    var local = Placement2D.ToLocal(Vector2.Lerp(castle.At, turret.At, t) - castle.At, castle.Yaw) / castle.Scale;
+                    walled = shape(new Vector3(local.X, 3 / castle.Scale, local.Y)) < 0;
+                }
+                if (!walled)
+                    problems.Add($"the {side.Name} turret on line {turret.Line} at ({turret.At.X}, {turret.At.Y}) is not outside its castle's walls");
+                if (Vector2.Distance(turret.At, gate) < 6)
+                    problems.Add($"the {side.Name} turret on line {turret.Line} stands {Vector2.Distance(turret.At, gate):0.0} m from the gate");
+                for (var index = 0; index < regions.Regions.Count; index++)
+                    if (regions.Regions[index].Name is "path" or "trail" && regions.Distance(index, turret.At) < turret.Radius + 1)
+                        problems.Add($"the {side.Name} turret on line {turret.Line} is on or by the {regions.Regions[index].Name}");
+            }
+            var zone = side.MachineSpawn!;
+            var behind = Placement2D.ToLocal(zone.At - castle.At, castle.Yaw).Y;
+            if (behind > -5)
+                problems.Add($"the {side.Name} machine zone on line {zone.Line} is {-behind:0.0} m behind its castle's middle, not 5 m or more");
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    public static TheoryData<string> WithMachines => new(MachineLevels);
 
     [Fact]
     public void OverlapCheck_FindsAFlagStandMovedIntoACastleWall_AndAPodMovedOntoARock()
@@ -174,7 +248,7 @@ public class BattleSidesTests
         {
             var layer = layers[index < all.LayerCounts[0] ? 0 : 1];
             var p = new Vector2(instance.Position.X, instance.Position.Z);
-            return battle.Objects.All(o => Vector2.Distance(p, o.At) >= o.Radius + LevelScatter.BattleClearing(layer));
+            return battle.Objects.All(o => Vector2.Distance(p, o.At) >= o.Radius + LevelScatter.BattleClearing(layer, o));
         }).ToArray();
         Assert.True(kept.Length < all.Instances.Count - 20, $"{all.Instances.Count - kept.Length} instances were in the way");
         Assert.Equal(kept, cleared.Instances);
@@ -188,7 +262,7 @@ public class BattleSidesTests
         try
         {
             var level = new LevelDefinition(new PlayArea(new Vector2(40, 30), 0.2f, 14), 3, new HillRing(12, 6, 1.5f, 10), new IslandEdge(4))
-                { Battle = Battle(new Vector2(-12, 0), new Vector2(3, 8), new Vector2(3, -8)) };
+                { Battle = Battle(new Vector2(-12, 0), new Vector2(3, 8), new Vector2(3, -8), machines: true) };
             var materials = MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default);
             var terrain = new LevelTerrain(level);
 
@@ -209,6 +283,22 @@ public class BattleSidesTests
             Assert.Equal(2f, spawn.GetProperty("radius").GetSingle());
             Assert.False(east.GetProperty("flag").TryGetProperty("radius", out _));
             Assert.Equal(["sniper", "flamethrower"], battle.GetProperty("neutral").EnumerateArray().Select(p => p.GetProperty("pod").GetString()));
+            // Ticket 24: each side's four turrets (no radius) and its machine zone (with its radius), on the ground
+            var turrets = east.GetProperty("turrets").EnumerateArray().ToArray();
+            Assert.Equal(4, turrets.Length);
+            Assert.Equal(new[] { 9f, terrain.Height(9, 8), 8f }, turrets[0].GetProperty("position").EnumerateArray().Select(v => v.GetSingle()));
+            Assert.Equal(-60f, turrets[0].GetProperty("yaw").GetSingle());
+            Assert.False(turrets[0].TryGetProperty("radius", out _));
+            var machines = sides[0].GetProperty("machines");
+            Assert.Equal(new[] { -18f, terrain.Height(-18, 8), 8f }, machines.GetProperty("position").EnumerateArray().Select(v => v.GetSingle()));
+            Assert.Equal(90f, machines.GetProperty("yaw").GetSingle());
+            Assert.Equal(1.5f, machines.GetProperty("radius").GetSingle());
+
+            // A level without machines has neither in its sides
+            LevelBaker.Bake(level with { Battle = Battle(new Vector2(-12, 0), new Vector2(3, 8), new Vector2(3, -8)) }, "small", materials, root.FullName);
+            using (var plain = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root.FullName, LevelBaker.LevelJson))))
+                foreach (var side in plain.RootElement.GetProperty("battle").GetProperty("sides").EnumerateArray())
+                    Assert.False(side.TryGetProperty("turrets", out _) || side.TryGetProperty("machines", out _));
 
             var outside = level with { Battle = level.Battle! with { Neutral = [level.Battle.Neutral[0] with { At = new Vector2(0, 14.5f), Line = 21 }, level.Battle.Neutral[1]] } };
             var problem = Assert.Throws<SdfProgramFileException>(() => LevelBaker.Bake(outside, "small", materials, root.FullName));
@@ -221,14 +311,21 @@ public class BattleSidesTests
         }
     }
 
-    /// <summary>A layout with the west side round <paramref name="west"/> (its mirror the east), and the neutral pods at the two points.</summary>
-    private static BattleLayout Battle(Vector2 west, Vector2 sniper, Vector2 flamethrower)
+    /// <summary>
+    /// A layout with the west side round <paramref name="west"/> (its mirror the east), and the neutral pods at the two points; with
+    /// <paramref name="machines"/>, each side's four turrets and its machine zone (ticket 24) too.
+    /// </summary>
+    private static BattleLayout Battle(Vector2 west, Vector2 sniper, Vector2 flamethrower, bool machines = false)
     {
         BattleSide Side(string name, float sign)
         {
             BattleObject At(BattleKind kind, string? pod, float x, float z) => new(kind, pod, new Vector2(sign * (-west.X + x), west.Y + z), 0, 1);
             return new BattleSide(name, At(BattleKind.Spawn, null, 0, 0) with { Yaw = sign * -90, ZoneRadius = 2 }, At(BattleKind.Flag, null, 3, 0),
-                At(BattleKind.Pod, "minigun", -4, 4), At(BattleKind.Pod, "pistol", -4, -4), At(BattleKind.Pod, "health", 3, 5));
+                [At(BattleKind.Pod, "minigun", -4, 4), At(BattleKind.Pod, "pistol", -4, -4)], At(BattleKind.Pod, "health", 3, 5))
+            {
+                Turrets = machines ? [.. new[] { (-3f, 8f), (-3f, -8f), (2f, 9f), (2f, -9f) }.Select(p => At(BattleKind.Turret, null, p.Item1, p.Item2) with { Yaw = sign * -60 })] : [],
+                MachineSpawn = machines ? At(BattleKind.Machines, null, 6, 8) with { Yaw = sign * -90, ZoneRadius = 1.5f } : null,
+            };
         }
         return new BattleLayout(Side(BattleSide.West, -1), Side(BattleSide.East, 1),
             [new BattleObject(BattleKind.Pod, "sniper", sniper, 0, 1), new BattleObject(BattleKind.Pod, "flamethrower", flamethrower, 0, 1)]);

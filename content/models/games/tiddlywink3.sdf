@@ -1,0 +1,13 @@
+# Tiddlywink 3: a giant orange plastic tiddlywink (game_plastic_orange) 1.2 m across and 0.12 m thick, lying flat on the board, its edge
+# rounded and its top dished a little, as a real wink's is. Ground clutter: no collider, scattered by the dozen between the pieces.
+format 1
+
+# An eighth of the vertices its size would give it, about 250 triangles: a flat, simple disc, scattered by the dozen
+Detail detail=0.12
+    Translate translation=(0, 0.06, 0)
+        Material material=game_plastic_orange
+            Subtraction
+                RoundedCylinder radius=0.6 roundness=0.035 height=0.06
+                # The shallow dish in the top
+                Translate translation=(0, 0.085, 0)
+                    Ellipsoid radii=(0.42, 0.05, 0.42)

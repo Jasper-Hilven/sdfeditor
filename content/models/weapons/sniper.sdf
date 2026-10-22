@@ -1,76 +1,136 @@
-# Sniper rifle: a long barrel with a slotted muzzle brake pointing along +z, a walnut stock with a pistol grip and rubber butt pad,
-# a scope on two mounts above the receiver, a bolt handle on the right and a bipod folded down at the front, its feet on the ground.
+# Sniper rifle: a long, slender bonnet mushroom grown along a bracket fungus. The barrel is its thin grey stalk, pointing along +z, and
+# the muzzle brake its little bell cap, open at the front over a ring of gills with the bore through them. The stock, forend, wrist,
+# pistol grip and butt are one piece of hard brown bracket, with fans of turkey tail growing out of both sides of the butt and a
+# pad of dark gills on its end. The scope is a hollow stalk on two knuckles with a flared cap round the front lens, button mushrooms
+# for turrets, the bolt handle a small mushroom out to the right, and the bipod two thin stalks with bulbs for feet on the ground.
 format 1
 
 Union
-    # The stock: forend, wrist, pistol grip and butt in one piece of wood
+    # The stock: forend, wrist, pistol grip and butt in one piece of bracket
     Material material=sniper_wood
-        SmoothUnion smoothness=0.025
-            Translate translation=(0, 0.145, 0.04)
-                RoundBox size=(0.025, 0.026, 0.2) roundness=0.012
-            ArbitraryRoundCone a=(0, 0.14, -0.15) b=(0, 0.125, -0.32) radiusA=0.026 radiusB=0.03
-            Translate translation=(0, 0.12, -0.42)
-                RoundBox size=(0.022, 0.058, 0.09) roundness=0.016
-            Translate translation=(0, 0.09, -0.2)
-                Rotate rotation=(0.35, 0, 0)
-                    RoundBox size=(0.017, 0.04, 0.022) roundness=0.01
+        Distort amount=0.002 frequency=40
+            SmoothUnion smoothness=0.025
+                Translate translation=(0, 0.145, 0.04)
+                    RoundBox size=(0.025, 0.026, 0.2) roundness=0.012
+                ArbitraryRoundCone a=(0, 0.14, -0.15) b=(0, 0.125, -0.32) radiusA=0.026 radiusB=0.03
+                Translate translation=(0, 0.12, -0.42)
+                    RoundBox size=(0.022, 0.058, 0.09) roundness=0.016
+                Translate translation=(0, 0.09, -0.2)
+                    Rotate rotation=(0.35, 0, 0)
+                        RoundBox size=(0.017, 0.04, 0.022) roundness=0.01
+
+    # Turkey tail fans out of both sides of the butt: thin shelves, a wide one with a smaller one above it
+    Material material=sniper_shelf
+        SymmetryX
+            Union
+                Translate translation=(0.022, 0.11, -0.43)
+                    Rotate rotation=(0, 0, -0.2)
+                        Intersection
+                            Ellipsoid radii=(0.05, 0.007, 0.07)
+                            Translate translation=(0.06, 0, 0)
+                                Box size=(0.06, 0.02, 0.08)
+                Translate translation=(0.022, 0.145, -0.4)
+                    Rotate rotation=(0, 0, -0.25)
+                        Intersection
+                            Ellipsoid radii=(0.035, 0.006, 0.05)
+                            Translate translation=(0.05, 0, 0)
+                                Box size=(0.05, 0.02, 0.06)
 
     Material material=sniper_rubber
         Union
-            # Butt pad
-            Translate translation=(0, 0.12, -0.512)
-                RoundBox size=(0.024, 0.06, 0.008) roundness=0.005
-            # Bipod feet
+            # The butt pad: a pad of dark gills on the end of the butt, grooved across
+            Subtraction
+                Translate translation=(0, 0.12, -0.512)
+                    RoundBox size=(0.024, 0.06, 0.008) roundness=0.005
+                Translate translation=(0, 0.12, -0.522)
+                    LimitedRepetition spacing=0.016 limits=(0, 3, 0)
+                        Box size=(0.03, 0.003, 0.006)
+            # The bipod's feet, two bulbs
             SymmetryX
-                Translate translation=(0.075, 0.011, 0.24)
-                    Sphere radius=0.011
+                Translate translation=(0.075, 0.012, 0.24)
+                    Ellipsoid radii=(0.013, 0.012, 0.013)
 
+    # The stalks: the barrel, the scope's tube, the receiver, the magazine and the bipod's legs
     Material material=sniper_steel
         Union
             # Receiver, magazine, trigger guard and trigger
-            ArbitraryCappedCylinder a=(0, 0.172, -0.17) b=(0, 0.172, 0.05) radius=0.024
+            ArbitraryRoundCone a=(0, 0.172, -0.16) b=(0, 0.172, 0.04) radiusA=0.025 radiusB=0.022
             Translate translation=(0, 0.125, -0.07)
-                RoundBox size=(0.016, 0.04, 0.034) roundness=0.005
-            Translate translation=(0, 0.11, -0.15)
-                Rotate rotation=(0, 0, 1.5707964)
-                    Torus innerRadius=0.02 outerRadius=0.027
+                RoundBox size=(0.016, 0.04, 0.034) roundness=0.01
+            Distort amount=0.0015 frequency=60
+                Translate translation=(0, 0.11, -0.15)
+                    Rotate rotation=(0, 0, 1.5707964)
+                        Torus innerRadius=0.02 outerRadius=0.027
             Capsule a=(0, 0.125, -0.15) b=(0, 0.108, -0.155) radius=0.003
-            # The bolt handle, out to the right with a round knob
-            Capsule a=(0.02, 0.18, -0.1) b=(0.058, 0.158, -0.11) radius=0.005
-            Translate translation=(0.06, 0.157, -0.11)
-                Sphere radius=0.011
-            # The barrel, thinning towards the muzzle
-            ArbitraryCappedCone a=(0, 0.172, 0.05) b=(0, 0.172, 0.62) radiusA=0.015 radiusB=0.011
-            # Muzzle brake, with the bore through it and slots out to the sides
-            Subtraction
-                ArbitraryCappedCylinder a=(0, 0.172, 0.6) b=(0, 0.172, 0.68) radius=0.019
-                Union
-                    ArbitraryCappedCylinder a=(0, 0.172, 0.6) b=(0, 0.172, 0.69) radius=0.007
-                    SymmetryX
-                        Union
-                            Translate translation=(0.02, 0.172, 0.625)
-                                Box size=(0.012, 0.008, 0.007)
-                            Translate translation=(0.02, 0.172, 0.655)
-                                Box size=(0.012, 0.008, 0.007)
-            # The scope: tube, eyepiece, objective bell, and turrets on top and to the right
-            ArbitraryCappedCylinder a=(0, 0.238, -0.14) b=(0, 0.238, 0.1) radius=0.018
-            ArbitraryCappedCone a=(0, 0.238, -0.14) b=(0, 0.238, -0.19) radiusA=0.018 radiusB=0.024
-            ArbitraryCappedCone a=(0, 0.238, 0.1) b=(0, 0.238, 0.17) radiusA=0.018 radiusB=0.03
-            ArbitraryCappedCylinder a=(0, 0.25, -0.02) b=(0, 0.27, -0.02) radius=0.012
-            ArbitraryCappedCylinder a=(0.012, 0.238, -0.02) b=(0.032, 0.238, -0.02) radius=0.011
-            # Scope mounts
-            Translate translation=(0, 0.205, -0.1)
-                RoundBox size=(0.011, 0.02, 0.011) roundness=0.003
-            Translate translation=(0, 0.205, 0.02)
-                RoundBox size=(0.011, 0.02, 0.011) roundness=0.003
-            # The bipod: a clamp under the forend and two legs splayed down to the ground
+            # The barrel, a long stalk thinning towards the muzzle
+            ArbitraryCappedCone a=(0, 0.172, 0.03) b=(0, 0.172, 0.64) radiusA=0.016 radiusB=0.011
+            # The scope: a hollow stalk, its eyepiece a swelling at the back, on two knuckles
+            ArbitraryCappedCylinder a=(0, 0.238, -0.14) b=(0, 0.238, 0.1) radius=0.017
+            ArbitraryRoundCone a=(0, 0.238, -0.13) b=(0, 0.238, -0.18) radiusA=0.017 radiusB=0.022
+            SmoothUnion smoothness=0.008
+                Translate translation=(0, 0.205, -0.1)
+                    Ellipsoid radii=(0.012, 0.022, 0.014)
+                Translate translation=(0, 0.205, 0.02)
+                    Ellipsoid radii=(0.012, 0.022, 0.014)
+            # The bolt handle's stalk, out to the right
+            Capsule a=(0.02, 0.18, -0.1) b=(0.054, 0.16, -0.11) radius=0.005
+            # The bipod: a knuckle under the forend and two thin stalks splayed down to the feet
             Translate translation=(0, 0.115, 0.22)
-                RoundBox size=(0.022, 0.01, 0.014) roundness=0.004
+                Ellipsoid radii=(0.022, 0.012, 0.016)
             SymmetryX
-                Capsule a=(0.015, 0.11, 0.22) b=(0.075, 0.02, 0.24) radius=0.006
+                ArbitraryRoundCone a=(0.015, 0.11, 0.22) b=(0.074, 0.022, 0.24) radiusA=0.007 radiusB=0.005
 
-    # The scope's lenses, standing just proud of the eyepiece and the bell
+    # The caps: the bell at the muzzle, the flared cap round the scope's front, the turrets and the bolt's knob
+    Material material=sniper_cap
+        Union
+            # The bell at the muzzle: a dome open at the front, with the bore through its back
+            Subtraction
+                Round radius=0.002
+                    Intersection
+                        Translate translation=(0, 0.172, 0.688)
+                            Ellipsoid radii=(0.032, 0.032, 0.075)
+                        Translate translation=(0, 0.172, 0.6)
+                            Box size=(0.05, 0.05, 0.088)
+                Union
+                    Translate translation=(0, 0.172, 0.69)
+                        Ellipsoid radii=(0.025, 0.025, 0.05)
+                    ArbitraryCappedCylinder a=(0, 0.172, 0.6) b=(0, 0.172, 0.7) radius=0.007
+            # The flared cap round the scope's objective lens
+            Subtraction
+                Round radius=0.002
+                    ArbitraryCappedCone a=(0, 0.238, 0.095) b=(0, 0.238, 0.165) radiusA=0.018 radiusB=0.031
+                ArbitraryCappedCone a=(0, 0.238, 0.12) b=(0, 0.238, 0.17) radiusA=0.012 radiusB=0.027
+            # Button mushrooms for the turrets, on top and to the right of the scope
+            Translate translation=(0, 0.258, -0.02)
+                Intersection
+                    Ellipsoid radii=(0.014, 0.013, 0.014)
+                    Translate translation=(0, 0.02, 0)
+                        Box size=(0.02, 0.02, 0.02)
+            Translate translation=(0.018, 0.238, -0.02)
+                Rotate rotation=(0, 0, -1.5707964)
+                    Intersection
+                        Ellipsoid radii=(0.013, 0.012, 0.013)
+                        Translate translation=(0, 0.02, 0)
+                            Box size=(0.02, 0.02, 0.02)
+            # The bolt's knob, a little cap on its stalk
+            Translate translation=(0.058, 0.158, -0.11)
+                Rotate rotation=(0, 0, -1.2)
+                    Intersection
+                        Ellipsoid radii=(0.013, 0.012, 0.013)
+                        Translate translation=(0, 0.015, 0)
+                            Box size=(0.02, 0.015, 0.02)
+
+    # Gills inside the muzzle bell, ridged out from the bore
+    Material material=sniper_rubber
+        Subtraction
+            Translate translation=(0, 0.172, 0.655)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.15 count=10
+                        CappedCylinder radius=0.026 height=0.004
+            ArbitraryCappedCylinder a=(0, 0.172, 0.6) b=(0, 0.172, 0.7) radius=0.007
+
+    # The scope's lenses, glowing just proud of the eyepiece and inside the flared cap
     Material material=sniper_lens
         Union
-            ArbitraryCappedCylinder a=(0, 0.238, 0.165) b=(0, 0.238, 0.173) radius=0.026
-            ArbitraryCappedCylinder a=(0, 0.238, -0.185) b=(0, 0.238, -0.193) radius=0.02
+            ArbitraryCappedCylinder a=(0, 0.238, 0.122) b=(0, 0.238, 0.13) radius=0.016
+            ArbitraryCappedCylinder a=(0, 0.238, -0.184) b=(0, 0.238, -0.19) radius=0.018

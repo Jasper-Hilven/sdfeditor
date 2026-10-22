@@ -6,9 +6,10 @@ namespace SdfBattle
     /// <summary>
     /// The one data asset of combat (ticket 22), Assets/Battle/Resources/Weapons.asset: every weapon's numbers (<see cref="table"/>, the
     /// balance, tuned here and not in code) and how each is drawn (<see cref="looks"/>: its model, where its muzzle and grip are, where
-    /// it sits in the first-person view, its tracer), plus the effects' material and the goop models of the blob gun. The editor makes
-    /// the asset with the first balance when it is missing (Tools > SDF Battle > Reset Weapon Table); the game loads it from Resources,
-    /// and falls back to <see cref="WeaponTable.Default"/> without it.
+    /// it sits in the first-person view, its tracer), plus the effects' material, the goop models of the blob gun (the gore's blood
+    /// too) and the pieces a killed scout bursts into (<see cref="Gore"/>). The editor makes the asset with the first balance when it is
+    /// missing (Tools > SDF Battle > Reset Weapon Table); the game loads it from Resources, and falls back to
+    /// <see cref="WeaponTable.Default"/> without it.
     /// </summary>
     [CreateAssetMenu(menuName = "SDF Battle/Weapon Table")]
     public sealed class WeaponTableAsset : ScriptableObject
@@ -59,6 +60,11 @@ namespace SdfBattle
         public GameObject[] blobModels = Array.Empty<GameObject>();
         [Tooltip("The blob gun's splats on the ground (goop-splat prefabs)")]
         public GameObject[] splatModels = Array.Empty<GameObject>();
+
+        [Header("Gore")]
+        [Tooltip("The pieces a scout's body bursts into when killed (<scout>-cap0, -stem-top, ...: Assets/Mushrooms, from " +
+                 "content/models/characters/exploding), matched to a scout by its prefab's name; a scout without pieces topples whole")]
+        public GameObject[] scoutPieces = Array.Empty<GameObject>();
 
         private static WeaponTableAsset loaded;
 

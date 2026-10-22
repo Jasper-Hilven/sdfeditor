@@ -1,0 +1,90 @@
+# Game box, standing: a closed board-game box blown up to 8 m wide, 12 m tall and 2.8 m deep, stood up on its short end like a
+# box on a shelf, as a tall wall. The lid, plum purple card with rounded edges, slides over the plain cardboard tray from the
+# front (+z) and covers its front half; the tray's back half shows behind it. The print on the lid's face, flush: a gold rule round
+# the edge, a cream title band near the top with two black lines of title, and a big ivory die showing three below it.
+format 1
+collider convex
+
+# A fifth of the vertices its size would give it: one big slab, seen from afar; the print stays crisp
+Detail detail=0.2
+    Translate translation=(0, 6, 0)
+        Union
+            # The tray: plain cardboard, its back half out of the lid
+            Material material=game_box_inside
+                RoundBox size=(3.9, 5.9, 1.4) roundness=0.12
+            # The lid over its front half
+            Material material=game_box_purple
+                Translate translation=(0, 0, 0.7)
+                    RoundBox size=(4, 6, 0.75) roundness=0.15
+            # A gold rule round the edge of the printed face
+            Material material=card_gold
+                Intersection
+                    Translate translation=(0, 0, 0.7)
+                        RoundBox size=(4, 6, 0.75) roundness=0.15
+                    Translate translation=(0, 0, 1.55)
+                        Extrusion height=0.35
+                            Subtraction2D
+                                RoundedBox2D size=(3.65, 5.65) radiusTopRight=0.3 radiusBottomRight=0.3 radiusTopLeft=0.3 radiusBottomLeft=0.3
+                                RoundedBox2D size=(3.4, 5.4) radiusTopRight=0.2 radiusBottomRight=0.2 radiusTopLeft=0.2 radiusBottomLeft=0.2
+            # The title band: cream, edged in gold, and two lines of black title on it
+            Material material=card_gold
+                Intersection
+                    Translate translation=(0, 0, 0.7)
+                        RoundBox size=(4, 6, 0.75) roundness=0.15
+                    Translate translation=(0, 0, 1.55)
+                        Extrusion height=0.35
+                            Translate2D offset=(0, 3.6)
+                                RoundedBox2D size=(3.0, 1.2) radiusTopRight=0.3 radiusBottomRight=0.3 radiusTopLeft=0.3 radiusBottomLeft=0.3
+            Material material=card_paper
+                Intersection
+                    Translate translation=(0, 0, 0.7)
+                        RoundBox size=(4, 6, 0.75) roundness=0.15
+                    Translate translation=(0, 0, 1.55)
+                        Extrusion height=0.35
+                            Translate2D offset=(0, 3.6)
+                                RoundedBox2D size=(2.8, 1.0) radiusTopRight=0.22 radiusBottomRight=0.22 radiusTopLeft=0.22 radiusBottomLeft=0.22
+            Material material=card_black
+                Intersection
+                    Translate translation=(0, 0, 0.7)
+                        RoundBox size=(4, 6, 0.75) roundness=0.15
+                    Translate translation=(0, 0, 1.55)
+                        Extrusion height=0.35
+                            Union2D
+                                Translate2D offset=(0, 3.95)
+                                    RoundedBox2D size=(2.2, 0.22) radiusTopRight=0.1 radiusBottomRight=0.1 radiusTopLeft=0.1 radiusBottomLeft=0.1
+                                Translate2D offset=(0, 3.25)
+                                    RoundedBox2D size=(1.6, 0.18) radiusTopRight=0.08 radiusBottomRight=0.08 radiusTopLeft=0.08 radiusBottomLeft=0.08
+            # A big ivory die below the title, tipped a little, showing three
+            Material material=card_black
+                Intersection
+                    Translate translation=(0, 0, 0.7)
+                        RoundBox size=(4, 6, 0.75) roundness=0.15
+                    Translate translation=(0, 0, 1.55)
+                        Extrusion height=0.35
+                            Translate2D offset=(0, -1.2)
+                                Rotate2D angle=0.2
+                                    RoundedBox2D size=(2.3, 2.3) radiusTopRight=0.55 radiusBottomRight=0.55 radiusTopLeft=0.55 radiusBottomLeft=0.55
+            Material material=card_paper
+                Intersection
+                    Translate translation=(0, 0, 0.7)
+                        RoundBox size=(4, 6, 0.75) roundness=0.15
+                    Translate translation=(0, 0, 1.55)
+                        Extrusion height=0.35
+                            Translate2D offset=(0, -1.2)
+                                Rotate2D angle=0.2
+                                    RoundedBox2D size=(2.1, 2.1) radiusTopRight=0.48 radiusBottomRight=0.48 radiusTopLeft=0.48 radiusBottomLeft=0.48
+            Material material=card_black
+                Intersection
+                    Translate translation=(0, 0, 0.7)
+                        RoundBox size=(4, 6, 0.75) roundness=0.15
+                    Translate translation=(0, 0, 1.55)
+                        Extrusion height=0.35
+                            Translate2D offset=(0, -1.2)
+                                Rotate2D angle=0.2
+                                    Union2D
+                                        Union2D
+                                            Translate2D offset=(-1.0, -1.0)
+                                                Circle radius=0.34
+                                            Translate2D offset=(1.0, 1.0)
+                                                Circle radius=0.34
+                                        Circle radius=0.34

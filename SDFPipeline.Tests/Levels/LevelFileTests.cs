@@ -185,12 +185,77 @@ public class LevelFileTests
         Assert.Equal(("west", "east"), (battle.West.Name, battle.East.Name));
         Assert.Equal(new BattleObject(BattleKind.Spawn, null, new Vector2(-57, 0), 90, 11), battle.West.Spawn);
         Assert.Equal(new BattleObject(BattleKind.Flag, null, new Vector2(61, 0), 30, 6), battle.East.Flag);
-        Assert.Equal(new BattleObject(BattleKind.Pod, "minigun", new Vector2(48, 6), 0, 9), battle.East.Minigun);
+        Assert.Equal(new BattleObject(BattleKind.Pod, "minigun", new Vector2(48, 6), 0, 9), battle.East.Weapons[0]);
         Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health"], battle.East.Objects.Select(o => o.Name));
         // The long-range pod first, whichever order the file gives them in
         Assert.Equal(["electro-gun", "poison-gun"], battle.Neutral.Select(p => p.Pod));
         Assert.Equal(BattleObject.PodRadius, battle.Neutral[0].Radius);
         Assert.Null(LevelFile.Read("format 1\nplay size=(10, 10)").Battle);
+    }
+
+    [Fact]
+    public void Read_TakesMoreHealthPods_AfterTheFirst()
+    {
+        const string Side = "        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n";
+        var level = LevelFile.Read("format 1\nplay size=(150, 100)\nsides\n    west\n" + Side +
+                                   "        pod health at=(-28, -43)\n        pod health at=(-28, 43)\n        pod health at=(-73.5, -9)\n" +
+                                   "    east\n" + Side + "        pod health at=(51, 11)\n" +
+                                   "neutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)");
+
+        var west = level.Battle!.West;
+        Assert.Equal(new Vector2(-28, -43), west.Health.At);
+        Assert.Equal([new Vector2(-28, 43), new Vector2(-73.5f, -9)], west.MoreHealth.Select(p => p.At));
+        Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health", "pod health", "pod health"], west.Objects.Select(o => o.Name));
+        Assert.Empty(level.Battle.East.MoreHealth);
+    }
+
+    [Fact]
+    public void Read_TakesAnyWeaponPodsOnTheSides_InTheWeaponsOrder()
+    {
+        const string Weapons = "        pod poison-gun at=({0}66, -14)\n        pod electro-gun at=({0}66, 6)\n";
+        var level = LevelFile.Read(BattleLevel(SideLines("west", -1, weapons: string.Format(Weapons, "-")),
+            SideLines("east", 1, weapons: string.Format(Weapons, ""))));
+
+        var battle = level.Battle!;
+        // Kept in BattleLayout.Weapons' order, whichever order the file gives them in
+        Assert.Equal(["electro-gun", "poison-gun"], battle.West.Weapons.Select(p => p.Pod));
+        Assert.Equal(new Vector2(66, 6), battle.East.Weapons[0].At);
+        Assert.Equal(["spawn", "flag", "pod electro-gun", "pod poison-gun", "pod health"], battle.West.Objects.Select(o => o.Name));
+        // One weapon pod is enough, any of the seven
+        var one = LevelFile.Read(BattleLevel(SideLines("west", -1, weapons: "        pod sniper at=(-48, 6)\n"),
+            SideLines("east", 1, weapons: "        pod sniper at=(48, 6)\n"))).Battle!;
+        Assert.Equal(["sniper"], one.East.Weapons.Select(p => p.Pod));
+        var all = string.Concat(BattleLayout.Weapons.Select((w, i) => $"        pod {w} at=({{0}}40, {i * 4})\n"));
+        var seven = LevelFile.Read(BattleLevel(SideLines("west", -1, weapons: string.Format(all, "-")), SideLines("east", 1, weapons: string.Format(all, "")))).Battle!;
+        Assert.Equal(BattleLayout.Weapons, seven.West.Weapons.Select(p => p.Pod));
+    }
+
+    public static TheoryData<string, int, string> SideWeaponErrors => new()
+    {
+        // A weapon that is none, the health pod's place taken by nothing else
+        { BattleLevel(SideLines("west", -1, weapons: "        pod cannon at=(-48, 6)\n"), SideLines("east", 1)), 7,
+            "A side's pods are health and the weapons minigun, pistol, sniper, electro-gun, flamethrower, poison-gun, blob-gun; cannon is none of them" },
+        // A weapon twice on one side
+        { BattleLevel(SideLines("west", -1, weapons: "        pod minigun at=(-48, 6)\n        pod minigun at=(-48, -6)\n"), SideLines("east", 1)), 8,
+            "Side west has its pod minigun twice, first on line 7" },
+        // Sides that do not mirror: another weapon, one weapon fewer
+        { BattleLevel(SideLines("west", -1), SideLines("east", 1, weapons: "        pod minigun at=(48, 6)\n        pod sniper at=(48, -6)\n")), 10,
+            "The sides mirror each other, so they have the same weapon pods; west has minigun, pistol, east minigun, sniper" },
+        { BattleLevel(SideLines("west", -1), SideLines("east", 1, weapons: "        pod minigun at=(48, 6)\n")), 10,
+            "west has minigun, pistol, east minigun" },
+        // No weapon pod at all, only health
+        { BattleLevel(SideLines("west", -1, weapons: ""), SideLines("east", 1)), 4,
+            "Side west has no weapon pod; a side has one or more" },
+    };
+
+    [Theory]
+    [MemberData(nameof(SideWeaponErrors))]
+    public void Read_ChecksTheSidesWeaponPods(string text, int line, string problem)
+    {
+        var exception = Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(text));
+
+        Assert.Equal(line, exception.Line);
+        Assert.Contains(problem, exception.Problem);
     }
 
     [Fact]
@@ -208,6 +273,96 @@ public class LevelFileTests
         Assert.Equal(3f, battle.East.Spawn.Radius);
         // A flag or a pod takes up its own foot, whatever its zone would be
         Assert.Equal(BattleObject.FlagRadius, battle.West.Flag.Radius);
+    }
+
+    /// <summary>
+    /// A side's lines (ticket 17's five), at x mirrored by <paramref name="sign"/>, with <paramref name="extra"/> after them; with
+    /// <paramref name="weapons"/>, those weapon pod lines in place of the minigun and the pistol.
+    /// </summary>
+    private static string SideLines(string name, float sign, string extra = "", string? weapons = null)
+    {
+        string X(float x) => (sign * x).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        weapons ??= $"        pod minigun at=({X(48)}, 6)\n        pod pistol at=({X(48)}, -6)\n";
+        return $"    {name}\n        spawn at=({X(57)}, 0) yaw={X(90)}\n        flag at=({X(61)}, 0)\n" + weapons +
+               $"        pod health at=({X(51)}, 11)\n" + extra;
+    }
+
+    /// <summary>Ticket 24's machine lines of a side at x mirrored by <paramref name="sign"/>: <paramref name="turrets"/> turrets, and the
+    /// machine zone when <paramref name="zone"/>.</summary>
+    private static string MachineLines(float sign, int turrets = 4, bool zone = true, string zoneExtra = " radius=2.5")
+    {
+        string X(float x) => (sign * x).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var lines = string.Concat(Enumerable.Range(0, turrets).Select(i => $"        turret at=({X(45)}, {i * 5 - 8}) yaw={X(90)}\n"));
+        return lines + (zone ? $"        machines at=({X(70)}, 20) yaw={X(90)}{zoneExtra}\n" : "");
+    }
+
+    private static string BattleLevel(string west, string east) =>
+        "format 1\nplay size=(150, 100)\nsides\n" + west + east + "neutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)\n";
+
+    [Fact]
+    public void Read_TakesEachSidesTurretsAndMachineZone_AndLevelsWithoutMachines()
+    {
+        var level = LevelFile.Read(BattleLevel(SideLines("west", -1, MachineLines(-1)), SideLines("east", 1, MachineLines(1, zoneExtra: ""))));
+
+        var battle = level.Battle!;
+        Assert.True(battle.HasMachines);
+        // Lines 4-9 the west side's first six, then its four turrets and the zone
+        Assert.Equal(Enumerable.Range(0, 4).Select(i => new BattleObject(BattleKind.Turret, null, new Vector2(-45, i * 5 - 8), -90, 10 + i)),
+            battle.West.Turrets);
+        Assert.Equal(new BattleObject(BattleKind.Machines, null, new Vector2(-70, 20), -90, 14) { ZoneRadius = 2.5f }, battle.West.MachineSpawn);
+        Assert.Equal(2.5f, battle.West.MachineSpawn!.Radius);
+        Assert.Equal(BattleObject.DefaultMachineZone, battle.East.MachineSpawn!.ZoneRadius);
+        Assert.Equal(BattleObject.TurretRadius, battle.East.Turrets[0].Radius);
+        Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health", "turret", "turret", "turret", "turret", "machines"],
+            battle.East.Objects.Select(o => o.Name));
+        Assert.Equal(22, battle.Objects.Count());
+
+        // A level without machines is a level as before
+        var plain = LevelFile.Read(BattleLevel(SideLines("west", -1), SideLines("east", 1))).Battle!;
+        Assert.False(plain.HasMachines);
+        Assert.Empty(plain.West.Turrets);
+        Assert.Null(plain.East.MachineSpawn);
+        Assert.Equal(5, plain.West.Objects.Count);
+    }
+
+    public static TheoryData<string, int, string> MachineErrors => new()
+    {
+        // Three turrets, five turrets
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, turrets: 3)), SideLines("east", 1, MachineLines(1))), 4,
+            "Side west has 3 turrets; a side with machines has exactly 4 'turret' lines" },
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, turrets: 5)), SideLines("east", 1, MachineLines(1))), 14,
+            "Side west has 4 turrets already (lines 10, 11, 12, 13); a side has exactly 4" },
+        // Turrets without a zone, a zone without turrets, a zone twice
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, zone: false)), SideLines("east", 1, MachineLines(1))), 4,
+            "Side west has turrets but no machine zone" },
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, turrets: 0)), SideLines("east", 1, MachineLines(1))), 4,
+            "Side west has 0 turrets; a side with machines has exactly 4 'turret' lines" },
+        { BattleLevel(SideLines("west", -1, MachineLines(-1) + "        machines at=(-70, -20)\n"), SideLines("east", 1, MachineLines(1))), 15,
+            "Side west has its machines twice, first on line 14" },
+        // Machines on one side only
+        { BattleLevel(SideLines("west", -1, MachineLines(-1)), SideLines("east", 1)), 15,
+            "Side west has machines (turrets and a machine zone), so side east needs them too: 4 'turret' lines and a 'machines' line" },
+        { BattleLevel(SideLines("west", -1), SideLines("east", 1, MachineLines(1))), 4, "so side west needs them too" },
+        // The parameters: a zone's radius in range, a turret with no radius
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, zoneExtra: " radius=9")), SideLines("east", 1, MachineLines(1))), 14,
+            "'radius' of machines is 9, but needs metres, 1.5 to 8" },
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, zoneExtra: " scale=2")), SideLines("east", 1, MachineLines(1))), 14,
+            "Machines has no parameter 'scale'; its parameters are at, yaw, radius" },
+        { BattleLevel(SideLines("west", -1, "        turret at=(-45, 0) radius=2\n"), SideLines("east", 1, MachineLines(1))), 10,
+            "Turret has no parameter 'radius'; its parameters are at, yaw" },
+        { BattleLevel(SideLines("west", -1, "        turret yaw=90\n"), SideLines("east", 1, MachineLines(1))), 10, "Turret is missing parameter 'at'" },
+        // Machines belong to a side, not between them
+        { "format 1\nplay size=(150, 100)\nneutral\n    turret at=(0, 32)", 4, "Expected 'pod' in the neutral pods, found 'turret'" },
+    };
+
+    [Theory]
+    [MemberData(nameof(MachineErrors))]
+    public void Read_ChecksTheMachines(string text, int line, string problem)
+    {
+        var exception = Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(text));
+
+        Assert.Equal(line, exception.Line);
+        Assert.Contains(problem, exception.Problem);
     }
 
     [Fact]
@@ -361,9 +516,14 @@ public class LevelFileTests
         Assert.Equal(["light", "dark"], level.Regions.Select(r => r.Name));
         Assert.Equal(HillRing.None, level.Hills);
         Assert.Equal(IslandEdge.None, level.Edge);
-        Assert.Empty(level.Scatters);
-        Assert.Empty(level.Trees);
-        Assert.Empty(level.DrawGroups);
+        // The fill: the clutter scattered in group tokens and kept off the walls (reach 0), the strewn pieces in group pieces inside the
+        // walls, each group drawn
+        Assert.NotEmpty(level.Scatters);
+        Assert.All(level.Scatters, s => Assert.Equal(("tokens", 0f), (s.Group, s.Reach)));
+        Assert.NotEmpty(level.Trees);
+        Assert.All(level.Trees, t => Assert.Equal("pieces", t.Group));
+        Assert.All(level.Trees, t => Assert.True(t.Band!.Value.Y < 0, $"the trees section on line {t.Line} reaches under the walls"));
+        Assert.Equal(["tokens", "pieces"], level.DrawGroups.Select(g => g.Name));
         Assert.Null(level.Sky);
         Assert.Equal(new RoomSpec(new Vector3(160, 160, 160), 8), level.Room);
         var regions = new GroundRegions(level, _ => throw new InvalidOperationException("No placement paints the ground"));
@@ -378,7 +538,7 @@ public class LevelFileTests
         Assert.Null(regions.At(new Vector2(81.5f, 0)));
         // Every piece on the board, both colours of every kind among them, each model in content/models
         var models = LevelModels.In(Path.Combine(content, "models"));
-        Assert.InRange(level.Placements.Count, 60, 160);
+        Assert.InRange(level.Placements.Count, 60, 260);
         Assert.All(level.Placements, p => Assert.True(MathF.Abs(p.At.X) < 80 && MathF.Abs(p.At.Y) < 80, $"{p.Model} on line {p.Line}"));
         Assert.All(level.Placements, p => Assert.NotNull(models(p.Model)));
         foreach (var piece in new[] { "pawn", "rook", "knight", "bishop", "queen", "king" })
@@ -427,18 +587,38 @@ public class LevelFileTests
     }
 
     [Fact]
-    public void ContentChessboard_GamePieces_UseAllTwentyModelsOnTheBoard()
+    public void ContentChessboard_GamePieces_UseEveryGamesModelOnTheBoard()
     {
         var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
         Assert.NotNull(content);
         var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "chessboard" + LevelFile.Extension));
 
         var games = Directory.GetFiles(Path.Combine(content, "models", "games"), "*.sdf").Select(Path.GetFileNameWithoutExtension).ToList();
-        Assert.Equal(20, games.Count);
-        foreach (var model in games)
+        // The twenty pieces of the first board are each placed by hand at least once
+        string[] first =
+        [
+            "die-red", "die-red-tumbled", "die-ivory", "die-d8", "monopoly-house", "monopoly-house-toppled", "monopoly-hotel", "domino-chain",
+            "domino-5-5-standing", "domino-6-3-lying", "domino-2-6-side", "meeple-standing", "meeple-fallen", "poker-chip-stack",
+            "poker-chip-rolling", "card-house", "card-face-down", "card-three-lying", "card-king-stuck", "card-ace-held",
+        ];
+        Assert.Subset(games.ToHashSet(), first.ToHashSet());
+        foreach (var model in first)
             Assert.Contains(level.Placements, p => p.Model == model);
-        Assert.All(level.Placements.Where(p => games.Contains(p.Model)),
-            p => Assert.True(MathF.Abs(p.At.X) < 76 && MathF.Abs(p.At.Y) < 76, $"{p.Model} on line {p.Line} is off the board"));
+        // Every other one, the fill's clutter, pieces and landmarks, is placed or scattered
+        var scattered = level.Scatters.Concat(level.Trees).SelectMany(s => s.Entries).Select(e => e.Model).ToHashSet();
+        foreach (var model in games)
+            Assert.True(level.Placements.Any(p => p.Model == model) || scattered.Contains(model), $"{model} is on the board nowhere");
+        // Each placed one wholly inside the walls
+        var footprints = LevelModels.In(Path.Combine(content, "models"));
+        Assert.All(level.Placements.Where(p => games.Contains(p.Model)), p =>
+        {
+            var footprint = footprints(p.Model)!;
+            foreach (var corner in new[] { footprint.Min, footprint.Max, new Vector2(footprint.Min.X, footprint.Max.Y), new Vector2(footprint.Max.X, footprint.Min.Y) })
+            {
+                var at = p.At + Placement2D.ToLevel(corner * p.Scale, p.Yaw);
+                Assert.True(MathF.Abs(at.X) < 80 && MathF.Abs(at.Y) < 80, $"{p.Model} on line {p.Line} is off the board");
+            }
+        });
     }
 
     [Fact]
@@ -508,12 +688,41 @@ public class LevelFileTests
             if (!a.Game && !b.Game)
                 continue;
             var allowed = a.Game && b.Game && a.Group == b.Group ? 0.25f * MathF.Min(a.Radius, b.Radius) : 0;
-            var depth = a.Radius + b.Radius - Vector2.Distance(a.Centre, b.Centre);
+            // Within a group, their turned footprints themselves: the domino run's tiles stand closer than their circles allow
+            var depth = a.Game && b.Game && a.Group == b.Group
+                ? BoxOverlap(a.Placement, b.Placement, footprints)
+                : a.Radius + b.Radius - Vector2.Distance(a.Centre, b.Centre);
             if (depth > allowed)
                 problems.Add($"{a.Placement.Model} (line {a.Placement.Line}) and {b.Placement.Model} (line {b.Placement.Line}) overlap by {depth:0.00} m, " +
                              $"allowed {allowed:0.00} m");
         }
         return problems;
+    }
+
+    /// <summary>How far two placements' turned footprints sink into each other, the least along any of their edges' normals; 0 when apart.</summary>
+    private static float BoxOverlap(Placement a, Placement b, Func<string, ModelFootprint?> footprints)
+    {
+        Vector2[] Corners(Placement p)
+        {
+            var f = footprints(p.Model)!;
+            return new[] { f.Min, new Vector2(f.Max.X, f.Min.Y), f.Max, new Vector2(f.Min.X, f.Max.Y) }
+                .Select(c => p.At + Placement2D.ToLevel(c * p.Scale, p.Yaw)).ToArray();
+        }
+
+        var (first, second) = (Corners(a), Corners(b));
+        var least = float.MaxValue;
+        foreach (var box in new[] { first, second })
+        for (var i = 0; i < 4; i++)
+        {
+            var edge = box[(i + 1) % 4] - box[i];
+            var normal = Vector2.Normalize(new Vector2(-edge.Y, edge.X));
+            var (p, q) = (first.Select(c => Vector2.Dot(c, normal)).ToArray(), second.Select(c => Vector2.Dot(c, normal)).ToArray());
+            var overlap = MathF.Min(p.Max(), q.Max()) - MathF.Max(p.Min(), q.Min());
+            if (overlap <= 0)
+                return 0;
+            least = MathF.Min(least, overlap);
+        }
+        return least;
     }
 
     [Fact]
@@ -522,9 +731,9 @@ public class LevelFileTests
         var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
         Assert.NotNull(content);
 
-        // 19 pieces: six kinds in both colours, plus the fallen variants
+        // 21 pieces: six kinds in both colours, plus the fallen variants and the two halves of the giant fallen king
         var pieces = Directory.GetFiles(Path.Combine(content, "models", "chess"), "*.sdf");
-        Assert.Equal(19, pieces.Length);
+        Assert.Equal(21, pieces.Length);
         Assert.All(pieces, file =>
         {
             var text = File.ReadAllText(file);
@@ -577,11 +786,11 @@ public class LevelFileTests
     [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n    north\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 10, "The sides are west and east; there is no side 'north'")]
     [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 10, "Side west is given twice, first on line 4")]
     [InlineData("format 1\nplay size=(150, 100)\nsides extra=1\n    west\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\n    east\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 3, "Unexpected 'extra=1'")]
-    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0)\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n    east\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 4, "Side west has no pod health; a side has a spawn, a flag and a pod each of minigun, pistol, health")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0)\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n    east\n        spawn at=(-57, 0) yaw=90\n        flag at=(-61, 0)\n        pod minigun at=(-48, 6)\n        pod pistol at=(-48, -6)\n        pod health at=(-51, 11)\nneutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)", 4, "Side west has no pod health; a side has a spawn, a flag, one or more weapon pods and one or more health pods")]
     [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        spawn at=(-57, 0)\n        spawn at=(-58, 0)\n", 6, "Side west has its spawn twice, first on line 5")]
-    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod sniper at=(-57, 0)\n", 5, "A side's pods are minigun, pistol, health; sniper is a neutral pod")]
-    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod rocket at=(-57, 0)\n", 5, "A side's pods are minigun, pistol, health; rocket is none of them")]
-    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        tower at=(-57, 0)\n", 5, "Expected 'spawn', 'flag' or 'pod' in side west, found 'tower'")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod sniper at=(-57, 0)\n", 4, "Side west has no spawn")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod rocket at=(-57, 0)\n", 5, "A side's pods are health and the weapons minigun, pistol, sniper, electro-gun, flamethrower, poison-gun, blob-gun; rocket is none of them")]
+    [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        tower at=(-57, 0)\n", 5, "Expected 'spawn', 'flag', 'pod', 'turret' or 'machines' in side west, found 'tower'")]
     [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        flag yaw=3\n", 5, "Flag is missing parameter 'at'")]
     [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod minigun at=(-48, 6) scale=2\n", 5, "Pod minigun has no parameter 'scale'; its parameters are at, yaw")]
     [InlineData("format 1\nplay size=(150, 100)\nsides\n    west\n        pod minigun at=(-48, 6) radius=2\n", 5, "Pod minigun has no parameter 'radius'; its parameters are at, yaw")]
@@ -590,7 +799,7 @@ public class LevelFileTests
     [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod sniper at=(0, 32)\n    pod electro-gun at=(0, -32)", 5, "The neutral pods have one long-range pod, but sniper is on line 4 already")]
     [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod blob-gun at=(0, 32)\n    pod poison-gun at=(0, -32)", 5, "The neutral pods have one short-range pod, but blob-gun is on line 4 already")]
     [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod sniper at=(0, 32)", 3, "The neutral pods need one of flamethrower, poison-gun, blob-gun indented below them")]
-    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod minigun at=(0, 32)", 4, "The neutral pods are one of sniper, electro-gun and one of flamethrower, poison-gun, blob-gun; minigun is a side's pod")]
+    [InlineData("format 1\nplay size=(150, 100)\nneutral\n    pod minigun at=(0, 32)", 4, "The neutral pods are one of sniper, electro-gun and one of flamethrower, poison-gun, blob-gun; minigun is none of them")]
     [InlineData("format 1\nplay size=(150, 100)\nneutral\n    spawn at=(0, 32)", 4, "Expected 'pod' in the neutral pods, found 'spawn'")]
     public void Read_ExplainsWhatIsWrongAndWhere(string text, int line, string problem)
     {

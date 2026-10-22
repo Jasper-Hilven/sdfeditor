@@ -1,0 +1,25 @@
+# Poker chip, plain blue: a low-triangle cut of poker_chip_blue for scattered cover, the same giant clay chip 2.4 m across and
+# 0.32 m thick, centred on the origin and lying flat, its edge rounded, in game_chip_blue. Only its boldest paint is kept, in white:
+# eight blocks round the edge that wrap over the rim onto both faces, and a plain round spot in the middle of each face. Each
+# painted piece is the chip itself cut to the space of its pattern, so the surface stays one smooth disc.
+format 1
+
+Union
+    # The chip
+    Material material=game_chip_blue
+        RoundedCylinder radius=1.2 roundness=0.06 height=0.16
+    Material material=game_pip_white
+        Intersection
+            RoundedCylinder radius=1.2 roundness=0.06 height=0.16
+            Union
+                # The edge blocks: two radial bars in the +x +z quarter, mirrored into the others
+                SymmetryXZ
+                    Union
+                        Rotate rotation=(0, -0.3926991, 0)
+                            Translate translation=(1.2, 0, 0)
+                                Box size=(0.24, 1, 0.17)
+                        Rotate rotation=(0, -1.1780972, 0)
+                            Translate translation=(1.2, 0, 0)
+                                Box size=(0.24, 1, 0.17)
+                # The spot, through the chip so it shows on both faces
+                CappedCylinder radius=0.42 height=1

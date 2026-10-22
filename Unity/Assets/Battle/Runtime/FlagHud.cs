@@ -5,13 +5,12 @@ using UnityEngine;
 namespace SdfBattle
 {
     /// <summary>
-    /// The capture-the-flag HUD (ticket 21), added to the match's GUI by <see cref="CaptureTheFlag"/> and built at runtime inside the HUD
-    /// screen, in its look (its shapes' material and its fonts are borrowed from the HUD's own elements), so the GUI's prefabs and
-    /// builders stay as they are:
+    /// The capture-the-flag HUD (ticket 21), added to the match's GUI by <see cref="CaptureTheFlag"/>; its pieces are the HUD prefab's
+    /// (<see cref="GuiHud"/>'s flag fields, laid out by the GUI's builder, so the scene shows them as play does), which this fills in:
     /// <list type="bullet">
-    /// <item>beside the clock, on its row, the team score: RED ●●○ 2 [clock] 1 ●○○ BLUE, mirrored, the pips filling outward from the
-    /// clock; it replaces the battle-royale "edge" rings and the players-left panel, which are hidden;</item>
-    /// <item>under the clock a status per team's flag: at home, carried by a name, or dropped with the seconds until it goes home;</item>
+    /// <item>beside the clock, on its row, the team score and outside it a status per team's flag (at home, carried by a name, or
+    /// dropped with the seconds until it goes home): [red flag] 2 [clock] 1 [blue flag], mirrored. On a screen too narrow for that
+    /// beside the kill feed (4:3 and the like) the statuses go under the clock;</item>
     /// <item>a marker over each flag that is not at home (not the one on your back), pinned to the screen's edge with an arrow when the
     /// flag is off screen, with its distance;</item>
     /// <item>banners: "You have the flag", "Blue took your flag", "Red scored", "Your flag was returned" and the like;</item>
@@ -22,8 +21,11 @@ namespace SdfBattle
     public sealed class FlagHud : MonoBehaviour
     {
         public float bannerSeconds = 3;
-        [Tooltip("Markers keep this far inside the screen's edge")]
-        public float markerMargin = 70;
+        [Tooltip("Markers keep this far inside the screen's edge, from their middle: the arrow's tip reaches 48 out, so 5 px from the edge")]
+        public float markerMargin = 53;
+
+        /// <summary>The team score's room either side of the clock, and the flag statuses' size and room outside the score.</summary>
+        public const float ScoreGap = 16, StatusGap = 58, StatusWidth = 280;
 
         private CaptureTheFlag ctf;
         private MatchHud matchHud;
@@ -31,26 +33,21 @@ namespace SdfBattle
         private RectTransform root;
         private Canvas canvas;
 
-        // Borrowed from the HUD: the look of its shapes and texts
-        private Material shapeMaterial;
-        private TMP_FontAsset titleFont, bodyFont;
-        private Material titleMaterial, bodyMaterial;
-
-        private readonly TMP_Text[] scores = new TMP_Text[Teams.Count];
-        private readonly TMP_Text[] names = new TMP_Text[Teams.Count];
-        // The team names' outer edge from the middle; they give way to the kill feed when the screen is narrow (4:3 and the like)
-        private float namesReach;
+        private TMP_Text[] scores;
+        // The flag statuses' outer edge from the middle when beside the score; under the clock instead when the screen is narrow
+        private float statusReach;
+        private float clockCentreY, clockBottom, edge;
         private float shownWidth = -1;
         private Camera view;
         // What the texts show, so they are only rebuilt (and their strings made) when it changes
         private int shownScore = -1;
         private readonly int[] shownStatus = { -1, -1 };
         private readonly int[] shownMetres = { -1, -1 };
-        private readonly ToonShape[,] pips = new ToonShape[Teams.Count, 3];
-        private readonly TMP_Text[] status = new TMP_Text[Teams.Count];
-        private readonly RectTransform[] markers = new RectTransform[Teams.Count];
-        private readonly RectTransform[] markerArrows = new RectTransform[Teams.Count];
-        private readonly TMP_Text[] markerLabels = new TMP_Text[Teams.Count];
+        private RectTransform[] statusPanels;
+        private TMP_Text[] status;
+        private RectTransform[] markers;
+        private RectTransform[] markerArrows;
+        private TMP_Text[] markerLabels;
         private ToonShape banner;
         private TMP_Text bannerText;
         private float bannerLeft;
@@ -62,9 +59,9 @@ namespace SdfBattle
         public static FlagHud Create(CaptureTheFlag ctf, MatchHud matchHud)
         {
             var hud = matchHud.view != null ? matchHud.view.GetComponentInChildren<GuiHud>(true) : null;
-            if (hud == null)
+            if (hud == null || hud.teamScores.Length < Teams.Count || hud.flagStatusPanels.Length < Teams.Count || hud.flagMarkers.Length < Teams.Count)
             {
-                Debug.LogWarning("CaptureTheFlag: the GUI has no HUD screen (GuiHud); no flag HUD");
+                Debug.LogWarning("CaptureTheFlag: the GUI's HUD has no flag pieces; rebuild it (Tools > SDF GUI > Rebuild Prefabs and Scene); no flag HUD");
                 return null;
             }
             var flagHud = hud.gameObject.AddComponent<FlagHud>();
@@ -99,25 +96,19 @@ namespace SdfBattle
         {
             root = (RectTransform)hud.transform;
             canvas = hud.GetComponentInParent<Canvas>();
-            var anyShape = hud.ringPips != null && hud.ringPips.Length > 0 && hud.ringPips[0] != null ? hud.ringPips[0] : hud.GetComponentInChildren<ToonShape>(true);
-            shapeMaterial = anyShape != null ? anyShape.material : null;
-            var title = hud.ringLabel != null ? hud.ringLabel : hud.clock;
-            if (title != null)
-                (titleFont, titleMaterial) = (title.font, title.fontSharedMaterial);
-            var body = hud.pickupLabel != null ? hud.pickupLabel : title;
-            if (body != null)
-                (bodyFont, bodyMaterial) = (body.font, body.fontSharedMaterial);
+            scores = hud.teamScores;
+            statusPanels = hud.flagStatusPanels;
+            status = hud.flagStatus;
+            markers = hud.flagMarkers;
+            markerArrows = hud.flagMarkerArrows;
+            markerLabels = hud.flagMarkerLabels;
+            banner = hud.flagBanner;
+            bannerText = hud.flagBannerText;
 
-            // Battle royale's players left and island edge make way; your kills move into the corner
-            HideHolder(hud.alive);
-            HideHolder(hud.ringLabel);
-            if (hud.kills != null && hud.kills.transform.parent != root && hud.kills.transform.parent is RectTransform kills)
-                kills.anchoredPosition = new Vector2(50, kills.anchoredPosition.y);
-
-            // The clock's panel: the score sits on its row, either side, and the flag statuses under it
-            var clockCentreY = -85f;
+            // The clock's panel: the score and the flag statuses sit on its row, either side
+            clockCentreY = -50f;
             var clockHalfWidth = 115f;
-            var clockBottom = -130f;
+            clockBottom = -95f;
             if (hud.clock != null && hud.clock.transform.parent is RectTransform clockPanel && clockPanel != root
                 && clockPanel.anchorMin == clockPanel.anchorMax && Mathf.Approximately(clockPanel.anchorMin.y, 1))
             {
@@ -126,165 +117,41 @@ namespace SdfBattle
                 clockHalfWidth = size.x * 0.5f;
                 clockBottom = clockCentreY - size.y * 0.5f;
             }
-
-            // Beside the clock, mirrored: RED ●●○ 2 [ 2:14 ] 1 ●○○ BLUE
-            var row = Holder("Team Score", root, new Vector2(0.5f, 1), Vector2.zero, new Vector2(0, 60));
-            row.pivot = new Vector2(0.5f, 0.5f);
-            row.anchoredPosition = new Vector2(0, clockCentreY);
-            var edge = clockHalfWidth + 20;
-            namesReach = edge + 292;
-            foreach (var team in Teams.All)
-            {
-                var sign = team == Team.Red ? -1 : 1;
-                scores[(int)team] = Text(row, $"{team.Name()} Score", "0", true, 52, Colour(team), new Vector2(sign * (edge + 25), 2), new Vector2(50, 60));
-                for (var i = 0; i < 3; i++)
-                {
-                    var pip = Shape(row, $"{team.Name()} Pip {i + 1}", ToonShapeKind.Pill, Dark, new Vector2(sign * (edge + 78 + i * 34), 0), new Vector2(28, 28));
-                    pip.Outline = 3.5f;
-                    pip.Shadow = 3;
-                    pips[(int)team, i] = pip;
-                }
-                names[(int)team] = Text(row, $"{team.Name()} Name", team.Name().ToUpperInvariant(), true, 32, Colour(team), new Vector2(sign * (edge + 237), 0),
-                    new Vector2(110, 44), null, team == Team.Red ? TextAlignmentOptions.Right : TextAlignmentOptions.Left);
-
-                // Under the clock: the flag's status, in a panel each side of the middle
-                var panel = Shape(root, $"{team.Name()} Flag Status", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f),
-                    new Vector2(sign * 8, clockBottom - 16), new Vector2(330, 52), new Vector2(0.5f, 1), new Vector2(team == Team.Red ? 1 : 0, 1));
-                panel.CornerRadius = 18;
-                panel.Outline = 4;
-                panel.Shadow = 5;
-                var pole = Shape(panel.transform, "Pole", ToonShapeKind.Box, GuiPalette.Cream, new Vector2(22, 0), new Vector2(6, 34), new Vector2(0, 0.5f));
-                pole.CornerRadius = 3;
-                pole.Outline = 2;
-                pole.Shadow = 0;
-                var cloth = Shape(panel.transform, "Cloth", ToonShapeKind.Box, Colour(team), new Vector2(27, 7), new Vector2(26, 18), new Vector2(0, 0.5f));
-                cloth.CornerRadius = 4;
-                cloth.Outline = 2.5f;
-                cloth.Shadow = 0;
-                status[(int)team] = Text(panel.transform, "Status", "At home", false, 26, GuiPalette.Cream, new Vector2(64, 0), new Vector2(256, 44),
-                    new Vector2(0, 0.5f), TextAlignmentOptions.Left);
-
-                // The marker over the flag when it is away
-                var marker = Holder($"{team.Name()} Flag Marker", root, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40));
-                var dot = Shape(marker, "Dot", ToonShapeKind.Pill, Colour(team), Vector2.zero, new Vector2(30, 30));
-                dot.Outline = 3.5f;
-                dot.Shadow = 3;
-                var arrow = Shape(marker, "Arrow", ToonShapeKind.Arrow, Colour(team), Vector2.zero, new Vector2(30, 34));
-                arrow.CornerRadius = 4;
-                arrow.Outline = 3;
-                arrow.Shadow = 0;
-                arrow.rectTransform.pivot = new Vector2(-0.6f, 0.5f);
-                markerArrows[(int)team] = arrow.rectTransform;
-                markerLabels[(int)team] = Text(marker, "Distance", "", false, 24, GuiPalette.Cream, new Vector2(0, -34), new Vector2(120, 30));
-                markers[(int)team] = marker;
-                marker.gameObject.SetActive(false);
-            }
-
-            // The banner for what happens to the flags, like the crumble warning
-            if (hud.crumbleBanner != null)
-            {
-                var copy = Instantiate(hud.crumbleBanner, root);
-                copy.name = "Flag Banner";
-                banner = copy.GetComponent<ToonShape>();
-                foreach (var text in copy.GetComponentsInChildren<TMP_Text>(true))
-                {
-                    if (text.name == "Hint")
-                        text.gameObject.SetActive(false);
-                    else if (bannerText == null)
-                        bannerText = text;
-                }
-                var rect = (RectTransform)copy.transform;
-                rect.anchoredPosition = new Vector2(0, BannerY(rect, clockBottom));
-                rect.sizeDelta = new Vector2(900, 92);
-            }
-            else
-            {
-                banner = Shape(root, "Flag Banner", ToonShapeKind.Box, GuiPalette.Amanita, new Vector2(0, clockBottom - 86), new Vector2(900, 92), new Vector2(0.5f, 1));
-                banner.CornerRadius = 26;
-                bannerText = Text(banner.transform, "Title", "", true, 46, GuiPalette.Cream, Vector2.zero, new Vector2(880, 80));
-            }
-            if (bannerText != null)
-                bannerText.fontSize = 46;
-            banner.gameObject.SetActive(false);
+            edge = clockHalfWidth + ScoreGap;
+            statusReach = edge + StatusGap + StatusWidth;
+            foreach (var marker in markers)
+                GuiText.Show(marker, false);
+            if (banner != null)
+                banner.gameObject.SetActive(false);
 
             results = matchHud.view.GetComponentsInChildren<GuiRoundResult>(true);
         }
 
-        /// <summary>The banner's y so its top sits under the status panels (which end 68 under the clock), whatever its pivot.</summary>
-        private static float BannerY(RectTransform rect, float clockBottom) => clockBottom - 86 - (1 - rect.pivot.y) * 92;
-
-        private void HideHolder(Component element)
+        /// <summary>
+        /// The flag statuses beside the score when the screen has room for them left of the kill feed (which reaches about 415 in from
+        /// the right edge past them), else under the clock; and the banner under whichever is lowest.
+        /// </summary>
+        private void Arrange(float width)
         {
-            if (element == null)
-                return;
-            var holder = element.transform.parent;
-            (holder != null && holder != root ? holder.gameObject : element.gameObject).SetActive(false);
-        }
-
-        private static RectTransform Holder(string name, Transform parent, Vector2 anchor, Vector2 position, Vector2 size)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            var rect = (RectTransform)go.transform;
-            rect.SetParent(parent, false);
-            rect.anchorMin = rect.anchorMax = rect.pivot = anchor;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            return rect;
-        }
-
-        /// <summary>A shape in the HUD's look; anchored to the parent's middle unless told otherwise.</summary>
-        private ToonShape Shape(Transform parent, string name, ToonShapeKind kind, Color colour, Vector2 position, Vector2 size,
-            Vector2? anchor = null, Vector2? pivot = null)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var shape = go.AddComponent<ToonShape>();
-            if (shapeMaterial != null)
-                shape.material = shapeMaterial;
-            shape.color = colour;
-            shape.Kind = kind;
-            shape.raycastTarget = false;
-            Place(shape.rectTransform, anchor ?? new Vector2(0.5f, 0.5f), position, size, pivot);
-            return shape;
-        }
-
-        private TMP_Text Text(Transform parent, string name, string text, bool title, float size, Color colour, Vector2 position, Vector2 box,
-            Vector2? anchor = null, TextAlignmentOptions alignment = TextAlignmentOptions.Center)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var label = go.AddComponent<TextMeshProUGUI>();
-            var font = title ? titleFont : bodyFont;
-            var material = title ? titleMaterial : bodyMaterial;
-            if (font != null)
-                label.font = font;
-            if (material != null)
-                label.fontSharedMaterial = material;
-            label.text = text;
-            label.fontSize = size;
-            label.color = colour;
-            label.alignment = alignment;
-            label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.overflowMode = TextOverflowModes.Overflow;
-            label.raycastTarget = false;
-            label.richText = true;
-            Place(label.rectTransform, anchor ?? new Vector2(0.5f, 0.5f), position, box, anchor);
-            return label;
-        }
-
-        private static void Place(RectTransform rect, Vector2 anchor, Vector2 position, Vector2 size, Vector2? pivot)
-        {
-            rect.anchorMin = rect.anchorMax = anchor;
-            rect.pivot = pivot ?? anchor;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
+            var beside = width * 0.5f >= statusReach + 415;
+            foreach (var team in Teams.All)
+            {
+                var sign = team == Team.Red ? -1 : 1;
+                statusPanels[(int)team].anchoredPosition = beside
+                    ? new Vector2(sign * (edge + StatusGap), clockCentreY)
+                    : new Vector2(sign * 8, clockBottom - 42);
+            }
+            var bottom = beside ? clockBottom : clockBottom - 68;
+            if (banner != null)
+            {
+                var rect = banner.rectTransform;
+                rect.anchoredPosition = new Vector2(0, bottom - 18 - (1 - rect.pivot.y) * 92);
+            }
         }
 
         // ---------------------------------------------------------------- Every frame
 
-        private static readonly Color Dark = GuiPalette.WithAlpha(GuiPalette.Night, 0.9f);
-
-        private static Color Colour(Team team) => team == Team.Red ? GuiPalette.Amanita : GuiPalette.Hex(0x3D7BEA);
+        public static Color Colour(Team team) => team == Team.Red ? GuiPalette.Amanita : GuiPalette.Hex(0x3D7BEA);
 
         private static string Hex(Team team) => GuiPalette.HexOf(Colour(team));
 
@@ -306,20 +173,9 @@ namespace SdfBattle
             var width = root.rect.width;
             if (width != shownWidth)
             {
-                // The kill feed reaches about 510 in from the right edge: on a narrow screen (4:3) the names make way, pips and scores stay
                 shownWidth = width;
-                var roomy = width * 0.5f >= namesReach + 460;
-                foreach (var label in names)
-                    GuiText.Show(label, roomy);
+                Arrange(width);
             }
-            var toWin = match.Rules.capturesToWin;
-            foreach (var team in Teams.All)
-                for (var i = 0; i < 3; i++)
-                {
-                    var pip = pips[(int)team, i];
-                    GuiText.Show(pip, i < toWin);
-                    pip.SetColor(i < match.Score(team) ? Colour(team) : Dark);
-                }
 
             var you = ctf.Match.You;
             foreach (var flag in ctf.State.Flags)

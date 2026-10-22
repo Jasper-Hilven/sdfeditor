@@ -11,8 +11,8 @@ Detail detail=0.5
             SmoothUnion smoothness=0.35
                 Translate translation=(0, 0.6, 0)
                     Ellipsoid radii=(1.0, 0.6, 1.0)
-                Translate translation=(0, 3.0, 0)
-                    CappedCone height=5.0 bottomRadius=0.85 topRadius=0.6
+                # Stem: from below the bulb to 0.3 m above the cap's base (5.2), well under its top (6.7)
+                ArbitraryCappedCone a=(0, -2.0, 0) b=(0, 5.5, 0) radiusA=0.85 radiusB=0.6625
                 # The pore layer: a pale disc hanging just under the cap
                 Translate translation=(0, 4.95, 0)
                     CappedCylinder radius=2.3 height=0.5

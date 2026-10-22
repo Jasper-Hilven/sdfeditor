@@ -201,6 +201,43 @@ namespace SdfBattle.Tests
         }
 
         [Test]
+        public void UnderEighty_TheLivingHealOneEveryTwoSeconds_UpTo80()
+        {
+            combat.Hurt(Blue, Shot(Red, 25));
+            var healed = 0f;
+            combat.Healed += (p, amount) => healed += p == Blue ? amount : 0;
+
+            Run(1.9f);
+            Assert.AreEqual(75, Blue.Health, 1e-4f, "not before two seconds");
+            Run(0.2f);
+            Assert.AreEqual(76, Blue.Health, 1e-4f);
+            Run(20);
+            Assert.AreEqual(80, Blue.Health, 1e-4f, "stops at 80");
+            Assert.AreEqual(5, healed, 1e-4f, "reported as healing");
+        }
+
+        [Test]
+        public void AtOrAboveEighty_TheSlowHealDoesNothing()
+        {
+            combat.Hurt(Blue, Shot(Red, 15));
+
+            Run(10);
+
+            Assert.AreEqual(85, Blue.Health, 1e-4f);
+        }
+
+        [Test]
+        public void TheDead_DoNotHealSlowly()
+        {
+            combat.Hurt(Blue, Shot(Red, 100));
+
+            Run(match.Rules.respawnSeconds - 0.1f);
+
+            Assert.IsFalse(Blue.Alive);
+            Assert.AreEqual(0, Blue.Health);
+        }
+
+        [Test]
         public void Death_LosesEverything_ButTheSinglePistol_AndTheRespawnHasIt()
         {
             combat.Take(Blue, WeaponIds.Minigun);
@@ -379,20 +416,22 @@ namespace SdfBattle.Tests
         public void APoisonCloud_PoisonsAndSlows_For10SecondsAfterLeavingIt()
         {
             var poison = combat.Weapons.Get(WeaponIds.PoisonGun);
+            // Overhealed, so the slow heal under 80 stays out of the sums
+            Blue.Health = 200;
             positions[Blue] = new Vector3(1, 0, 0);
             Cloud(new Vector3(0, 1, 0), Red);
 
             Run(1.1f);
-            Assert.AreEqual(82, Blue.Health, 0.01f, "in the cloud: only the cloud's 18 a second");
+            Assert.AreEqual(182, Blue.Health, 0.01f, "in the cloud: only the cloud's 18 a second");
             Assert.IsTrue(combat.IsPoisoned(Blue));
             Assert.AreEqual(1 - poison.slow, combat.SpeedFactor(Blue), 1e-4f);
 
             positions[Blue] = new Vector3(50, 0, 0);
             Run(5);
-            Assert.AreEqual(82 - 5 * poison.burnPerSecond, Blue.Health, 0.3f, "the afterpoison");
+            Assert.AreEqual(182 - 5 * poison.burnPerSecond, Blue.Health, 0.3f, "the afterpoison");
             Assert.AreEqual(1 - poison.slow, combat.SpeedFactor(Blue), 1e-4f, "still slowed");
             Run(5.3f);
-            Assert.AreEqual(82 - poison.burnSeconds * poison.burnPerSecond, Blue.Health, 0.01f);
+            Assert.AreEqual(182 - poison.burnSeconds * poison.burnPerSecond, Blue.Health, 0.01f);
             Assert.IsFalse(combat.IsPoisoned(Blue));
             Assert.AreEqual(1, combat.SpeedFactor(Blue), "10 s after leaving");
         }

@@ -1,0 +1,90 @@
+# Checker tower 2: twenty giant draughts stacked 7.2 m high, a red and black game below and an ivory and black one piled on
+# top, the tower leaning and sagging over to -x, each draught pushed a little off the one below. Each draught (the draught part) is 1.8 m across and 0.36 m thick, tipped a
+# touch along the lean, in glossy red (game_die_red), black (game_domino_black) or ivory (game_ivory). Cover to hide behind.
+format 1
+collider convex
+
+# A twelfth of the vertices its size would give it, its draughts too, about 360 triangles a draught: plain discs, and
+# a tower is scattered cover
+Detail detail=0.08
+    Union
+        Material material=game_die_red
+            Translate translation=(0.000, 0.180, 0.000)
+                Rotate rotation=(0.000, 0, -0.000)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.030, 0.535, 0.038)
+                Rotate rotation=(0.005, 0, 0.020)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.047, 0.890, -0.000)
+                Rotate rotation=(0.011, 0, 0.043)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(-0.055, 1.245, -0.014)
+                Rotate rotation=(0.007, 0, 0.028)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.087, 1.600, 0.029)
+                Rotate rotation=(0.009, 0, 0.033)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(-0.097, 1.955, -0.009)
+                Rotate rotation=(0.010, 0, 0.037)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(-0.087, 2.310, 0.037)
+                Rotate rotation=(0.009, 0, 0.033)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.162, 2.665, 0.039)
+                Rotate rotation=(0.010, 0, 0.037)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(-0.142, 3.020, 0.047)
+                Rotate rotation=(0.015, 0, 0.056)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.191, 3.375, 0.067)
+                Rotate rotation=(0.013, 0, 0.048)
+                    Part part=draught
+        Material material=game_die_red
+            Translate translation=(-0.204, 3.730, 0.021)
+                Rotate rotation=(0.018, 0, 0.067)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.302, 4.085, 0.035)
+                Rotate rotation=(0.014, 0, 0.053)
+                    Part part=draught
+        Material material=game_ivory
+            Translate translation=(-0.312, 4.440, 0.071)
+                Rotate rotation=(0.017, 0, 0.066)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.296, 4.795, 0.106)
+                Rotate rotation=(0.016, 0, 0.059)
+                    Part part=draught
+        Material material=game_ivory
+            Translate translation=(-0.359, 5.150, 0.147)
+                Rotate rotation=(0.020, 0, 0.074)
+                    Part part=draught
+        Material material=game_ivory
+            Translate translation=(-0.450, 5.505, 0.089)
+                Rotate rotation=(0.022, 0, 0.084)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.422, 5.860, 0.164)
+                Rotate rotation=(0.017, 0, 0.063)
+                    Part part=draught
+        Material material=game_ivory
+            Translate translation=(-0.468, 6.215, 0.181)
+                Rotate rotation=(0.023, 0, 0.088)
+                    Part part=draught
+        Material material=game_domino_black
+            Translate translation=(-0.531, 6.570, 0.128)
+                Rotate rotation=(0.017, 0, 0.066)
+                    Part part=draught
+        Material material=game_ivory
+            Translate translation=(-0.568, 6.925, 0.205)
+                Rotate rotation=(0.022, 0, 0.084)
+                    Part part=draught

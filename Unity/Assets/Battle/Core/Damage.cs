@@ -57,12 +57,12 @@ namespace SdfBattle
 
         /// <summary>The death this damage causes: the killer, the weapon (dual pistols are pistols in the kill feed), the headshot.</summary>
         public Death ToDeath(PlayerState victim) =>
-            new Death(victim, DeathCause.Killed, Attacker, AttackerName, AttackerTeam, WeaponIds.ModelOf(Weapon), Headshot);
+            new Death(victim, DeathCause.Killed, Attacker, AttackerName, AttackerTeam, WeaponIds.ModelOf(Weapon), Headshot, Weapon);
     }
 
     /// <summary>
     /// Hit points of something that is not a player (a player's are <see cref="PlayerState.Health"/>, which <see cref="CombatState"/>
-    /// changes): a machine's (ticket 24: tank 150, helicopter 100, turret 250). Hurt and healed by amounts, never below 0 or above
+    /// changes): a machine's (ticket 24: tank 60, helicopter 60, turret 90). Hurt and healed by amounts, never below 0 or above
     /// <see cref="Max"/>; whether a hit may hurt it at all is <see cref="CombatState.CanHurt(Team, Team)"/>.
     /// </summary>
     public sealed class Health

@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 507970004362617891}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.3022114, z: 0}
+  m_LocalPosition: {x: 0, y: 1.5013212, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -45,11 +45,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a092e5f6004f4e99bbec1149b851755e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SdfPickups.SpinHover
-  revolutionsPerMinute: 6
-  hoverHeight: 1
-  baseHeight: 0.30221137
-  bobAmplitude: 0.03
-  bobPeriod: 3
+  revolutionsPerMinute: 15
+  hoverHeight: 1.2
+  baseHeight: 0.30132118
+  bobAmplitude: 0.08
+  bobPeriod: 2
 --- !u!1 &3059822905350908913
 GameObject:
   m_ObjectHideFlags: 0
@@ -107,7 +107,7 @@ CapsuleCollider:
   m_Radius: 0.9
   m_Height: 2.2
   m_Direction: 1
-  m_Center: {x: 0, y: 1.3022114, z: 0}
+  m_Center: {x: 0, y: 1.3013211, z: 0}
 --- !u!114 &4430208162119379043
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -197,16 +197,28 @@ PrefabInstance:
     m_TransformParent: {fileID: 8964121478981096777}
     m_Modifications:
     - target: {fileID: 2824313780537029638, guid: 453d99f82125b41b39a1a4c4c8080e98, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2824313780537029638, guid: 453d99f82125b41b39a1a4c4c8080e98, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2824313780537029638, guid: 453d99f82125b41b39a1a4c4c8080e98, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2824313780537029638, guid: 453d99f82125b41b39a1a4c4c8080e98, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.0000007301569
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 2824313780537029638, guid: 453d99f82125b41b39a1a4c4c8080e98, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.25
+      value: -0.34999824
       objectReference: {fileID: 0}
     - target: {fileID: 2824313780537029638, guid: 453d99f82125b41b39a1a4c4c8080e98, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.000003091991
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 2824313780537029638, guid: 453d99f82125b41b39a1a4c4c8080e98, type: 3}
       propertyPath: m_LocalRotation.w

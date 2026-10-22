@@ -4,8 +4,10 @@ using UnityEngine;
 namespace SdfBattle
 {
     /// <summary>
-    /// The four weapon slots (ticket 22): a scene holds at most one kind of weapon per slot (the pistol, the minigun, its long-range pod
-    /// and its short-range pod), so a pickup always has its own slot. Keys 1 to 4 pick them in this order.
+    /// The four weapon slots (ticket 22): the pistol, the minigun, the long-range weapons and the short-range ones. Most scenes hold at
+    /// most one kind of weapon per slot, so a pickup always has its own slot; where a level's pods hold two of one slot (the chessboard's
+    /// sides have the electro-gun and the poison-gun, its neutral pods the sniper and the blob-gun), taking one swaps out the other.
+    /// Keys 1 to 4 pick them in this order.
     /// </summary>
     public enum WeaponSlot
     {

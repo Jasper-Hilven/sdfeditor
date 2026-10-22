@@ -1,0 +1,19 @@
+# Cribbage peg 0: a giant turned brass cribbage score peg (game_peg_brass) 1.4 m long, dropped and lying on its side along x: a
+# round knob 0.28 m across at -x, a thin collar under it, and a straight shaft ending in a rounded point at +x. The knob is the
+# thickest part, so the shaft slopes gently down from it until its point touches the board. Ground clutter: no collider,
+# scattered between the pieces.
+format 1
+
+# A fifth of the vertices its size would give it: a few simple, round forms
+Detail detail=0.2
+    Material material=game_peg_brass
+        SmoothUnion smoothness=0.01
+            # The knob
+            Translate translation=(-0.58, 0.14, 0)
+                Ellipsoid radii=(0.12, 0.14, 0.14)
+            # The collar, a thin disc standing across the shaft under the knob
+            Translate translation=(-0.45, 0.135, 0)
+                Rotate rotation=(0, 0, 1.5707964)
+                    RoundedCylinder radius=0.125 roundness=0.015 height=0.03
+            # The shaft, down to its rounded point
+            ArbitraryRoundCone a=(-0.45, 0.13, 0) b=(0.65, 0.05, 0) radiusA=0.075 radiusB=0.05

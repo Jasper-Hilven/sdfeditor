@@ -9,7 +9,8 @@ namespace SdfBattle
     /// The GUI on a real match (ticket 20). The GUI's views read a <see cref="FakeMatch"/> (the showcase's state of a round); in a
     /// battle scene this makes the GUI from its prefab, sets its FakeMatch to <see cref="FakeMatch.driven"/> (no fake bots, no clock of
     /// its own) and writes the <see cref="Match"/> into it every frame before the views draw: the phase, the clock and countdown, the
-    /// roster in team colours with who is alive and their kills, your health, who killed you, the kill feed. So the views stay as they
+    /// roster in team colours with who is alive and their kills, your health, who killed you, the kill feed, and the words for each death
+    /// (<see cref="DeathLines"/>: the feed's line, the death screen's title and lines, picked as it happens). So the views stay as they
     /// are; the capture-the-flag HUD (team score, flag status) is ticket 21's.
     /// </summary>
     [DefaultExecutionOrder(-50)]
@@ -21,21 +22,38 @@ namespace SdfBattle
         private readonly List<FakeKill> feed = new List<FakeKill>();
         private int killedBy = -1;
         private int killedByWeapon;
+        private string killedByName;
+        private string killedTitle;
+        private string killedDetail;
+        private int killedStreak;
+        private readonly KillMemory memory = new KillMemory();
 
-        /// <summary>Makes the GUI from <paramref name="guiPrefab"/>, on the HUD, with its test panel off, fed by <paramref name="match"/>.</summary>
-        public static MatchHud Create(Match match, GameObject guiPrefab)
+        /// <summary>The last death's kind (a revenge, a streak, a weapon's), for the elimination pop-up (CombatHud hears of it after this).</summary>
+        public DeathKind LastKind { get; private set; }
+
+        /// <summary>Whose death <see cref="LastKind"/> is.</summary>
+        public PlayerState LastVictim { get; private set; }
+
+        /// <summary>
+        /// Puts <paramref name="gui"/> on the HUD, with its test panel off, fed by <paramref name="match"/>: the scene's own GUI (the
+        /// level builder places the GUI prefab in the scene), or, given the prefab itself, a copy of it.
+        /// </summary>
+        public static MatchHud Create(Match match, GameObject gui)
         {
-            var gui = Instantiate(guiPrefab);
-            gui.name = guiPrefab.name;
+            if (!gui.scene.IsValid())
+            {
+                var prefab = gui;
+                gui = Instantiate(prefab);
+                gui.name = prefab.name;
+            }
             var view = gui.GetComponent<FakeMatch>();
             if (view == null)
             {
-                Debug.LogWarning($"Match: the GUI prefab {guiPrefab.name} has no FakeMatch for its views to read; no HUD");
+                Debug.LogWarning($"Match: the GUI {gui.name} has no FakeMatch for its views to read; no HUD");
                 Destroy(gui);
                 return null;
             }
-            view.driven = true;
-            view.autoEvents = false;
+            ShowRoundStart(view, match.rules);
             var flow = gui.GetComponent<GuiFlow>();
             if (flow != null)
             {
@@ -55,6 +73,29 @@ namespace SdfBattle
             return hud;
         }
 
+        /// <summary>
+        /// Sets <paramref name="view"/> to be driven by a match, and to what it shows as a round starts: the full clock, full health, no
+        /// kills, pop-ups or hits yet. The level builder sets the scene's GUI so, so the scene shows the HUD as play opens.
+        /// </summary>
+        public static void ShowRoundStart(FakeMatch view, MatchRules rules)
+        {
+            view.driven = true;
+            view.autoEvents = false;
+            view.phase = MatchPhase.Playing;
+            view.roundSeconds = view.timeLeft = rules.roundSeconds;
+            view.countdown = 0;
+            view.rings = view.ringsFallen = 0;
+            view.maxHealth = view.health = rules.maxHealth;
+            view.ammo = view.magazine;
+            view.reload = 0;
+            view.pickup = "";
+            view.killedBy = view.spectating = -1;
+            view.killedByName = view.killedTitle = view.killedDetail = view.eliminatedTitle = null;
+            view.feed.Clear();
+            view.spread = view.hitMarker = view.damage = view.crumbleWarning = view.eliminated = 0;
+            view.hitMarkerKill = view.eliminatedHeadshot = false;
+        }
+
         private void OnDestroy()
         {
             if (match != null && match.State != null)
@@ -70,6 +111,8 @@ namespace SdfBattle
         {
             feed.Clear();
             killedBy = -1;
+            killedByName = killedTitle = killedDetail = null;
+            memory.Clear();
         }
 
         private void OnDied(Death death)
@@ -77,19 +120,35 @@ namespace SdfBattle
             var victim = death.Victim.Index;
             var killer = death.Killer?.Index ?? -1;
             var weapon = System.Array.IndexOf(FakeMatch.Weapons, death.Weapon);
+            var kind = memory.Record(death, out var streak);
+            LastKind = kind;
+            LastVictim = death.Victim;
+            var gore = GuiSettings.Gore;
             if (victim == 0)
             {
                 killedBy = killer;
                 killedByWeapon = Mathf.Max(0, weapon);
+                // The death screen's words; the weapon's name now, while its own id (dual pistols) is known
+                killedTitle = DeathLines.Shared.Title(kind, gore);
+                killedDetail = DeathLines.Shared.Detail(kind, gore).Replace("{weapon}", DeathLines.WeaponName(death.WeaponId));
+                killedStreak = streak;
             }
-            // Kills by players and by machines (ticket 24: their name in their team's colour, no player behind it); a fall is not in it.
+            // Kills by players and by machines (ticket 24: their name in their team's colour, no player behind it), and falls.
             // A weapon without an icon (a machine's cannon) shows none; a headshot shows the popped cap (ticket 22)
             var machine = death.Killer == null && death.KillerName != null && death.KillerTeam != null
                 ? $"<color=#{GuiPalette.HexOf(BattleSide.ColorOf(BattleSide.SideOf(death.KillerTeam.Value)))}>{death.KillerName}</color>"
                 : null;
-            if (killer >= 0 || machine != null)
+            // The death screen names a machine that killed you (ticket 24), not "the island"
+            if (victim == 0)
+                killedByName = machine;
+            if (killer >= 0 || machine != null || death.Cause == DeathCause.Fell)
             {
-                feed.Add(new FakeKill { killer = killer, killerName = machine, victim = victim, weapon = weapon, headshot = death.Headshot });
+                // A line that fits with both names in the entry
+                var line = DeathLines.Shared.Feed(kind, gore, (death.KillerName?.Length ?? 0) + (death.Victim.Name?.Length ?? 0));
+                feed.Add(new FakeKill
+                {
+                    killer = killer, killerName = machine, victim = victim, weapon = weapon, headshot = death.Headshot, line = line, streak = streak,
+                });
                 if (feed.Count > 6)
                     feed.RemoveAt(0);
             }
@@ -142,6 +201,10 @@ namespace SdfBattle
             view.health = you?.Health ?? 0;
             view.killedBy = you != null && !you.Alive ? killedBy : -1;
             view.killedByWeapon = killedByWeapon;
+            view.killedByName = you != null && !you.Alive ? killedByName : null;
+            view.killedTitle = you != null && !you.Alive ? killedTitle : null;
+            view.killedDetail = you != null && !you.Alive ? killedDetail : null;
+            view.killedStreak = killedStreak;
             view.spectating = -1;
             // No weapons yet (ticket 22): a full tank, nothing to reload or pick up
             view.ammo = view.magazine;

@@ -9,8 +9,9 @@ namespace SdfBattle
     /// with its prefab references, nothing else is placed by hand. At the start it makes the eight players, you (the scene's player,
     /// with the camera) and seven bots (new objects under Battle/Players, each its team's scout), and begins the rules,
     /// <see cref="State"/> (<see cref="MatchState"/>: phases, score, clock, respawns), which it ticks every frame. It does in the world
-    /// what the rules ask: a spawned player appears at a free spot in its side's spawn zone facing the zone's way, a dead one vanishes,
-    /// nobody moves during the countdown; and it reports what only the world sees: a player falling off the island.
+    /// what the rules ask: a spawned player appears at a free spot in its side's spawn zone facing the zone's way, a dead one vanishes
+    /// (a killed one bursts first, <see cref="Gore"/>, and your camera pulls back to watch, <see cref="DeathCamera"/>), nobody moves
+    /// during the countdown; and it reports what only the world sees: a player falling off the island.
     /// <para>
     /// The other rules find it through <see cref="Current"/> and talk to <see cref="State"/>: capture the flag (21) reports captures
     /// and resets its flags on <see cref="MatchState.RoundReset"/>, combat (22) reports deaths, bots (23) drive their
@@ -23,7 +24,8 @@ namespace SdfBattle
     {
         public const string PlayersName = "Players";
 
-        public MatchRules rules = new MatchRules();
+        [Tooltip("The match's numbers; no countdown at a round's start (the user's decision after ticket 24: everyone moves at once)")]
+        public MatchRules rules = new MatchRules { countdownSeconds = 0 };
         [Tooltip("You: the scene's player, with the camera; the level builder sets it")]
         public FirstPersonController you;
         public Team yourTeam = Team.Red;
@@ -31,7 +33,7 @@ namespace SdfBattle
         public GameObject redScout;
         [Tooltip("The blue team's body: the chanterelle scout prefab")]
         public GameObject blueScout;
-        [Tooltip("The GUI (Assets/GUI/Prefabs/GUI.prefab), made at the start with its HUD on this match; none for no HUD")]
+        [Tooltip("The GUI: the scene's instance of Assets/GUI/Prefabs/GUI.prefab (or the prefab itself, copied at the start), its HUD on this match; none for no HUD")]
         public GameObject gui;
         [Tooltip("A player this many metres below the lowest spawn has fallen off the island")]
         public float killDepth = 12;
@@ -61,10 +63,16 @@ namespace SdfBattle
 
         public BattleArena Arena { get; private set; }
 
+        /// <summary>The death bursts: the killed scouts' pieces and their blood.</summary>
+        public Gore Gore { get; private set; }
+
         /// <summary>The players by roster index, as <see cref="MatchState.Players"/>; you first.</summary>
         public IReadOnlyList<Player> Players => players;
 
         public Player You => players.Count > 0 ? players[0] : null;
+
+        /// <summary>A team's scout prefab: amanita red, chanterelle blue; null when the level builder set none.</summary>
+        public GameObject ScoutOf(Team team) => team == Team.Red ? redScout : blueScout;
 
         /// <summary>The body of a player of the rules.</summary>
         public Player PlayerOf(PlayerState state) => state != null && state.Index < players.Count ? players[state.Index] : null;
@@ -107,7 +115,15 @@ namespace SdfBattle
             // Capture the flag (ticket 21): before the first round, whose reset sends the flags home
             CaptureTheFlag.Attach(this);
             // Combat (ticket 22): before the first round, whose spawns hand out the single pistols
-            Combat.Create(this);
+            var combat = Combat.Create(this);
+            // Machines (ticket 24): the sides' turrets, helicopters and tanks, after combat (they register as targets), before the bots
+            Machines.Create(this);
+            // Spores (ticket 25): after combat and the flags, whose events fill the meters, before the first round
+            Spores.Create(this, combat);
+            // The gore: after combat (its effects and the hits' directions), before the first round; and your death camera
+            Gore = Gore.Create(this, combat);
+            if (You != null)
+                DeathCamera.Attach(You, this);
             // Bots (ticket 23): their brains, after combat (their arsenals) and before the first round (their spawns)
             Bots.Create(this);
             State.Begin();
@@ -230,6 +246,15 @@ namespace SdfBattle
                 : zoneHeight;
         }
 
-        private void OnDied(Death death) => PlayerOf(death.Victim)?.Vanish();
+        /// <summary>A killed player bursts (with gore on) from where its body stood, then vanishes.</summary>
+        private void OnDied(Death death)
+        {
+            var player = PlayerOf(death.Victim);
+            if (player == null)
+                return;
+            if (Gore != null)
+                Gore.Burst(death, player);
+            player.Vanish();
+        }
     }
 }

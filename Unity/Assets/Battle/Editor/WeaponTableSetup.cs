@@ -1,3 +1,4 @@
+using System.Linq;
 using SdfMushrooms.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -7,7 +8,8 @@ namespace SdfBattle.Editor
     /// <summary>
     /// Keeps the weapon table asset (ticket 22), <see cref="AssetPath"/>, in place: made with the first balance
     /// (<see cref="WeaponTable.Default"/>) and the default looks when it is missing, and its empty references filled in (each look's model
-    /// from Assets/Mushrooms/&lt;id&gt;.prefab, the effects' material, the goop models) when the editor loads or the models are built.
+    /// from Assets/Mushrooms/&lt;id&gt;.prefab, the effects' material, the goop models, the scouts' gore pieces) when the editor loads or
+    /// the models are built.
     /// The numbers already in it are never touched, so tuning in the inspector stays; Tools > SDF Battle > Reset Weapon Table puts them
     /// back to the first balance.
     /// </summary>
@@ -19,6 +21,13 @@ namespace SdfBattle.Editor
 
         private static readonly string[] BlobModels = { "goop-blob0", "goop-blob1", "goop-blob2" };
         private static readonly string[] SplatModels = { "goop-splat0", "goop-splat1" };
+
+        /// <summary>The scouts' body pieces (eyes and hands are the scout's own), not their variants (_256, _512, _fast).</summary>
+        private static string[] ScoutPieces() =>
+            System.Array.ConvertAll(System.IO.Directory.GetFiles(MushroomBuilder.PrefabFolder, "*-scout-*.prefab"), System.IO.Path.GetFileNameWithoutExtension)
+                .Where(n => !n.Contains('_') && !n.Contains("-eye") && !n.Contains("-hand"))
+                .OrderBy(n => n, System.StringComparer.Ordinal)
+                .ToArray();
 
         [InitializeOnLoadMethod]
         private static void Hook()
@@ -99,17 +108,25 @@ namespace SdfBattle.Editor
             }
             changed |= FillModels(ref asset.blobModels, BlobModels);
             changed |= FillModels(ref asset.splatModels, SplatModels);
+            changed |= FillModels(ref asset.scoutPieces, ScoutPieces());
             return changed;
         }
 
+        /// <summary>
+        /// Fills a list of models with the prefabs of <paramref name="names"/> when it has gaps (a missing reference) or lacks one of
+        /// them that exists (a scout's pieces meshed after the list was filled, e.g. the chanterelle's beside the amanita's); a full
+        /// list is left alone, so models added by hand in the inspector stay.
+        /// </summary>
         private static bool FillModels(ref GameObject[] models, string[] names)
         {
-            if (models != null && models.Length > 0 && System.Array.TrueForAll(models, m => m != null))
-                return false;
             var found = System.Array.FindAll(System.Array.ConvertAll(names, Prefab), m => m != null);
-            if (found.Length == 0 || (models != null && found.Length == models.Length && System.Array.TrueForAll(models, m => m != null)))
+            var current = models;
+            var complete = current != null && current.Length > 0 && System.Array.TrueForAll(current, m => m != null);
+            if (complete && System.Array.TrueForAll(found, m => System.Array.IndexOf(current, m) >= 0))
                 return false;
-            models = found;
+            if (found.Length == 0)
+                return false;
+            models = complete ? current.Concat(found.Where(m => System.Array.IndexOf(current, m) < 0)).ToArray() : found;
             return true;
         }
 

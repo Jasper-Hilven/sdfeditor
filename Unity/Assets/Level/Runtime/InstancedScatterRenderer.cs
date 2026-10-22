@@ -125,7 +125,7 @@ namespace SdfLevel
         public Material toonMaterial;
         [Tooltip("The ink outline's material (SdfToonOutline.shader); none for no outlines")]
         public Material outlineMaterial;
-        [Tooltip("The quality level that draws with each group's low settings")]
+        [Tooltip("The highest quality level that draws with each group's low settings; the levels below it do too")]
         public string lowQualityLevel = "Integrated GPU / Web";
 
         /// <summary>What one camera's frame drew, for snapshots and profiling.</summary>
@@ -408,7 +408,9 @@ namespace SdfLevel
         {
             var names = QualitySettings.names;
             var level = QualitySettings.GetQualityLevel();
-            return level >= 0 && level < names.Length && names[level] == lowQualityLevel;
+            // The quality levels go best first, so every level from the low one down is low
+            var low = Array.IndexOf(names, lowQualityLevel);
+            return low >= 0 && level >= low;
         }
 
         /// <summary>A group's rings for this preset: each ring's fade in (from, to) and fade out (from, to), in metres from the camera.</summary>

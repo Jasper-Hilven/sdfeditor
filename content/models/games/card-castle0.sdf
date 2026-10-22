@@ -1,0 +1,82 @@
+# Card castle: a three-storey house of cards some 10.6 m tall and 11.8 m long, built of the giant playing cards of card-house.sdf
+# (card_king, card_three, card_ace, each 3 m wide and 4.2 m tall) shrunk to 0.94: three tents of two cards on the ground, their
+# feet touching along z, two cards laid flat across their ridges as a floor, two tents on that, one more flat card and one tent on
+# top, a 6-3-1 pyramid seen edge on from ±x. Every card leans 30° (its top edge 2.1 m in from its foot, 3.64 m up), faces turned
+# in and blue backs out, so the tents are open archways along x to see and walk through. Fifteen cards in all.
+format 1
+collider mesh
+
+# A ninth of the vertices its size would give it, and its parts a ninth too: fifteen cards make a landmark seen from afar, kept
+# to about 26k triangles at 256 cells (at card-house's half detail it would draw some 230k); the marks go soft close up
+Detail detail=0.11
+    Scale scale=(0.94, 0.94, 0.94)
+        Union
+            # Ground floor: three tents side by side along z, their feet touching
+            Translate translation=(0, 0, -6.3)
+                Rotate rotation=(0.5235988, 0, 0)
+                    Translate translation=(0, 2.1, 0)
+                        Part part=card_king
+            Translate translation=(0, 0, -2.1)
+                Rotate rotation=(-0.5235988, 0, 0)
+                    Rotate rotation=(0, 3.1415927, 0)
+                        Translate translation=(0, 2.1, 0)
+                            Part part=card_three
+            Translate translation=(0, 0, -2.1)
+                Rotate rotation=(0.5235988, 0, 0)
+                    Translate translation=(0, 2.1, 0)
+                        Part part=card_ace
+            Translate translation=(0, 0, 2.1)
+                Rotate rotation=(-0.5235988, 0, 0)
+                    Rotate rotation=(0, 3.1415927, 0)
+                        Translate translation=(0, 2.1, 0)
+                            Part part=card_king
+            Translate translation=(0, 0, 2.1)
+                Rotate rotation=(0.5235988, 0, 0)
+                    Translate translation=(0, 2.1, 0)
+                        Part part=card_three
+            Translate translation=(0, 0, 6.3)
+                Rotate rotation=(-0.5235988, 0, 0)
+                    Rotate rotation=(0, 3.1415927, 0)
+                        Translate translation=(0, 2.1, 0)
+                            Part part=card_ace
+            # The first floor: two cards laid flat end to end across the three ridges, backs up
+            Translate translation=(0, 3.737, -2.1)
+                Rotate rotation=(-1.5707964, 0, 0)
+                    Part part=card_three
+            # and the second face up
+            Translate translation=(0, 3.737, 2.1)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Part part=card_king
+            # First floor: two tents, each over a ridge between the tents below
+            Translate translation=(0, 3.802, -4.2)
+                Rotate rotation=(0.5235988, 0, 0)
+                    Translate translation=(0, 2.1, 0)
+                        Part part=card_three
+            Translate translation=(0, 3.802, 0.0)
+                Rotate rotation=(-0.5235988, 0, 0)
+                    Rotate rotation=(0, 3.1415927, 0)
+                        Translate translation=(0, 2.1, 0)
+                            Part part=card_king
+            Translate translation=(0, 3.802, 0.0)
+                Rotate rotation=(0.5235988, 0, 0)
+                    Translate translation=(0, 2.1, 0)
+                        Part part=card_king
+            Translate translation=(0, 3.802, 4.2)
+                Rotate rotation=(-0.5235988, 0, 0)
+                    Rotate rotation=(0, 3.1415927, 0)
+                        Translate translation=(0, 2.1, 0)
+                            Part part=card_ace
+            # The second floor: one card across the two ridges, back up
+            Translate translation=(0, 7.539, 0)
+                Rotate rotation=(-1.5707964, 0, 0)
+                    Part part=card_ace
+            # The top: one tent
+            Translate translation=(0, 7.604, -2.1)
+                Rotate rotation=(0.5235988, 0, 0)
+                    Translate translation=(0, 2.1, 0)
+                        Part part=card_ace
+            Translate translation=(0, 7.604, 2.1)
+                Rotate rotation=(-0.5235988, 0, 0)
+                    Rotate rotation=(0, 3.1415927, 0)
+                        Translate translation=(0, 2.1, 0)
+                            Part part=card_three

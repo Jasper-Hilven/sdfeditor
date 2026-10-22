@@ -11,9 +11,9 @@ namespace SdfMushrooms.Editor
 {
     /// <summary>
     /// Makes the project render with URP without a single click: linear colour, one universal renderer, and a URP asset for each of the
-    /// two quality levels, <see cref="High"/> (the dev machine) and <see cref="Web"/> (integrated GPUs and the browser), each with LOD
-    /// cross-fade on, which the models' LOD groups rely on to change level without a pop. Desktop builds start on High, web builds on
-    /// the other. When the editor opens it also builds any prefab and level scene an import missed and shows the mushroom scene instead
+    /// quality levels, best first: <see cref="UltraHigh"/>, <see cref="High"/> (the dev machine), <see cref="Web"/> (integrated GPUs and
+    /// the browser) and <see cref="UltraLow"/>, each with LOD cross-fade on, which the models' LOD groups rely on to change level without
+    /// a pop. Desktop builds start on High, web builds on Web. When the editor opens it also builds any prefab and level scene an import missed and shows the mushroom scene instead
     /// of an empty one.
     /// <para>
     /// The presets live here, not in the assets: what is set below is put back each time the editor loads, so change them in this file.
@@ -43,6 +43,17 @@ namespace SdfMushrooms.Editor
         }
 
         /// <summary>
+        /// Beyond the dev machine: shadows twice as far and softer, eight samples per pixel on a supersampled target, and finer levels of
+        /// detail further out. Still one cascade, as <see cref="High"/>.
+        /// </summary>
+        public static readonly Preset UltraHigh = new Preset
+        {
+            Name = "Ultra High", AssetPath = SettingsFolder + "/URP Ultra High.asset",
+            ShadowDistance = 120, ShadowCascades = 1, ShadowResolution = 4096, SoftShadows = SoftShadowQuality.High,
+            Msaa = 8, RenderScale = 1.25f, Hdr = true, LodBias = 1.5f,
+        };
+
+        /// <summary>
         /// The dev machine (M4 Max): shadows far out, four samples per pixel at full resolution. One cascade, like the minimum spec: the
         /// toon look's crisp shadow edges showed every cascade border (a shadow's outline snapping finer or coarser as it crossed one), and
         /// the same detail everywhere reads better than sharper shadows near the eye that change as one walks.
@@ -65,7 +76,32 @@ namespace SdfMushrooms.Editor
             Msaa = 1, RenderScale = 0.75f, Hdr = false, LodBias = 0.7f,
         };
 
-        public static readonly IReadOnlyList<Preset> Presets = new[] { High, Web };
+        /// <summary>
+        /// Below the minimum spec: shadows only right around the player at a small map, half resolution with FXAA, no HDR target, and the
+        /// coarser levels of detail soonest.
+        /// </summary>
+        public static readonly Preset UltraLow = new Preset
+        {
+            Name = "Ultra Low", AssetPath = SettingsFolder + "/URP Ultra Low.asset",
+            ShadowDistance = 15, ShadowCascades = 1, ShadowResolution = 512, SoftShadows = SoftShadowQuality.Low,
+            Msaa = 1, RenderScale = 0.5f, Hdr = false, LodBias = 0.4f,
+        };
+
+        /// <summary>The quality levels, best first.</summary>
+        public static readonly IReadOnlyList<Preset> Presets = new[] { UltraHigh, High, Web, UltraLow };
+
+        /// <summary>The quality level desktop players start on, <see cref="High"/>.</summary>
+        public static int DesktopLevel => IndexOf(High);
+        /// <summary>The quality level web players start on, <see cref="Web"/>.</summary>
+        public static int WebLevel => IndexOf(Web);
+
+        private static int IndexOf(Preset preset)
+        {
+            for (var i = 0; i < Presets.Count; i++)
+                if (Presets[i] == preset)
+                    return i;
+            return 0;
+        }
 
         static RenderPipelineSetup()
         {
@@ -88,12 +124,12 @@ namespace SdfMushrooms.Editor
 
             var renderer = RendererAsset();
             var assets = Presets.Select(p => PipelineAsset(p, renderer)).ToArray();
-            if (GraphicsSettings.defaultRenderPipeline != assets[0])
-                GraphicsSettings.defaultRenderPipeline = assets[0];
+            if (GraphicsSettings.defaultRenderPipeline != assets[DesktopLevel])
+                GraphicsSettings.defaultRenderPipeline = assets[DesktopLevel];
             EnsureQualityLevels(assets);
         }
 
-        /// <summary>The one renderer both presets draw with: forward, so every light the toon look reads is the main one.</summary>
+        /// <summary>The one renderer every preset draws with: forward, so every light the toon look reads is the main one.</summary>
         private static UniversalRendererData RendererAsset()
         {
             var renderer = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(RendererPath);
@@ -165,7 +201,7 @@ namespace SdfMushrooms.Editor
 
         /// <summary>
         /// Exactly the presets as quality levels, in order, each with its URP asset, LOD bias and cross-fade; desktop players start on
-        /// the first and web players on the last. Quality levels have no API to add or remove them, so this edits the settings file.
+        /// <see cref="High"/> and web players on <see cref="Web"/>. Quality levels have no API to add or remove them, so this edits the settings file.
         /// </summary>
         private static void EnsureQualityLevels(IReadOnlyList<UniversalRenderPipelineAsset> assets)
         {
@@ -209,13 +245,13 @@ namespace SdfMushrooms.Editor
                 var value = platform.FindPropertyRelative("second");
                 if (name == null || value == null)
                     continue;
-                var level = name is "WebGL" or "Android" or "iPhone" or "tvOS" ? Presets.Count - 1 : 0;
+                var level = name is "WebGL" or "Android" or "iPhone" or "tvOS" ? WebLevel : DesktopLevel;
                 if (value.intValue != level)
                     value.intValue = level;
             }
             var current = serialized.FindProperty("m_CurrentQuality");
             if (current.intValue >= Presets.Count)
-                current.intValue = 0;
+                current.intValue = DesktopLevel;
 
             if (serialized.ApplyModifiedPropertiesWithoutUndo())
             {

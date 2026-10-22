@@ -36,7 +36,9 @@ public sealed record ScatteredLevel(IReadOnlyList<ScatterPrototype> Prototypes, 
 /// </list>
 /// Each kept point picks its model by weight, a yaw and a scale at random, and takes the ground's height and colour there. Last, an
 /// instance within <see cref="BattleClearing"/> of a battle object (<see cref="BattleLayout"/>) is left out, so the pods, flag stands
-/// and spawns stand on open ground; this is done after the random draws, so the rest of the scatter stays where it was without them.
+/// and spawns stand on open ground, the pods in a clearing of trees and rocks that shows them from afar; so is an instance on the
+/// footprint, grown by the layer's margin, of an earlier layer's instance it keeps clear of (<see cref="KeepsClearOf"/>). This is done
+/// after the random draws, so the rest of the scatter stays where it was without them.
 /// <para>
 /// The trees sections (<see cref="LevelDefinition.Trees"/>) are scattered the same way after the scatter layers, with streams of their
 /// own (so adding trees leaves the grass where it was), over the band of distance they give instead of the reach; each tree stands on
@@ -56,13 +58,29 @@ public static class LevelScatter
 
     /// <summary>
     /// How far a scattered instance stays from a battle object's edge, in metres, besides the layer's margin: a little for the foliage,
-    /// so no grass grows through a pod; more for the trees sections (trees, rocks), whose crowns and boulders reach past their point.
+    /// so no grass grows through a pod; more for the trees sections (trees, rocks), whose crowns and boulders reach past their point,
+    /// and most round a pod (<see cref="PodTreeClearing"/>), so it stands in a clearing that is seen from afar.
     /// </summary>
-    public static float BattleClearing(ScatterLayer layer) => layer.Margin + (layer.Band is null ? 0.2f : 1.5f);
+    public static float BattleClearing(ScatterLayer layer, BattleObject item) =>
+        layer.Margin + (layer.Band is null ? 0.2f : item.Kind == BattleKind.Pod ? PodTreeClearing : 1.5f);
+
+    /// <summary>How far the trees sections' instances stay from a pod's edge, besides the layer's margin, in metres.</summary>
+    public const float PodTreeClearing = 6;
+
+    /// <summary>
+    /// Whether a layer's points keep clear of an earlier layer's instances, their footprints grown by the later layer's margin, as they
+    /// keep clear of the placements: a trees section keeps clear of the earlier trees sections in its own draw group, so pieces, rocks
+    /// or trunks of one group do not cut through each other and leave no pinch points between them. The scatter layers (ground cover,
+    /// grass under the crowns) and other groups (rocks round the trees' trunks) may still overlap; the trees' footprints are their
+    /// crowns', far wider than their trunks.
+    /// </summary>
+    public static bool KeepsClearOf(ScatterLayer layer, ScatterLayer earlier) =>
+        layer.Band is not null && earlier.Band is not null && layer.Group == earlier.Group;
 
     /// <summary>How many candidates Bridson's algorithm tries round each point before it gives the point up.</summary>
     private const int Candidates = 30;
 
+    /// <param name="footprintOf">Where a model stands on the ground, for the placements and for the models of the trees sections.</param>
     /// <param name="groundColor">The ground's colour at a point, linear RGB.</param>
     /// <exception cref="SdfProgramFileException">A layer avoids a region the level does not have, or uses a model in two groups.</exception>
     public static ScatteredLevel Scatter(LevelDefinition level, LevelTerrain terrain, GroundRegions regions,
@@ -91,7 +109,18 @@ public static class LevelScatter
             var before = instances.Count;
             // Each layer's streams: the scatters' from 200 and 300 on, as before there were trees, the trees' from 400 and 500 on
             var stream = index < level.Scatters.Count ? index : 200 + index - level.Scatters.Count;
-            ScatterLayer(level, layers[index], stream, terrain, regions, footprintOf, groundColor, prototypes, instances);
+            // The earlier layers' instances this one keeps clear of, as obstacles like the placements
+            var offset = 0;
+            var obstacles = new List<Obstacle>();
+            for (var earlier = 0; earlier < index; earlier++)
+            {
+                if (KeepsClearOf(layers[index], layers[earlier]))
+                    foreach (var instance in instances.Skip(offset).Take(counts[earlier]))
+                        obstacles.Add(new Obstacle(new Vector2(instance.Position.X, instance.Position.Z), instance.Yaw, instance.Scale,
+                            footprintOf(prototypes[instance.Prototype].Model)));
+                offset += counts[earlier];
+            }
+            ScatterLayer(level, layers[index], stream, terrain, regions, footprintOf, groundColor, prototypes, instances, obstacles);
             counts.Add(instances.Count - before);
         }
         return new ScatteredLevel(prototypes, instances, counts);
@@ -99,7 +128,7 @@ public static class LevelScatter
 
     private static void ScatterLayer(LevelDefinition level, ScatterLayer layer, int index, LevelTerrain terrain, GroundRegions regions,
         Func<string, ModelFootprint> footprintOf, Func<Vector2, Vector3> groundColor, List<ScatterPrototype> prototypes,
-        List<ScatteredInstance> instances)
+        List<ScatteredInstance> instances, IReadOnlyList<Obstacle> obstacles)
     {
         var avoided = layer.Avoid.Select(name =>
         {
@@ -109,10 +138,9 @@ public static class LevelScatter
                 : throw new SdfProgramFileException(layer.Line,
                     $"The scatter avoids '{name}', which is not a region of the level; its regions are {string.Join(", ", regions.Regions.Select(r => r.Name))}");
         }).ToArray();
-        var placements = level.Placements.Select(p => (Placement: p, Footprint: footprintOf(p.Model))).ToArray();
+        var placements = level.Placements.Select(p => new Obstacle(p.At, p.Yaw, p.Scale, footprintOf(p.Model))).ToArray();
         var cosMaxSlope = MathF.Cos(layer.MaxSlope * MathF.PI / 180);
         var battle = level.Battle?.Objects.ToArray() ?? [];
-        var clearing = BattleClearing(layer);
 
         bool Allowed(Vector2 p)
         {
@@ -131,14 +159,9 @@ public static class LevelScatter
             foreach (var region in avoided)
                 if (regions.Distance(region, p) < layer.Margin)
                     return false;
-            foreach (var (placement, footprint) in placements)
-            {
-                // In the model's own plane, its footprint grown by the margin
-                var local = Placement2D.ToLocal(p - placement.At, placement.Yaw) / placement.Scale;
-                var grow = layer.Margin / placement.Scale;
-                if (local.X > footprint.Min.X - grow && local.X < footprint.Max.X + grow && local.Y > footprint.Min.Y - grow && local.Y < footprint.Max.Y + grow)
+            foreach (var placement in placements)
+                if (placement.Covers(p, layer.Margin))
                     return false;
-            }
             return terrain.Normal(p.X, p.Y).Y >= cosMaxSlope;
         }
 
@@ -200,10 +223,35 @@ public static class LevelScatter
             var scale = layer.Scale.X + (layer.Scale.Y - layer.Scale.X) * random.NextFloat();
             var height = layer.Band is null ? terrain.Height(p.X, p.Y) : LowestAround(terrain, p, FootRadius);
             var hash = random.NextUInt();
-            if (battle.Any(item => Vector2.Distance(p, item.At) < item.Radius + clearing))
+            if (battle.Any(item => Vector2.Distance(p, item.At) < item.Radius + BattleClearing(layer, item)))
+                continue;
+            if (obstacles.Any(o => o.Covers(p, layer.Margin)))
                 continue;
             instances.Add(new ScatteredInstance(prototypes.FindIndex(m => m.Model == entry.Model), new Vector3(p.X, height, p.Y),
                 yaw, scale, Srgba(groundColor(p)), hash));
+        }
+    }
+
+    /// <summary>
+    /// A model on the ground that a layer keeps clear of: a placement, or an earlier layer's instance. <see cref="Reach"/> is how far its
+    /// footprint's furthest corner is from its point, in metres.
+    /// </summary>
+    private sealed record Obstacle(Vector2 At, float Yaw, float Scale, ModelFootprint Footprint)
+    {
+        public float Reach { get; } = Scale * MathF.Max(MathF.Max(Footprint.Min.Length(), Footprint.Max.Length()),
+            MathF.Max(new Vector2(Footprint.Min.X, Footprint.Max.Y).Length(), new Vector2(Footprint.Max.X, Footprint.Min.Y).Length()));
+
+        /// <summary>Whether the point is on the footprint grown by the margin.</summary>
+        public bool Covers(Vector2 p, float margin)
+        {
+            // A quick test first: beyond the grown footprint's furthest corner, the margin out from the corner on both axes, it cannot be on it
+            var reach = Reach + margin * MathF.Sqrt(2);
+            if (Vector2.DistanceSquared(p, At) > reach * reach)
+                return false;
+            // In the model's own plane, its footprint grown by the margin
+            var local = Placement2D.ToLocal(p - At, Yaw) / Scale;
+            var grow = margin / Scale;
+            return local.X > Footprint.Min.X - grow && local.X < Footprint.Max.X + grow && local.Y > Footprint.Min.Y - grow && local.Y < Footprint.Max.Y + grow;
         }
     }
 

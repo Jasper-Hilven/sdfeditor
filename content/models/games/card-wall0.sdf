@@ -1,0 +1,54 @@
+# Card wall: a two-storey wall of the giant playing cards of card-house.sdf (card_king, card_three, card_ace, each 3 m wide, 4.2 m
+# tall and 13 cm thick), 8.5 m tall and 13.5 m long along x: five cards stood on their short edges in a zigzag, each turned
+# 0.45 rad off the wall's line so their side edges meet and nothing slips between, three cards laid flat end to end along their
+# top as a floor, and four more in a zigzag on that. Faces and blue backs mixed. A tall, thin wall to hide behind and split a lane;
+# it stops shots, though a card is only 13 cm thick.
+format 1
+collider mesh
+
+# A ninth of the vertices its size would give it, and its parts a ninth too, like card-castle0: twelve cards make one wall seen
+# from afar; the marks go soft close up
+Detail detail=0.11
+    Union
+            # The ground row: five cards on end in a zigzag, each turned 0.45 rad off the wall's line, edges touching
+            Translate translation=(-5.403, 2.100, 0.000)
+                Rotate rotation=(0, 0.4500, 0)
+                    Part part=card_king
+            Translate translation=(-2.701, 2.100, 0.000)
+                Rotate rotation=(0, -0.4500, 0)
+                    Part part=card_three
+            Translate translation=(0.000, 2.100, 0.000)
+                Rotate rotation=(0, 0.4500, 0)
+                    Part part=card_ace
+            Translate translation=(2.701, 2.100, 0.000)
+                Rotate rotation=(0, -0.4500, 0)
+                    Part part=card_king
+            Translate translation=(5.403, 2.100, 0.000)
+                Rotate rotation=(0, 0.4500, 0)
+                    Part part=card_three
+            # Three cards laid flat along its top, end to end, a floor across the zigzag
+            Translate translation=(-4.250, 4.270, 0.000)
+                Rotate rotation=(0, 1.5707964, 0)
+                    Rotate rotation=(-1.5707964, 0, 0)
+                        Part part=card_three
+            Translate translation=(0.000, 4.270, 0.000)
+                Rotate rotation=(0, 1.5707964, 0)
+                    Rotate rotation=(-1.5707964, 0, 0)
+                        Part part=card_ace
+            Translate translation=(4.250, 4.270, 0.000)
+                Rotate rotation=(0, 1.5707964, 0)
+                    Rotate rotation=(-1.5707964, 0, 0)
+                        Part part=card_king
+            # The upper row: four cards on end in a zigzag on that floor
+            Translate translation=(-4.052, 6.440, 0.000)
+                Rotate rotation=(0, 0.4500, 0)
+                    Part part=card_ace
+            Translate translation=(-1.351, 6.440, 0.000)
+                Rotate rotation=(0, -0.4500, 0)
+                    Part part=card_king
+            Translate translation=(1.351, 6.440, 0.000)
+                Rotate rotation=(0, 0.4500, 0)
+                    Part part=card_three
+            Translate translation=(4.052, 6.440, 0.000)
+                Rotate rotation=(0, -0.4500, 0)
+                    Part part=card_ace

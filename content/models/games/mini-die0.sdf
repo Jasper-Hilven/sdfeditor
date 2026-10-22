@@ -1,0 +1,27 @@
+# Mini die 0: a small glossy black (game_domino_black) die 0.28 m on a side from a second, smaller dice set, the giant die (die_pips) scaled down to an eighth,
+# with soft rounded edges and its pips sunk into the faces and painted white, lying flat on the board with the one on top.
+# Ground clutter: no collider, scattered between the pieces.
+format 1
+
+# A quarter of the vertices its size would give it, just enough to keep the pips, a few centimetres across, open
+Detail detail=0.25
+    Translate translation=(0, 0.14, 0)
+        # 0.28 / 2.2 of the giant die
+        Scale scale=(0.12727, 0.12727, 0.12727)
+            Union
+                # The body, each pip carved out of it; the six underneath, which never show, are left out
+                Material material=game_domino_black
+                    Subtraction
+                        RoundBox size=(1.1, 1.1, 1.1) roundness=0.22
+                        Intersection
+                            Part part=die_pips
+                            Translate translation=(0, 0.5, 0)
+                                Box size=(2, 1.45, 2)
+                # The paint on the floor of each dimple
+                Material material=game_pip_white
+                    Intersection
+                        RoundBox size=(1.06, 1.06, 1.06) roundness=0.22
+                        Intersection
+                            Part part=die_pips
+                            Translate translation=(0, 0.5, 0)
+                                Box size=(2, 1.45, 2)
