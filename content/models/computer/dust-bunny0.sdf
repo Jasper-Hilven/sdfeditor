@@ -1,0 +1,58 @@
+# Dust bunny 0: a ball of grey fluff (pc_dust), 0.5 m across and 0.35 m tall (250 times life size), lumpy, with a few loose hairs. Ground clutter: no collider.
+format 1
+
+# A lumpy ball and some hairs
+Detail detail=0.25
+    Scale scale=(0.8, 0.8, 0.8)
+        Material material=pc_dust
+            Intersection
+                Union
+                    SmoothUnion smoothness=0.07
+                        Translate translation=(0, 0.17, 0)
+                            Sphere radius=0.17
+                        Translate translation=(0.13, 0.15, 0.05)
+                            Sphere radius=0.13
+                        Translate translation=(-0.12, 0.16, 0.06)
+                            Sphere radius=0.12
+                        Translate translation=(0.03, 0.17, -0.14)
+                            Sphere radius=0.12
+                        Translate translation=(-0.05, 0.14, 0.15)
+                            Sphere radius=0.11
+                        Translate translation=(0.0, 0.3, 0.0)
+                            Sphere radius=0.09
+                        Translate translation=(0.14, 0.13, -0.1)
+                            Sphere radius=0.1
+                        Translate translation=(0.119, 0.186, 0.1)
+                            Sphere radius=0.077
+                        Translate translation=(-0.14, 0.24, 0.006)
+                            Sphere radius=0.077
+                        Translate translation=(0.214, 0.162, -0.034)
+                            Sphere radius=0.059
+                        Translate translation=(0.125, 0.203, 0.157)
+                            Sphere radius=0.059
+                        Translate translation=(-0.19, 0.171, -0.024)
+                            Sphere radius=0.054
+                        Translate translation=(-0.022, 0.209, 0.073)
+                            Sphere radius=0.054
+                        Translate translation=(-0.06, 0.181, -0.077)
+                            Sphere radius=0.054
+                        Translate translation=(0.052, 0.219, -0.236)
+                            Sphere radius=0.054
+                        Translate translation=(0.0, 0.15, 0.237)
+                            Sphere radius=0.05
+                        Translate translation=(-0.136, 0.185, 0.122)
+                            Sphere radius=0.05
+                        Translate translation=(0.075, 0.308, -0.035)
+                            Sphere radius=0.041
+                        Translate translation=(-0.029, 0.337, 0.068)
+                            Sphere radius=0.041
+                        Translate translation=(0.109, 0.139, -0.186)
+                            Sphere radius=0.045
+                        Translate translation=(0.213, 0.171, -0.062)
+                            Sphere radius=0.045
+                    Capsule a=(0.1, 0.17, 0.1) b=(0.27, 0.2, 0.17) radius=0.012
+                    Capsule a=(-0.12, 0.2, -0.05) b=(-0.28, 0.27, -0.12) radius=0.012
+                    Capsule a=(0.05, 0.3, -0.08) b=(0.1, 0.42, -0.2) radius=0.012
+                    Capsule a=(-0.1, 0.12, 0.15) b=(-0.2, 0.08, 0.28) radius=0.012
+                Translate translation=(0, 0.5, 0)
+                    Box size=(0.8, 0.5, 0.8)
