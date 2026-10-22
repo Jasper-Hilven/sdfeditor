@@ -47,6 +47,15 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The closed room over the playable area (walls and ceiling), or null for a level open to the sky.</summary>
     public RoomSpec? Room { get; init; }
 
+    /// <summary>The haze (ticket 29.1), or null for none.</summary>
+    public FogSpec? Fog { get; init; }
+
+    /// <summary>The plumes of steam (ticket 29.1), in the file's order.</summary>
+    public IReadOnlyList<SteamSpec> Steam { get; init; } = [];
+
+    /// <summary>The drips from a tap or shower head (ticket 29.1), in the file's order.</summary>
+    public IReadOnlyList<DripSpec> Drips { get; init; } = [];
+
     /// <summary>The two battle sides and the neutral pods between them (ticket 17), or null for a level without them.</summary>
     public BattleLayout? Battle { get; init; }
 

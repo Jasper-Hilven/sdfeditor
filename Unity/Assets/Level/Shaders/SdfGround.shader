@@ -147,6 +147,7 @@ Shader "SdfMushrooms/Ground"
             HLSLPROGRAM
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+            #pragma multi_compile_fog
             #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma multi_compile_instancing
 
@@ -162,6 +163,7 @@ Shader "SdfMushrooms/Ground"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
+                half fogFactor : TEXCOORD2;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -172,6 +174,7 @@ Shader "SdfMushrooms/Ground"
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
                 output.positionWS = TransformObjectToWorld(input.positionOS);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
+                output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;
             }
@@ -349,7 +352,7 @@ Shader "SdfMushrooms/Ground"
 
                 // Dry and open: no wetness, and no baked occlusion (1)
                 float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, surface.x, surface.y, 0.0, 1.0, 0.0);
-                return SdfToonOutput(SkyFade(color, input.positionWS), normalize(input.normalWS), input.positionWS);
+                return SdfToonOutput(MixFog(SkyFade(color, input.positionWS), input.fogFactor), normalize(input.normalWS), input.positionWS);
             }
             ENDHLSL
         }

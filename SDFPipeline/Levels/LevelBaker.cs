@@ -344,6 +344,10 @@ public static class LevelBaker
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
             room = level.Room is { } room ? RoomDocument(room, materials) : null,
+            // The haze, plumes of steam and drips (ticket 29.1), each left out of a level without them
+            fog = LevelFx.FogDocument(level),
+            steam = LevelFx.SteamDocument(level),
+            drips = LevelFx.DripDocument(level),
             // The battle sides (west at -x, east at +x), each with its spawn, flag stand, weapon pods and health pods (and on a
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
