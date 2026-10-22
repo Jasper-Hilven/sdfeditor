@@ -358,20 +358,17 @@ chessboard's.
 
 ## Subtickets
 
-- **28.1 Pipeline: the worktop and the kitchen room.** The ground's cut-out for the sink; a room larger than the play area with its
-  floor below (the backdrop model instead of the checker); the worktop's edge and cabinet base; the far plane. `LevelFile` and
-  `LevelBaker` changes with tests; the chessboard bakes unchanged.
-- **28.2 Clutter models**: the `crumbs` layer's 20 and the accent's 4, with bounds tests.
-- **28.3 Knee cover and tall blockers**: the `pantry` group's 25 models.
-- **28.4 Landmarks**: sink, tap, rolling pin, kettle, burners, plate stack, pepper mill, cereal box, fruit bowl, cake, blender.
-- **28.5 Base**: `bread-box0` and the two tea towels; the box's inside walked in Play mode.
-- **28.6 Backdrop**: `kitchen-room`, `counter-base`, `worktop-edge`; the light.
-- **28.7 Machines**: `timer-turret`, `tin-tank`, `whisk-copter` in red and blue; the per-level machine set; the helicopter's floor.
-- **28.8 Level file**: `content/levels/kitchen.level` with every section commented, `BattleSidesTests.LevelNames` and the weapon
-  table, a theme test `ContentKitchen_HasOnlyKitchen` (no model from another theme's folder, no `home/` model, no other theme's
-  material), the sink-depth test; bake.
-- **28.9 The hob twist**: the burner cycle, damage, glow, NavMesh area costs, the kill-feed cause; EditMode tests.
-- **28.10 Unity and checks**: `Kitchen.unity` rebuilt, Check Navmesh, snapshots and budgets on both presets, a full match with 7 bots.
+- **[28.1 Pipeline: a hole in the ground (the sink)](28.1-ground-hole.md)**
+- **[28.2 Pipeline: a room larger than the play area, open edges, backdrop model](28.2-open-room.md)**
+- **[28.3 Models: worktop clutter](28.3-models-clutter.md)**
+- **[28.4 Models: knee cover and tall blockers](28.4-models-knee-and-blockers.md)**
+- **[28.5 Models: sink, tap, kettle and the other landmarks](28.5-models-landmarks.md)**
+- **[28.6 Models: the bread box base and tea towels](28.6-bread-box.md)**
+- **[28.7 Models: the kitchen room, the island base and the worktop edge](28.7-backdrop.md)**
+- **[28.8 Kitchen machines and the per-level helicopter floor](28.8-kitchen-machines.md)**
+- **[28.9 The level file kitchen.level and its tests](28.9-level-file.md)**
+- **[28.10 The hob heats up](28.10-hob-twist.md)**
+- **[28.11 Bake, build and check](28.11-unity-and-checks.md)**
 
 ## Acceptance criteria
 
