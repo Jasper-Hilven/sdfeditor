@@ -19,7 +19,7 @@ namespace SdfGui.Editor
 
         private readonly GuiFactory f;
 
-        public GameObject Panel, Button, Slider, Toggle, Selector, Avatar, ProgressBar, Banner, PlayerRow, KillFeedEntry;
+        public GameObject Panel, Button, Slider, Toggle, Selector, Avatar, ProgressBar, Banner, PlayerRow, KillFeedEntry, LevelCard;
 
         public GuiPrefabs(GuiFactory factory) => f = factory;
 
@@ -37,6 +37,7 @@ namespace SdfGui.Editor
             Banner = BuildBanner();
             PlayerRow = BuildPlayerRow();
             KillFeedEntry = BuildKillFeedEntry();
+            LevelCard = BuildLevelCard();
         }
 
         private static string PathOf(string name) => $"{ComponentFolder}/{name}.prefab";
@@ -272,6 +273,59 @@ namespace SdfGui.Editor
             Fixed(entry.headshot, 38, 28);
             entry.victim = f.Text(t, "Victim", "Victim", TextStyle.BodyInk, 27, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(100, 40));
             return Save(background.gameObject, PathOf("Kill Feed Entry"));
+        }
+
+        // One arena on Level Select (ticket 32.5): snapshot (or a stand-in colour), name, best medal and time, PLAY; a cover with a padlock
+        // when locked or a plain note when the scene is not built yet
+        private GameObject BuildLevelCard()
+        {
+            var card = f.Panel(null, "Level Card", GuiPalette.Cream, Centre, Vector2.zero, new Vector2(400, 356), 26);
+            var view = card.gameObject.AddComponent<GuiLevelCard>();
+            var t = card.transform;
+            var pictureSize = new Vector2(372, 196);
+
+            var frame = Object("Picture", t);
+            Place(frame.transform, Top, new Vector2(0, -14), pictureSize);
+            view.standIn = f.Shape(frame.transform, "Stand In", ToonShapeKind.Box, GuiPalette.Moss, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.CornerRadius = 16;
+                s.Outline = 4;
+                s.Shadow = 0;
+            });
+            Stretch(view.standIn);
+            var snapshot = Object("Snapshot", frame.transform).AddComponent<RawImage>();
+            snapshot.raycastTarget = false;
+            snapshot.enabled = false;
+            Stretch(snapshot, 4);
+            view.picture = snapshot;
+
+            view.title = f.Text(t, "Title", "1  MEADOW", TextStyle.Label, 36, GuiPalette.Ink, Top, new Vector2(0, -214), new Vector2(380, 44));
+            view.title.enableAutoSizing = true;
+            view.title.fontSizeMin = 22;
+            view.title.fontSizeMax = 36;
+            view.info = f.Text(t, "Info", "SILVER  ·  6:11", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -254), new Vector2(380, 36));
+            view.play = ButtonInstance(t, "PLAY", GuiPalette.Moss, GuiCommandId.PlayLevel, Bottom, new Vector2(0, 12), new Vector2(200, 50), 34, spots: 0.4f).GetComponent<GuiCommand>();
+
+            var cover = f.Shape(t, "Cover", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Top, new Vector2(0, -14), pictureSize, s =>
+            {
+                s.CornerRadius = 16;
+                s.Outline = 4;
+                s.Shadow = 0;
+                s.Shading = 0;
+            });
+            view.cover = cover.gameObject;
+            view.coverText = f.Text(cover.transform, "Text", "Win the previous arena", TextStyle.BodyInk, 30, GuiPalette.Cream, Centre, new Vector2(0, -52), new Vector2(350, 44));
+            var padlock = Object("Padlock", cover.transform);
+            Place(padlock.transform, Centre, new Vector2(0, 24), new Vector2(70, 100));
+            f.Shape(padlock.transform, "Shackle", ToonShapeKind.Ring, GuiPalette.Paper, Centre, new Vector2(0, 26), new Vector2(46, 50));
+            f.Shape(padlock.transform, "Body", ToonShapeKind.Box, GuiPalette.Chanterelle, Centre, new Vector2(0, -14), new Vector2(66, 50), s =>
+            {
+                s.CornerRadius = 10;
+                s.Outline = 4;
+                s.Shadow = 3;
+            });
+            view.padlock = padlock;
+            return Save(card.gameObject, PathOf("Level Card"));
         }
 
         private static void Fixed(Component component, float width, float height)

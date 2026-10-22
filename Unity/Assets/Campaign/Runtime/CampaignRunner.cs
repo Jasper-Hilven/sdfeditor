@@ -1,6 +1,7 @@
 using System;
 using SdfBattle;
 using SdfGui;
+using SdfStory;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -91,25 +92,34 @@ namespace SdfCampaign
 
         private static bool Available(string scene) => Application.CanStreamedLevelBeLoaded(scene);
 
-        // What the title's buttons ask until 32.5 gives them their own commands: PLAY goes on with the campaign, a match's way out leaves it
-        private bool OnCommand(GuiCommandId command)
+        // The menus' buttons that change what is played (the GUI holds no scene references; it hands them over here)
+        private bool OnCommand(GuiCommandId command, string level, int value)
         {
             switch (command)
             {
-                case GuiCommandId.Play:
-                    if (Progress.HasSave && Progress.NextStep() != null)
-                        Continue();
-                    else
-                        NewCampaign(Progress.Difficulty);
+                case GuiCommandId.Continue:
+                    Continue();
                     return true;
-                case GuiCommandId.LeaveMatch:
+                case GuiCommandId.BeginCampaign:
+                    NewCampaign((Difficulty)Mathf.Clamp(value, 0, 2));
+                    return true;
+                case GuiCommandId.PlayLevel:
+                    PlayLevel(level);
+                    return true;
+                case GuiCommandId.WatchCutscene:
+                    WatchCutscene(level);
+                    return true;
+                case GuiCommandId.Restart:
+                    Retry();
+                    return true;
+                case GuiCommandId.QuitToMenu:
                     QuitToTitle();
                     return true;
             }
             return false;
         }
 
-        private void ShowTitle()
+        private void ShowTitle(GuiScreen screen = GuiScreen.Title)
         {
             Unbind();
             Time.timeScale = 1;
@@ -117,7 +127,7 @@ namespace SdfCampaign
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             MatchHud.Release(flow.gameObject);
-            flow.Show(GuiScreen.MainMenu);
+            flow.Show(screen);
         }
 
         // ---------------------------------------------------------------- Going through the campaign
@@ -188,8 +198,32 @@ namespace SdfCampaign
             LoadBattle(Current, setup);
         }
 
-        /// <summary>Leaves for the title screen; the campaign stays as saved (never mid-match).</summary>
-        public void QuitToTitle()
+        /// <summary>Whether a step can be watched again from the Story gallery: the intro (comic panels) or a step with a cutscene player.</summary>
+        public static bool CanWatch(CampaignStep step) => step.id == CampaignDefinition.Intro || CutsceneHandler != null && step.kind == StepKind.Cutscene;
+
+        /// <summary>A replay from the Story gallery: nothing is recorded, and the way back is the gallery.</summary>
+        public void WatchCutscene(string id)
+        {
+            var step = Definition.Find(id);
+            if (step == null || step.IsBattle || !Progress.Seen(id) || !CanWatch(step))
+            {
+                Debug.LogWarning($"Campaign: {id} cannot be watched now");
+                return;
+            }
+            if (step.id == CampaignDefinition.Intro)
+            {
+                PlayIntro(() => flow.Show(GuiScreen.Story));
+                return;
+            }
+            loader.Load(step.scene, null, null, () =>
+            {
+                if (!CutsceneHandler(step, () => QuitToTitle(GuiScreen.Story)))
+                    QuitToTitle(GuiScreen.Story);
+            });
+        }
+
+        /// <summary>Leaves for the title screen (or, after a replay, the Story gallery); the campaign stays as saved (never mid-match).</summary>
+        public void QuitToTitle(GuiScreen screen = GuiScreen.Title)
         {
             Unbind();
             MatchSetup.Pending = null;
@@ -199,10 +233,10 @@ namespace SdfCampaign
             AudioListener.pause = false;
             if (SceneManager.GetActiveScene().name == BootScene)
             {
-                ShowTitle();
+                ShowTitle(screen);
                 return;
             }
-            loader.Load(BootScene, null, ShowTitle);
+            loader.Load(BootScene, null, () => ShowTitle(screen));
         }
 
         // ---------------------------------------------------------------- Steps
@@ -229,8 +263,25 @@ namespace SdfCampaign
             }
         }
 
+        // The intro is 31's comic panels over Boot, no scene of its own: the GUI is hidden while they play
+        private void PlayIntro(Action then)
+        {
+            var canvas = flow.GetComponent<Canvas>();
+            canvas.enabled = false;
+            StoryIntro.Begin(() =>
+            {
+                canvas.enabled = true;
+                then();
+            });
+        }
+
         private void PlayCutscene(CampaignStep step)
         {
+            if (step.id == CampaignDefinition.Intro)
+            {
+                PlayIntro(() => FinishCutscene(step));
+                return;
+            }
             if (CutsceneHandler == null && step.kind == StepKind.Credits)
             {
                 // Not played, so not seen: the campaign must not count as complete before its credits exist (32.8)

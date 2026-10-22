@@ -54,7 +54,7 @@ namespace SdfCampaign.Editor
             instance.transform.SetParent(campaign.transform, false);
             var flow = instance.GetComponent<GuiFlow>();
             flow.testPanel = false;
-            flow.Show(GuiScreen.MainMenu);
+            flow.Show(GuiScreen.Title);
             // The title's view is not a match in play: no showcase bots going behind the menu
             instance.GetComponent<MatchView>().autoEvents = false;
 

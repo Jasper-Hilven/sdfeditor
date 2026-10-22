@@ -44,7 +44,8 @@ namespace SdfCampaign
         {
             var steps = new List<CampaignStep>
             {
-                new(Intro, StepKind.Cutscene, "Home", "Intro"),
+                // The intro is 31's comic panels, played over Boot: it needs no scene of its own
+                new(Intro, StepKind.Cutscene, "Boot", "Intro"),
                 Battle(Meadow, "Meadow", "Meadow", 3, 3, 0.15f, 0.35f, 2, 8, sporesOn: false, warmUp: true),
                 new("beat-fungal", StepKind.Cutscene, "Fungal", "Nightfall"),
                 Battle(Fungal, "Fungal", "Fungal", 4, 4, 0.30f, 0.40f, 3, 10),

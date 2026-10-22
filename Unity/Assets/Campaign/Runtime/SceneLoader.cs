@@ -64,7 +64,7 @@ namespace SdfCampaign
             {
                 Debug.LogError($"SceneLoader: no scene {scene} in the build");
                 Time.timeScale = 1;
-                flow.Show(GuiScreen.MainMenu);
+                flow.Show(GuiScreen.Title);
                 if (fade != null)
                     fade.Alpha = 0;
                 Busy = false;

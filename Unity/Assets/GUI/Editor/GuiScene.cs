@@ -87,7 +87,8 @@ namespace SdfGui.Editor
             flow.screen = GuiScreen.Hud;
 
             // Lowest first: the HUD under the screens that show over it
-            var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.RoundEnd, GuiScreen.MainMenu, GuiScreen.Settings, GuiScreen.Gallery, GuiScreen.Loading };
+            var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.RoundEnd, GuiScreen.Title, GuiScreen.Settings, GuiScreen.Gallery, GuiScreen.Loading,
+                GuiScreen.LevelSelect, GuiScreen.Difficulty, GuiScreen.Story, GuiScreen.Confirm };
             foreach (var screen in order)
             {
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(screens.Screens[screen], root.transform);

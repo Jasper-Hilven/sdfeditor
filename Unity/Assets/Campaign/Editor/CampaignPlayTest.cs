@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SdfBattle;
 using SdfGui;
+using SdfStory;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -10,8 +11,9 @@ using UnityEngine.SceneManagement;
 namespace SdfCampaign.Editor
 {
     /// <summary>
-    /// Plays Boot.unity without a window through the loader (ticket 32.4): Boot, PLAY into the Meadow with its setup, a win recorded by
-    /// two captures, back to the title, then PLAY on to Fungal. Checks the persistent GUI, the setup being spent, the time scale and the
+    /// Plays Boot.unity without a window through the loader (ticket 32.4, menus 32.5): Boot, NEW CAMPAIGN and its difficulty card, the
+    /// intro (skipped) into the Meadow with its setup, a win recorded by two captures, back to the title (CONTINUE and LEVEL SELECT now
+    /// there, NEW CAMPAIGN asking first), CONTINUE on to Fungal, a retry, then Level Select and PLAY on the Meadow. Checks the persistent GUI, the setup being spent, the time scale and the
     /// scene names after each step, and fails on any error logged. <c>Unity -batchmode -projectPath Unity -executeMethod
     /// SdfCampaign.Editor.CampaignPlayTest.Run</c> (without -quit: it quits when done, exit code 1 on a failure). It clears the saved
     /// campaign first and again after.
@@ -26,6 +28,7 @@ namespace SdfCampaign.Editor
         private static float stepStarted;
         private static float started = -1;
         private static CampaignRunner runner;
+        private static bool sawIntro;
 
         static CampaignPlayTest()
         {
@@ -80,7 +83,7 @@ namespace SdfCampaign.Editor
                 errors.Add(exception.ToString());
                 step = int.MaxValue;
             }
-            if (step < 7 && now - started < 240)
+            if (step < 9 && now - started < 240)
                 return;
             if (now - started >= 240)
                 errors.Add($"Timed out in step {step}, scene {Active}");
@@ -95,15 +98,33 @@ namespace SdfCampaign.Editor
             {
                 case 0: // Boot shows the title
                     Expect(Active == CampaignRunner.BootScene, "starts in Boot");
-                    Expect(flow.screen == GuiScreen.MainMenu, "the title is up");
+                    Expect(flow.screen == GuiScreen.Title, "the title is up");
                     Expect(GuiFlow.Persistent == flow, "the GUI is the persistent one");
                     Expect(!runner.Progress.HasSave, "no save to start");
-                    flow.Execute(GuiCommandId.Play, GuiScreen.Hud);
+                    var title = flow.GetComponentInChildren<GuiTitle>(true);
+                    Expect(!title.continueButton.activeSelf && !title.levelSelectButton.activeSelf, "no CONTINUE or LEVEL SELECT without a save");
+                    Expect(title.progress.text == "", "no progress line without a save");
+                    flow.Execute(GuiCommandId.NewCampaign, GuiScreen.Hud);
+                    Expect(flow.screen == GuiScreen.Difficulty && !flow.ConfirmOpen, "NEW CAMPAIGN without a save opens the difficulty card");
+                    flow.Execute(GuiCommandId.BeginCampaign, GuiScreen.Hud, null, (int)Difficulty.Normal);
                     return true;
-                case 1: // into the Meadow, through the Loading screen, no click needed
+                case 1: // the intro (comic panels, when the viewer is built), then the Meadow through the Loading screen, no click needed
+                    if (Active == CampaignRunner.BootScene)
+                    {
+                        var intro = UnityEngine.Object.FindAnyObjectByType<StoryIntro>();
+                        if (intro != null && intro.skip != null)
+                        {
+                            sawIntro = true;
+                            Expect(!flow.GetComponent<Canvas>().enabled, "the GUI is hidden behind the intro");
+                            intro.skip.onClick.Invoke();
+                        }
+                    }
                     if (Active != "Meadow" || runner.loader.Busy || Match.Current == null)
                         return Waiting(waited, "the Meadow");
                     var m = Match.Current;
+                    Expect(flow.GetComponent<Canvas>().enabled, "the GUI is back after the intro");
+                    Expect(runner.Progress.Seen(CampaignDefinition.Intro), "the intro counts as seen");
+                    Expect(runner.Progress.Difficulty == Difficulty.Normal, "the card's difficulty is saved");
                     Expect(flow.screen == GuiScreen.Hud, "the HUD is up after the load");
                     Expect(MatchSetup.Pending == null, "the setup is spent");
                     Expect(m.Setup != null, "the match took the campaign's setup");
@@ -128,11 +149,19 @@ namespace SdfCampaign.Editor
                 case 3: // back on the title
                     if (Active != CampaignRunner.BootScene || runner.loader.Busy)
                         return Waiting(waited, "Boot");
-                    Expect(flow.screen == GuiScreen.MainMenu, "the title is up again");
+                    Expect(flow.screen == GuiScreen.Title, "the title is up again");
                     Expect(Mathf.Approximately(Time.timeScale, 1), "time runs on the title");
                     Expect(UnityEngine.Object.FindObjectsByType<CampaignRunner>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length == 1,
                         "one Campaign object after the Boot reload");
-                    flow.Execute(GuiCommandId.Play, GuiScreen.Hud);
+                    var saved = flow.GetComponentInChildren<GuiTitle>(true);
+                    saved.Refresh();
+                    Expect(saved.continueButton.activeSelf && saved.levelSelectButton.activeSelf, "CONTINUE and LEVEL SELECT after a win");
+                    Expect(saved.progress.text.StartsWith("Arena 2 of 8"), "the progress line: " + saved.progress.text);
+                    flow.Execute(GuiCommandId.NewCampaign, GuiScreen.Hud);
+                    Expect(flow.ConfirmOpen && flow.screen == GuiScreen.Title, "NEW CAMPAIGN with a save asks first");
+                    flow.Execute(GuiCommandId.Cancel, GuiScreen.Hud);
+                    Expect(!flow.ConfirmOpen && flow.screen == GuiScreen.Title && runner.Progress.NextId == "beat-fungal", "NO leaves everything as it was");
+                    flow.Execute(GuiCommandId.Continue, GuiScreen.Hud);
                     return true;
                 case 4: // on to Fungal
                     if (Active != "Fungal" || runner.loader.Busy || Match.Current == null)
@@ -146,12 +175,37 @@ namespace SdfCampaign.Editor
                 case 5: // a retry in place, then out
                     runner.Retry();
                     Expect(Match.Current.State.Round > 0 && Match.Current.State.Score(Team.Red) == 0, "the retry starts the match over");
+                    flow.Show(GuiScreen.Pause);
+                    flow.Execute(GuiCommandId.QuitToMenu, GuiScreen.Hud);
+                    return true;
+                case 6: // back on the title, then Level Select
+                    if (Active != CampaignRunner.BootScene || runner.loader.Busy)
+                        return Waiting(waited, "Boot");
+                    Expect(flow.screen == GuiScreen.Title, "the title again");
+                    flow.Execute(GuiCommandId.Show, GuiScreen.LevelSelect);
+                    var levels = flow.GetComponentInChildren<GuiLevelSelect>(true);
+                    Expect(levels.cards[0].play.gameObject.activeSelf, "the Meadow can be played");
+                    Expect(levels.cards[0].info.text.ToUpperInvariant().Contains("BRONZE") || levels.cards[0].info.text.ToUpperInvariant().Contains("SILVER") ||
+                           levels.cards[0].info.text.ToUpperInvariant().Contains("GOLD"), "the Meadow shows its medal: " + levels.cards[0].info.text);
+                    Expect(levels.cards[1].play.gameObject.activeSelf, "Fungal is unlocked by the Meadow");
+                    Expect(!levels.cards[2].play.gameObject.activeSelf && levels.cards[2].cover.activeSelf, "the Chessboard is locked");
+                    Expect(!levels.cards[3].play.gameObject.activeSelf && levels.cards[3].coverText.text == "Coming soon", "the Toy box has no scene yet");
+                    levels.difficulty.Set((int)Difficulty.Hard, true);
+                    Expect(runner.Progress.Difficulty == Difficulty.Hard, "the selector sets the difficulty");
+                    flow.Execute(GuiCommandId.PlayLevel, GuiScreen.Hud, CampaignDefinition.Meadow);
+                    return true;
+                case 7: // a replay straight from Level Select: no warm-up, Hard difficulty on blue's skill
+                    if (Active != "Meadow" || runner.loader.Busy || Match.Current == null)
+                        return Waiting(waited, "the Meadow again");
+                    Expect(runner.Current.id == CampaignDefinition.Meadow, "PLAY loads the card's arena");
+                    Expect(Match.Current.Setup != null && Match.Current.Setup.SkillOf(Team.Blue) > 0.29f, "Hard raises blue's skill");
+                    Expect(flow.screen == GuiScreen.Hud, "the HUD is up");
                     runner.QuitToTitle();
                     return true;
                 default:
                     if (Active != CampaignRunner.BootScene || runner.loader.Busy)
                         return Waiting(waited, "Boot");
-                    Expect(flow.screen == GuiScreen.MainMenu, "the title again");
+                    Expect(flow.screen == GuiScreen.Title, "the title again");
                     return true;
             }
         }
@@ -169,7 +223,7 @@ namespace SdfCampaign.Editor
             PlayerPrefs.DeleteKey(CampaignProgress.Key);
             foreach (var error in errors)
                 Debug.Log("SDF Campaign play test error: " + error);
-            Debug.Log($"SDF Campaign play test: {errors.Count} errors");
+            Debug.Log($"SDF Campaign play test: {errors.Count} errors (the intro viewer {(sawIntro ? "played and was skipped" : "is not built here, so the intro was passed over")})");
             EditorApplication.Exit(errors.Count == 0 ? 0 : 1);
         }
     }

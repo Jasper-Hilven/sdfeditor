@@ -6,7 +6,7 @@ namespace SdfGui
 {
     public enum GuiScreen
     {
-        MainMenu,
+        Title,
         Hud,
         Scoreboard,
         Pause,
@@ -15,6 +15,13 @@ namespace SdfGui
         RoundEnd,
         Gallery,
         Loading,
+        LevelSelect,
+        /// <summary>A small yes/no card over whatever screen is up; <see cref="GuiFlow.screen"/> is never this, see <see cref="GuiFlow.Ask"/>.</summary>
+        Confirm,
+        /// <summary>The New Campaign card: Easy, Normal or Hard.</summary>
+        Difficulty,
+        /// <summary>The player's gallery: the cutscenes seen so far, to watch again.</summary>
+        Story,
     }
 
     /// <summary>
@@ -33,7 +40,7 @@ namespace SdfGui
     {
         public GuiScreen screen = GuiScreen.Hud;
         [Tooltip("Where Back from the settings goes")]
-        public GuiScreen settingsReturn = GuiScreen.MainMenu;
+        public GuiScreen settingsReturn = GuiScreen.Title;
         public bool testPanel = true;
 
         /// <summary>The GUI that survives scene loads (the campaign's, ticket 32.4); null where a scene plays alone with its own.</summary>
@@ -43,7 +50,18 @@ namespace SdfGui
         /// The campaign's say in the buttons (the GUI holds no scene references): given a command first, returns true when it took it over.
         /// Set by the campaign runner while it lives.
         /// </summary>
-        public static System.Func<GuiCommandId, bool> Campaign;
+        public static System.Func<GuiCommandId, string, int, bool> Campaign;
+
+        /// <summary>Whether the developer's tools show: the test panel and the component gallery (the editor and development builds).</summary>
+        public static bool DevTools => Debug.isDebugBuild;
+
+        /// <summary>Whether the yes/no card is up over <see cref="screen"/> (<see cref="Ask"/>).</summary>
+        public bool ConfirmOpen { get; private set; }
+
+        /// <summary>What the card asks.</summary>
+        public string ConfirmQuestion { get; private set; } = "Are you sure?";
+
+        private System.Action confirmYes;
 
         private MatchView match;
         private MatchPhase lastPhase;
@@ -154,7 +172,13 @@ namespace SdfGui
 
         private void Keys()
         {
-            if (Input.GetKeyDown(KeyCode.F1))
+            if (ConfirmOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Escape))
+                    CloseConfirm();
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.F1) && DevTools)
                 testPanel = !testPanel;
             if (Input.GetKeyDown(KeyCode.Escape))
             {
@@ -164,6 +188,8 @@ namespace SdfGui
                     screen = GuiScreen.Hud;
                 else if (screen == GuiScreen.Settings)
                     screen = settingsReturn;
+                else if (screen == GuiScreen.LevelSelect || screen == GuiScreen.Difficulty || screen == GuiScreen.Story)
+                    screen = GuiScreen.Title;
             }
             if (Input.GetKeyDown(KeyCode.Tab) && screen == GuiScreen.Hud)
             {
@@ -191,6 +217,8 @@ namespace SdfGui
         /// <summary>Whether a screen shows while <see cref="screen"/> is up: the HUD stays under the overlays of a round.</summary>
         public bool Shows(GuiScreen root)
         {
+            if (root == GuiScreen.Confirm)
+                return ConfirmOpen;
             if (root == screen)
                 return true;
             if (root != GuiScreen.Hud)
@@ -204,7 +232,7 @@ namespace SdfGui
             foreach (var root in GetComponentsInChildren<GuiScreenRoot>(true))
             {
                 // The gallery fills the whole screen and has its own way back, so the test panel leaves it alone
-                var visible = root.alwaysOn ? testPanel && screen != GuiScreen.Gallery : Shows(root.screen);
+                var visible = root.alwaysOn ? testPanel && DevTools && screen != GuiScreen.Gallery : Shows(root.screen);
                 if (root.gameObject.activeSelf != visible)
                     root.gameObject.SetActive(visible);
             }
@@ -212,16 +240,42 @@ namespace SdfGui
 
         public void Show(GuiScreen next)
         {
+            // The component gallery is the developer's
+            if (next == GuiScreen.Gallery && !DevTools)
+                return;
+            if (next == GuiScreen.Confirm)
+            {
+                // Picked from the editor or the test panel: the card over what is up, with nothing to do on yes
+                Ask(ConfirmQuestion, null);
+                return;
+            }
+            ConfirmOpen = false;
             if (next == GuiScreen.Settings && screen != GuiScreen.Settings)
-                settingsReturn = screen == GuiScreen.Pause ? GuiScreen.Pause : GuiScreen.MainMenu;
+                settingsReturn = screen == GuiScreen.Pause ? GuiScreen.Pause : GuiScreen.Title;
             screen = next;
             Apply();
         }
 
-        /// <summary>What a <see cref="GuiCommand"/> button does.</summary>
-        public void Execute(GuiCommandId command, GuiScreen argument)
+        /// <summary>Puts the yes/no card over the screen that is up; yes runs <paramref name="onYes"/>, no (or Escape) closes it.</summary>
+        public void Ask(string question, System.Action onYes)
         {
-            if (Campaign != null && Application.isPlaying && Campaign(command))
+            ConfirmQuestion = question;
+            confirmYes = onYes;
+            ConfirmOpen = true;
+            Apply();
+        }
+
+        private void CloseConfirm()
+        {
+            ConfirmOpen = false;
+            confirmYes = null;
+            Apply();
+        }
+
+        /// <summary>What a <see cref="GuiCommand"/> button does.</summary>
+        public void Execute(GuiCommandId command, GuiScreen argument, string level = null, int value = 0)
+        {
+            if (Campaign != null && Application.isPlaying && Campaign(command, level, value))
                 return;
             var m = Match;
             switch (command)
@@ -229,19 +283,42 @@ namespace SdfGui
                 case GuiCommandId.Show:
                     Show(argument);
                     break;
-                case GuiCommandId.Play:
-                case GuiCommandId.StartNow:
+                case GuiCommandId.NewCampaign:
+                    // With a save the story starts again only after a yes (medals and unlocked levels stay)
+                    if (GuiCampaign.ShowsSave)
+                        Ask("Start the story again?\nYour medals and unlocked levels stay.", () => Show(GuiScreen.Difficulty));
+                    else
+                        Show(GuiScreen.Difficulty);
+                    break;
+                // Without a campaign (the GUI scene played alone) these start the showcase round
+                case GuiCommandId.Continue:
+                case GuiCommandId.BeginCampaign:
+                case GuiCommandId.PlayLevel:
+                case GuiCommandId.Restart:
+                case GuiCommandId.NewRound:
                     m?.StartPlaying();
                     Show(GuiScreen.Hud);
                     break;
+                case GuiCommandId.WatchCutscene:
+                    break;
                 case GuiCommandId.Back:
-                    Show(screen == GuiScreen.Settings ? settingsReturn : GuiScreen.MainMenu);
+                    Show(screen == GuiScreen.Settings ? settingsReturn : GuiScreen.Title);
                     break;
                 case GuiCommandId.Resume:
                     Show(GuiScreen.Hud);
                     break;
-                case GuiCommandId.LeaveMatch:
-                    Show(GuiScreen.MainMenu);
+                case GuiCommandId.QuitToMenu:
+                    Show(GuiScreen.Title);
+                    break;
+                case GuiCommandId.Confirm:
+                {
+                    var yes = confirmYes;
+                    CloseConfirm();
+                    yes?.Invoke();
+                    break;
+                }
+                case GuiCommandId.Cancel:
+                    CloseConfirm();
                     break;
                 case GuiCommandId.Spectate:
                     Show(GuiScreen.Hud);
