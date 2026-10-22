@@ -1385,7 +1385,7 @@ namespace SdfLevel.Editor
             AddMatch(root, player);
             // Ticket 24.3: the helicopters' and tanks' prefabs, which the match makes in the machine zones at its start
             if (SdfBattle.Machines.HasMachines(arena))
-                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0);
+                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0, KeepOuts(battle["helicopterKeepOuts"]));
             return arena;
         }
 
@@ -1425,15 +1425,22 @@ namespace SdfLevel.Editor
             }
         }
 
+        /// <summary>The helicopters' keep-outs (ticket 30.7) from level.json's [minX, minZ, maxX, maxZ] boxes, x mirrored as everywhere; none without the field.</summary>
+        private static SdfBattle.KeepOut[] KeepOuts(JToken boxes) =>
+            boxes is JArray array
+                ? array.Select(b => new SdfBattle.KeepOut(new Vector2(-b[2].Value<float>(), b[1].Value<float>()), new Vector2(-b[0].Value<float>(), b[3].Value<float>()))).ToArray()
+                : new SdfBattle.KeepOut[0];
+
         /// <summary>
         /// The machines (ticket 24.3) on Battle: the red and blue tank and helicopter prefabs (Assets/Machines/Prefabs), which the match
         /// makes in each side's machine zone at its start; the turrets are the sides' own scene objects. A missing prefab logs a warning.
         /// </summary>
-        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling)
+        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling, SdfBattle.KeepOut[] keepOuts)
         {
             var machines = battle.AddComponent<SdfBattle.Machines>();
             machines.machineSet = machineSet;
             machines.flightCeiling = flightCeiling;
+            machines.helicopterKeepOuts = keepOuts;
             GameObject Load(SdfBattle.MachineKind kind, SdfBattle.Team team)
             {
                 var path = SdfBattle.Machines.PrefabPath(kind, team, machineSet);

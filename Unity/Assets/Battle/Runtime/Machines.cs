@@ -40,6 +40,8 @@ namespace SdfBattle
         public string machineSet = MachineSets.Default;
         [Tooltip("A room level's helicopter ceiling over the floor in metres (ticket 27.2), with the room's other limits; 0: none, the old flight")]
         public float flightCeiling;
+        [Tooltip("Footprints (x, z) the helicopters keep out of (ticket 30.7): a room's models over 6 m; the level builder sets them")]
+        public KeepOut[] helicopterKeepOuts = new KeepOut[0];
         [Tooltip("Seeds the machines' aim, roaming and zone spots")]
         public int seed = 24;
         [Tooltip("Draw each machine's target and way in the Scene view")]

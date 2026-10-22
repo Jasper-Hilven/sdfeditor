@@ -1,0 +1,28 @@
+# Turret head, red (ticket 30.7): the upper half of the capacitor can, turning on the sleeve: a short aluminium top with a lip under its
+# rim and the vent cross cut into its lid; the scouts' floating eyes hover in front of it.
+# Pivot: the origin is the head's bottom on its axis (it turns about y); in turret-computer-red-foot it is at (0, 1.5, 0). The barrel's
+# (turret-computer-red-barrel) pivot is at (0, 0, 0.3) in this model, under the rim.
+format 1
+collider convex
+
+Detail detail=0.18
+    Union
+        Material material=pc_aluminium
+            Union
+                # The lip under the rim, and the can's top with the vent cross as a shallow groove
+                Translate translation=(0, 0.02, 0)
+                    CappedCylinder radius=0.4 height=0.03
+                Subtraction
+                    Translate translation=(0, 0.22, 0)
+                        Round radius=0.03
+                            CappedCylinder radius=0.37 height=0.22
+                    Union
+                        Translate translation=(0, 0.46, 0)
+                            Box size=(0.26, 0.04, 0.045)
+                        Translate translation=(0, 0.46, 0)
+                            Box size=(0.045, 0.04, 0.26)
+        # Eyes, mirrored: the scouts' eyeballs at their own size, floating in front of the can, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.14, 0.24, 0.5)
+                Part part=eye_machine

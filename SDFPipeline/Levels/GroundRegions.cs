@@ -75,6 +75,9 @@ public sealed record ModelFootprint(Vector2 Min, Vector2 Max)
     public Vector2 Size => Max - Min;
 
     public Vector2 Center => (Min + Max) / 2;
+
+    /// <summary>How high the model's bounds reach (y max) in its own metres; 0 where unknown (ticket 30.7: the helicopters' keep-outs).</summary>
+    public float Height { get; init; }
 }
 
 /// <summary>

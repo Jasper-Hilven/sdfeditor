@@ -348,7 +348,7 @@ public static class LevelBaker
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
             // flags/flag-stand-<side>.prefab) and Assets/Machines/Prefabs (turret-<team>.prefab). Null for a level without sides
-            battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level) : null,
+            battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level, HelicopterKeepOuts.Of(level, placed, FootprintOf)) : null,
             // Vehicles on a closed path and a timetable (ticket 27.3), or none: the path's corners (x, z), its length, (arc length, y)
             // height keys, and the cars head first with their lengths. Their position is speed * (round clock + phase) metres along the
             // path, anticlockwise as the corners go; Unity's PathMover places each model's prefab there, with a kinematic convex collider
@@ -384,7 +384,7 @@ public static class LevelBaker
         return new BakedLevel(folder, layout, files, triangles, skirts, maxErrors) { Regions = regions.Regions, Placements = placed, Scattered = scattered };
     }
 
-    private static object BattleDocument(BattleLayout battle, LevelTerrain terrain, LevelDefinition level)
+    private static object BattleDocument(BattleLayout battle, LevelTerrain terrain, LevelDefinition level, float[][]? keepOuts)
     {
         object Item(BattleObject item) => new
         {
@@ -401,6 +401,9 @@ public static class LevelBaker
             // the set of machine models (turret-<set>-<team>) and, in a room, the helicopters' flight ceiling over the floor in metres
             machineSet = level.Machines is { } set && set.Name != MachineSet.Default ? set.Name : null,
             flightCeiling = level.Machines?.CeilingIn(level.Room),
+            // Ticket 30.7, in a room with a machines line and models over 6 m placed in it (else left out): their footprints as
+            // [minX, minZ, maxX, maxZ], which the helicopters keep out of (HelicopterPilot.KeepOuts)
+            helicopterKeepOuts = keepOuts,
             sides = battle.Sides.Select(side => new
             {
                 side = side.Name,

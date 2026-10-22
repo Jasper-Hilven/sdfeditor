@@ -366,6 +366,67 @@ namespace SdfBattle.Tests
             Assert.Greater(crossed, 0, "it did cross");
         }
 
+        // ---------------------------------------------------------------- Keep-outs (ticket 30.7)
+
+        [Test]
+        public void KeepOutRules_FindPointsNearAndLegsAcross_AndLetOneInsideLeave()
+        {
+            var boxes = new[] { new KeepOut(new Vector2(-5, -5), new Vector2(5, 5)) };
+            Assert.IsTrue(KeepOutRules.Near(boxes, new Vector2(0, 0), 1));
+            Assert.IsTrue(KeepOutRules.Near(boxes, new Vector2(5.5f, 0), 1), "within the margin");
+            Assert.IsFalse(KeepOutRules.Near(boxes, new Vector2(7, 0), 1));
+            Assert.IsFalse(KeepOutRules.Near(null, Vector2.zero, 1));
+
+            Assert.IsTrue(KeepOutRules.Blocks(boxes, new Vector2(-10, 0), new Vector2(10, 0), 1), "straight across");
+            Assert.IsTrue(KeepOutRules.Blocks(boxes, new Vector2(-10, 5.5f), new Vector2(10, 5.5f), 1), "grazing inside the margin");
+            Assert.IsFalse(KeepOutRules.Blocks(boxes, new Vector2(-10, 7), new Vector2(10, 7), 1), "past it");
+            Assert.IsFalse(KeepOutRules.Blocks(boxes, new Vector2(-10, 0), new Vector2(-7, 0), 1), "stops short");
+            Assert.IsFalse(KeepOutRules.Blocks(boxes, new Vector2(5.5f, 0), new Vector2(20, 0), 1), "leaving from inside the margin");
+
+            Assert.AreEqual(new Vector2(5, 1), KeepOutRules.PushOut(boxes, new Vector2(4, 1)));
+            Assert.AreEqual(new Vector2(7, 1), KeepOutRules.PushOut(boxes, new Vector2(7, 1)));
+        }
+
+        [Test]
+        public void TheHelicopter_NeverFliesIntoAKeepOut_NorAcrossOne()
+        {
+            // A wall of tall models across the middle of the field with one gap, and a block the pilot starts beside
+            var boxes = new[]
+            {
+                new KeepOut(new Vector2(-6, -50), new Vector2(6, -10)),
+                new KeepOut(new Vector2(-6, 10), new Vector2(6, 50)),
+                new KeepOut(new Vector2(-60, -3), new Vector2(-50, 3)),
+            };
+            var pilot = new HelicopterPilot(new Vector2(-75, -50), new Vector2(75, 50), (x, z) => 0, new System.Random(9)) { KeepOuts = boxes };
+            pilot.Start(new Vector3(-70, 0, 0), 90);
+            var crossedTheGap = false;
+            var last = pilot.Position;
+            for (var t = 0f; t < 900; t += 0.05f)
+            {
+                pilot.Tick(0.05f);
+                var p = pilot.Position;
+                foreach (var box in boxes)
+                    Assert.IsFalse(box.Contains(new Vector2(p.x, p.z)), $"inside {box.min}..{box.max} at {t} s: {p}");
+                if (last.x < 0 && p.x >= 0)
+                    crossedTheGap = true;
+                last = p;
+            }
+            Assert.IsTrue(crossedTheGap, "it still gets from one half to the other, through the gap");
+        }
+
+        [Test]
+        public void TheHelicopter_HoversRatherThanCrossing_WhenEveryWayIsBlocked()
+        {
+            var boxes = new[] { new KeepOut(new Vector2(-1, -50), new Vector2(1, 50)) };
+            var pilot = new HelicopterPilot(new Vector2(-75, -50), new Vector2(75, 50), (x, z) => 0, new System.Random(2)) { KeepOuts = boxes, Margin = 6 };
+            pilot.Start(new Vector3(-30, 0, 0), 0);
+            for (var t = 0f; t < 300; t += 0.05f)
+            {
+                pilot.Tick(0.05f);
+                Assert.Less(pilot.Position.x, 1, $"at {t} s");
+            }
+        }
+
         [Test]
         public void TheHelicopter_SlowsWhileFighting_AndTurnsItsNoseToTheTarget()
         {
