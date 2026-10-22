@@ -43,18 +43,29 @@ namespace SdfStory.Editor
 
         private const string PostShaderPath = "Assets/Story/Editor/StoryComicPost.shader";
         private const string ScreenShaderPath = "Assets/Story/Editor/StoryScreen.shader";
-        private const string MeadowScenePath = "Assets/Scenes/Meadow.unity";
+        private const string FlatShaderPath = "Assets/Story/Editor/StoryFlat.shader";
+        public const string MeadowScenePath = "Assets/Scenes/Meadow.unity";
+
+        /// <summary>
+        /// The panels are written as JPG, not PNG: the halftone and the paper grain over 1080p cost 2.7 MB each as PNG and about a tenth of that
+        /// as JPG. The viewer loads them as Texture2D either way.
+        /// </summary>
+        public const string Extension = "jpg";
+        public const int JpgQuality = 90;
 
         /// <summary>The shaders that write the aux pass; anything else is left out of it.</summary>
         private static readonly string[] ToonShaders =
-            { "SdfMushrooms/Toon", "SdfMushrooms/Toon Outline", "SdfMushrooms/Toon Far", "SdfMushrooms/Ground", "SdfMushrooms/RoomFace", "SdfStory/Screen" };
+        {
+            "SdfMushrooms/Toon", "SdfMushrooms/Toon Outline", "SdfMushrooms/Toon Far", "SdfMushrooms/Ground", "SdfMushrooms/RoomFace",
+            "SdfStory/Screen", "SdfStory/Flat",
+        };
 
         [MenuItem("Tools/SDF Story/Render Panels")]
         public static void RenderFromMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
-            RenderPanels(null, PanelFolder);
+            RenderPanels(null, PanelFolder, false);
         }
 
         [MenuItem("Tools/SDF Story/Render Panel 1")]
@@ -62,7 +73,7 @@ namespace SdfStory.Editor
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
-            RenderPanels(new[] { 1 }, PanelFolder);
+            RenderPanels(new[] { 1 }, PanelFolder, false);
         }
 
         /// <summary>For batch mode: all panels, or the one of -panel N, into -panelDir (the panel folder by default).</summary>
@@ -78,7 +89,7 @@ namespace SdfStory.Editor
             var only = Argument("-panel")?.Split(',').Select(int.Parse).ToArray();
             try
             {
-                RenderPanels(only, Argument("-panelDir") ?? PanelFolder);
+                RenderPanels(only, Argument("-panelDir") ?? PanelFolder, Array.IndexOf(args, "-screens") >= 0);
             }
             catch (Exception exception)
             {
@@ -87,8 +98,11 @@ namespace SdfStory.Editor
             }
         }
 
-        /// <summary>Renders the panels of <paramref name="only"/> (every panel when null) into the folder.</summary>
-        public static void RenderPanels(IReadOnlyCollection<int> only, string folder)
+        /// <summary>
+        /// Renders the panels of <paramref name="only"/> (every panel when null) into the folder. The monitor's pictures (<see cref="StoryScreens"/>)
+        /// are made first when they are missing, or again when <paramref name="remakeScreens"/> (batch: -screens).
+        /// </summary>
+        public static void RenderPanels(IReadOnlyCollection<int> only, string folder, bool remakeScreens)
         {
             RenderPipelineSetup.Ensure();
             MushroomBuilder.BuildStale();
@@ -101,9 +115,11 @@ namespace SdfStory.Editor
             ShaderUtil.allowAsyncCompilation = false;
             try
             {
+                // They open the meadow scene to shoot it, so they come before any panel
+                StoryScreens.Make(remakeScreens);
                 foreach (var panel in panels)
                 {
-                    var path = Path.Combine(folder, $"panel-{panel.Number:00}.png");
+                    var path = Path.Combine(folder, $"panel-{panel.Number:00}.{Extension}");
                     RenderPanel(panel, path);
                     Debug.Log($"SDF story: panel {panel.Number} rendered to {path}");
                 }
@@ -115,7 +131,7 @@ namespace SdfStory.Editor
             }
             AssetDatabase.Refresh();
             foreach (var panel in panels)
-                ApplyImportSettings($"{PanelFolder}/panel-{panel.Number:00}.png");
+                ApplyImportSettings($"{PanelFolder}/panel-{panel.Number:00}.{Extension}");
         }
 
         /// <summary>No mipmaps, crunch compressed, a size for the web: the panels are shown as they are, full screen.</summary>
@@ -152,6 +168,10 @@ namespace SdfStory.Editor
                     stage.PosePart(pose);
                 stage.SetLights(panel.Lights);
                 stage.PublishLights();
+                if (panel.Screen != null)
+                    stage.SetScreen(panel.Screen);
+                if (panel.Stage == "warp")
+                    stage.BuildTunnel();
 
                 var image = new Texture2D(Width, Height, TextureFormat.RGB24, false);
                 // The paper shows between inset frames
@@ -162,14 +182,17 @@ namespace SdfStory.Editor
                 {
                     var rect = FrameRect(frame, multiple);
                     var view = panel.CameraOf(frame);
+                    var spores = stage.AddSpores(frame, view);
                     var pixels = RenderFrame(stage, view, rect.width, rect.height);
+                    foreach (var spore in spores)
+                        Object.DestroyImmediate(spore);
                     // Devices, balloons, captions, SFX and the border (31.6), over the finished render
                     StoryLettering.Letter(pixels, rect.width, rect.height, frame, panel.Number * 10 + panel.Frames.IndexOf(frame),
                         name => stage.ProjectActor(name, view, rect.width, rect.height));
                     // The image has y up, the frame's rect from the top
                     image.SetPixels(rect.x, Height - rect.y - rect.height, rect.width, rect.height, pixels);
                 }
-                File.WriteAllBytes(path, image.EncodeToPNG());
+                File.WriteAllBytes(path, image.EncodeToJPG(JpgQuality));
                 Object.DestroyImmediate(image);
             }
             finally
@@ -308,7 +331,7 @@ namespace SdfStory.Editor
         // ---------------------------------------------------------------------------------------------------------------- the stage
 
         /// <summary>An opened stage scene, posed for a panel. Its pieces are found by name, the way HomeBuilder names them.</summary>
-        private sealed class Stage : IDisposable
+        internal sealed class Stage : IDisposable
         {
             private readonly Scene scene;
             private readonly Dictionary<Transform, (Vector3 position, Quaternion rotation, Vector3 scale)> rest =
@@ -520,6 +543,160 @@ namespace SdfStory.Editor
                 }
                 Shader.SetGlobalVectorArray("_SdfComicLightPos", positions);
                 Shader.SetGlobalVectorArray("_SdfComicLightColor", colours);
+            }
+
+            // The warp tunnel (panel 9)
+
+            private Material flat;
+
+            private Material FlatMaterial()
+            {
+                if (flat != null)
+                    return flat;
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>(FlatShaderPath);
+                if (shader == null)
+                    throw new InvalidOperationException($"{FlatShaderPath} is missing");
+                flat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave, enableInstancing = true };
+                made.Add(flat);
+                return flat;
+            }
+
+            private static void Quad(List<Vector3> vertices, List<Vector3> normals, List<Color> colours, List<int> triangles, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color colour)
+            {
+                var normal = Vector3.Cross(b - a, d - a).normalized;
+                var start = vertices.Count;
+                foreach (var corner in new[] { a, b, c, d })
+                {
+                    vertices.Add(corner);
+                    normals.Add(normal);
+                    colours.Add(colour);
+                }
+                triangles.AddRange(new[] { start, start + 1, start + 2, start, start + 2, start + 3 });
+            }
+
+            /// <summary>
+            /// A long open tube along +z, seen from inside, round the camera at the origin: hard stripes of violet along it, rings in amanita red,
+            /// chanterelle blue and spore gold standing out from the wall, and a cream glow at the far end. Flat colours, so the post pass inks the rings.
+            /// </summary>
+            public void BuildTunnel()
+            {
+                const int sectors = 44;
+                const float radius = 3.6f;
+                const float depth = 120f;
+                const float ringStep = 1.5f;
+                const float ringLength = 0.5f;
+                const float ringHeight = 0.55f;
+                var vertices = new List<Vector3>();
+                var normals = new List<Vector3>();
+                var colours = new List<Color>();
+                var triangles = new List<int>();
+                var wallA = new Color(0.2f, 0.1f, 0.42f).linear;
+                var wallB = new Color(0.13f, 0.07f, 0.3f).linear;
+                var ring = new[] { GuiPaletteColour(0xE2453C), GuiPaletteColour(0x3C82F0), GuiPaletteColour(0xFFD54F) };
+                Vector3 On(float angle, float r, float z) => new Vector3(Mathf.Cos(angle) * r, Mathf.Sin(angle) * r, z);
+                for (var i = 0; i < sectors; i++)
+                {
+                    var a0 = i / (float)sectors * Mathf.PI * 2;
+                    var a1 = (i + 1) / (float)sectors * Mathf.PI * 2;
+                    Quad(vertices, normals, colours, triangles, On(a0, radius, 0), On(a0, radius, depth), On(a1, radius, depth), On(a1, radius, 0), i % 2 == 0 ? wallA : wallB);
+                    for (var k = 0; k * ringStep < depth - 5; k++)
+                    {
+                        var z = 2f + k * ringStep;
+                        var colour = ring[k % ring.Length];
+                        var inner = radius - ringHeight;
+                        // The face towards the camera in the ring's colour, and the ring's inside a shade darker
+                        Quad(vertices, normals, colours, triangles, On(a0, inner, z), On(a1, inner, z), On(a1, radius, z), On(a0, radius, z), colour);
+                        Quad(vertices, normals, colours, triangles, On(a0, inner, z), On(a0, inner, z + ringLength), On(a1, inner, z + ringLength), On(a1, inner, z), colour * 0.7f);
+                    }
+                }
+                // The glow where the tunnel ends
+                var cream = new Color(1f, 0.95f, 0.8f).linear;
+                Quad(vertices, normals, colours, triangles, new Vector3(-8, -8, depth), new Vector3(-8, 8, depth), new Vector3(8, 8, depth), new Vector3(8, -8, depth), cream);
+
+                var mesh = new Mesh { hideFlags = HideFlags.HideAndDontSave, indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+                mesh.SetVertices(vertices);
+                mesh.SetNormals(normals);
+                mesh.SetColors(colours);
+                mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateBounds();
+                made.Add(mesh);
+                var tunnel = new GameObject("Warp Tunnel", typeof(MeshFilter), typeof(MeshRenderer));
+                SceneManager.MoveGameObjectToScene(tunnel, scene);
+                made.Add(tunnel);
+                tunnel.GetComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = tunnel.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = FlatMaterial();
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+
+            private static Color GuiPaletteColour(int rgb) => new Color((rgb >> 16 & 0xFF) / 255f, (rgb >> 8 & 0xFF) / 255f, (rgb & 0xFF) / 255f).linear;
+
+            // Pixel spores (panels 7 to 9, 10)
+
+            /// <summary>
+            /// The frame's spore devices as square glowing quads in the stage, turned to the camera: placed, not simulated. Their size is a share of
+            /// the frame's height at their distance, so they read the same near and far. The caller destroys them after the frame.
+            /// </summary>
+            public List<GameObject> AddSpores(StoryFrame frame, StoryCamera view)
+            {
+                var spores = new List<GameObject>();
+                var eye = ToUnity(view.Pos);
+                var rotation = EulerOf(view.Rot);
+                var halfHeight = Mathf.Tan(view.Fov * 0.5f * Mathf.Deg2Rad);
+                foreach (var device in frame.Devices)
+                {
+                    if (device.Kind != "spores" || !device.World.HasValue)
+                        continue;
+                    var random = new StoryRandom(device.Line * 31 + device.Count);
+                    var colours = SporeColours(device.Style);
+                    for (var i = 0; i < device.Count; i++)
+                    {
+                        Vector3 offset;
+                        do
+                            offset = new Vector3(random.Range(-1, 1), random.Range(-1, 1), random.Range(-1, 1));
+                        while (offset.sqrMagnitude > 1);
+                        var position = ToUnity(device.World.Value) + offset * device.Size;
+                        var distance = Mathf.Max(0.3f, Vector3.Dot(position - eye, rotation * Vector3.forward));
+                        var size = distance * halfHeight * 2 * random.Range(0.012f, 0.034f);
+                        var spore = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                        Object.DestroyImmediate(spore.GetComponent<Collider>());
+                        spore.name = "Spore";
+                        SceneManager.MoveGameObjectToScene(spore, scene);
+                        spore.transform.SetPositionAndRotation(position, rotation);
+                        spore.transform.localScale = Vector3.one * size;
+                        var renderer = spore.GetComponent<MeshRenderer>();
+                        renderer.sharedMaterial = SporeMaterial(colours[i % colours.Length]);
+                        renderer.shadowCastingMode = ShadowCastingMode.Off;
+                        renderer.receiveShadows = false;
+                        spores.Add(spore);
+                    }
+                }
+                return spores;
+            }
+
+            private readonly Dictionary<Color, Material> sporeMaterials = new Dictionary<Color, Material>();
+
+            private Material SporeMaterial(Color colour)
+            {
+                if (sporeMaterials.TryGetValue(colour, out var existing))
+                    return existing;
+                var material = new Material(FlatMaterial()) { hideFlags = HideFlags.HideAndDontSave };
+                material.SetColor("_Tint", colour.linear);
+                material.SetFloat("_Emissive", 1);
+                made.Add(material);
+                sporeMaterials[colour] = material;
+                return material;
+            }
+
+            private static Color[] SporeColours(string style)
+            {
+                switch (style)
+                {
+                    case "gold": return new[] { new Color(1f, 0.85f, 0.3f), new Color(1f, 0.95f, 0.6f), new Color(1f, 0.7f, 0.2f) };
+                    case "red": return new[] { new Color(0.95f, 0.3f, 0.25f), new Color(1f, 0.55f, 0.4f), new Color(0.8f, 0.2f, 0.2f) };
+                    default: return new[] { new Color(0.3f, 0.6f, 1f), new Color(0.65f, 0.85f, 1f), new Color(0.2f, 0.4f, 0.95f), new Color(0.56f, 0.94f, 0.86f) };
+                }
             }
 
             // The monitor's screen

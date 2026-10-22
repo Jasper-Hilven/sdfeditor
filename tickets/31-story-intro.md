@@ -171,7 +171,7 @@ Mushroom 7: the existing `amanita-scout`.
   user provides the file: `Unity/Assets/Story/Audio/intro-music.ogg` (the viewer plays nothing and logs one warning if it is
   missing).
 - **End**: Play or Skip loads the first level (32 decides which and how; until then the meadow), through the usual loading.
-- The panels are loaded as `Texture2D` assets in `Assets/Story/Panels/` (`panel-01.png` … `panel-12.png`), imported without
+- The panels are loaded as `Texture2D` assets in `Assets/Story/Panels/` (`panel-01.jpg` … `panel-12.jpg`, JPG at quality 90 rather than PNG: the halftone and paper make a 1080p PNG 2.7 MB, the JPG about 0.45 MB; the viewer loads either as Texture2D), imported without
   mipmaps, compressed for the web (crunched or as JPG-quality), so the web build grows by **no more than about 6 MB**. They are not
   loaded until the intro starts.
 
@@ -183,7 +183,7 @@ Mushroom 7: the existing `amanita-scout`.
   hands.
 - **`StoryCapture`** (editor): Tools > SDF Story > Render Panels, and batchmode `-executeMethod`, as `GuiSnapshot`. Reads
   `content/story/intro.txt`, opens each panel's stage (`Home.unity`, the warp stage, `Meadow.unity`), poses it, renders, runs the
-  comic post pass, letters the panel and writes `Assets/Story/Panels/panel-NN.png`. Also makes the screen textures. A single panel
+  comic post pass, letters the panel and writes `Assets/Story/Panels/panel-NN.jpg`. Also makes the screen textures. A single panel
   can be re-rendered by number.
 - **Panels are generated but committed**: unlike meshes and bakes, the panel PNGs are the shipped art and are checked into git, so a
   fresh clone has the intro without running the capture (which needs the meshed home models and baked meadow).

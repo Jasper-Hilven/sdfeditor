@@ -50,8 +50,9 @@ model trophy at=(1.97, 1.65, -0.3) yaw=-90
 model poster at=(-1.98, 1.0, -0.2) yaw=90
 
 # The players. 42 sits on the chair (seat top y = 0.5) with their back to the camera; Mushroom 7 and the four blue hands wait off
-# stage, to the right of the room's open side (x = 10), until a panel moves them in
-actor amanita-scout name="Mushroom 42" at=(-0.5, 0.5, -0.45) yaw=180
+# stage, to the right of the room's open side (x = 10), until a panel moves them in. The scout is 1.6 m tall and the furniture is made for a
+# mushroom about 1 m tall, so 42 is placed at scale 0.65 in every panel of the room (and of the warp); in the meadow they are full size
+actor amanita-scout name="Mushroom 42" at=(-0.5, 0.5, -0.45) yaw=180 scale=0.65
 actor amanita-scout name="Mushroom 7" at=(10, 0, 0)
 actor chanterelle-scout-hand0 name="Chanterelle Hand 1" at=(10, 1, -3)
 actor chanterelle-scout-hand1 name="Chanterelle Hand 2" at=(10.5, 1, -3)
@@ -59,8 +60,8 @@ actor chanterelle-scout-hand0 name="Chanterelle Hand 3" at=(11, 1, -3)
 actor chanterelle-scout-hand1 name="Chanterelle Hand 4" at=(11.5, 1, -3)
 
 # The warm lamp (in the shade) and the cool monitor (just in front of the screen); panels 4 to 7 tint the monitor's blue
-light Lamp point at=(-1.05, 1.0, -1.2) color=(1, 0.68, 0.38) intensity=2.5 range=4.5
-light Monitor point at=(-0.45, 0.95, -0.85) color=(0.45, 0.65, 1) intensity=1.4 range=3.5
+light Lamp point at=(-1.05, 1.0, -1.2) color=(1, 0.68, 0.38) intensity=2.5 range=3.0
+light Monitor point at=(-0.45, 0.95, -0.85) color=(0.45, 0.65, 1) intensity=1.4 range=2.4
 
 # A dusk fill, dim and violet
 ambient color=(0.16, 0.13, 0.22)

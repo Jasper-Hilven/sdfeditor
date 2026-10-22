@@ -103,7 +103,8 @@ Shader "Hidden/SdfStory/ComicPost"
 
                 // Warm paper: a tint, a grain and a few levels fewer
                 float3 g = toGamma(col);
-                float grain = (hash(floor(pixel / (_Scale * 2.0)) + _Seed) - 0.5) * _Paper.x + (noise(pixel / (40.0 * _Scale) + 9.0) - 0.5) * _Paper.x;
+                // The fine grain is faint (it is what makes a JPG big); the paper's mottling is a slow noise
+                float grain = (hash(floor(pixel / (_Scale * 2.0)) + _Seed) - 0.5) * _Paper.x * 0.3 + (noise(pixel / (40.0 * _Scale) + 9.0) - 0.5) * _Paper.x;
                 g *= lerp(float3(1, 1, 1), float3(1.03, 0.985, 0.9), _Paper.z);
                 g += grain;
                 float3 levels = floor(g * _Paper.y + 0.5) / _Paper.y;
