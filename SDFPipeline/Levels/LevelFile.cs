@@ -118,7 +118,8 @@ namespace SDFPipeline.Levels;
 /// <c>square</c> (8 m by default), the side of the checker's squares. With <c>walls</c> and <c>ceiling</c> (the names of
 /// materials/room/&lt;name&gt;.sdfmat files) the room's faces are drawn in those instead of the checker: the room may be any size, and
 /// the squares go. Unity picks the pattern by the material's name (LevelRoom). <c>glow</c> (north is +z, south -z, east +x, west -x) adds
-/// a band of emissive light along the top of that wall, <c>height</c> metres tall (3) in <c>color</c>; <c>light</c> is the direction
+/// a band of emissive light along the top of that wall (<c>all</c>: all round the four walls), <c>height</c> metres tall (3) in <c>color</c>,
+/// its lower edge <c>offset</c> metres up if given (ticket 30.2) instead of its top edge on the wall's top; <c>light</c> is the direction
 /// towards the room's lamp, <c>lightColor</c> its hue and <c>ambient</c> the flat ambient light (sRGB, each part 0 to 1), each replacing
 /// the indoor default of the chessboard (overhead, warm white) when given.
 /// </para>
@@ -598,7 +599,7 @@ public static class LevelFile
         return spec;
     }
 
-    private static readonly string[] GlowWalls = ["north", "south", "east", "west"];
+    private static readonly string[] GlowWalls = ["north", "south", "east", "west", "all"];
 
     private static RoomSpec ReadRoom(SourceLine line, Cursor cursor)
     {
@@ -624,15 +625,19 @@ public static class LevelFile
         var hasColor = parameters.Has("color");
         var glowHeight = parameters.Number("height", RoomGlow.DefaultHeight, 0.1f, size.Y, $"metres, 0.1 up to the room's height ({FileSyntax.Number(size.Y)})");
         var glowColor = hasColor ? Colour(parameters, "color") : RoomGlow.DefaultColor;
-        if (glowWall is null && (hasHeight || hasColor))
-            throw parameters.Error(hasHeight ? "height" : "color", "height= and color= belong to glow=<north, south, east or west>");
+        // offset=3: the strip's lower edge is that many metres up (else its top edge is the wall's top)
+        var hasOffset = parameters.Has("offset");
+        var glowOffset = parameters.Number("offset", 0, 0, size.Y - glowHeight, $"metres, 0 up to the room's height less the strip's ({FileSyntax.Number(size.Y - glowHeight)})");
+        if (glowWall is null && (hasHeight || hasColor || hasOffset))
+            throw parameters.Error(hasHeight ? "height" : hasColor ? "color" : "offset", "height=, color= and offset= belong to glow=<north, south, east, west or all>");
         RoomGlow? glow = glowWall is null ? null : new RoomGlow(glowWall switch
         {
             "north" => RoomFace.PosZ,
             "south" => RoomFace.NegZ,
             "east" => RoomFace.PosX,
-            _ => RoomFace.NegX,
-        }, glowHeight, glowColor);
+            "west" => RoomFace.NegX,
+            _ => null,
+        }, glowHeight, glowColor) { Offset = hasOffset ? glowOffset : null };
 
         // light=(0, 0.77, 0.64) lightColor=(1, 0.95, 0.7) ambient=(0.4, 0.35, 0.5): the lamp's direction (towards it) and hue, the ambient
         Vector3? direction = null;
@@ -644,7 +649,7 @@ public static class LevelFile
         }
         Vector3? lampColor = parameters.Has("lightColor") ? Colour(parameters, "lightColor") : null;
         Vector3? ambient = parameters.Has("ambient") ? Colour(parameters, "ambient") : null;
-        parameters.Done("size", "square", "walls", "ceiling", "glow", "height", "color", "light", "lightColor", "ambient");
+        parameters.Done("size", "square", "walls", "ceiling", "glow", "height", "color", "offset", "light", "lightColor", "ambient");
         return new RoomSpec(size, square)
         {
             Walls = walls,

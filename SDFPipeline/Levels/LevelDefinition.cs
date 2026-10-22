@@ -124,10 +124,14 @@ public sealed record RoomSpec(Vector3 Size, float Square)
 
 /// <summary>
 /// A band of emissive light on a wall's top <paramref name="Height"/> metres, over its whole length: the crack of light under a propped
-/// lid. <paramref name="Wall"/> is NegZ (south), PosZ (north), NegX (west) or PosX (east); <paramref name="Color"/> is sRGB, 0 to 1.
+/// lid. <paramref name="Wall"/> is NegZ (south), PosZ (north), NegX (west) or PosX (east), or null for a strip all round the four walls
+/// (<c>glow=all</c>); <paramref name="Color"/> is sRGB, 0 to 1. The strip is flush with the wall's top unless <see cref="Offset"/> lifts it.
 /// </summary>
-public sealed record RoomGlow(RoomFace Wall, float Height, Vector3 Color)
+public sealed record RoomGlow(RoomFace? Wall, float Height, Vector3 Color)
 {
+    /// <summary>The height in metres above the floor of the strip's lower edge, or null to put the strip's top edge on the wall's top.</summary>
+    public float? Offset { get; init; }
+
     public const float DefaultHeight = 3;
     public static readonly Vector3 DefaultColor = new(1, 0.82f, 0.5f);
 }

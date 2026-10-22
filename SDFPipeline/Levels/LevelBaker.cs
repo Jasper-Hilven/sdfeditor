@@ -479,7 +479,7 @@ public static class LevelBaker
             walls = Look(room.Walls),
             ceiling = Look(room.Ceiling),
             // The emissive band along the top of a wall: the wall's face name, its height in metres and its colour (sRGB)
-            glow = room.Glow is { } glow ? new { wall = FaceName(glow.Wall), height = glow.Height, color = Vec(glow.Color) } : null,
+            glow = room.Glow is { } glow ? new { wall = glow.Wall is { } wall ? FaceName(wall) : "all", height = glow.Height, offset = glow.Offset, color = Vec(glow.Color) } : null,
             // The lamp: the direction towards it (the pipeline's axes), its colour and the ambient (sRGB); parts left out keep Unity's indoor default
             light = room.Light is { } light
                 ? new { direction = light.Direction is { } d ? Vec(d) : null, color = light.Color is { } c ? Vec(c) : null, ambient = light.Ambient is { } a ? Vec(a) : null }
