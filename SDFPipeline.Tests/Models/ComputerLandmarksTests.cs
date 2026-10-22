@@ -191,13 +191,14 @@ public class ComputerLandmarksTests
     }
 
     [Fact]
-    public void CaseFansRing_Glows_AndNothingElseDoes()
+    public void LedRingAndRamLightBars_Glow_AndNothingElseDoes()
     {
         var root = Path.GetDirectoryName(Content())!;
         var glowing = Directory.GetFiles(Path.Combine(root, "materials", "computer"), "pc_*.sdfmat")
             .Where(f => Regex.IsMatch(File.ReadAllText(f), @"^emission = [^0]", RegexOptions.Multiline))
             .Select(f => Path.GetFileNameWithoutExtension(f)).ToList();
-        Assert.Equal(new[] { "pc_led_ring" }, glowing);
+        // 30.6: the RAM banks' light bars glow too
+        Assert.Equal(new[] { "pc_led_ring", "pc_ram_light_blue", "pc_ram_light_red" }, glowing.OrderBy(n => n, StringComparer.Ordinal));
     }
 
     [Theory]
