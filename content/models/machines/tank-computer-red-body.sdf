@@ -1,0 +1,27 @@
+# Tank body, red (ticket 30.7): a black SOIC chip 0.72 m long and 0.2 m deep standing on two tin-plated tread rolls (its gull-wing legs, one
+# a side), with a flat red top plate. The turret (tank-computer-red-turret) sits on the chip's top.
+# Pivot: the origin is on the ground under the middle, +z forward. The turret's pivot is at (0, 0.3, 0) in this model.
+format 1
+collider convex
+
+Detail detail=0.28
+    Union
+        # The tread rolls, mirrored either side of the chip, each a rounded block with a drum at either end
+        Material material=pc_tin
+            SymmetryX
+                Translate translation=(0.22, 0.095, 0)
+                    Union
+                        RoundBox size=(0.065, 0.085, 0.26) roundness=0.04
+                        Translate translation=(0, 0, -0.26)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                CappedCylinder radius=0.095 height=0.065
+                        Translate translation=(0, 0, 0.26)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                CappedCylinder radius=0.095 height=0.065
+        # The chip body, and on it the team's top plate
+        Material material=pc_epoxy_black
+            Translate translation=(0, 0.2, 0)
+                RoundBox size=(0.16, 0.09, 0.3) roundness=0.03
+        Material material=machine_red_paint
+            Translate translation=(0, 0.285, 0)
+                RoundBox size=(0.15, 0.015, 0.29) roundness=0.01

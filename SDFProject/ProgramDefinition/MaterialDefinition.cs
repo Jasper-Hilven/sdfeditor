@@ -50,6 +50,12 @@ public sealed record MaterialDefinition(
     /// <summary>A speckle's radius as a share of <see cref="speckleScale"/>; sizes vary from half to one and a half times this.</summary>
     public float speckleSize { get; init; } = 0.3f;
 
+    /// <summary>
+    /// 0 to 1: how much the surface glows. A toon renderer adds this much of the base colour after its light bands, flat and unbanded, so
+    /// a lit face keeps its colour in shadow; 0 (the default) adds nothing.
+    /// </summary>
+    public float emission { get; init; }
+
     /// <summary>What a shape without a colour or material looks like.</summary>
     public static readonly MaterialDefinition Default = new(new V3(0.85f, 0.62f, 0.42f), 0.5f, 0.5f, new V3(0, 0, 0), 0, 0, 0.05f, 0);
 
@@ -79,7 +85,15 @@ public sealed record MaterialDefinition(
         new(nameof(speckleScale), MaterialParameterKind.Number, m => [m.speckleScale], (m, v) => m with { speckleScale = v[0] }),
         new(nameof(speckleDensity), MaterialParameterKind.Number, m => [m.speckleDensity], (m, v) => m with { speckleDensity = v[0] }),
         new(nameof(speckleSize), MaterialParameterKind.Number, m => [m.speckleSize], (m, v) => m with { speckleSize = v[0] }),
+        new(nameof(emission), MaterialParameterKind.Number, m => [m.emission], (m, v) => m with { emission = v[0] }),
     ];
+
+    /// <summary>
+    /// The parameters a file or a bake lists for the material: all of them, except emission when it is 0, so materials that do not glow
+    /// are written as they were before it existed.
+    /// </summary>
+    public static IEnumerable<MaterialParameter> Listed(MaterialDefinition material) =>
+        Parameters.Where(p => p.Name != nameof(emission) || material.emission != 0);
 
     public static MaterialParameter? FindParameter(string name) => Parameters.FirstOrDefault(p => p.Name == name);
 

@@ -1,0 +1,22 @@
+# PCIe x16 slot 0: a PCIe x16 slot, 22.25 m long (x), 1.9 m wide (z) and 2.75 m tall (250 times life size): a black body (pc_epoxy_black) with a long socket groove
+# in the top, a key divider in the groove and two gold contact strips (pc_gold). A lane wall: mesh collider.
+format 1
+
+# A rounded body with the socket cut into the top and the key divider in it, the contact strips on the groove's floor
+Detail detail=0.5
+    Union
+        Material material=pc_epoxy_black
+            Union
+                Subtraction
+                    Translate translation=(0, 1.375, 0)
+                        RoundBox size=(11.125, 1.375, 0.95) roundness=0.15
+                    Translate translation=(0, 2.75, 0.1)
+                        Box size=(10.85, 1.25, 0.32)
+                Translate translation=(-3.2, 1.7, 0.1)
+                    Box size=(0.25, 0.4, 0.3)
+        Material material=pc_gold
+            Union
+                Translate translation=(0, 1.52, 0)
+                    Box size=(10.75, 0.03, 0.06)
+                Translate translation=(0, 1.52, 0.2)
+                    Box size=(10.75, 0.03, 0.06)

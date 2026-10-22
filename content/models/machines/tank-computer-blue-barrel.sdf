@@ -1,0 +1,13 @@
+# Tank barrel, blue (ticket 30.7): an axial resistor: a tan ceramic body with a tin cap at the end, from a round tin knuckle.
+# Pivot: the origin is the knuckle's centre, the hinge it tilts about (local x); it points along +z. In tank-computer-blue-turret it is at
+# (0, 0.05, 0.13).
+format 1
+
+Detail detail=0.45
+    Union
+        Material material=pc_tin
+            Union
+                Sphere radius=0.04
+                ArbitraryCappedCylinder a=(0, 0, 0.2) b=(0, 0, 0.25) radius=0.03
+        Material material=pc_ceramic_tan
+            ArbitraryCappedCylinder a=(0, 0, 0.02) b=(0, 0, 0.2) radius=0.036

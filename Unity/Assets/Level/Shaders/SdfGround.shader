@@ -26,7 +26,7 @@ Shader "SdfMushrooms/Ground"
         _ToonRim("Rim (strength, width)", Vector) = (0, 0.3, 0, 0)
         _ToonVariation("Colour variation (amount)", Vector) = (0.5, 0, 0, 0)
 
-        _GroundBaseColor("Base colour (linear)", Vector) = (0.17, 0.36, 0.08, 0)
+        _GroundBaseColor("Base colour (linear) and emission (0 to 1)", Vector) = (0.17, 0.36, 0.08, 0)
         _GroundVariation("Variation colour (linear) and scale (m)", Vector) = (0.3, 0.44, 0.09, 9)
         _GroundSurface("Roughness, specular, colour variation, detail scale (m)", Vector) = (0.9, 0.3, 0.16, 0.5)
         _GroundSpeckle("Speckle colour (linear) and scale (m)", Vector) = (0.42, 0.56, 0.16, 0.35)
@@ -40,27 +40,27 @@ Shader "SdfMushrooms/Ground"
         _GroundRegionShape("Region range, count, edge width, unused", Vector) = (2, 0, 0.05, 0)
         _GroundRegionWobble("Region edge wobble per channel (m)", Vector) = (0.06, 0.06, 0.06, 0.06)
 
-        // Each region's material as the grass's above, plus its pattern: x = speckle density, y = speckle size, z = 1 for stones,
-        // w = stone size (m); and the grout: rgb = colour (linear), a = width (m)
-        _Region0Base("Region 0 base colour", Vector) = (0, 0, 0, 0)
+        // Each region's material as the grass's above (with its emission in the base colour's alpha), plus its pattern: x = speckle
+        // density, y = speckle size, z = 1 for stones, w = stone size (m); and the grout: rgb = colour (linear), a = width (m)
+        _Region0Base("Region 0 base colour and emission (0 to 1)", Vector) = (0, 0, 0, 0)
         _Region0Variation("Region 0 variation colour and scale", Vector) = (0, 0, 0, 0)
         _Region0Surface("Region 0 roughness, specular, colour variation, detail scale", Vector) = (0.9, 0.3, 0, 0.5)
         _Region0Speckle("Region 0 speckle colour and scale", Vector) = (0, 0, 0, 0)
         _Region0Pattern("Region 0 speckle density, size, stones, stone size", Vector) = (0, 0, 0, 0.6)
         _Region0Grout("Region 0 grout colour and width", Vector) = (0, 0, 0, 0)
-        _Region1Base("Region 1 base colour", Vector) = (0, 0, 0, 0)
+        _Region1Base("Region 1 base colour and emission (0 to 1)", Vector) = (0, 0, 0, 0)
         _Region1Variation("Region 1 variation colour and scale", Vector) = (0, 0, 0, 0)
         _Region1Surface("Region 1 roughness, specular, colour variation, detail scale", Vector) = (0.9, 0.3, 0, 0.5)
         _Region1Speckle("Region 1 speckle colour and scale", Vector) = (0, 0, 0, 0)
         _Region1Pattern("Region 1 speckle density, size, stones, stone size", Vector) = (0, 0, 0, 0.6)
         _Region1Grout("Region 1 grout colour and width", Vector) = (0, 0, 0, 0)
-        _Region2Base("Region 2 base colour", Vector) = (0, 0, 0, 0)
+        _Region2Base("Region 2 base colour and emission (0 to 1)", Vector) = (0, 0, 0, 0)
         _Region2Variation("Region 2 variation colour and scale", Vector) = (0, 0, 0, 0)
         _Region2Surface("Region 2 roughness, specular, colour variation, detail scale", Vector) = (0.9, 0.3, 0, 0.5)
         _Region2Speckle("Region 2 speckle colour and scale", Vector) = (0, 0, 0, 0)
         _Region2Pattern("Region 2 speckle density, size, stones, stone size", Vector) = (0, 0, 0, 0.6)
         _Region2Grout("Region 2 grout colour and width", Vector) = (0, 0, 0, 0)
-        _Region3Base("Region 3 base colour", Vector) = (0, 0, 0, 0)
+        _Region3Base("Region 3 base colour and emission (0 to 1)", Vector) = (0, 0, 0, 0)
         _Region3Variation("Region 3 variation colour and scale", Vector) = (0, 0, 0, 0)
         _Region3Surface("Region 3 roughness, specular, colour variation, detail scale", Vector) = (0.9, 0.3, 0, 0.5)
         _Region3Speckle("Region 3 speckle colour and scale", Vector) = (0, 0, 0, 0)
@@ -183,6 +183,7 @@ Shader "SdfMushrooms/Ground"
             struct GroundLayer
             {
                 float3 base;
+                float emission;
                 float4 variation;
                 float4 surface;
                 float4 speckle;
@@ -194,6 +195,7 @@ Shader "SdfMushrooms/Ground"
             {
                 GroundLayer layer;
                 layer.base = base.rgb;
+                layer.emission = base.a;
                 layer.variation = variation;
                 layer.surface = surface;
                 layer.speckle = speckle;
@@ -325,11 +327,15 @@ Shader "SdfMushrooms/Ground"
                 float3 albedo = float3(0, 0, 0);
                 float2 surface = float2(0, 0);
                 float3 normal = float3(0, 0, 0);
+                // What the glowing materials add after the bands: their colour times their emission, as far as they show
+                float3 glow = float3(0, 0, 0);
                 if (grassShown > 0.001)
                 {
                     GroundLayer grass = Layer(_GroundBaseColor, _GroundVariation, _GroundSurface, _GroundSpeckle,
                         float4(_GroundSpeckleShape.xy, 0, 0), float4(0, 0, 0, 0));
-                    albedo += grassShown * SdfGroundColor(grass, grass.base, positionWS);
+                    float3 grassColor = SdfGroundColor(grass, grass.base, positionWS);
+                    albedo += grassShown * grassColor;
+                    glow += grassShown * grass.emission * grassColor;
                     surface += grassShown * _GroundSurface.xy;
                     normal += grassShown * n;
                 }
@@ -339,7 +345,9 @@ Shader "SdfMushrooms/Ground"
                         GroundLayer layer = Layer(_Region##i##Base, _Region##i##Variation, _Region##i##Surface, _Region##i##Speckle, \
                             _Region##i##Pattern, _Region##i##Grout); \
                         float3 layerNormal = n; \
-                        albedo += w * LayerColor(layer, positionWS, pixel, layerNormal); \
+                        float3 layerColor = LayerColor(layer, positionWS, pixel, layerNormal); \
+                        albedo += w * layerColor; \
+                        glow += w * layer.emission * layerColor; \
                         surface += w * _Region##i##Surface.xy; \
                         normal += w * layerNormal; \
                     }
@@ -352,6 +360,7 @@ Shader "SdfMushrooms/Ground"
 
                 // Dry and open: no wetness, and no baked occlusion (1)
                 float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, surface.x, surface.y, 0.0, 1.0, 0.0);
+                color += glow;
                 return SdfToonOutput(MixFog(SkyFade(color, input.positionWS), input.fogFactor), normalize(input.normalWS), input.positionWS);
             }
             ENDHLSL

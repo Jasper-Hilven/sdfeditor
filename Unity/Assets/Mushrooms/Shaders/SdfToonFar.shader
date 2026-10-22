@@ -76,7 +76,7 @@ Shader "SdfMushrooms/Toon Far"
                 float4 uv2 : TEXCOORD2;
                 float4 uv3 : TEXCOORD3;
                 float4 uv4 : TEXCOORD4;
-                float2 uv5 : TEXCOORD5;
+                float3 uv5 : TEXCOORD5;
                 float4 uv6 : TEXCOORD6;
             };
 
@@ -91,7 +91,7 @@ Shader "SdfMushrooms/Toon Far"
                 float4 uv2 : TEXCOORD5;
                 float4 uv3 : TEXCOORD6;
                 float4 uv4 : TEXCOORD7;
-                float2 uv5 : TEXCOORD8;
+                float3 uv5 : TEXCOORD8;
                 float4 uv6 : TEXCOORD9;
             };
 
@@ -127,10 +127,11 @@ Shader "SdfMushrooms/Toon Far"
             {
                 float3 n = normalize(input.normalWS);
                 float3 v = GetWorldSpaceNormalizeViewDir(input.positionWS);
-                float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5, 0, 0), input.uv6);
+                float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5.xy, 0, 0), input.uv6);
                 // Lit from the eye, unshadowed, in white
                 float3 color = SdfToonShade(albedo, n, v, v, 1.0, float3(1, 1, 1), input.uv0.x, input.uv0.y, input.color.a,
                     saturate(input.uv0.w), saturate(input.uv6.a));
+                color = SdfToonEmit(color, albedo, input.uv5.z);
                 return SdfToonOutput(color * (1.0 + _FarGlow), n, input.positionWS);
             }
             ENDHLSL

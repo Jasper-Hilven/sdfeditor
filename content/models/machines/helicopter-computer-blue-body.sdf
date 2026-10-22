@@ -1,0 +1,41 @@
+# Helicopter body, blue (ticket 30.7): a micro blower fan 0.8 m across the impeller: a black plastic housing on a small flat blue board, on four
+# tin pins, with a tin shaft up for the impeller (the rotor) and a flat grey cable out of the back to a tiny tail fan; the scouts' floating
+# eyes hover in front of the housing.
+# Pivot: the origin is on the ground under the middle (the pins stand on it), +z forward. The rotor's (helicopter-computer-blue-rotor) pivot
+# is at (0, 0.56, 0) and the tail rotor's (helicopter-computer-blue-tail-rotor) at (0.025, 0.4, -0.35) in this model.
+format 1
+collider convex
+
+Detail detail=0.28
+    Union
+        # The board in the team's colour
+        Material material=machine_blue_paint
+            Translate translation=(0, 0.14, 0)
+                RoundBox size=(0.21, 0.02, 0.27) roundness=0.015
+        # The four pins it stands on, and the shaft up to the impeller's hub
+        Material material=pc_tin
+            Union
+                SymmetryX
+                    Union
+                        Capsule a=(0.15, 0.14, 0.2) b=(0.15, 0.02, 0.2) radius=0.022
+                        Capsule a=(0.15, 0.14, -0.2) b=(0.15, 0.02, -0.2) radius=0.022
+                Capsule a=(0, 0.3, 0) b=(0, 0.56, 0) radius=0.03
+        # The housing, a rounded block with a round hollow in its top, and the tail fan's small housing
+        Material material=pc_epoxy_black
+            Union
+                Subtraction
+                    Translate translation=(0, 0.26, 0)
+                        RoundBox size=(0.17, 0.1, 0.17) roundness=0.05
+                    Translate translation=(0, 0.42, 0)
+                        CappedCylinder radius=0.12 height=0.1
+                Translate translation=(0, 0.4, -0.35)
+                    RoundBox size=(0.03, 0.05, 0.05) roundness=0.012
+        # The flat cable from the back of the housing, rising to the tail fan
+        Material material=pc_ribbon_grey
+            ArbitraryRoundCone a=(0, 0.25, -0.16) b=(0, 0.4, -0.33) radiusA=0.05 radiusB=0.025
+        # Eyes, mirrored: the scouts' eyeballs at a little over half size, floating in front of the housing, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.085, 0.3, 0.27)
+                Scale scale=(0.55, 0.55, 0.55)
+                    Part part=eye_machine

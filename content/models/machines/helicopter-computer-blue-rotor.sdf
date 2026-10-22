@@ -1,0 +1,30 @@
+# Helicopter rotor, blue (ticket 30.7): the blower's impeller lying flat: a grey hub with six short white paddles round it, spun by
+# script so the paddles blur into a disc.
+# Pivot: the origin is the hub's bottom on the rotor's axis (it spins about y); in helicopter-computer-blue-body it is at (0, 0.56, 0).
+format 1
+
+Detail detail=0.3
+    Union
+        Material material=pc_aluminium
+            Translate translation=(0, 0.02, 0)
+                CappedCylinder radius=0.05 height=0.025
+        Material material=pc_fan_white
+            Union
+                Rotate rotation=(0, 0.0, 0)
+                    Translate translation=(0.17, 0.02, 0)
+                        RoundBox size=(0.1, 0.012, 0.035) roundness=0.01
+                Rotate rotation=(0, 1.0472, 0)
+                    Translate translation=(0.17, 0.02, 0)
+                        RoundBox size=(0.1, 0.012, 0.035) roundness=0.01
+                Rotate rotation=(0, 2.0944, 0)
+                    Translate translation=(0.17, 0.02, 0)
+                        RoundBox size=(0.1, 0.012, 0.035) roundness=0.01
+                Rotate rotation=(0, 3.1416, 0)
+                    Translate translation=(0.17, 0.02, 0)
+                        RoundBox size=(0.1, 0.012, 0.035) roundness=0.01
+                Rotate rotation=(0, 4.1888, 0)
+                    Translate translation=(0.17, 0.02, 0)
+                        RoundBox size=(0.1, 0.012, 0.035) roundness=0.01
+                Rotate rotation=(0, 5.236, 0)
+                    Translate translation=(0.17, 0.02, 0)
+                        RoundBox size=(0.1, 0.012, 0.035) roundness=0.01

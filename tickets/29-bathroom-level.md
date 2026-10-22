@@ -244,9 +244,9 @@ The turrets are 5 m off the dish, 6.1 m from the spawn, 5.7 m from the pistol po
 the tanks can leave in three directions.
 
 - **Copters in a room**: the indoor ceiling is the spawn plus 10 m (`HelicopterMachine`), so they fly at 6-10 m, under the 70 m
-  ceiling but **into** the tub (16.5 m), duck and pyramids (9 m) and the tallest bottles (6.6 m). The pilot needs no-fly boxes for
-  every placed collider whose top is over 5.5 m, and to go round the tub (29.5). If that does not land, the bathroom ships with tanks
-  and turrets only; the user decides.
+  ceiling but **into** the tub (16.5 m), duck and pyramids (9 m) and the tallest bottles (6.6 m). Keep-outs come
+  automatically from placed models over 6 m in a room (ticket 30.7, `HelicopterKeepOuts`); no `nofly` lines. 29.8 checks the tub, duck and
+  pyramids are covered.
 - 24's fungal machines are off theme here: the machine set is chosen per level (a `machines set=bathroom` line or by the level's
   theme), 29.5.
 
@@ -344,7 +344,7 @@ bots cannot plan round).
 1. Footprint: the floor round the tub (above), at 30 times.
 2. Bases: soap-dish forts with a toothbrush-cup keep and team-coloured toothbrushes.
 3. Twist: soap slicks and wet scouts conducting the electro gun.
-4. Machines: duck tank, spray copter, hairdryer turret; or no copters if the no-fly work does not land.
+4. Machines: duck tank, spray copter, hairdryer turret; copters keep out of tall models via 30.7's automatic keep-outs.
 5. Weapon mix: pistol and blob gun on the sides, electro gun and flamethrower neutral.
 
 ## Subtickets (one agent each, merged on finish)
@@ -355,7 +355,7 @@ bots cannot plan round).
 - [29.3 — Knee cover and tall blockers](29.3-models-knee-cover-and-blockers.md): soap bars, sponges, ducklings, bath bombs, washcloth, caps, shampoo bottles, lotion pump, toilet rolls.
 - [29.4 — Big landmarks](29.4-models-big-landmarks.md): tub, riser, towel, giant duck, toilet-roll pyramid.
 - [29.5 — Small landmarks and base](29.5-models-small-landmarks-and-base.md): bath brush, scale, drain, window, soap dish, cup, toothbrushes.
-- [29.6 — Bathroom machines](29.6-bathroom-machines.md): duck tank, spray copter, hairdryer turret in red and blue as the `bathroom` set; the copters' no-fly boxes.
+- [29.6 — Bathroom machines](29.6-bathroom-machines.md): duck tank, spray copter, hairdryer turret in red and blue as the `bathroom` set.
 - [29.7 — Slick and wet zones](29.7-slick-and-wet-zones.md): the zone mask in the bake; the player motor's slick friction; the bots' slick speed; wet scouts and the electro gun's x1.5.
 - [29.8 — Level file and tests](29.8-level-file.md): `bathroom.level` with every section commented, `BattleSidesTests.LevelNames` and its weapon table, the theme test, the bake.
 - [29.9 — Unity check](29.9-unity-check.md): rebuild, Check Navmesh, snapshots and budgets on both presets; in the main checkout re-mesh and rebake after merging.

@@ -31,7 +31,7 @@ public class BattleSidesTests
     /// <summary>The least room round a battle object's edge, in metres, to a model or to another battle object.</summary>
     private const float Gap = 0.2f;
 
-    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox"];
+    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "computer"];
 
     /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun.</summary>
     private static readonly Dictionary<string, string[]> SideWeapons = new()
@@ -40,10 +40,14 @@ public class BattleSidesTests
         ["fungal"] = ["minigun", "pistol"],
         ["chessboard"] = ["electro-gun", "poison-gun"],
         ["toybox"] = ["pistol", "blob-gun"],
+        ["computer"] = ["minigun", "poison-gun"],
     };
 
-    /// <summary>The levels whose sides have machines (ticket 24): the fungal level and the toy box.</summary>
-    private static readonly string[] MachineLevels = ["fungal", "toybox"];
+    /// <summary>The levels whose sides have machines (ticket 24): the fungal level, the toy box and the computer.</summary>
+    private static readonly string[] MachineLevels = ["fungal", "toybox", "computer"];
+
+    /// <summary>The machine levels whose bases are castles; the computer's are RAM banks, which the castle check does not know.</summary>
+    private static readonly string[] CastleMachineLevels = ["fungal", "toybox"];
 
     public static TheoryData<string> Levels => new(LevelNames);
 
@@ -206,7 +210,7 @@ public class BattleSidesTests
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
-    public static TheoryData<string> WithMachines => new(MachineLevels);
+    public static TheoryData<string> WithMachines => new(CastleMachineLevels);
 
     [Fact]
     public void OverlapCheck_FindsAFlagStandMovedIntoACastleWall_AndAPodMovedOntoARock()

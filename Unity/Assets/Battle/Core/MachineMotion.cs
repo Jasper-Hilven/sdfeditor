@@ -96,8 +96,6 @@ namespace SdfBattle
         private float needIn;
         private float needed;
         private float here;
-        private readonly List<Vector2> route = new List<Vector2>();
-        private int routeAt;
 
         public HelicopterPilot(Vector2 areaMin, Vector2 areaMax, Func<float, float, float> surface, System.Random random = null)
         {
@@ -117,21 +115,17 @@ namespace SdfBattle
         /// <summary>The highest it may fly (a closed room's ceiling less its size); none under a sky.</summary>
         public float? Ceiling { get; set; }
 
-        /// <summary>
-        /// The boxes it never flies into (ticket 29.6, a level's <c>nofly</c> lines): its waypoints are picked outside them, it flies round
-        /// them by <see cref="NoFlyZones.Route"/> and a drift that carries it in is pushed out. None: it flies anywhere over the play area.
-        /// </summary>
-        public NoFlyZones NoFly { get; set; }
-
-        /// <summary>How many times it had to be pushed out of a no-fly box (it should be none: the route keeps it off them).</summary>
-        public int Pushes { get; private set; }
-
         public float Margin = 6;
         public float MinHeight = 6;
         public float MaxHeight = 12;
         /// <summary>Over a raised surface (more than <see cref="RaisedAbove"/> over <see cref="Floor"/>, a base) it flies this high over the floor; none: as over the ground (6 to 12 m over what is under it). Set by <see cref="HelicopterLimits"/>.</summary>
         public float? OverBases { get; set; }
         public float Floor { get; set; }
+
+        /// <summary>Footprints it keeps out of (ticket 30.7: a room's tall models), <see cref="KeepOutMargin"/> metres clear: no flight point in or near one, no leg across one. None: free.</summary>
+        public IReadOnlyList<KeepOut> KeepOuts { get; set; }
+
+        public float KeepOutMargin = 1.5f;
         public float RaisedAbove = 2;
         public float Speed = 5;
         /// <summary>Its speed while it has a target: it slows to fire.</summary>
@@ -173,8 +167,6 @@ namespace SdfBattle
             holdFor = 0;
             needIn = 0;
             cruise = MinHeight + (float)random.NextDouble() * (MaxHeight - MinHeight);
-            route.Clear();
-            routeAt = 0;
             Waypoint = new Vector3(ground.x, ground.y + cruise, ground.z);
         }
 
@@ -192,7 +184,7 @@ namespace SdfBattle
             {
                 // A few rays a second, not every frame
                 needed = HeightNeeded(position, Velocity);
-                here = SurfaceAt(position.x, position.z);
+                here = Surface(position.x, position.z);
                 needIn = 0.2f;
             }
 
@@ -209,22 +201,10 @@ namespace SdfBattle
                 TakingOff = false;
                 PickWaypoint(position);
             }
-            // Along the route round the no-fly boxes: through a corner it does not stop (it turns within a few metres of it)
-            var target = Waypoint;
-            var onRoute = routeAt < route.Count - 1;
-            if (routeAt < route.Count)
-                target = new Vector3(route[routeAt].x, Waypoint.y, route[routeAt].y);
-            if (onRoute && new Vector2(target.x - position.x, target.z - position.z).magnitude < RouteReach)
-            {
-                routeAt++;
-                target = new Vector3(route[routeAt].x, Waypoint.y, route[routeAt].y);
-                onRoute = routeAt < route.Count - 1;
-            }
-            var flat = new Vector3(target.x - position.x, 0, target.z - position.z);
+            var flat = new Vector3(Waypoint.x - position.x, 0, Waypoint.z - position.z);
             var distance = flat.magnitude;
             var speed = faceTarget.HasValue ? EngagedSpeed : Speed;
-            // It slows coming in to its waypoint; at a corner of the route only enough to take the turn
-            speed = Mathf.Min(speed, onRoute ? distance * 0.6f + 1.5f : distance * 0.6f);
+            speed = Mathf.Min(speed, distance * 0.6f);
             if (TakingOff || holdFor > 0)
                 speed = 0;
             if (position.y < needed - 0.5f)
@@ -235,14 +215,11 @@ namespace SdfBattle
             position += velocity * dt;
             position.x = Mathf.Clamp(position.x, AreaMin.x + Margin - 1, AreaMax.x - Margin + 1);
             position.z = Mathf.Clamp(position.z, AreaMin.y + Margin - 1, AreaMax.y - Margin + 1);
-            // Never inside a no-fly box, whatever its drift: out through the nearest side
-            if (NoFly != null && NoFly.Contains(new Vector2(position.x, position.z)))
+            if (KeepOuts != null)
             {
-                var out2 = NoFly.PushOut(new Vector2(position.x, position.z), 0.1f);
-                position.x = out2.x;
-                position.z = out2.y;
-                velocity = new Vector3(0, velocity.y, 0);
-                Pushes++;
+                var pushed = KeepOutRules.PushOut(KeepOuts, new Vector2(position.x, position.z));
+                position.x = pushed.x;
+                position.z = pushed.y;
             }
             Position = position;
             Velocity = velocity;
@@ -253,7 +230,7 @@ namespace SdfBattle
                 if (holdFor <= 0)
                     PickWaypoint(position);
             }
-            else if (!TakingOff && !onRoute && distance < 2.5f)
+            else if (!TakingOff && distance < 2.5f)
                 holdFor = 0.5f + (float)random.NextDouble() * 2;
 
             // The nose: to the target, else along its way once it moves
@@ -285,40 +262,15 @@ namespace SdfBattle
             for (var i = 0; i <= 3; i++)
             {
                 var point = position + ahead * (i / 3f);
-                highest = Mathf.Max(highest, SurfaceAt(Mathf.Clamp(point.x, AreaMin.x, AreaMax.x), Mathf.Clamp(point.z, AreaMin.y, AreaMax.y)));
+                highest = Mathf.Max(highest, Surface(Mathf.Clamp(point.x, AreaMin.x, AreaMax.x), Mathf.Clamp(point.z, AreaMin.y, AreaMax.y)));
             }
             var needs = highest + MinHeight;
             return OverBase(highest) is { } over ? Mathf.Max(needs, over) : needs;
         }
 
-        /// <summary>How near (metres) it must come to a corner of its route before it turns to the next point.</summary>
-        public float RouteReach = 3;
-
-        /// <summary>
-        /// The surface under a point, as the pilot meets it: what stands inside a no-fly box does not count (it never flies over it, and
-        /// the tub's 16.5 m would only hold it at the ceiling whenever it looks ahead at it).
-        /// </summary>
-        private float SurfaceAt(float x, float z) =>
-            NoFly != null && NoFly.Contains(new Vector2(x, z)) ? Floor : Surface(x, z);
-
         /// <summary>The height (y) it flies at over a surface at <paramref name="surface"/> if that is a base in a room (<see cref="OverBases"/>), else null.</summary>
         private float? OverBase(float surface) =>
             OverBases.HasValue && surface > Floor + RaisedAbove ? Floor + OverBases.Value : (float?)null;
-
-        /// <summary>The way round the no-fly boxes from <paramref name="from"/> to the waypoint (just the waypoint when none is in the way).</summary>
-        private void PlanRoute(Vector3 from)
-        {
-            route.Clear();
-            routeAt = 0;
-            if (NoFly == null || NoFly.Count == 0)
-                return;
-            // Round a box only where the pilot can fly: inside the area it keeps to
-            NoFly.AreaMin = new Vector2(AreaMin.x + Margin - 1, AreaMin.y + Margin - 1);
-            NoFly.AreaMax = new Vector2(AreaMax.x - Margin + 1, AreaMax.y - Margin + 1);
-            route.AddRange(NoFly.Route(new Vector2(from.x, from.z), new Vector2(Waypoint.x, Waypoint.z)));
-            var end = route[route.Count - 1];
-            Waypoint = new Vector3(end.x, SurfaceAt(end.x, end.y) + cruise, end.y);
-        }
 
         /// <summary>A new random point over the play area, <see cref="Margin"/> inside its edge, and a new cruise height.</summary>
         public void PickWaypoint(Vector3 from)
@@ -332,11 +284,16 @@ namespace SdfBattle
                 // Not just round the corner: somewhere across the field
                 if (attempt < 6 && (new Vector2(x - from.x, z - from.z)).magnitude < 15)
                     continue;
-                // Not in a no-fly box or the margin it is flown past at (a field that is nearly all boxes takes the point as it is, pushed out below)
-                if (attempt < 50 && NoFly != null && NoFly.Blocked(new Vector2(x, z), NoFly.Margin + NoFly.CornerSlack))
-                    continue;
-                Waypoint = new Vector3(x, SurfaceAt(x, z) + cruise, z);
-                PlanRoute(from);
+                // Not in a keep-out, nor across one on the way; with no such point found it hovers where it is
+                var point = new Vector2(x, z);
+                if (KeepOuts != null && (KeepOutRules.Near(KeepOuts, point, KeepOutMargin) || KeepOutRules.Blocks(KeepOuts, new Vector2(from.x, from.z), point, KeepOutMargin)))
+                {
+                    if (attempt < 60)
+                        continue;
+                    x = from.x;
+                    z = from.z;
+                }
+                Waypoint = new Vector3(x, Surface(x, z) + cruise, z);
                 return;
             }
         }

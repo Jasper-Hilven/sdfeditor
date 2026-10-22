@@ -1,0 +1,84 @@
+# Power connector 0: an 8-pin EPS plug in its header (pc_epoxy_black), 5.3 m long (x) and 2.3 m deep (z) at the foot (250 times life size), with its wire bundle,
+# four yellow (pc_wire_yellow) and four black (pc_wire_black) wires 1 m thick, rising straight and then in a curve towards -z to y = 64, the ceiling. Mesh
+# collider up to 7.5 m (the level cuts it), none above.
+format 1
+
+# The header and plug, then the two rows of wires as chains of capsules
+Detail detail=0.22
+    Union
+        Material material=pc_epoxy_black
+            Union
+                Translate translation=(0, 0.6, 0)
+                    RoundBox size=(2.65, 0.6, 1.15) roundness=0.2
+                Translate translation=(0, 2.2, 0)
+                    RoundBox size=(2.4, 1, 1) roundness=0.2
+                Translate translation=(0, 2.2, 1.05)
+                    Box size=(1.2, 0.7, 0.12)
+        Material material=pc_wire_yellow
+            Union
+                Union
+                    Capsule a=(-1.5, 3.2, 0.5) b=(-1.5, 6, 0.5) radius=0.5
+                    Capsule a=(-1.5, 6, 0.5) b=(-1.5, 10, 0.467) radius=0.5
+                    Capsule a=(-1.5, 10, 0.467) b=(-1.5, 16, 0.292) radius=0.5
+                    Capsule a=(-1.5, 16, 0.292) b=(-1.5, 24, -0.174) radius=0.5
+                    Capsule a=(-1.5, 24, -0.174) b=(-1.5, 34, -1.131) radius=0.5
+                    Capsule a=(-1.5, 34, -1.131) b=(-1.5, 46, -2.829) radius=0.5
+                    Capsule a=(-1.5, 46, -2.829) b=(-1.5, 63.5, -6.38) radius=0.5
+                Union
+                    Capsule a=(-0.5, 3.2, 0.5) b=(-0.5, 6, 0.5) radius=0.5
+                    Capsule a=(-0.5, 6, 0.5) b=(-0.5, 10, 0.467) radius=0.5
+                    Capsule a=(-0.5, 10, 0.467) b=(-0.5, 16, 0.292) radius=0.5
+                    Capsule a=(-0.5, 16, 0.292) b=(-0.5, 24, -0.174) radius=0.5
+                    Capsule a=(-0.5, 24, -0.174) b=(-0.5, 34, -1.131) radius=0.5
+                    Capsule a=(-0.5, 34, -1.131) b=(-0.5, 46, -2.829) radius=0.5
+                    Capsule a=(-0.5, 46, -2.829) b=(-0.5, 63.5, -6.38) radius=0.5
+                Union
+                    Capsule a=(0.5, 3.2, 0.5) b=(0.5, 6, 0.5) radius=0.5
+                    Capsule a=(0.5, 6, 0.5) b=(0.5, 10, 0.467) radius=0.5
+                    Capsule a=(0.5, 10, 0.467) b=(0.5, 16, 0.292) radius=0.5
+                    Capsule a=(0.5, 16, 0.292) b=(0.5, 24, -0.174) radius=0.5
+                    Capsule a=(0.5, 24, -0.174) b=(0.5, 34, -1.131) radius=0.5
+                    Capsule a=(0.5, 34, -1.131) b=(0.5, 46, -2.829) radius=0.5
+                    Capsule a=(0.5, 46, -2.829) b=(0.5, 63.5, -6.38) radius=0.5
+                Union
+                    Capsule a=(1.5, 3.2, 0.5) b=(1.5, 6, 0.5) radius=0.5
+                    Capsule a=(1.5, 6, 0.5) b=(1.5, 10, 0.467) radius=0.5
+                    Capsule a=(1.5, 10, 0.467) b=(1.5, 16, 0.292) radius=0.5
+                    Capsule a=(1.5, 16, 0.292) b=(1.5, 24, -0.174) radius=0.5
+                    Capsule a=(1.5, 24, -0.174) b=(1.5, 34, -1.131) radius=0.5
+                    Capsule a=(1.5, 34, -1.131) b=(1.5, 46, -2.829) radius=0.5
+                    Capsule a=(1.5, 46, -2.829) b=(1.5, 63.5, -6.38) radius=0.5
+        Material material=pc_wire_black
+            Union
+                Union
+                    Capsule a=(-1.5, 3.2, -0.5) b=(-1.5, 6, -0.5) radius=0.5
+                    Capsule a=(-1.5, 6, -0.5) b=(-1.5, 10, -0.533) radius=0.5
+                    Capsule a=(-1.5, 10, -0.533) b=(-1.5, 16, -0.708) radius=0.5
+                    Capsule a=(-1.5, 16, -0.708) b=(-1.5, 24, -1.174) radius=0.5
+                    Capsule a=(-1.5, 24, -1.174) b=(-1.5, 34, -2.131) radius=0.5
+                    Capsule a=(-1.5, 34, -2.131) b=(-1.5, 46, -3.829) radius=0.5
+                    Capsule a=(-1.5, 46, -3.829) b=(-1.5, 63.5, -7.38) radius=0.5
+                Union
+                    Capsule a=(-0.5, 3.2, -0.5) b=(-0.5, 6, -0.5) radius=0.5
+                    Capsule a=(-0.5, 6, -0.5) b=(-0.5, 10, -0.533) radius=0.5
+                    Capsule a=(-0.5, 10, -0.533) b=(-0.5, 16, -0.708) radius=0.5
+                    Capsule a=(-0.5, 16, -0.708) b=(-0.5, 24, -1.174) radius=0.5
+                    Capsule a=(-0.5, 24, -1.174) b=(-0.5, 34, -2.131) radius=0.5
+                    Capsule a=(-0.5, 34, -2.131) b=(-0.5, 46, -3.829) radius=0.5
+                    Capsule a=(-0.5, 46, -3.829) b=(-0.5, 63.5, -7.38) radius=0.5
+                Union
+                    Capsule a=(0.5, 3.2, -0.5) b=(0.5, 6, -0.5) radius=0.5
+                    Capsule a=(0.5, 6, -0.5) b=(0.5, 10, -0.533) radius=0.5
+                    Capsule a=(0.5, 10, -0.533) b=(0.5, 16, -0.708) radius=0.5
+                    Capsule a=(0.5, 16, -0.708) b=(0.5, 24, -1.174) radius=0.5
+                    Capsule a=(0.5, 24, -1.174) b=(0.5, 34, -2.131) radius=0.5
+                    Capsule a=(0.5, 34, -2.131) b=(0.5, 46, -3.829) radius=0.5
+                    Capsule a=(0.5, 46, -3.829) b=(0.5, 63.5, -7.38) radius=0.5
+                Union
+                    Capsule a=(1.5, 3.2, -0.5) b=(1.5, 6, -0.5) radius=0.5
+                    Capsule a=(1.5, 6, -0.5) b=(1.5, 10, -0.533) radius=0.5
+                    Capsule a=(1.5, 10, -0.533) b=(1.5, 16, -0.708) radius=0.5
+                    Capsule a=(1.5, 16, -0.708) b=(1.5, 24, -1.174) radius=0.5
+                    Capsule a=(1.5, 24, -1.174) b=(1.5, 34, -2.131) radius=0.5
+                    Capsule a=(1.5, 34, -2.131) b=(1.5, 46, -3.829) radius=0.5
+                    Capsule a=(1.5, 46, -3.829) b=(1.5, 63.5, -7.38) radius=0.5

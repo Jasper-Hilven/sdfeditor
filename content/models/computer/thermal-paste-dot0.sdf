@@ -1,0 +1,15 @@
+# Thermal paste dot 0: a smear of grey thermal paste (pc_paste_grey), 0.9 m across and 0.15 m tall (250 times life size), a glossy blob with a small peak where the
+# tube lifted away. Placed by hand round the CPU socket. No collider.
+format 1
+
+# A flat blob with a peak
+Detail detail=0.15
+    Material material=pc_paste_grey
+        Intersection
+            SmoothUnion smoothness=0.1
+                Translate translation=(0, 0.02, 0)
+                    Ellipsoid radii=(0.45, 0.11, 0.38)
+                Translate translation=(0.08, 0.08, 0.03)
+                    Ellipsoid radii=(0.14, 0.09, 0.14)
+            Translate translation=(0, 0.2, 0)
+                Box size=(0.7, 0.2, 0.7)

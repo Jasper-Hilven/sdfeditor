@@ -75,4 +75,11 @@ float3 SdfToonShade(float3 albedo, float3 n, float3 v, float3 l, float shadow, f
     return SkyTone(color, glow);
 }
 
+// A glowing material's light, added to the shaded colour after the bands and the sky's tone: the base colour times the emission (0 to 1,
+// UV5.z), flat, so a face keeps its colour in shadow and under a dark sky. Nothing at 0
+float3 SdfToonEmit(float3 shaded, float3 albedo, float emission)
+{
+    return shaded + albedo * saturate(emission);
+}
+
 #endif

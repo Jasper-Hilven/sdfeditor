@@ -1,0 +1,76 @@
+# GPU 0: a graphics card standing in its slot, 67 m long (x), 10 m deep (z) and 28 m tall (250 times life size), centred on x = 0 and z = 0: a gunmetal shroud
+# (pc_gunmetal) with three round fan openings facing +z, an aluminium backplate on the -z side (so on the north side once the level turns it round), the
+# fans' rings, spokes and motor caps (pc_fan_frame) and the three fans (pc_fan_white) as the parts Fan0, Fan1 and Fan2, which a script spins. Closed down
+# to the board along its whole length. Convex boxes or a mesh collider.
+format 1
+
+# The shroud with its openings, the backplate, the rings and spokes, and the three fans
+Detail detail=0.19
+    Union
+        Material material=pc_gunmetal
+            Subtraction
+                Translate translation=(0, 14, 0.5)
+                    RoundBox size=(33.5, 14, 4.5) roundness=1.2
+                Union
+                    Translate translation=(-22.3, 14, 0.5)
+                        Rotate rotation=(1.571, 0, 0)
+                            CappedCylinder radius=10.8 height=6
+                    Translate translation=(0, 14, 0.5)
+                        Rotate rotation=(1.571, 0, 0)
+                            CappedCylinder radius=10.8 height=6
+                    Translate translation=(22.3, 14, 0.5)
+                        Rotate rotation=(1.571, 0, 0)
+                            CappedCylinder radius=10.8 height=6
+        Material material=pc_aluminium
+            Translate translation=(0, 14, -4.5)
+                RoundBox size=(33.5, 14, 0.5) roundness=0.3
+        Material material=pc_fan_frame
+            Union
+                Union
+                    Translate translation=(-22.3, 14, 3.9)
+                        Rotate rotation=(1.571, 0, 0)
+                            Subtraction
+                                CappedCylinder radius=10.9 height=1
+                                CappedCylinder radius=9.9 height=1.2
+                    Translate translation=(-22.3, 14, -3.3)
+                        Union
+                            Box size=(10, 0.4, 0.5)
+                            Box size=(0.4, 10, 0.5)
+                    Translate translation=(-22.3, 14, -3.2)
+                        Round radius=0.2
+                            Rotate rotation=(1.571, 0, 0)
+                                CappedCylinder radius=3 height=0.7
+                Union
+                    Translate translation=(0, 14, 3.9)
+                        Rotate rotation=(1.571, 0, 0)
+                            Subtraction
+                                CappedCylinder radius=10.9 height=1
+                                CappedCylinder radius=9.9 height=1.2
+                    Translate translation=(0, 14, -3.3)
+                        Union
+                            Box size=(10, 0.4, 0.5)
+                            Box size=(0.4, 10, 0.5)
+                    Translate translation=(0, 14, -3.2)
+                        Round radius=0.2
+                            Rotate rotation=(1.571, 0, 0)
+                                CappedCylinder radius=3 height=0.7
+                Union
+                    Translate translation=(22.3, 14, 3.9)
+                        Rotate rotation=(1.571, 0, 0)
+                            Subtraction
+                                CappedCylinder radius=10.9 height=1
+                                CappedCylinder radius=9.9 height=1.2
+                    Translate translation=(22.3, 14, -3.3)
+                        Union
+                            Box size=(10, 0.4, 0.5)
+                            Box size=(0.4, 10, 0.5)
+                    Translate translation=(22.3, 14, -3.2)
+                        Round radius=0.2
+                            Rotate rotation=(1.571, 0, 0)
+                                CappedCylinder radius=3 height=0.7
+        Translate translation=(-22.3, 14, 0.5)
+            Part part=Fan0
+        Translate translation=(0, 14, 0.5)
+            Part part=Fan1
+        Translate translation=(22.3, 14, 0.5)
+            Part part=Fan2

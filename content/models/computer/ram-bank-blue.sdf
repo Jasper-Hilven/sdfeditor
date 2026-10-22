@@ -1,0 +1,83 @@
+# RAM bank Blue: the blue side's base, two DIMMs with heatspreaders standing in their slots, 36 m long (z), 4.6 m wide (x) and 11 m tall (250 times
+# life size), centred on x = 0 and z = 0 and standing on y = 0. The level turns it 90 degrees (yaw=90) to lie along x, from the back wall towards the middle; the
+# two ends (z = -18 and z = 18) are the same, flat and square, so the end at the back wall is flush with it. Black slots (pc_epoxy_black) with a latch at each end
+# closing over the DIMM, the visible edge of each DIMM's board (pc_pcb_green), dark gunmetal heatspreaders (pc_gunmetal) and a frosted light bar along the top
+# glowing blue (pc_ram_light_blue, the team dressing). The two DIMMs are 0.5 m apart (shut). No text. Mesh collider.
+format 1
+collider mesh
+
+# Slots with their latches, DIMM boards, heatspreaders, and the light bars
+Detail detail=0.6
+    Union
+        Material material=pc_epoxy_black
+            Union
+                Subtraction
+                    Translate translation=(-1.275, 1.0, 0)
+                        RoundBox size=(1.025, 1.0, 18) roundness=0.15
+                    Translate translation=(-1.275, 2.1, 0)
+                        Box size=(0.3, 0.6, 16.9)
+                Translate translation=(-1.275, 2.1, -17.45)
+                    RoundBox size=(0.85, 2.1, 0.55) roundness=0.15
+                Translate translation=(-1.275, 3.75, -16.9)
+                    RoundBox size=(0.7, 0.45, 0.5) roundness=0.1
+                Translate translation=(-1.275, 2.1, 17.45)
+                    RoundBox size=(0.85, 2.1, 0.55) roundness=0.15
+                Translate translation=(-1.275, 3.75, 16.9)
+                    RoundBox size=(0.7, 0.45, 0.5) roundness=0.1
+                Subtraction
+                    Translate translation=(1.275, 1.0, 0)
+                        RoundBox size=(1.025, 1.0, 18) roundness=0.15
+                    Translate translation=(1.275, 2.1, 0)
+                        Box size=(0.3, 0.6, 16.9)
+                Translate translation=(1.275, 2.1, -17.45)
+                    RoundBox size=(0.85, 2.1, 0.55) roundness=0.15
+                Translate translation=(1.275, 3.75, -16.9)
+                    RoundBox size=(0.7, 0.45, 0.5) roundness=0.1
+                Translate translation=(1.275, 2.1, 17.45)
+                    RoundBox size=(0.85, 2.1, 0.55) roundness=0.15
+                Translate translation=(1.275, 3.75, 16.9)
+                    RoundBox size=(0.7, 0.45, 0.5) roundness=0.1
+        Material material=pc_pcb_green
+            Union
+                Translate translation=(-1.275, 1.7, 0)
+                    Box size=(0.25, 0.8, 16.9)
+                Translate translation=(1.275, 1.7, 0)
+                    Box size=(0.25, 0.8, 16.9)
+        Material material=pc_gunmetal
+            Union
+                Subtraction
+                    Union
+                        Translate translation=(-1.275, 5.9, 0)
+                            RoundBox size=(1.0, 3.4, 16.4) roundness=0.35
+                        Translate translation=(-1.275, 9.1, 0)
+                            RoundBox size=(0.8, 0.7, 16.2) roundness=0.25
+                    Union
+                        Translate translation=(-2.275, 4.6, 0)
+                            Box size=(0.1, 0.18, 15.6)
+                        Translate translation=(-2.275, 6.0, 0)
+                            Box size=(0.1, 0.18, 15.6)
+                        Translate translation=(-0.2749999999999999, 4.6, 0)
+                            Box size=(0.1, 0.18, 15.6)
+                        Translate translation=(-0.2749999999999999, 6.0, 0)
+                            Box size=(0.1, 0.18, 15.6)
+                Subtraction
+                    Union
+                        Translate translation=(1.275, 5.9, 0)
+                            RoundBox size=(1.0, 3.4, 16.4) roundness=0.35
+                        Translate translation=(1.275, 9.1, 0)
+                            RoundBox size=(0.8, 0.7, 16.2) roundness=0.25
+                    Union
+                        Translate translation=(0.2749999999999999, 4.6, 0)
+                            Box size=(0.1, 0.18, 15.6)
+                        Translate translation=(0.2749999999999999, 6.0, 0)
+                            Box size=(0.1, 0.18, 15.6)
+                        Translate translation=(2.275, 4.6, 0)
+                            Box size=(0.1, 0.18, 15.6)
+                        Translate translation=(2.275, 6.0, 0)
+                            Box size=(0.1, 0.18, 15.6)
+        Material material=pc_ram_light_blue
+            Union
+                Translate translation=(-1.275, 10.1, 0)
+                    RoundBox size=(0.55, 0.85, 15.4) roundness=0.4
+                Translate translation=(1.275, 10.1, 0)
+                    RoundBox size=(0.55, 0.85, 15.4) roundness=0.4
