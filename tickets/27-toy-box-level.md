@@ -136,7 +136,7 @@ Group `bits`, no colliders, single material each, 200-500 triangles. Drifts with
 |---|---|---|---|
 | `brick0`, `brick1` | 2 × 4 brick 1.9 × 0.96 | 0.68 | yellow, mint; studs on top (no flat jump-only top worth a bot) |
 | `brick-stack0` | three bricks staggered, 2.9 × 1.9 | 1.05 | white, peach, yellow |
-| `marble0..2` | 0.96 round | 0.96 | glass: yellow cat's-eye, green swirl, peach swirl; sphere-like hull |
+| `toy-marble0..2` | 0.96 round | 0.96 | glass: yellow cat's-eye, green swirl, peach swirl; sphere-like hull |
 | `crayon-pile0` | four crayons in a heap, 5.4 long | 1.0 | yellow, green, purple, orange, paper wrappers |
 | `toy-car0`, `toy-car1` | 3.2 × 1.5 | 0.95 | a mustard hatchback, a mint pickup |
 | `toy-car-tipped0` | 3.2 × 0.95 on its side | 1.5 | the hatchback on its side |
@@ -246,7 +246,7 @@ triangles at 256 cells; castle parts at 128.
 | `crayon-stub0` | 1.2 × 0.48 | none | 400 | wax, paper |
 | `brick0..1` | 1.9 × 0.96 × 0.68 | convex | 2.5k | plastic |
 | `brick-stack0` | 2.9 × 1.9 × 1.05 | convex | 3k | plastic |
-| `marble0..2` | 0.96 | convex | 2.5k | glass |
+| `toy-marble0..2` | 0.96 | convex | 2.5k | glass |
 | `crayon-pile0` | 5.4 × 2 × 1.0 | convex | 3k | wax, paper |
 | `toy-car0..1`, `toy-car-tipped0` | 3.2 × 1.5 × 0.95 | convex | 3.5k | painted tin, tyre, glass |
 | `jack0` | 1.0, 0.7 tall | convex | 2k | tin |

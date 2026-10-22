@@ -1,0 +1,71 @@
+# Toy car tipped 0: the mustard-yellow die-cast hatchback (toy_paint_mustard) on its side, 3.2 m long, 0.95 m wide and 1.5 m tall (60 times life size), nose to +z, its
+# wheels sticking out sideways. Knee cover (the highest of them): climb it or go round; convex collider.
+format 1
+
+# The four wheels, a tyre with a tin hubcap
+wheel =
+    Rotate rotation=(0, 0, 1.5707964)
+        RoundedCylinder radius=0.3 roundness=0.04 height=0.1
+hub =
+    Rotate rotation=(0, 0, 1.5707964)
+        CappedCylinder radius=0.16 height=0.105
+
+car =
+    Union
+        # The body: a low tin shell with the wheel arches cut out of it
+        Material material=toy_paint_mustard
+            Union
+                Subtraction
+                    Translate translation=(0, 0.45, 0)
+                        RoundBox size=(0.68, 0.2, 1.55) roundness=0.15
+                    SymmetryX
+                        Union
+                            Translate translation=(0.6, 0.3, 1.0)
+                                CappedCylinder radius=0.36 height=0.14
+                            Translate translation=(0.6, 0.3, -1.0)
+                                CappedCylinder radius=0.36 height=0.14
+                # The hatchback's cab, set back, with a sloped front and a short rear
+                Translate translation=(0, 0.65, -0.2)
+                    RoundBox size=(0.58, 0.3, 0.78) roundness=0.2
+        # The windows: a band of the cab's surface, broken by two pillars
+        Material material=toy_car_glass
+            Intersection
+                Translate translation=(0, 0.65, -0.2)
+                    RoundBox size=(0.58, 0.3, 0.78) roundness=0.2
+                Subtraction
+                    Translate translation=(0, 0.72, -0.2)
+                        Box size=(1, 0.14, 1)
+                    Union
+                        Translate translation=(0, 0.72, -0.12)
+                            Box size=(1, 0.2, 0.07)
+                        Translate translation=(0, 0.72, -0.78)
+                            Box size=(1, 0.2, 0.07)
+        # The headlights and tail lights, little pale lamps
+        Material material=toy_plastic_white
+            SymmetryX
+                Union
+                    Translate translation=(0.4, 0.46, 1.5)
+                        Ellipsoid radii=(0.13, 0.1, 0.07)
+                    Translate translation=(0.4, 0.46, -1.52)
+                        Ellipsoid radii=(0.12, 0.08, 0.05)
+        Material material=toy_tyre
+            SymmetryX
+                Union
+                    Translate translation=(0.65, 0.3, 1.0)
+                        $wheel
+                    Translate translation=(0.65, 0.3, -1.0)
+                        $wheel
+        Material material=toy_tin
+            SymmetryX
+                Union
+                    Translate translation=(0.65, 0.3, 1.0)
+                        $hub
+                    Translate translation=(0.65, 0.3, -1.0)
+                        $hub
+
+# A fifth of the vertices its size would give it: a smooth little shell
+Detail detail=0.25
+    # Rolled a quarter turn onto its door side, the roof towards -x; the car is 1.5 m wide, so it is lifted 0.75 m, and 0.475 m over to centre it
+    Translate translation=(0.475, 0.75, 0)
+        Rotate rotation=(0, 0, 1.5707964)
+            $car

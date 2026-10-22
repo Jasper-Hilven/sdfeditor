@@ -1,0 +1,31 @@
+# Jack 0: a metal toy jack of bare silver tin (toy_tin), six arms with a ball on each tip, about 1 m from tip to tip (60 times life size), tossed so it rests
+# on three of its tips and stands 0.67 m high. Knee cover: a spiky heap to jump or go round; convex collider.
+format 1
+
+# A fifth of the vertices its size would give it: thin arms, a few hundred cells wide
+Detail detail=0.4
+    # Its three axes are tilted so the body diagonal stands upright, which leaves the lowest ball tips 0.33 m under the centre
+    Translate translation=(0, 0.3325, 0)
+        Material material=toy_tin
+            Union
+                # The hub
+                Sphere radius=0.1
+                # Each arm thickens to the hub and ends in a ball
+                ArbitraryRoundCone a=(0, 0, 0) b=(0.343, 0.242, 0.000) radiusA=0.085 radiusB=0.045
+                Translate translation=(0.343, 0.242, 0.000)
+                    Sphere radius=0.085
+                ArbitraryRoundCone a=(0, 0, 0) b=(-0.343, -0.242, -0.000) radiusA=0.085 radiusB=0.045
+                Translate translation=(-0.343, -0.242, -0.000)
+                    Sphere radius=0.085
+                ArbitraryRoundCone a=(0, 0, 0) b=(-0.171, 0.242, 0.297) radiusA=0.085 radiusB=0.045
+                Translate translation=(-0.171, 0.242, 0.297)
+                    Sphere radius=0.085
+                ArbitraryRoundCone a=(0, 0, 0) b=(0.171, -0.242, -0.297) radiusA=0.085 radiusB=0.045
+                Translate translation=(0.171, -0.242, -0.297)
+                    Sphere radius=0.085
+                ArbitraryRoundCone a=(0, 0, 0) b=(-0.171, 0.242, -0.297) radiusA=0.085 radiusB=0.045
+                Translate translation=(-0.171, 0.242, -0.297)
+                    Sphere radius=0.085
+                ArbitraryRoundCone a=(0, 0, 0) b=(0.171, -0.242, 0.297) radiusA=0.085 radiusB=0.045
+                Translate translation=(0.171, -0.242, 0.297)
+                    Sphere radius=0.085

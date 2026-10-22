@@ -1,0 +1,24 @@
+# Toy marble 2: a toy glass marble in peach glass, 0.96 m across (60 times life size), resting on the floor. A milky swirl curls through it.
+# The toon look has no see-through glass: the glass is a glossy shell with a glow from inside. Knee cover: a ball to jump on or roll round; convex collider.
+format 1
+
+# A fifth of the vertices its size would give it: a plain ball, the swirl's stripes holding most of them
+Detail detail=0.22
+    Translate translation=(0, 0.48, 0)
+        Union
+            Material material=toy_glass_peach
+                Sphere radius=0.48
+            # The swirl: three twisted vanes of milky glass, curling the other way
+            Material material=toy_glass_swirl
+                Intersection
+                    Sphere radius=0.48
+                    Rotate rotation=(0.8, 0.2, 0.1)
+                        Union
+                            Twist amount=-3
+                                Box size=(0.04, 0.55, 0.55)
+                            Twist amount=-3
+                                Rotate rotation=(0, 1.0471976, 0)
+                                    Box size=(0.04, 0.55, 0.55)
+                            Twist amount=-3
+                                Rotate rotation=(0, 2.0943952, 0)
+                                    Box size=(0.04, 0.55, 0.55)
