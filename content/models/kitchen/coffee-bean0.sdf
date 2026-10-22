@@ -1,0 +1,18 @@
+# Coffee bean 0: a roasted coffee bean (kitchen_coffee), 0.72 m long, 0.5 m wide and 0.3 m tall (60 times life size), an oval with a straight crease, with the dark crease along its
+# top (kitchen_coffee_crease). Ground clutter: no collider.
+format 1
+
+# A fifth of the vertices its size would give it: a smooth bean
+Detail detail=0.08
+    Translate translation=(0, 0.15, 0)
+        Union
+            Material material=kitchen_coffee
+                Ellipsoid radii=(0.36, 0.15, 0.25)
+            # The crease: a thin dark strip along the top, a hair proud of the bean's surface
+            Material material=kitchen_coffee_crease
+                Intersection
+                    Ellipsoid radii=(0.365, 0.16, 0.255)
+                    Translate translation=(0, 0, 0)
+                        Rotate rotation=(0, 0, 0)
+                            Translate translation=(0, 0.13, 0)
+                                Box size=(0.5, 0.06, 0.014)

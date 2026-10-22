@@ -1,0 +1,11 @@
+# Cereal loop 2: a mint cereal loop (kitchen_cereal_mint), 0.78 m across and 0.2 m thick (60 times life size), a ring with a flat-topped tube, lying flat on the
+# worktop. Ground clutter: no collider.
+format 1
+
+# A fifth of the vertices its size would give it: a smooth ring
+Detail detail=0.05
+    Material material=kitchen_cereal_mint
+        Translate translation=(0, 0.1, 0)
+            Intersection
+                Torus innerRadius=0.14 outerRadius=0.39
+                Box size=(0.5, 0.1, 0.5)
