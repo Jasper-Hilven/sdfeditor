@@ -1,0 +1,152 @@
+# Jack-in-the-box 0: the toy box's centre landmark (60 times life size). A painted wooden box, 5 m wide, 4.8 m deep and 4 m tall, yellow with lilac corner posts, plinth,
+# rim and a lilac diamond on the front, its lid swung open and standing up at the back; from the box a tin spring (12 coils) lifts a jester to 11 m: green suit with
+# peach diamonds, a peach ruff, a painted toy face (cream, ink-bead eyes, smile, peach nose and cheeks), a two-horned cap (green and peach) with brass bells.
+# The face looks along +z. Landmark; mesh collider; no team colours.
+format 1
+
+box =
+    Union
+        Material material=toy_paint_yellow
+            Subtraction
+                Translate translation=(0, 2, 0)
+                    RoundBox size=(2.45, 2, 2.35) roundness=0.1
+                Translate translation=(0, 3.2, 0)
+                    Box size=(2.1, 1.5, 2.0)
+        Material material=toy_paint_lilac
+            Union
+                Translate translation=(0, 0.3, 0)
+                    RoundBox size=(2.5, 0.3, 2.4) roundness=0.1
+                Subtraction
+                    Translate translation=(0, 3.95, 0)
+                        RoundBox size=(2.5, 0.15, 2.4) roundness=0.06
+                    Translate translation=(0, 3.95, 0)
+                        Box size=(2.1, 1, 2.0)
+                Translate translation=(2.3, 2, 2.15)
+                    RoundBox size=(0.2, 1.9, 0.2) roundness=0.05
+                Translate translation=(-2.3, 2, 2.15)
+                    RoundBox size=(0.2, 1.9, 0.2) roundness=0.05
+                Translate translation=(2.3, 2, -2.15)
+                    RoundBox size=(0.2, 1.9, 0.2) roundness=0.05
+                Translate translation=(-2.3, 2, -2.15)
+                    RoundBox size=(0.2, 1.9, 0.2) roundness=0.05
+                Translate translation=(0, 2, 2.35)
+                    Rotate rotation=(0, 0, 0.7854)
+                        RoundBox size=(0.85, 0.85, 0.08) roundness=0.04
+        Material material=toy_paint_cream
+            Translate translation=(0, 2, 2.4)
+                Rotate rotation=(0, 0, 0.7854)
+                    RoundBox size=(0.45, 0.45, 0.06) roundness=0.03
+
+# The lid, hinged on the back rim and standing up, leaning a little back
+lid =
+    Translate translation=(0, 4.1, -2.35)
+        Rotate rotation=(-1.56, 0, 0)
+            Translate translation=(0, 0, 2.2)
+                Union
+                    Material material=toy_paint_lilac
+                        RoundBox size=(2.45, 0.12, 2.2) roundness=0.05
+                    Material material=toy_paint_yellow
+                        Translate translation=(0, 0.12, 0)
+                            RoundBox size=(1.9, 0.05, 1.7) roundness=0.03
+
+spring =
+    Material material=toy_spring_tin
+        Union
+            Translate translation=(0, 1.9, 0)
+                Rotate rotation=(0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 2.4, 0)
+                Rotate rotation=(-0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 2.9, 0)
+                Rotate rotation=(0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 3.4, 0)
+                Rotate rotation=(-0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 3.9, 0)
+                Rotate rotation=(0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 4.4, 0)
+                Rotate rotation=(-0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 4.9, 0)
+                Rotate rotation=(0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 5.4, 0)
+                Rotate rotation=(-0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 5.9, 0)
+                Rotate rotation=(0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 6.4, 0)
+                Rotate rotation=(-0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+            Translate translation=(0, 6.9, 0)
+                Rotate rotation=(0.18, 0, 0)
+                    Torus innerRadius=0.55 outerRadius=1.05
+
+# The jester: the suit from y 6.8, the head centred at y 9.35
+jester =
+    Union
+        Material material=toy_cloth_green
+            Union
+                ArbitraryRoundCone a=(0, 6.9, 0) b=(0, 8.4, 0) radiusA=0.75 radiusB=1.05
+                SymmetryX
+                    Capsule a=(0.9, 8.3, 0) b=(1.85, 9.1, 0.25) radius=0.3
+                Intersection
+                    Translate translation=(0, 9.35, 0)
+                        Sphere radius=1.18
+                    Translate translation=(0, 10.6, 0)
+                        Box size=(2, 0.9, 2)
+                Capsule a=(-0.55, 10.1, 0) b=(-1.5, 10.3, 0) radius=0.36
+        Material material=toy_cloth_peach
+            Union
+                Translate translation=(0, 8.45, 0)
+                    Torus innerRadius=0.55 outerRadius=1.45
+                Translate translation=(0, 7.7, 1.0)
+                    Rotate rotation=(0, 0, 0.7854)
+                        RoundBox size=(0.32, 0.32, 0.08) roundness=0.03
+                Translate translation=(0, 7.1, 0.88)
+                    Rotate rotation=(0, 0, 0.7854)
+                        RoundBox size=(0.26, 0.26, 0.08) roundness=0.03
+                Capsule a=(0.55, 10.1, 0) b=(1.5, 10.3, 0) radius=0.36
+                SymmetryX
+                    Translate translation=(0.65, 9.2, 0.92)
+                        Ellipsoid radii=(0.22, 0.22, 0.08)
+                Translate translation=(0, 9.22, 1.1)
+                    Sphere radius=0.2
+        Material material=toy_paint_cream
+            Union
+                Intersection
+                    Translate translation=(0, 9.35, 0)
+                        Sphere radius=1.1
+                    Translate translation=(0, 9.0, 0.5)
+                        Box size=(2, 0.95, 1.5)
+                SymmetryX
+                    Translate translation=(1.85, 9.1, 0.25)
+                        Sphere radius=0.36
+        Material material=toy_bead_black
+            Union
+                SymmetryX
+                    Translate translation=(0.4, 9.55, 1.0)
+                        Sphere radius=0.14
+                Capsule a=(-0.45, 8.95, 1.0) b=(-0.2, 8.82, 1.04) radius=0.05
+                Capsule a=(-0.2, 8.82, 1.04) b=(0.2, 8.82, 1.04) radius=0.05
+                Capsule a=(0.2, 8.82, 1.04) b=(0.45, 8.95, 1.0) radius=0.05
+        Material material=toy_brass
+            Union
+                SymmetryX
+                    Translate translation=(1.7, 10.4, 0)
+                        Sphere radius=0.3
+                Translate translation=(0, 8.0, 1.02)
+                    Sphere radius=0.12
+                Translate translation=(0, 7.4, 0.95)
+                    Sphere radius=0.12
+
+Detail detail=0.3
+    Union
+        $box
+        $lid
+        $spring
+        $jester

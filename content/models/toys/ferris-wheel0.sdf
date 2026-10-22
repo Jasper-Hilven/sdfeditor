@@ -1,0 +1,114 @@
+# Ferris wheel 0: a toy Ferris wheel (60 times life size), the wheel 12 m across with its hub at y = 8 (top at 14 m), 12.8 m wide with the gondolas and 4.3 m deep, turned
+# on the x axis, facing along z: two lilac rims joined by cream spokes (eight a side) and a brass hub and axle, six hanging gondolas (yellow, mint and peach cabs under
+# lilac roofs) and two beech A-frames (one each side of the wheel, 1.75 m off the middle) whose legs run from the hub to feet 5 m either side with a foot beam: the gap
+# between the legs is 4.4 m or more below y = 4, the bottom of the wheel is 2 m up, so a scout runs through under it. Landmark; mesh collider.
+format 1
+
+# Both rims and their spokes are drawn in the plane z = 0 (hub at the origin), then moved to z = +1 and -1
+spokes =
+    Union
+        Capsule a=(0, -5.7, 0) b=(0, 5.7, 0) radius=0.2
+        Rotate rotation=(0, 0, 0.7854)
+            Capsule a=(0, -5.7, 0) b=(0, 5.7, 0) radius=0.2
+        Rotate rotation=(0, 0, 1.5708)
+            Capsule a=(0, -5.7, 0) b=(0, 5.7, 0) radius=0.2
+        Rotate rotation=(0, 0, 2.3562)
+            Capsule a=(0, -5.7, 0) b=(0, 5.7, 0) radius=0.2
+
+rim =
+    Rotate rotation=(1.5708, 0, 0)
+        Torus innerRadius=5.4 outerRadius=6.0
+
+cab =
+    Translate translation=(0, -1.35, 0)
+        RoundBox size=(0.8, 0.55, 0.9) roundness=0.12
+
+roof =
+    Translate translation=(0, -0.72, 0)
+        CappedCone height=0.2 bottomRadius=1.0 topRadius=0.3
+
+hanger =
+    Union
+        Capsule a=(0, 0, 0) b=(0, -0.8, 0) radius=0.14
+        Capsule a=(0, 0, -1.0) b=(0, 0, 1.0) radius=0.14
+
+Detail detail=0.35
+    Union
+        Material material=toy_paint_lilac
+            Union
+                Translate translation=(0, 8, 1)
+                    $rim
+                Translate translation=(0, 8, -1)
+                    $rim
+        Material material=toy_paint_cream
+            Union
+                Translate translation=(0, 8, 1)
+                    $spokes
+                Translate translation=(0, 8, -1)
+                    $spokes
+        Material material=toy_brass
+            Translate translation=(0, 8, 0)
+                Union
+                    Capsule a=(0, 0, -2.0) b=(0, 0, 2.0) radius=0.45
+                    Translate translation=(0, 0, 1)
+                        Rotate rotation=(1.5708, 0, 0)
+                            CappedCylinder radius=0.8 height=0.25
+                    Translate translation=(0, 0, -1)
+                        Rotate rotation=(1.5708, 0, 0)
+                            CappedCylinder radius=0.8 height=0.25
+        Material material=toy_beech
+            Union
+                Capsule a=(0, 8, 1.75) b=(5, 0.4, 1.75) radius=0.4
+                Capsule a=(0, 8, 1.75) b=(-5, 0.4, 1.75) radius=0.4
+                Capsule a=(0, 8, -1.75) b=(5, 0.4, -1.75) radius=0.4
+                Capsule a=(0, 8, -1.75) b=(-5, 0.4, -1.75) radius=0.4
+                Capsule a=(5, 0.4, -1.75) b=(5, 0.4, 1.75) radius=0.4
+                Capsule a=(-5, 0.4, -1.75) b=(-5, 0.4, 1.75) radius=0.4
+        Translate translation=(2.850, 12.936, 0)
+            Union
+                Material material=toy_paint_yellow
+                    $cab
+                Material material=toy_paint_lilac
+                    $roof
+                Material material=toy_tin
+                    $hanger
+        Translate translation=(5.700, 8.000, 0)
+            Union
+                Material material=toy_paint_mint
+                    $cab
+                Material material=toy_paint_lilac
+                    $roof
+                Material material=toy_tin
+                    $hanger
+        Translate translation=(2.850, 3.064, 0)
+            Union
+                Material material=toy_paint_peach
+                    $cab
+                Material material=toy_paint_lilac
+                    $roof
+                Material material=toy_tin
+                    $hanger
+        Translate translation=(-2.850, 3.064, 0)
+            Union
+                Material material=toy_paint_yellow
+                    $cab
+                Material material=toy_paint_lilac
+                    $roof
+                Material material=toy_tin
+                    $hanger
+        Translate translation=(-5.700, 8.000, 0)
+            Union
+                Material material=toy_paint_mint
+                    $cab
+                Material material=toy_paint_lilac
+                    $roof
+                Material material=toy_tin
+                    $hanger
+        Translate translation=(-2.850, 12.936, 0)
+            Union
+                Material material=toy_paint_peach
+                    $cab
+                Material material=toy_paint_lilac
+                    $roof
+                Material material=toy_tin
+                    $hanger
