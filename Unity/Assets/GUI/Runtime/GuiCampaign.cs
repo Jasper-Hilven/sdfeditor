@@ -18,6 +18,9 @@ namespace SdfGui
         /// <summary>The scenes the sample save has: the three arenas built today, so the rest show "Coming soon".</summary>
         private static readonly HashSet<string> SampleScenes = new HashSet<string> { "Boot", "Meadow", "Fungal", "Chessboard" };
 
+        /// <summary>The editor's snapshot of the title with the campaign complete (the sample save is not).</summary>
+        public static bool PreviewComplete;
+
         private static bool Live => Application.isPlaying && CampaignRunner.Instance != null;
 
         public static CampaignDefinition Definition => Live ? CampaignRunner.Instance.Definition : Sample().definition;

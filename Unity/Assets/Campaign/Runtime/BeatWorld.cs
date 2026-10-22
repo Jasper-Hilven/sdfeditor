@@ -11,7 +11,7 @@ namespace SdfCampaign
     /// What a <see cref="BeatPlayer"/> needs of the scene it plays in (ticket 32.7), so the player does not care whether it is a battle
     /// scene or another one: the camera to move, where each <see cref="Anchor"/> is and which way it faces, the scouts to put on the stage,
     /// and the things to hide meanwhile (the real players' bodies, your weapon in the camera's corner). <see cref="Of"/> builds it for a
-    /// battle scene from its match; the ending (32.8) builds its own for another scene.
+    /// battle scene from its match; the ending (32.8) has none and uses <see cref="Backdrop"/>.
     /// </summary>
     public sealed class BeatWorld
     {
@@ -22,6 +22,12 @@ namespace SdfCampaign
         public Func<Team, GameObject> scout;
         /// <summary>Switched off while the beat plays and on again after (those that were on).</summary>
         public readonly List<GameObject> hide = new List<GameObject>();
+
+        /// <summary>
+        /// No scene to play in (the ending, over Boot's backdrop of GUI shapes): no camera to move, no scouts, nothing to hide. The shots
+        /// are then only their captions over the screen the player shows.
+        /// </summary>
+        public static BeatWorld Backdrop() => new BeatWorld { frame = _ => (Vector3.zero, 0) };
 
         /// <summary>The world of a battle scene: red is the west side, blue the east, and the camera is yours.</summary>
         public static BeatWorld Of(Match match)

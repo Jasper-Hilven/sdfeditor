@@ -29,6 +29,7 @@ namespace SdfCampaign
         private GuiFlow flow;
         private Action onDone;
         private bool handOver;
+        private GuiScreen screen;
 
         private BeatSequencer sequencer;
         private readonly List<GameObject> puppets = new List<GameObject>();
@@ -57,7 +58,7 @@ namespace SdfCampaign
         /// Sets the beat up in the scene, still covered by the loader's black: the actors stand, the camera is on the first shot, the
         /// Cutscene screen is up. It starts to run on <see cref="Begin"/>.
         /// </summary>
-        public static BeatPlayer Prepare(Beat beat, BeatWorld world, GuiFlow flow, Action onDone, bool handOver)
+        public static BeatPlayer Prepare(Beat beat, BeatWorld world, GuiFlow flow, Action onDone, bool handOver, GuiScreen screen = GuiScreen.Cutscene)
         {
             var player = new GameObject("Beat " + beat.id).AddComponent<BeatPlayer>();
             player.beat = beat;
@@ -65,6 +66,7 @@ namespace SdfCampaign
             player.flow = flow;
             player.onDone = onDone;
             player.handOver = handOver;
+            player.screen = screen;
             player.sequencer = new BeatSequencer(beat);
             player.SetUp();
             return player;
@@ -102,7 +104,7 @@ namespace SdfCampaign
                 Stand(actor);
             if (flow != null)
             {
-                flow.Show(GuiScreen.Cutscene);
+                flow.Show(screen);
                 if (flow.Match != null)
                     flow.Match.caption.Clear();
             }

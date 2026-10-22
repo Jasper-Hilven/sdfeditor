@@ -14,8 +14,9 @@ namespace SdfCampaign
     /// <see cref="MatchSetup.Pending"/> and clears it once the match has read it; and records the match's end. Steps whose scene is not
     /// in the build are skipped (the save's <c>NextStep</c> does that, with a log here). The story beats (32.7) play in their battle's
     /// scene, loaded once for the beat and its match (<see cref="BeatPlayer"/>); the meadow's first play starts with its warm-up
-    /// (<see cref="WarmUpPlayer"/>). The ending and the credits wait for 32.8: <see cref="CutsceneHandler"/> is their hook, and without one
-    /// such a step is seen at once.
+    /// (<see cref="WarmUpPlayer"/>). The ending (a beat of the same sequencer, the Ending screen) and the credits (<see cref="CreditsPlayer"/>,
+    /// the Credits screen) play over Boot's backdrop (ticket 32.8), since Home.unity is editor-only; completing the credits saves the campaign
+    /// as complete and goes to the title.
     /// </summary>
     public sealed class CampaignRunner : MonoBehaviour
     {
@@ -25,8 +26,8 @@ namespace SdfCampaign
         public SceneLoader loader;
 
         /// <summary>
-        /// Plays a cutscene step that is not a beat (the ending, the credits) in its scene, once loaded: given the step and what to call
-        /// when it is done, returns true when it took the step over. The beats of <see cref="Beats"/> do not come through here.
+        /// A hook for a cutscene step that is neither a beat of <see cref="Beats"/>, the intro, the ending nor the credits (none today): played
+        /// in its scene, once loaded; given the step and what to call when it is done, returns true when it took the step over.
         /// </summary>
         public static Func<CampaignStep, Action, bool> CutsceneHandler;
 
@@ -214,9 +215,12 @@ namespace SdfCampaign
             LoadBattle(Current, setup);
         }
 
-        /// <summary>Whether a step can be watched again from the Story gallery: the intro (comic panels) or a step with a cutscene player.</summary>
+        // The ending and the credits play over Boot's backdrop
+        private static bool OverBoot(CampaignStep step) => step.id == CampaignDefinition.Ending || step.kind == StepKind.Credits;
+
+        /// <summary>Whether a step can be watched again from the Story gallery: the intro (comic panels), a beat, the ending, the credits or a step with a cutscene player.</summary>
         public static bool CanWatch(CampaignStep step) =>
-            step.id == CampaignDefinition.Intro || Beats.Has(step.id) || CutsceneHandler != null && step.kind == StepKind.Cutscene;
+            step.id == CampaignDefinition.Intro || Beats.Has(step.id) || OverBoot(step) || CutsceneHandler != null && step.kind == StepKind.Cutscene;
 
         /// <summary>A replay from the Story gallery: nothing is recorded, and the way back is the gallery.</summary>
         public void WatchCutscene(string id)
@@ -230,6 +234,11 @@ namespace SdfCampaign
             if (step.id == CampaignDefinition.Intro)
             {
                 PlayIntro(() => flow.Show(GuiScreen.Story));
+                return;
+            }
+            if (OverBoot(step))
+            {
+                PlayOverBoot(step, () => QuitToTitle(GuiScreen.Story));
                 return;
             }
             var beat = Beats.Find(step.id);
@@ -305,17 +314,25 @@ namespace SdfCampaign
                 PlayIntro(() => FinishCutscene(step));
                 return;
             }
+            if (OverBoot(step))
+            {
+                // After the credits the campaign is complete and saved; the title shows the crown
+                PlayOverBoot(step, () =>
+                {
+                    if (step.kind == StepKind.Credits)
+                    {
+                        Progress.CompleteCutscene(step.id);
+                        QuitToTitle();
+                    }
+                    else
+                        FinishCutscene(step);
+                });
+                return;
+            }
             var beat = Beats.Find(step.id);
             if (beat != null)
             {
                 PlayBeat(step, beat, replay: false);
-                return;
-            }
-            if (CutsceneHandler == null && step.kind == StepKind.Credits)
-            {
-                // Not played, so not seen: the campaign must not count as complete before its credits exist (32.8)
-                Debug.Log($"Campaign: {step.id} has no credits yet; back to the title");
-                QuitToTitle();
                 return;
             }
             if (CutsceneHandler == null)
@@ -330,6 +347,42 @@ namespace SdfCampaign
                 if (!CutsceneHandler(step, () => FinishCutscene(step)))
                     FinishCutscene(step);
             });
+        }
+
+        /// <summary>
+        /// The ending (a beat over the Ending screen) or the credits, over Boot's backdrop of GUI shapes: from another scene (the boss) Boot is
+        /// loaded behind the fade first, from Boot itself (the credits after the ending, a replay from the Story gallery) it starts at once.
+        /// <paramref name="then"/> runs when it is over or skipped.
+        /// </summary>
+        private void PlayOverBoot(CampaignStep step, Action then)
+        {
+            Unbind();
+            MatchSetup.Pending = null;
+            MatchHud.Release(flow.gameObject);
+            Time.timeScale = 1;
+            AudioListener.pause = false;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            BeatPlayer ending = null;
+            void Prepare()
+            {
+                if (step.kind != StepKind.Credits)
+                    ending = BeatPlayer.Prepare(Beats.Find(step.id), BeatWorld.Backdrop(), flow, then, handOver: false, GuiScreen.Ending);
+            }
+            void Begin()
+            {
+                if (step.kind == StepKind.Credits)
+                    CreditsPlayer.Begin(flow, then);
+                else
+                    ending.Begin();
+            }
+            if (SceneManager.GetActiveScene().name == BootScene)
+            {
+                Prepare();
+                Begin();
+                return;
+            }
+            loader.Load(BootScene, null, Prepare, Begin);
         }
 
         private void FinishCutscene(CampaignStep step)

@@ -16,6 +16,8 @@ namespace SdfGui
         public ToonShape newCampaignShape;
         public GameObject levelSelectButton;
         public GameObject quitButton;
+        [Tooltip("The gold crown on the logo's cap, shown once the campaign is complete")]
+        public GameObject crown;
         public TMP_Text progress;
         public TMP_Text version;
 
@@ -40,6 +42,7 @@ namespace SdfGui
 
             GuiText.Show(continueButton, canContinue);
             GuiText.Show(levelSelectButton, save && anyWon);
+            GuiText.Show(crown, GuiCampaign.PreviewComplete || save && campaign.Completed);
             GuiText.Show(quitButton, Application.platform != RuntimePlatform.WebGLPlayer);
             if (newCampaignShape != null)
             {

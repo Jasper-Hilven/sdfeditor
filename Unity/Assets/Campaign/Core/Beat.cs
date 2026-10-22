@@ -129,6 +129,9 @@ namespace SdfCampaign
 
         private static Dictionary<string, Beat> all;
 
+        // A shot that does not move the camera (the ending has no scene behind it)
+        private static CameraMove Still => CameraMove.At(Anchor.Centre, 0, 0, 1, 1, 1, 1);
+
         public static Beat Find(string stepId)
         {
             all ??= Build();
@@ -178,6 +181,16 @@ namespace SdfCampaign
                         new BeatShot(Prime, "Board games are a sport now.", 4f, CameraMove.On(Prime, 160, 195, 3.6f, 3f)),
                         new BeatShot(Prime, "The minigun? Banned. Board-game reasons.", 5.5f, CameraMove.On(Prime, 200, 170, 2.6f, 3.4f)),
                         new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
+                    }),
+                // The ending: no scene to move through (it plays over Boot's backdrop, the GUI's Ending screen), so no actors and a still camera
+                new Beat(CampaignDefinition.Ending, "Ending", new BeatActor[0],
+                    new[]
+                    {
+                        new BeatShot("", "Home. A desk. A very small trophy.", 4f, Still),
+                        new BeatShot(Ref, "By the power of the actual rulebook: Mushroom 42. Champion. Again.", 6f, Still),
+                        new BeatShot(Prime, "Best of three?", 3.5f, Still),
+                        new BeatShot(you, "...Bring the minigun.", 4.5f, Still),
+                        new BeatShot("", "", 2f, Still),
                     }),
             };
             var map = new Dictionary<string, Beat>();

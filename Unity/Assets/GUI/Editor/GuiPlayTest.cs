@@ -51,6 +51,8 @@ namespace SdfGui.Editor
             (9.6f, "26 victory", f => Expect(f.screen == GuiScreen.Victory && f.Match.end.won && !f.Ending, "then Victory")),
             (9.8f, "27 retry", f => { f.Execute(GuiCommandId.Retry, GuiScreen.Hud); Expect(f.screen == GuiScreen.Hud && f.Match.phase == MatchPhase.Playing && !f.Match.end.set, "RETRY starts the round again"); }),
             (10.0f, "28 defeat", f => { f.Show(GuiScreen.Defeat); Expect(f.screen == GuiScreen.Defeat && !f.Match.end.won, "the Defeat screen shows"); }),
+            (10.2f, "29 ending", f => { f.Show(GuiScreen.Ending); Expect(f.screen == GuiScreen.Ending && !f.Shows(GuiScreen.Hud) && f.Match.caption.Visible, "the Ending screen shows the caption box without the HUD"); }),
+            (10.4f, "30 credits", f => { f.Show(GuiScreen.Credits); Expect(f.screen == GuiScreen.Credits && f.GetComponentInChildren<GuiCredits>(false) != null, "the Credits screen shows"); }),
         };
 
         private static void Expect(bool ok, string what)

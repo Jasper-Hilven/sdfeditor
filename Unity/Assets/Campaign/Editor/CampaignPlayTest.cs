@@ -35,7 +35,7 @@ namespace SdfCampaign.Editor
         private static bool sawSlow, sawBanner;
         private static float skillBefore;
         private static bool warmDone, sawCaption, sawBeatCaption;
-        private static int beatPhase, replayPhase;
+        private static int beatPhase, replayPhase, endingPhase;
         private static string replayNext;
 
         static CampaignPlayTest()
@@ -91,9 +91,9 @@ namespace SdfCampaign.Editor
                 errors.Add(exception.ToString());
                 step = int.MaxValue;
             }
-            if (step < 22 && now - started < 300)
+            if (step < 26 && now - started < 360)
                 return;
-            if (now - started >= 300)
+            if (now - started >= 360)
                 errors.Add($"Timed out in step {step}, scene {Active}");
             Finish();
         }
@@ -353,9 +353,118 @@ namespace SdfCampaign.Editor
                     var reloaded = CampaignProgress.Load(runner.Definition, new PlayerPrefsCampaignStorage(), null);
                     Expect(reloaded.Won(CampaignDefinition.Chessboard) && reloaded.Seen("beat-chessboard"), "the save read back after a reload has the win and the beat");
                     return true;
+                case 21: // CONTINUE after the Chessboard: the arenas to come have no scene here, so the ending, over Boot
+                    flow.Execute(GuiCommandId.Next, GuiScreen.Hud);
+                    endingPhase = 0;
+                    sawBeatCaption = false;
+                    return true;
+                case 22: // the ending (32.8): Boot's backdrop under the Ending screen, three lines, then the credits
+                    return DriveEnding(flow, waited);
+                case 23: // the credits scroll, a held skip ends them, the campaign is complete and the title wears the crown
+                    return DriveCredits(flow, waited);
+                case 24: // the Story gallery plays the ending again and comes back to the gallery, recording nothing
+                    if (Active != CampaignRunner.BootScene || runner.loader.Busy)
+                        return Waiting(waited, "Boot");
+                    Expect(flow.screen == GuiScreen.Title, "the title is up");
+                    Expect(CampaignRunner.CanWatch(runner.Definition.Find("ending")) && CampaignRunner.CanWatch(runner.Definition.Find("credits")), "the ending and the credits can be watched again");
+                    flow.Execute(GuiCommandId.WatchCutscene, GuiScreen.Hud, "ending");
+                    var replay = UnityEngine.Object.FindAnyObjectByType<BeatPlayer>();
+                    Expect(replay != null && flow.screen == GuiScreen.Ending, "the ending replays at once over Boot");
+                    replay.Sequencer.Tick(SkipHold.Seconds + 0.05f, true);
+                    return true;
+                case 25: // back in the Story gallery; the credits replay, skipped, the same
+                    if (endingPhase < 10)
+                    {
+                        if (flow.screen != GuiScreen.Story || UnityEngine.Object.FindAnyObjectByType<BeatPlayer>() != null)
+                            return Waiting(waited, "the Story gallery after the ending");
+                        flow.Execute(GuiCommandId.WatchCutscene, GuiScreen.Hud, "credits");
+                        Expect(UnityEngine.Object.FindAnyObjectByType<CreditsPlayer>() != null && flow.screen == GuiScreen.Credits, "the credits replay");
+                        endingPhase = 10;
+                        return false;
+                    }
+                    var replayed = UnityEngine.Object.FindAnyObjectByType<CreditsPlayer>();
+                    if (replayed != null)
+                    {
+                        replayed.Scroll.Tick(SkipHold.Seconds + 0.05f, true);
+                        return false;
+                    }
+                    Expect(flow.screen == GuiScreen.Story && runner.Progress.Completed, "a replay ends in the Story gallery, the campaign still complete");
+                    return true;
                 default:
                     return true;
             }
+        }
+
+        // The ending: after the Chessboard's win the way on is the ending, played over Boot's backdrop; true once the credits have begun
+        private static bool DriveEnding(GuiFlow flow, float waited)
+        {
+            var player = UnityEngine.Object.FindAnyObjectByType<BeatPlayer>();
+            switch (endingPhase)
+            {
+                case 0:
+                    if (Active != CampaignRunner.BootScene || runner.loader.Busy || player == null)
+                        return Waiting(waited, "the ending");
+                    Expect(runner.Current.id == CampaignDefinition.Ending, "the ending is the current step");
+                    Expect(flow.screen == GuiScreen.Ending && !flow.Shows(GuiScreen.Hud), "the Ending screen is up without the HUD");
+                    Expect(!runner.Progress.Seen(CampaignDefinition.Ending), "not seen until it is over");
+                    Expect(flow.GetComponentInChildren<GuiAvatar>(false) != null, "the desk's scouts are drawn");
+                    endingPhase = 1;
+                    return false;
+                case 1: // lines show; a click moves on; then a held skip
+                    if (player == null)
+                        throw new Exception("the ending ended before its lines were seen");
+                    if (flow.Match.caption.Visible)
+                        sawBeatCaption = true;
+                    if (player.Sequencer.ShotIndex == 0 && player.Sequencer.ShotTime > 0.5f)
+                    {
+                        player.Sequencer.Advance();
+                        Expect(player.Sequencer.ShotIndex == 1, "a click moves on");
+                    }
+                    if (player.Sequencer.ShotIndex == 1 && flow.Match.caption.speaker == Beats.Ref && flow.Match.caption.Visible)
+                    {
+                        Expect(flow.Match.caption.line.Contains("rulebook"), "the referee's line: " + flow.Match.caption.line);
+                        player.Sequencer.Tick(SkipHold.Seconds + 0.05f, true);
+                        endingPhase = 2;
+                    }
+                    if (waited > 60)
+                        throw new Exception("the ending did not get past its first shot");
+                    return false;
+                case 2: // skipped: seen, saved, and the credits come next
+                    if (UnityEngine.Object.FindAnyObjectByType<CreditsPlayer>() == null)
+                        return Waiting(waited, "the credits");
+                    Expect(sawBeatCaption, "a caption line showed");
+                    Expect(runner.Progress.Seen(CampaignDefinition.Ending) && runner.Progress.NextId == CampaignDefinition.Credits, "the ending is seen, the credits are next");
+                    Expect(flow.screen == GuiScreen.Credits, "the Credits screen is up");
+                    Expect(!runner.Progress.Completed, "complete only once the credits are over");
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
+        private static bool DriveCredits(GuiFlow flow, float waited)
+        {
+            var credits = UnityEngine.Object.FindAnyObjectByType<CreditsPlayer>();
+            if (credits != null)
+            {
+                Expect(flow.screen == GuiScreen.Credits, "the credits are on the Credits screen");
+                // 45 s of scroll is the player's; the test lets it run a moment, then holds the skip keys as the player would
+                if (waited < 1.0f || credits.Scroll.Done)
+                    return false;
+                Expect(credits.Scroll.Progress > 0, "the credits scroll");
+                credits.Scroll.Tick(SkipHold.Seconds + 0.05f, true);
+                return false;
+            }
+            if (flow.screen != GuiScreen.Title)
+                return Waiting(waited, "the title after the credits");
+            Expect(runner.Progress.Completed && runner.Progress.Seen(CampaignDefinition.Credits), "the campaign is complete and saved");
+            var reloaded = CampaignProgress.Load(runner.Definition, new PlayerPrefsCampaignStorage(), null);
+            Expect(reloaded.Completed, "the save read back is complete");
+            var title = flow.GetComponentInChildren<GuiTitle>(true);
+            Expect(title.crown != null && title.crown.activeInHierarchy, "the gold crown is on the logo");
+            Expect(title.progress.text.StartsWith("Campaign complete"), "the progress line says complete: " + title.progress.text);
+            Expect(!title.continueButton.activeSelf, "nothing to continue");
+            return true;
         }
 
         // The warm-up: each prompt is answered as the player would, the match is let go at the end and Mushroom 7 speaks; true when all that is seen

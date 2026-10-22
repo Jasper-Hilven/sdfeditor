@@ -60,9 +60,14 @@ namespace SdfGui.Editor
                         flow.Show(screen);
                         shoot(Path.Combine(directory, $"{screen}.png"));
                     }
+                    // The title once the campaign is complete: the gold crown on the logo's cap (ticket 32.8)
+                    GuiCampaign.PreviewComplete = true;
+                    flow.Show(GuiScreen.Title);
+                    shoot(Path.Combine(directory, "TitleComplete.png"));
                 }
                 finally
                 {
+                    GuiCampaign.PreviewComplete = false;
                     flow.Show(shown);
                 }
             });

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using SdfBattle;
 
 namespace SdfCampaign.Tests
 {
@@ -537,6 +538,86 @@ namespace SdfCampaign.Tests
             Assert.AreEqual("beat-fungal", again.NextStep().id, "a beat not yet seen plays first");
             again.CompleteCutscene("beat-fungal");
             Assert.AreEqual("fungal", Fresh(store, scene => scene != "ToyBox").NextStep().id);
+        }
+
+        // --- the ending and the credits (ticket 32.8) ---
+
+        [Test]
+        public void EndingAndCredits_PlayOverBoot_SoTheyAreNeverSkippedAsMissingScenes()
+        {
+            Assert.AreEqual("Boot", Def.Find("ending").scene, "Home.unity is editor-only; the ending plays over Boot's backdrop");
+            Assert.AreEqual("Boot", Def.Find("credits").scene);
+            var p = Fresh(null, scene => scene == "Boot" || scene == "Meadow" || scene == "Fungal" || scene == "Chessboard");
+            WinThrough(p, "chessboard");
+            Assert.AreEqual("beat-toybox", p.NextId);
+            Assert.AreEqual("ending", p.NextStep().id, "the arenas to come have no scene; the ending is reached");
+            p.CompleteCutscene("ending");
+            Assert.AreEqual("credits", p.NextStep().id);
+            Assert.IsFalse(p.Completed, "complete only once the credits are seen");
+            p.CompleteCutscene("credits");
+            Assert.IsTrue(p.Completed);
+        }
+
+        [Test]
+        public void TheEnding_IsTheThreeLinesOfSection3_WithNoActorsAndNoCameraMove()
+        {
+            var ending = Beats.Find("ending");
+            Assert.IsNotNull(ending);
+            Assert.AreEqual(0, ending.actors.Length, "no props, no puppets: it plays over the GUI's own shapes");
+            var lines = ending.shots.Where(s => !string.IsNullOrEmpty(s.line)).ToList();
+            Assert.AreEqual(Beats.Ref, lines.First(s => s.line.Contains("Champion")).speaker);
+            Assert.AreEqual(Beats.Prime, lines.First(s => s.line.Contains("Best of three")).speaker);
+            Assert.AreEqual(Cast.You, lines.First(s => s.line.Contains("minigun")).speaker);
+            StringAssert.Contains("actual rulebook", lines.First(s => s.speaker == Beats.Ref).line);
+            Assert.That(ending.Seconds, Is.InRange(10f, 30f));
+            var seq = new BeatSequencer(ending);
+            seq.Tick(0.1f, true);
+            seq.Tick(SkipHold.Seconds, true);
+            Assert.IsTrue(seq.Skipped, "holding the keys jumps to the end, on the first viewing too");
+        }
+
+        [Test]
+        public void Credits_NameTheAuthorTheToolsAndBothFontNotices()
+        {
+            Assert.IsTrue(CreditsRoll.HasFontNotices());
+            var text = CreditsRoll.RichText();
+            StringAssert.Contains(CreditsRoll.Author, text);
+            StringAssert.Contains("Unity", text);
+            StringAssert.Contains("Fredoka", text);
+            StringAssert.Contains("Lilita One", text);
+            StringAssert.Contains("SIL Open Font License", text);
+            Assert.IsFalse(text.ToLowerInvariant().Contains("online"), "single player, no talk of online play");
+        }
+
+        [Test]
+        public void CreditsScroll_TakesFortyFiveSeconds_AndTheTextLeavesAtTheTop()
+        {
+            var scroll = new CreditsScroll();
+            Assert.AreEqual(0f, scroll.Offset(1080, 2000), 0.001f);
+            for (var i = 0; i < 225; i++) scroll.Tick(0.1f, false);
+            Assert.AreEqual(0.5f, scroll.Progress, 0.001f);
+            Assert.AreEqual((1080 + 2000) * 0.5f, scroll.Offset(1080, 2000), 0.5f);
+            Assert.IsFalse(scroll.Done);
+            for (var i = 0; i < 226; i++) scroll.Tick(0.1f, false);
+            Assert.IsTrue(scroll.Done);
+            Assert.IsFalse(scroll.Skipped);
+            Assert.AreEqual(1080 + 2000, scroll.Offset(1080, 2000), 0.001f);
+        }
+
+        [Test]
+        public void CreditsScroll_SkipsWhenTheKeysAreHeldFor07Seconds_ButNotWhenTapped()
+        {
+            var tapped = new CreditsScroll();
+            tapped.Tick(0.5f, true);
+            tapped.Tick(0.1f, false);
+            tapped.Tick(0.5f, true);
+            Assert.IsFalse(tapped.Done, "letting go starts the hold over");
+            var held = new CreditsScroll();
+            held.Tick(0.4f, true);
+            Assert.That(held.SkipProgress, Is.InRange(0.5f, 0.6f));
+            held.Tick(0.4f, true);
+            Assert.IsTrue(held.Done);
+            Assert.IsTrue(held.Skipped);
         }
     }
 }

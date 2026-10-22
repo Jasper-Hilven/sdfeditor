@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using SdfCampaign;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -47,6 +48,8 @@ namespace SdfGui.Editor
             Screens[GuiScreen.Confirm] = Confirm();
             Screens[GuiScreen.Caption] = Caption();
             Screens[GuiScreen.Cutscene] = Cutscene();
+            Screens[GuiScreen.Ending] = Ending();
+            Screens[GuiScreen.Credits] = Credits();
             TestPanel = Test();
         }
 
@@ -89,6 +92,28 @@ namespace SdfGui.Editor
                 s.Seed = 3;
                 s.Wobble = 2;
             });
+            // The gold crown that "campaign complete" puts on the cap (GuiTitle shows it): a band with three points, tipped on the cap's left shoulder
+            var crown = Object("Crown", logo.transform);
+            Place(crown.transform, Centre, new Vector2(-330, 178), new Vector2(190, 120));
+            crown.transform.localRotation = Quaternion.Euler(0, 0, 11);
+            for (var i = 0; i < 3; i++)
+            {
+                // A diamond standing on its corner, its lower half hidden behind the band
+                var point = f.Shape(crown.transform, $"Point {i + 1}", ToonShapeKind.Box, GuiPalette.Gold, Centre, new Vector2(-62 + i * 62, 12), new Vector2(54, 54), s =>
+                {
+                    s.Outline = 5;
+                    s.Shadow = 0;
+                    s.CornerRadius = 5;
+                });
+                point.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
+            }
+            f.Panel(crown.transform, "Band", GuiPalette.Gold, Centre, new Vector2(0, -26), new Vector2(190, 44), 12).Outline = 6;
+            f.Shape(crown.transform, "Gem", ToonShapeKind.Pill, GuiPalette.Amanita, Centre, new Vector2(0, -26), new Vector2(26, 26), s =>
+            {
+                s.Outline = 3;
+                s.Shadow = 0;
+            });
+            title.crown = crown;
             f.Text(logo.transform, "Minigun", "MINIGUN", TextStyle.Title, 120, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(900, 130));
             f.Text(logo.transform, "Mushrooms", "MUSHROOMS", TextStyle.Title, 104, GuiPalette.Gold, Centre, new Vector2(0, -40), new Vector2(900, 120));
             var burst = f.Shape(logo.transform, "Two Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, new Vector2(470, -100), new Vector2(190, 190), s =>
@@ -823,6 +848,83 @@ namespace SdfGui.Editor
             Stretch(fill, 3);
             fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
             caption.skipBar = fill.GetComponent<RectTransform>();
+        }
+
+        // ---------------------------------------------------------------- The ending and the credits (ticket 32.8)
+
+        // 42's desk and the monitor, drawn from the GUI's own shapes and the scouts' avatars (Home.unity is editor-only): the ending's lines go
+        // in the caption box under it. No new props.
+        private GameObject Ending()
+        {
+            var root = Root("Ending", GuiScreen.Ending);
+            var t = root.transform;
+            Backdrop(t);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.2f), Centre, new Vector2(330, 160), new Vector2(1100, 800));
+
+            // The desk along the bottom of the picture, the trophy and 42 in the chair on it
+            f.Panel(t, "Desk", GuiPalette.AmanitaDark, Centre, new Vector2(0, -145), new Vector2(1500, 130), 24);
+            void Avatar(Transform parent, string name, Color colour, int icon, Vector2 position, float size)
+            {
+                var avatar = Instance<GuiAvatar>(p.Avatar, parent, name, Centre, position, new Vector2(size, size));
+                avatar.Set(colour, icon, false);
+            }
+            f.Panel(t, "Chair", GuiPalette.Dusk, Centre, new Vector2(-470, 20), new Vector2(380, 360), 60);
+            Avatar(t, "Mushroom 42", GuiPalette.Amanita, 0, new Vector2(-470, 50), 300);
+            var trophy = f.Shape(t, "Trophy Cup", ToonShapeKind.Cap, GuiPalette.Gold, Centre, new Vector2(-110, 50), new Vector2(120, 110), s =>
+            {
+                s.Outline = 5;
+                s.Shadow = 6;
+                s.Spots = 0;
+            });
+            trophy.rectTransform.localRotation = Quaternion.Euler(0, 0, 180);
+            f.Panel(t, "Trophy Stem", GuiPalette.Gold, Centre, new Vector2(-110, -25), new Vector2(26, 50), 6);
+            f.Panel(t, "Trophy Base", GuiPalette.Gold, Centre, new Vector2(-110, -65), new Vector2(110, 30), 10);
+
+            // The monitor: the referee and, tiny, Prime
+            f.Panel(t, "Monitor Stand", GuiPalette.Dusk, Centre, new Vector2(330, -60), new Vector2(200, 36), 12);
+            f.Panel(t, "Monitor", GuiPalette.Dusk, Centre, new Vector2(330, 150), new Vector2(760, 440), 36);
+            var screen = f.Panel(t, "Monitor Screen", GuiPalette.SporeDeep, Centre, new Vector2(330, 150), new Vector2(690, 370), 22);
+            screen.Outline = 4;
+            Avatar(screen.transform, "Ref Puffball", GuiPalette.Cream, 1, new Vector2(-130, 20), 230);
+            f.Text(screen.transform, "Ref Name", "REF PUFFBALL", TextStyle.Label, 30, GuiPalette.Cream, Bottom, new Vector2(-130, 22), new Vector2(300, 40));
+            Avatar(screen.transform, "Prime", GuiPalette.Sky, 1, new Vector2(190, -40), 96);
+            f.Text(screen.transform, "Prime Name", "PRIME", TextStyle.Label, 24, GuiPalette.Cream, Bottom, new Vector2(190, 22), new Vector2(200, 34));
+
+            CaptionBox(root, true);
+            return Save(root);
+        }
+
+        // 45 s of text going up a dark screen; GuiCredits places the text, CreditsPlayer times it
+        private GameObject Credits()
+        {
+            var root = Root("Credits", GuiScreen.Credits);
+            var t = root.transform;
+            var credits = root.AddComponent<GuiCredits>();
+            Backdrop(t);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.12f), Centre, new Vector2(0, 0), new Vector2(1500, 1000));
+
+            var viewport = Object("Viewport", t);
+            Stretch(viewport.transform);
+            viewport.AddComponent<RectMask2D>();
+            credits.viewport = (RectTransform)viewport.transform;
+            credits.text = f.Text(viewport.transform, "Text", CreditsRoll.RichText(), TextStyle.BodyInk, 44, GuiPalette.Cream, Top, Vector2.zero, new Vector2(1500, 3000));
+            credits.text.alignment = TextAlignmentOptions.Top;
+            credits.text.lineSpacing = 18;
+
+            credits.hint = f.Text(t, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight, new Vector2(-5, 30), new Vector2(500, 40), TextAlignmentOptions.Right);
+            var track = f.Panel(t, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, new Vector2(-5, 5), new Vector2(260, 22), 8);
+            track.Outline = 3;
+            track.Shadow = 0;
+            var fill = f.Shape(track.transform, "Fill", ToonShapeKind.Box, GuiPalette.Gold, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.CornerRadius = 6;
+                s.Outline = 0;
+                s.Shadow = 0;
+            });
+            Stretch(fill, 3);
+            fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
+            credits.skipBar = fill.GetComponent<RectTransform>();
+            return Save(root);
         }
 
         // ---------------------------------------------------------------- Gallery: every component and style in one place

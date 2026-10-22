@@ -62,7 +62,8 @@ namespace SdfCampaign
                 new("beat-boss", StepKind.Cutscene, "Boss", "Second place"),
                 // The boss's numbers are ticket 33's; these are placeholders until it lands.
                 Battle(Boss, "Boss", "Chanterelle Prime", 4, 5, 0.70f, 0.60f, 3, 12, blueRespawn: 3),
-                new(Ending, StepKind.Cutscene, "Home", "Ending"),
+                // The ending plays over Boot's backdrop (Home.unity is editor-only), like the credits
+                new(Ending, StepKind.Cutscene, "Boot", "Ending"),
                 new(Credits, StepKind.Credits, "Boot", "Credits"),
             };
             return new CampaignDefinition(steps);
