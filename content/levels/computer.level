@@ -22,6 +22,11 @@ room size=(160, 64, 120) walls=case-wall ceiling=case-glass
 # tank-computer-..., helicopter-computer-..., with the scouts' floating eyes. The flight ceiling is the default, 20 m
 machines set=computer
 
+# The twist (30.9): data pulses run along the buses (the polylines flagged pulse below) from each base's RAM to the middle, every 4 s at
+# 18 m/s, a 3 m white-gold band over the three traces of a bus. A scout within 1.5 m of one gets +35% move speed for 2.5 s (refreshed by the
+# next pulse, never stacked; the flag carrier too, machines not): the buses are the fast, lit way out to the middle
+pulses every=4 speed=18 length=3 boost=1.35 for=2.5
+
 # The board, from 2D shapes; where regions overlap, the later one wins (trace, then silk, then pad). Each is drawn in its material,
 # materials/ground/ground_<region>.sdfmat; the base is the solder mask. All ruled straight, no wobble: the buses are the lane marks.
 # trace: gold and glowing, three buses a side, each three parallel traces 0.8 m wide and 1.6 m apart (centre to centre) with 45 degree jogs,
@@ -31,24 +36,24 @@ machines set=computer
 # pad: tin, a circle of r 2.2 under every pod and flag stand, a 7 x 7 m square under each spawn zone: soldered spots on the board
 regions base=pcb
     trace wobble=0
-        Polyline points=[(-44, 8.4), (-39.34, 8.4), (-21.34, 26.4), (0, 26.4)] width=0.8
-        Polyline points=[(-44, 10), (-40, 10), (-22, 28), (0, 28)] width=0.8
-        Polyline points=[(-44, 11.6), (-40.66, 11.6), (-22.66, 29.6), (0, 29.6)] width=0.8
-        Polyline points=[(-42, -1.6), (-7, -1.6)] width=0.8
-        Polyline points=[(-42, 0), (-7, 0)] width=0.8
-        Polyline points=[(-42, 1.6), (-7, 1.6)] width=0.8
-        Polyline points=[(-44, -8.4), (-39.34, -8.4), (-21.34, -26.4), (0, -26.4)] width=0.8
-        Polyline points=[(-44, -10), (-40, -10), (-22, -28), (0, -28)] width=0.8
-        Polyline points=[(-44, -11.6), (-40.66, -11.6), (-22.66, -29.6), (0, -29.6)] width=0.8
-        Polyline points=[(44, 8.4), (39.34, 8.4), (21.34, 26.4), (0, 26.4)] width=0.8
-        Polyline points=[(44, 10), (40, 10), (22, 28), (0, 28)] width=0.8
-        Polyline points=[(44, 11.6), (40.66, 11.6), (22.66, 29.6), (0, 29.6)] width=0.8
-        Polyline points=[(42, -1.6), (7, -1.6)] width=0.8
-        Polyline points=[(42, 0), (7, 0)] width=0.8
-        Polyline points=[(42, 1.6), (7, 1.6)] width=0.8
-        Polyline points=[(44, -8.4), (39.34, -8.4), (21.34, -26.4), (0, -26.4)] width=0.8
-        Polyline points=[(44, -10), (40, -10), (22, -28), (0, -28)] width=0.8
-        Polyline points=[(44, -11.6), (40.66, -11.6), (22.66, -29.6), (0, -29.6)] width=0.8
+        Polyline points=[(-44, 8.4), (-39.34, 8.4), (-21.34, 26.4), (0, 26.4)] width=0.8 pulse
+        Polyline points=[(-44, 10), (-40, 10), (-22, 28), (0, 28)] width=0.8 pulse
+        Polyline points=[(-44, 11.6), (-40.66, 11.6), (-22.66, 29.6), (0, 29.6)] width=0.8 pulse
+        Polyline points=[(-42, -1.6), (-7, -1.6)] width=0.8 pulse
+        Polyline points=[(-42, 0), (-7, 0)] width=0.8 pulse
+        Polyline points=[(-42, 1.6), (-7, 1.6)] width=0.8 pulse
+        Polyline points=[(-44, -8.4), (-39.34, -8.4), (-21.34, -26.4), (0, -26.4)] width=0.8 pulse
+        Polyline points=[(-44, -10), (-40, -10), (-22, -28), (0, -28)] width=0.8 pulse
+        Polyline points=[(-44, -11.6), (-40.66, -11.6), (-22.66, -29.6), (0, -29.6)] width=0.8 pulse
+        Polyline points=[(44, 8.4), (39.34, 8.4), (21.34, 26.4), (0, 26.4)] width=0.8 pulse
+        Polyline points=[(44, 10), (40, 10), (22, 28), (0, 28)] width=0.8 pulse
+        Polyline points=[(44, 11.6), (40.66, 11.6), (22.66, 29.6), (0, 29.6)] width=0.8 pulse
+        Polyline points=[(42, -1.6), (7, -1.6)] width=0.8 pulse
+        Polyline points=[(42, 0), (7, 0)] width=0.8 pulse
+        Polyline points=[(42, 1.6), (7, 1.6)] width=0.8 pulse
+        Polyline points=[(44, -8.4), (39.34, -8.4), (21.34, -26.4), (0, -26.4)] width=0.8 pulse
+        Polyline points=[(44, -10), (40, -10), (22, -28), (0, -28)] width=0.8 pulse
+        Polyline points=[(44, -11.6), (40.66, -11.6), (22.66, -29.6), (0, -29.6)] width=0.8 pulse
     silk wobble=0
         Polyline points=[(-78.6, -5.6), (-78.6, 5.6), (-43.2, 5.6), (-43.2, -5.6), (-78.6, -5.6)] width=0.4
         Polyline points=[(78.6, -5.6), (78.6, 5.6), (43.2, 5.6), (43.2, -5.6), (78.6, -5.6)] width=0.4

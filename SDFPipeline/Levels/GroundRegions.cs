@@ -41,6 +41,9 @@ public sealed record BoxRegion(Vector2 Center, Vector2 Size, float Angle, float 
 /// <summary>A band <see cref="Width"/> metres wide along the line through <see cref="Points"/>, with round ends: a path.</summary>
 public sealed record PolylineRegion(IReadOnlyList<Vector2> Points, float Width, float Noise, float NoiseScale) : RegionShape(Noise, NoiseScale)
 {
+    /// <summary>Data pulses run along this line, from its first point to its last (ticket 30.9, <see cref="PulseSpec"/>).</summary>
+    public bool Pulse { get; init; }
+
     public override float Distance(Vector2 p)
     {
         var nearest = float.PositiveInfinity;

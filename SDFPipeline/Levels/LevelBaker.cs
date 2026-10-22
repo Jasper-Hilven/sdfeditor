@@ -134,6 +134,11 @@ public static class LevelBaker
                 if (!terrain.OnIsland(corner.X, corner.Y))
                     throw new ProgramFiles.SdfProgramFileException(mover.Line, $"Mover {mover.Name}'s path goes beyond the island's edge, at ({corner.X}, {corner.Y})");
         }
+        // The pulse lines (ticket 30.9) stay on the island
+        foreach (var pulseLine in level.PulseLines)
+            foreach (var corner in pulseLine.Points)
+                if (!terrain.OnIsland(corner.X, corner.Y))
+                    throw new ProgramFiles.SdfProgramFileException(level.Pulses!.Line, $"A pulse line goes beyond the island's edge, at ({corner.X}, {corner.Y})");
         var groundColors = regions.Regions.Select(r => r.Material).Prepend(level.BaseMaterial)
             .Select(m => AverageColor(materials.Resolve(m))).ToArray();
         // The trees sections' models need their footprints too where a later section keeps clear of them (LevelScatter.KeepsClearOf),
@@ -372,6 +377,25 @@ public static class LevelBaker
                 heights = m.Heights.Count == 0 ? null : m.Heights.Select(Array).ToArray(),
                 cars = m.Cars.Select(c => new { model = c.Model, length = c.Length }).ToArray(),
             }).ToArray(),
+            // Data pulses (ticket 30.9), or none: a pulse leaves each line's first point every `every` seconds at `speed` m/s, `length` m long
+            // (the head in front); a scout within 1.5 m of one gets `boost` times its speed for `for` seconds. The lines are the flagged
+            // region polylines: corners (x, z), their ground height y, the trace's width, and the length. Unity builds the overlay mesh
+            // from them (UV.x = metres along the line) and the same numbers drive PulseRules; the clock is the scene's time
+            pulses = level.Pulses is { } pulse ? new
+            {
+                every = pulse.Every,
+                speed = pulse.Speed,
+                length = pulse.Length,
+                boost = pulse.Boost,
+                @for = pulse.For,
+                lines = level.PulseLines.Select(l => new
+                {
+                    width = l.Width,
+                    length = PolylineLength(l.Points),
+                    points = l.Points.Select(Array).ToArray(),
+                    y = l.Points.Select(p => terrain.Height(p.X, p.Y)).ToArray(),
+                }).ToArray(),
+            } : null,
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
@@ -430,6 +454,15 @@ public static class LevelBaker
     private static float[] Array(Vector2 v) => [v.X, v.Y];
 
     private static float[] Array(Vector3 v) => [v.X, v.Y, v.Z];
+
+    /// <summary>The length of the line through the points, in metres (a pulse line's, ticket 30.9).</summary>
+    private static float PolylineLength(IReadOnlyList<Vector2> points)
+    {
+        var length = 0f;
+        for (var i = 0; i + 1 < points.Count; i++)
+            length += Vector2.Distance(points[i], points[i + 1]);
+        return length;
+    }
 
     /// <summary>
     /// The room for level.json: its size and square size, and for each face its origin corner, the directions of its u and v axes (one

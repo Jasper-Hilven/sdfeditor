@@ -529,6 +529,8 @@ namespace SdfLevel.Editor
             var battle = AddBattle(scene, data, player);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
             var movers = AddMovers(scene, data);
+            // The data pulses (ticket 30.9): the overlay mesh and the rule, outside the Level root too
+            LevelPulses.Add(scene, data, name, meshFolder);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
             var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
                 player, battle != null ? battle.gameObject : null);

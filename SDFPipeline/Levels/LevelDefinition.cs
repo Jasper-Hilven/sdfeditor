@@ -56,6 +56,12 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The vehicles that run a closed path on a timetable (ticket 27.3), in the file's order.</summary>
     public IReadOnlyList<MoverSpec> Movers { get; init; } = [];
 
+    /// <summary>The data pulses that run along the region polylines flagged <c>pulse</c> (ticket 30.9), or null for a level without them.</summary>
+    public PulseSpec? Pulses { get; init; }
+
+    /// <summary>The polylines the pulses run along, in the file's order: the flagged polylines of the regions.</summary>
+    public IEnumerable<PolylineRegion> PulseLines => Regions.SelectMany(r => r.Shapes).OfType<PolylineRegion>().Where(p => p.Pulse);
+
     /// <summary>The machine set's name: <see cref="MachineSet.Default"/> without a <c>machines</c> line.</summary>
     public string MachineSetName => Machines?.Name ?? MachineSet.Default;
 }
