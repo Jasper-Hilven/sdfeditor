@@ -25,6 +25,7 @@ Shader "SdfMushrooms/Toon Outline"
     #endif
     #pragma multi_compile_local _ SDF_SCATTER
     #include "SdfScatter.hlsl"
+#include "SdfComic.hlsl"
 
     CBUFFER_START(UnityPerMaterial)
         float _OutlineWidth;
@@ -65,7 +66,7 @@ Shader "SdfMushrooms/Toon Outline"
         float length2 = dot(normalPixels, normalPixels);
         if (length2 > 1e-12)
         {
-            float pixels = _OutlineWidth * _ScreenSize.y / 1080.0;
+            float pixels = _OutlineWidth * _ScreenSize.y / 1080.0 * lerp(1.0, _SdfComic.z, step(0.5, _SdfComic.x));
             positionCS.xy += normalPixels * rsqrt(length2) * pixels * 2.0 * _ScreenSize.zw * positionCS.w;
         }
         output.positionCS = positionCS;
@@ -114,6 +115,8 @@ Shader "SdfMushrooms/Toon Outline"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 SdfLodFade(input.positionCS);
+                // The aux pass of the story's panels (SdfComic.hlsl) has no outline: the post pass draws its own ink
+                clip(1.5 - _SdfComic.x);
                 return float4(SkyFade(input.color * _OutlineTone.rgb, input.positionWS), 1.0);
             }
             ENDHLSL
