@@ -521,7 +521,7 @@ public static class LevelBaker
 
     /// <summary>Each parameter by name, as the .glb files of models give them: a number, or [r, g, b] (linear) / [x, y, z].</summary>
     private static Dictionary<string, object> Parameters(MaterialDefinition material) =>
-        MaterialDefinition.Parameters.ToDictionary(p => p.Name, p => p.Get(material) is [var single] ? (object)single : p.Get(material));
+        MaterialDefinition.Listed(material).ToDictionary(p => p.Name, p => p.Get(material) is [var single] ? (object)single : p.Get(material));
 
     /// <summary>
     /// A chunk as binary glTF: a mesh and node per level of detail with only POSITION and NORMAL (the ground's material comes from

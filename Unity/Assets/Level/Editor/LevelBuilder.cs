@@ -599,7 +599,7 @@ namespace SdfLevel.Editor
             var materials = (JObject)data["materials"];
             var grass = MaterialOf(materials, "grass")
                         ?? throw new InvalidDataException("level.json has no grass material (materials.grass.parameters); bake the level again");
-            material.SetVector("_GroundBaseColor", Color(grass, "baseColor", 0));
+            material.SetVector("_GroundBaseColor", Color(grass, "baseColor", grass.Number("emission")));
             material.SetVector("_GroundVariation", Color(grass, "variationColor", grass.Number("variationScale")));
             material.SetVector("_GroundSurface", Surface(grass));
             material.SetVector("_GroundSpeckle", Color(grass, "speckleColor", grass.Number("speckleScale")));
@@ -618,7 +618,7 @@ namespace SdfLevel.Editor
                 var region = channel == null ? null : MaterialOf(materials, channel.Value<string>("name"))
                     ?? throw new InvalidDataException($"level.json has no material for the region {channel.Value<string>("name")}; bake the level again");
                 var stones = channel?.Value<string>("pattern") == "stones";
-                material.SetVector($"_Region{i}Base", region == null ? Vector4.zero : Color(region, "baseColor", 0));
+                material.SetVector($"_Region{i}Base", region == null ? Vector4.zero : Color(region, "baseColor", region.Number("emission")));
                 material.SetVector($"_Region{i}Variation", region == null ? Vector4.zero : Color(region, "variationColor", region.Number("variationScale")));
                 material.SetVector($"_Region{i}Surface", region == null ? new Vector4(0.9f, 0.3f, 0, 0.5f) : Surface(region));
                 material.SetVector($"_Region{i}Speckle", region == null ? Vector4.zero : Color(region, "speckleColor", region.Number("speckleScale")));

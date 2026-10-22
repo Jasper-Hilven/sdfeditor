@@ -27,7 +27,7 @@ public static class MaterialFile
     public static string Write(MaterialDefinition material, MaterialPattern? pattern = null)
     {
         var text = new StringBuilder($"{FileSyntax.FormatKeyword} {FormatVersion}\n\n");
-        foreach (var parameter in MaterialDefinition.Parameters)
+        foreach (var parameter in MaterialDefinition.Listed(material))
         {
             var components = parameter.Get(material).Select(FileSyntax.Number).ToArray();
             var value = components.Length == 1 ? components[0] : $"({string.Join(", ", components)})";
