@@ -30,6 +30,10 @@ namespace SdfBattle
         public bool sporesOn = true;
         /// <summary>Seconds a dead blue player waits; red keeps the rules' own.</summary>
         public float blueRespawnSeconds = 5;
+        /// <summary>The match starts held (ticket 32.7): a story beat plays first, and whoever plays it lets the match go.</summary>
+        public bool held;
+        /// <summary>The controls warm-up runs first: the match starts held, and the warm-up lets it go (you may move and fire meanwhile).</summary>
+        public bool warmUp;
 
         public float SkillOf(Team team) => team == Team.Red ? redSkill : blueSkill;
 

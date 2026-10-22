@@ -85,6 +85,9 @@ namespace SdfGui
         [Tooltip("How the match ended (the banner, Victory and Defeat); filled by the real match, or sampled for the showcase")]
         public ViewEnd end = new ViewEnd();
 
+        [Tooltip("The caption box's line (story beats and the warm-up's prompts, ticket 32.7); empty shows nothing")]
+        public ViewCaption caption = new ViewCaption();
+
         [Header("Players")]
         public List<ViewPlayer> players = new List<ViewPlayer>();
         public int you;

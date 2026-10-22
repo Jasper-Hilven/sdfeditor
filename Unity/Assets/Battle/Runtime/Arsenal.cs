@@ -138,7 +138,7 @@ namespace SdfBattle
                 return;
 
             var alive = state.Alive;
-            var canFire = alive && combat.Match.State.CanMove && (!Player.IsYou || Cursor.lockState == CursorLockMode.Locked);
+            var canFire = alive && (combat.Match.State.CanMove || Player.IsYou && combat.Match.YouFree) && (!Player.IsYou || Cursor.lockState == CursorLockMode.Locked);
             var held = triggerHeld && canFire;
             UpdateZoom(alive && zoomHeld && stats.zoomFieldOfView > 0);
 

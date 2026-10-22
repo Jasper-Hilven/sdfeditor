@@ -107,6 +107,7 @@ namespace SdfBattle
             view.killedByName = view.killedTitle = view.killedDetail = view.eliminatedTitle = null;
             view.feed.Clear();
             view.end.Clear();
+            view.caption.Clear();
             view.spread = view.hitMarker = view.damage = view.eliminated = 0;
             view.hitMarkerKill = view.eliminatedHeadshot = false;
         }

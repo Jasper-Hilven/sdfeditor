@@ -48,6 +48,7 @@ namespace SdfCampaign
             singleRound = singleRound,
             sporesOn = sporesOn,
             blueRespawnSeconds = blueRespawnSeconds,
+            warmUp = warmUp,
         };
 
         public BattleSetup Clone()

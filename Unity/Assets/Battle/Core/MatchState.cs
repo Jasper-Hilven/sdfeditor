@@ -79,8 +79,14 @@ namespace SdfBattle
 
         public IReadOnlyList<PlayerState> Players => players;
 
-        /// <summary>Whether players may move: not during the countdown, when everyone waits at their spawn.</summary>
-        public bool CanMove => Phase != RoundPhase.Countdown;
+        /// <summary>
+        /// The match is held (ticket 32.7: a story beat or the warm-up plays first): the clock, the respawn waits and the phases stand still,
+        /// nobody moves or hurts anybody. Set and cleared by whoever plays the scene before the match; not part of a round, so a restart leaves it.
+        /// </summary>
+        public bool Held { get; set; }
+
+        /// <summary>Whether players may move: not during the countdown, when everyone waits at their spawn, nor while the match is held.</summary>
+        public bool CanMove => Phase != RoundPhase.Countdown && !Held;
 
         /// <summary>
         /// A new round begins, before anyone spawns: scores and counts are back to zero, every player is about to respawn. Rules with
@@ -156,7 +162,7 @@ namespace SdfBattle
         /// <summary>Lets <paramref name="seconds"/> pass: the phase's timer or the clock, the respawn waits and the spawn protection.</summary>
         public void Tick(float seconds)
         {
-            if (!Started || seconds <= 0)
+            if (!Started || seconds <= 0 || Held)
                 return;
             RoundClock += seconds;
             switch (Phase)
@@ -228,10 +234,10 @@ namespace SdfBattle
 
         /// <summary>
         /// Whether something of team <paramref name="attacker"/> (a player or a machine) can hurt <paramref name="victim"/>: the victim
-        /// is alive and no longer protected, of the other team (friendly fire is off), and the round is not counting down.
+        /// is alive and no longer protected, of the other team (friendly fire is off), the round is not counting down and the match is not held.
         /// </summary>
         public bool CanHurt(PlayerState victim, Team attacker) =>
-            victim != null && victim.Alive && !victim.Protected && Started && Phase != RoundPhase.Countdown
+            victim != null && victim.Alive && !victim.Protected && Started && Phase != RoundPhase.Countdown && !Held
             && (Rules.friendlyFire || attacker != victim.Team);
 
         private void StartRound()

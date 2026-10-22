@@ -382,5 +382,161 @@ namespace SdfCampaign.Tests
             Assert.IsFalse(again.newBest, "a worse medal is not a new best");
             Assert.AreEqual(Medal.Silver, p.BestMedal("meadow"));
         }
+
+        // --- beats, the sequencer and the warm-up (ticket 32.7) ---
+
+        [Test]
+        public void Beats_AreDataForTheFirstTwo_PlayedInTheNextBattlesScene()
+        {
+            foreach (var id in new[] { "beat-fungal", "beat-chessboard" })
+            {
+                var beat = Beats.Find(id);
+                Assert.IsNotNull(beat, id);
+                var step = Def.Find(id);
+                var battle = Def.Steps[Def.IndexOf(id) + 1];
+                Assert.IsTrue(battle.IsBattle);
+                Assert.AreEqual(battle.scene, step.scene, "a beat plays in the scene of the battle after it");
+                Assert.AreEqual(step.title, beat.title);
+                Assert.That(beat.shots.Length, Is.InRange(3, 7));
+                Assert.That(beat.Seconds, Is.InRange(25f, 60f), "30 to 60 seconds, give or take the opening card");
+                foreach (var shot in beat.shots)
+                {
+                    Assert.IsNotNull(shot.move);
+                    if (!string.IsNullOrEmpty(shot.move.actor))
+                        Assert.IsNotNull(beat.Actor(shot.move.actor), $"{id}: no actor {shot.move.actor}");
+                    if (!string.IsNullOrEmpty(shot.speaker))
+                        Assert.IsNotNull(beat.Actor(shot.speaker), $"{id}: the speaker {shot.speaker} is on the stage");
+                }
+            }
+            Assert.IsFalse(Beats.Has("meadow"));
+            Assert.IsNull(Beats.Find("beat-toybox"), "later beats come with their levels (32.9)");
+        }
+
+        [Test]
+        public void Sequencer_RunsTheShotsInOrder_ThenTheArrival_ThenIsDone()
+        {
+            var beat = Beats.Find("beat-fungal");
+            var seq = new BeatSequencer(beat);
+            Assert.AreEqual(BeatStage.Shots, seq.Stage);
+            Assert.AreEqual(0, seq.ShotIndex);
+            seq.Tick(beat.shots[0].seconds + 0.01f, false);
+            Assert.AreEqual(1, seq.ShotIndex);
+            Assert.AreEqual(0, seq.ShotTime, 0.05f);
+            for (var i = 1; i < beat.shots.Length; i++)
+                seq.Tick(beat.shots[i].seconds + 0.01f, false);
+            Assert.AreEqual(BeatStage.Arrival, seq.Stage);
+            Assert.IsFalse(seq.Skipped);
+            seq.Tick(BeatSequencer.ArrivalSeconds + 0.01f, false);
+            Assert.IsTrue(seq.Done);
+            Assert.AreEqual(1f, seq.Arrival);
+        }
+
+        [Test]
+        public void Sequencer_AClickMovesOnEarly_ButNotInTheShotsFirstMoments()
+        {
+            var seq = new BeatSequencer(Beats.Find("beat-chessboard"));
+            seq.Advance();
+            Assert.AreEqual(0, seq.ShotIndex, "a click at the very start of a shot does not eat it");
+            seq.Tick(0.5f, false);
+            seq.Advance();
+            Assert.AreEqual(1, seq.ShotIndex);
+            Assert.AreEqual(0, seq.ShotTime);
+        }
+
+        [Test]
+        public void Sequencer_HoldingSkipForPointSevenSecondsJumpsToTheHandOver()
+        {
+            var seq = new BeatSequencer(Beats.Find("beat-fungal"));
+            seq.Tick(0.3f, true);
+            seq.Tick(0.3f, true);
+            Assert.AreEqual(BeatStage.Shots, seq.Stage, "0.6 s is not enough");
+            Assert.AreEqual(0.6f / SkipHold.Seconds, seq.SkipProgress, 0.01f);
+            seq.Tick(0.2f, true);
+            Assert.AreEqual(BeatStage.Arrival, seq.Stage);
+            Assert.IsTrue(seq.Skipped);
+        }
+
+        [Test]
+        public void Sequencer_LettingGoOfSkipStartsTheHoldOver()
+        {
+            var seq = new BeatSequencer(Beats.Find("beat-fungal"));
+            seq.Tick(0.6f, true);
+            seq.Tick(0.1f, false);
+            seq.Tick(0.6f, true);
+            Assert.AreEqual(BeatStage.Shots, seq.Stage);
+            Assert.IsFalse(seq.Skipped);
+        }
+
+        [Test]
+        public void Sequencer_TheCaptionFadesInAndOutAndIsEmptyWithoutALine()
+        {
+            var beat = Beats.Find("beat-fungal");
+            var seq = new BeatSequencer(beat);
+            Assert.AreEqual(0, seq.CaptionAlpha, 1e-4f, "faded in from nothing");
+            seq.Tick(1f, false);
+            Assert.AreEqual(1, seq.CaptionAlpha, 1e-4f);
+            seq.Tick(beat.shots[0].seconds - 1f - 0.05f, false);
+            Assert.Less(seq.CaptionAlpha, 0.5f, "fading out at the end");
+            var last = new BeatSequencer(new[] { beat.shots.Last() });
+            last.Tick(1f, false);
+            Assert.AreEqual(0, last.CaptionAlpha, "a shot with no line has no caption");
+        }
+
+        [Test]
+        public void WarmUp_EachPromptIsClearedByDoingIt_InOrder()
+        {
+            var warm = WarmUp.Default(true);
+            Assert.AreEqual(4, warm.Count);
+            StringAssert.Contains("WASD", warm.Prompt.text);
+            warm.Report(WarmUpAction.Jump);
+            Assert.AreEqual(0, warm.Index, "a jump before its prompt does not count");
+            warm.Report(WarmUpAction.Walk);
+            Assert.AreEqual(0, warm.Index, "walking alone does not clear walk and look");
+            warm.Report(WarmUpAction.Look);
+            Assert.AreEqual(1, warm.Index);
+            warm.Report(WarmUpAction.Jump);
+            StringAssert.Contains("MINIGUN", warm.Prompt.text);
+            warm.Report(WarmUpAction.Fire);
+            Assert.AreEqual(2, warm.Index, "firing early does not clear the pod prompt");
+            warm.Report(WarmUpAction.TakeMinigun);
+            StringAssert.Contains("fire", warm.Prompt.text);
+            warm.Report(WarmUpAction.Fire);
+            Assert.IsTrue(warm.Finished);
+            Assert.IsNull(warm.Prompt);
+        }
+
+        [Test]
+        public void WarmUp_AMinigunTakenEarlyClearsItsPromptAtOnce_AndWithoutAPodThereAreTwoPrompts()
+        {
+            var warm = WarmUp.Default(true);
+            warm.Report(WarmUpAction.TakeMinigun);
+            warm.Report(WarmUpAction.Walk | WarmUpAction.Look);
+            warm.Report(WarmUpAction.Jump);
+            StringAssert.Contains("fire", warm.Prompt.text, "the pod prompt went by with it");
+            Assert.AreEqual(2, WarmUp.Default(false).Count);
+        }
+
+        [Test]
+        public void TheMeadowAsksForTheWarmUp_OnlyOnAFirstPlay()
+        {
+            Assert.IsTrue(Def.Find("meadow").setup.warmUp);
+            Assert.IsTrue(Def.Find("meadow").setup.ToMatchSetup().warmUp);
+            Assert.IsFalse(Def.Find("meadow").setup.sporesOn, "spores off in the meadow");
+            Assert.IsFalse(Def.Find("fungal").setup.warmUp);
+            Assert.IsFalse(Def.Find("chessboard").setup.warmUp);
+        }
+
+        [Test]
+        public void ContinueAfterAReload_GoesToTheBeatAfterAWin_ThenToItsBattle()
+        {
+            var store = new MemoryCampaignStorage();
+            var p = Fresh(store, scene => scene == "Boot" || scene == "Meadow" || scene == "Fungal" || scene == "Chessboard");
+            p.CompleteCutscene("intro");
+            p.RecordWin("meadow", 2, 0, 300, Difficulty.Normal);
+            var again = Fresh(store, scene => scene == "Boot" || scene == "Meadow" || scene == "Fungal" || scene == "Chessboard");
+            Assert.AreEqual("beat-fungal", again.NextStep().id, "a beat not yet seen plays first");
+            again.CompleteCutscene("beat-fungal");
+            Assert.AreEqual("fungal", Fresh(store, scene => scene != "ToyBox").NextStep().id);
+        }
     }
 }

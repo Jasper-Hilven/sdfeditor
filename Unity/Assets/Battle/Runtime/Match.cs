@@ -141,7 +141,34 @@ namespace SdfBattle
             // Bots (ticket 23): their brains, after combat (their arsenals) and before the first round (their spawns)
             Bots.Create(this);
             State.Begin();
+            // A beat or the warm-up plays before the match (ticket 32.7): held from the first frame
+            if (Setup != null && (Setup.held || Setup.warmUp))
+                Hold();
         }
+
+        /// <summary>The match is held: the clock stands still and nobody moves or fires, except you with <paramref name="youFree"/> (the warm-up).</summary>
+        public void Hold(bool youFree = false)
+        {
+            if (State == null)
+                return;
+            State.Held = true;
+            YouFree = youFree;
+        }
+
+        /// <summary>Lets a held match go: the clock runs and everyone may move.</summary>
+        public void Release()
+        {
+            if (State == null)
+                return;
+            State.Held = false;
+            YouFree = false;
+        }
+
+        /// <summary>The match is held but you may walk, jump and fire (the meadow's warm-up).</summary>
+        public bool YouFree { get; private set; }
+
+        /// <summary>The match is held.</summary>
+        public bool Held => State != null && State.Held;
 
         /// <summary>
         /// RETRY (ticket 32): the match starts over in place, scores and clock at zero, flags home, everyone respawned. A new
@@ -152,6 +179,7 @@ namespace SdfBattle
         {
             if (State == null)
                 return;
+            Release();
             if (setup != null)
             {
                 Setup = setup;
@@ -227,7 +255,7 @@ namespace SdfBattle
             var frozen = !State.CanMove;
             foreach (var player in players)
             {
-                player.Controller.frozen = frozen;
+                player.Controller.frozen = frozen && !(YouFree && player.IsYou);
                 if (player.State.Alive && HasFallen(player.transform.position))
                     State.ReportFall(player.State);
             }

@@ -207,5 +207,33 @@ namespace SdfBattle.Tests
             spores.Enabled = true;
             Assert.Greater(spores.Gain(player, 10), 0);
         }
+
+        [Test]
+        public void AHeldMatch_StandsStill_AndLetsGoOnRelease()
+        {
+            var match = Build(new MatchRules { countdownSeconds = 0 });
+            var left = match.TimeLeft;
+            match.Held = true;
+            Run(match, 5);
+            Assert.AreEqual(left, match.TimeLeft, "the clock stands still");
+            Assert.IsFalse(match.CanMove);
+            var victim = match.Players.First(p => p.Team == Team.Blue);
+            Assert.IsFalse(match.CanHurt(victim, Team.Red), "nobody hurts anybody");
+            match.Held = false;
+            Run(match, 5);
+            Assert.AreEqual(left - 5, match.TimeLeft, 0.2f);
+            Assert.IsTrue(match.CanMove);
+            Assert.IsTrue(match.CanHurt(victim, Team.Red) || victim.Protected);
+        }
+
+        [Test]
+        public void TheSetup_CarriesTheHoldAndTheWarmUp()
+        {
+            var setup = new MatchSetup { held = true, warmUp = true };
+            Assert.IsTrue(setup.held);
+            Assert.IsTrue(setup.warmUp);
+            Assert.IsFalse(new MatchSetup().held);
+            Assert.IsFalse(new MatchSetup().warmUp);
+        }
     }
 }

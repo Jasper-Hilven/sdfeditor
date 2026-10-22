@@ -27,6 +27,10 @@ namespace SdfGui
         Defeat,
         /// <summary>The 2 s banner over the HUD between the match's last capture and Victory or Defeat.</summary>
         MatchEnd,
+        /// <summary>The caption box over the HUD (the warm-up's prompts); <see cref="GuiFlow.screen"/> is never this, it shows while the HUD does and the caption has a line.</summary>
+        Caption,
+        /// <summary>A story beat: the scene alone with the caption box and letterbox bars, no HUD (ticket 32.7).</summary>
+        Cutscene,
     }
 
     /// <summary>
@@ -308,6 +312,8 @@ namespace SdfGui
         {
             if (root == GuiScreen.Confirm)
                 return ConfirmOpen;
+            if (root == GuiScreen.Caption)
+                return screen == GuiScreen.Hud && Match != null && Match.caption.Visible;
             if (root == screen)
                 return true;
             if (root != GuiScreen.Hud)
@@ -338,6 +344,15 @@ namespace SdfGui
                 Ask(ConfirmQuestion, null);
                 return;
             }
+            // The showcase's samples of the caption box (a real match's caption is written by the campaign): the HUD with a line, or the beat's screen
+            if (Match != null && !Match.driven)
+            {
+                Match.caption.Clear();
+                if (next == GuiScreen.Caption || next == GuiScreen.Cutscene)
+                    Match.caption.Set("Mushroom 7", "Fill your spores and press Q. Trust me.", 1, next == GuiScreen.Cutscene ? 0.4f : 0, "Hold SPACE to skip");
+            }
+            if (next == GuiScreen.Caption)
+                next = GuiScreen.Hud;
             ConfirmOpen = false;
             CancelEnd();
             // Picked from the editor or the test panel: the showcase round's end, made up

@@ -34,6 +34,9 @@ namespace SdfCampaign.Editor
         private static bool sawIntro;
         private static bool sawSlow, sawBanner;
         private static float skillBefore;
+        private static bool warmDone, sawCaption, sawBeatCaption;
+        private static int beatPhase, replayPhase;
+        private static string replayNext;
 
         static CampaignPlayTest()
         {
@@ -88,7 +91,7 @@ namespace SdfCampaign.Editor
                 errors.Add(exception.ToString());
                 step = int.MaxValue;
             }
-            if (step < 16 && now - started < 300)
+            if (step < 22 && now - started < 300)
                 return;
             if (now - started >= 300)
                 errors.Add($"Timed out in step {step}, scene {Active}");
@@ -136,11 +139,21 @@ namespace SdfCampaign.Editor
                     Expect(m.Players.Count == 6, $"3 v 3 in the Meadow, got {m.Players.Count}");
                     Expect(m.State.Rules.capturesToWin == 2, "first to 2 in the Meadow");
                     Expect(Mathf.Approximately(Time.timeScale, 1), "time runs");
+                    Expect(m.GetComponent<WarmUpPlayer>() != null && m.Held && m.YouFree, "the Meadow's first play starts with the warm-up: held, and you free");
+                    Expect(!m.Setup.sporesOn && Spores.Current != null && !Spores.Current.State.Enabled, "spores are off in the Meadow");
                     Expect(UnityEngine.Object.FindObjectsByType<GuiFlow>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length == 1,
                         "only the persistent GUI, the scene's own is gone");
                     Expect(m.Hud != null && m.Hud.gameObject == flow.gameObject, "the HUD is on the persistent GUI");
                     return true;
-                case 2: // a win: two captures
+                case 2: // the warm-up is cleared by doing it, then the clock runs; a win: two captures
+                    if (!warmDone)
+                    {
+                        if (!DriveWarmUp(flow))
+                            return false;
+                        warmDone = true;
+                        stepStarted = Time.realtimeSinceStartup;
+                        return false;
+                    }
                     if (waited < 1)
                         return false;
                     Expect(Match.Current.State.TimeLeft < Match.Current.State.Rules.roundSeconds, "the clock runs");
@@ -166,6 +179,8 @@ namespace SdfCampaign.Editor
                     Expect(Match.Current == same && same.State.Score(Team.Red) == 0 && !same.State.Over, "RETRY starts the match over in place, no reload");
                     Expect(flow.screen == GuiScreen.Hud && !flow.Match.end.set, "back on the HUD");
                     Expect(Mathf.Approximately(Time.timeScale, 1), "time runs after RETRY");
+                    var leftover = same.GetComponent<WarmUpPlayer>();
+                    Expect((leftover == null || leftover.Over) && !same.Held, "a retry skips the warm-up and the match runs");
                     return true;
                 case 4: // a second win, then out through MENU
                     if (waited < 0.5f)
@@ -196,9 +211,11 @@ namespace SdfCampaign.Editor
                     Expect(!flow.ConfirmOpen && flow.screen == GuiScreen.Title && runner.Progress.NextId == "beat-fungal", "NO leaves everything as it was");
                     flow.Execute(GuiCommandId.Continue, GuiScreen.Hud);
                     return true;
-                case 7: // on to Fungal, and a first loss: blue takes three captures
+                case 7: // on to Fungal through its beat B1, then a first loss: blue takes three captures
                     if (Active != "Fungal" || runner.loader.Busy || Match.Current == null)
                         return Waiting(waited, "Fungal");
+                    if (!DriveBeat(flow, waited, "beat-fungal", CampaignDefinition.Fungal))
+                        return false;
                     Expect(runner.Current.id == CampaignDefinition.Fungal, "the current step is Fungal");
                     Expect(flow.screen == GuiScreen.Hud, "the HUD is up");
                     Expect(Match.Current.Players.Count == 8, $"4 v 4 in Fungal, got {Match.Current.Players.Count}");
@@ -277,10 +294,153 @@ namespace SdfCampaign.Editor
                         return false;
                     flow.Execute(GuiCommandId.Next, GuiScreen.Hud);
                     return true;
-                default:
+                case 15: // CONTINUE after a replay is back in Level Select; then B1 again from the Story gallery
                     if (Active != CampaignRunner.BootScene || runner.loader.Busy)
                         return Waiting(waited, "Boot");
                     Expect(flow.screen == GuiScreen.LevelSelect, "CONTINUE after a Level Select replay is back in Level Select, got " + flow.screen);
+                    Expect(CampaignRunner.CanWatch(runner.Definition.Find("beat-fungal")), "a seen beat can be watched");
+                    flow.Execute(GuiCommandId.WatchCutscene, GuiScreen.Hud, "beat-fungal");
+                    return true;
+                case 16: // the replay: held scene, the beat plays, a skip ends it, back in the Story gallery, nothing recorded
+                    if (replayPhase == 0)
+                    {
+                        if (Active != "Fungal" || runner.loader.Busy || Match.Current == null || UnityEngine.Object.FindAnyObjectByType<BeatPlayer>() == null)
+                            return Waiting(waited, "the replay of B1");
+                        Expect(Match.Current.Held && flow.screen == GuiScreen.Cutscene, "the replay holds the match and shows the beat");
+                        Expect(MatchSetup.Pending == null, "the replay's setup is spent");
+                        replayNext = runner.Progress.NextId;
+                        UnityEngine.Object.FindAnyObjectByType<BeatPlayer>().Sequencer.Skip();
+                        replayPhase = 1;
+                        return false;
+                    }
+                    if (Active != CampaignRunner.BootScene || runner.loader.Busy)
+                        return Waiting(waited, "Boot after the replay");
+                    Expect(flow.screen == GuiScreen.Story, "a replay ends in the Story gallery, got " + flow.screen);
+                    Expect(runner.Progress.NextId == replayNext, "a replay records nothing");
+                    flow.Execute(GuiCommandId.Continue, GuiScreen.Hud);
+                    return true;
+                case 17: // CONTINUE: B1 is seen, so Fungal loads straight to its Loading screen; a win
+                    if (Active != "Fungal" || runner.loader.Busy || Match.Current == null)
+                        return Waiting(waited, "Fungal to win");
+                    Expect(!Match.Current.Held && flow.screen == GuiScreen.Hud && UnityEngine.Object.FindAnyObjectByType<BeatPlayer>() == null, "a seen beat does not play again");
+                    for (var i = 0; i < 3; i++)
+                        Match.Current.State.ReportCapture(Team.Red);
+                    sawSlow = sawBanner = false;
+                    return true;
+                case 18: // Victory in Fungal; CONTINUE goes to B2
+                    if (!WaitForEnd(flow, GuiScreen.Victory, waited, "Victory in Fungal"))
+                        return false;
+                    Expect(runner.Progress.Won(CampaignDefinition.Fungal) && runner.Progress.NextId == "beat-chessboard", "Fungal is won, B2 is next");
+                    flow.Execute(GuiCommandId.Next, GuiScreen.Hud);
+                    beatPhase = 0;
+                    sawBeatCaption = false;
+                    return true;
+                case 19: // B2 in the Chessboard, then its match with the Chessboard's numbers
+                    if (Active != "Chessboard" || runner.loader.Busy || Match.Current == null)
+                        return Waiting(waited, "the Chessboard");
+                    if (!DriveBeat(flow, waited, "beat-chessboard", CampaignDefinition.Chessboard))
+                        return false;
+                    Expect(Match.Current.Setup != null && Mathf.Abs(Match.Current.Setup.SkillOf(Team.Blue) - 0.55f) < 0.01f, "the Chessboard's blue skill (0.40 plus Hard's 0.15, chosen in Level Select)");
+                    Expect(Match.Current.Players.Count == 8 && Match.Current.State.Rules.capturesToWin == 3, "4 v 4, first to 3");
+                    for (var i = 0; i < 3; i++)
+                        Match.Current.State.ReportCapture(Team.Red);
+                    sawSlow = sawBanner = false;
+                    return true;
+                case 20: // Victory in the Chessboard: the third arena is won and saved
+                    if (!WaitForEnd(flow, GuiScreen.Victory, waited, "Victory in the Chessboard"))
+                        return false;
+                    Expect(runner.Progress.Won(CampaignDefinition.Chessboard) && runner.Progress.BestMedal(CampaignDefinition.Chessboard) != Medal.None, "the Chessboard is won with a medal");
+                    var reloaded = CampaignProgress.Load(runner.Definition, new PlayerPrefsCampaignStorage(), null);
+                    Expect(reloaded.Won(CampaignDefinition.Chessboard) && reloaded.Seen("beat-chessboard"), "the save read back after a reload has the win and the beat");
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
+        // The warm-up: each prompt is answered as the player would, the match is let go at the end and Mushroom 7 speaks; true when all that is seen
+        private static bool DriveWarmUp(GuiFlow flow)
+        {
+            var m = Match.Current;
+            var warm = m.GetComponent<WarmUpPlayer>();
+            if (warm == null)
+            {
+                Expect(!m.Held, "the warm-up is over and the match let go");
+                Expect(sawCaption, "the prompts showed");
+                return true;
+            }
+            if (warm.Over)
+            {
+                Expect(!m.Held && !m.YouFree, "cleared prompts let the match go");
+                Expect(flow.Match.caption.line == WarmUp.Closer && flow.Match.caption.speaker == WarmUp.CloserSpeaker, "Mushroom 7 says what to do: " + flow.Match.caption.line);
+                return false;
+            }
+            Expect(m.Held && m.YouFree && flow.screen == GuiScreen.Hud, "held, you free, the HUD up");
+            Expect(m.State.TimeLeft >= m.State.Rules.roundSeconds - 0.01f, "the clock stands still during the warm-up");
+            var prompt = warm.Rules.Prompt;
+            if (prompt == null)
+                return false;
+            if (flow.Match.caption.line == prompt.text)
+            {
+                sawCaption = true;
+                Expect(flow.Shows(GuiScreen.Caption) && flow.Shows(GuiScreen.Hud), "the caption box shows over the HUD");
+            }
+            else
+                return false;
+            if ((prompt.needs & WarmUpAction.TakeMinigun) != 0)
+                Expect(GameObject.Find("Minigun Arrow") != null, "an arrow marks the minigun pod");
+            warm.Rules.Report(prompt.needs);
+            return false;
+        }
+
+        // A beat in its battle scene (B1 in Fungal, B2 in the Chessboard): the scene is held under the Cutscene screen, lines show, a click moves on, a held skip goes to the hand-over, the click gives
+        // the scene to the match; true when the beat has been handed over and checked
+        private static bool DriveBeat(GuiFlow flow, float waited, string beatId, string battleId)
+        {
+            var player = UnityEngine.Object.FindAnyObjectByType<BeatPlayer>();
+            switch (beatPhase)
+            {
+                case 0:
+                    Expect(player != null, beatId + " plays after the load");
+                    var m = Match.Current;
+                    Expect(m.Held && !m.YouFree, "the match is held under the beat");
+                    Expect(flow.screen == GuiScreen.Cutscene && !flow.Shows(GuiScreen.Hud), "the Cutscene screen is up without the HUD");
+                    Expect(runner.Current.id == battleId && MatchSetup.Pending == null, "the battle is the current step, its setup spent");
+                    Expect(!runner.Progress.Seen(beatId), "not seen until it is over");
+                    Expect(m.Players.Count == 8, $"the real players are there, held: {m.Players.Count}");
+                    beatPhase = 1;
+                    return false;
+                case 1: // lines show; a click moves on
+                    Expect(player != null, "the beat is still playing");
+                    if (flow.Match.caption.Visible)
+                        sawBeatCaption = true;
+                    Expect(Match.Current.Held, "the match stays held through the shots");
+                    if (player.Sequencer.ShotIndex == 0 && player.Sequencer.ShotTime > 0.5f)
+                    {
+                        player.Sequencer.Advance();
+                        Expect(player.Sequencer.ShotIndex == 1, "a click moves on to the next shot");
+                        beatPhase = 2;
+                    }
+                    if (waited > 40)
+                        throw new Exception("B1 did not get past its first shot");
+                    return false;
+                case 2: // a held skip: to the hand-over, then the click (automatic here) lets the match go
+                    if (player != null && player.Sequencer.Stage == BeatStage.Shots)
+                    {
+                        player.Sequencer.Tick(SkipHold.Seconds + 0.05f, true);
+                        Expect(player.Sequencer.Skipped && player.Sequencer.Stage == BeatStage.Arrival, "holding skip jumps to the hand-over");
+                    }
+                    if (player != null)
+                        return false;
+                    Expect(sawBeatCaption, "a caption line was shown");
+                    var live = Match.Current;
+                    Expect(!live.Held && flow.screen == GuiScreen.Hud, "the hand-over let the match go onto the HUD");
+                    Expect(runner.Progress.Seen(beatId), "the beat is seen once it is over");
+                    Expect(flow.Match.caption.line == "", "the caption is cleared");
+                    Expect(live.You == null || live.You.GetComponentInChildren<Camera>().transform.localPosition.sqrMagnitude < 4, "your camera is back in your eyes");
+                    beatPhase = 3;
+                    return true;
+                default:
                     return true;
             }
         }

@@ -45,6 +45,8 @@ namespace SdfGui.Editor
             Screens[GuiScreen.Difficulty] = Difficulty();
             Screens[GuiScreen.Story] = Story();
             Screens[GuiScreen.Confirm] = Confirm();
+            Screens[GuiScreen.Caption] = Caption();
+            Screens[GuiScreen.Cutscene] = Cutscene();
             TestPanel = Test();
         }
 
@@ -755,6 +757,72 @@ namespace SdfGui.Editor
             loading.clickToPlay = f.Text(t, "Click To Play", "CLICK TO PLAY", TextStyle.Title, 80, GuiPalette.Gold, Bottom, new Vector2(0, 90), new Vector2(1000, 110));
             loading.clickToPlay.gameObject.SetActive(false);
             return Save(root);
+        }
+
+        // ---------------------------------------------------------------- The caption box (ticket 32.7)
+
+        // The warm-up's prompts over the HUD
+        private GameObject Caption()
+        {
+            var root = Root("Caption", GuiScreen.Caption);
+            CaptionBox(root, false);
+            return Save(root);
+        }
+
+        // A story beat: the scene alone, the caption box and letterbox bars
+        private GameObject Cutscene()
+        {
+            var root = Root("Cutscene", GuiScreen.Cutscene);
+            CaptionBox(root, true);
+            return Save(root);
+        }
+
+        // The speaker over one wrapped line low on the screen, the skip hint and its bar 5 px from the corner, optionally the bars
+        private void CaptionBox(GameObject root, bool letterbox)
+        {
+            var t = root.transform;
+            var caption = root.AddComponent<GuiCaption>();
+            if (letterbox)
+            {
+                void Bar(string name, Vector2 anchor)
+                {
+                    f.Shape(t, name, ToonShapeKind.Box, Color.black, anchor, Vector2.zero, new Vector2(4000, 110), s =>
+                    {
+                        s.Outline = 0;
+                        s.Shadow = 0;
+                        s.Shading = 0;
+                        s.CornerRadius = 0;
+                    });
+                }
+                Bar("Bar Top", Top);
+                Bar("Bar Bottom", Bottom);
+                caption.bars = t.Find("Bar Top").gameObject;
+            }
+            var box = Object("Box", t);
+            Place(box.transform, Bottom, new Vector2(0, letterbox ? 150 : 300), new Vector2(1300, 210));
+            caption.box = box.AddComponent<CanvasGroup>();
+            f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, new Vector2(1300, 210), 26);
+            caption.speaker = f.Text(box.transform, "Speaker", "MUSHROOM 7", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44));
+            caption.line = f.Text(box.transform, "Line", "Fill your spores and press Q. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
+            caption.line.textWrappingMode = TextWrappingModes.Normal;
+            caption.line.alignment = TextAlignmentOptions.Center;
+
+            // Over the HUD the corner is the weapons' (and the health's): the hint sits in the box; alone, 5 px from the screen's corner
+            var hintParent = letterbox ? t : box.transform;
+            var corner = letterbox ? new Vector2(-5, 5) : new Vector2(-24, 10);
+            caption.hint = f.Text(hintParent, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight, corner + new Vector2(0, 25), new Vector2(500, 40), TextAlignmentOptions.Right);
+            var track = f.Panel(hintParent, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, corner, new Vector2(260, 22), 8);
+            track.Outline = 3;
+            track.Shadow = 0;
+            var fill = f.Shape(track.transform, "Fill", ToonShapeKind.Box, GuiPalette.Gold, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.CornerRadius = 6;
+                s.Outline = 0;
+                s.Shadow = 0;
+            });
+            Stretch(fill, 3);
+            fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
+            caption.skipBar = fill.GetComponent<RectTransform>();
         }
 
         // ---------------------------------------------------------------- Gallery: every component and style in one place

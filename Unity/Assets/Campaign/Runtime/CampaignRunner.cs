@@ -12,8 +12,10 @@ namespace SdfCampaign
     /// and the GUI. It holds the definition, the save, the current step and the attempt's skill offset (RETRY EASIER); starts the steps in
     /// order (<see cref="Continue"/>, <see cref="PlayLevel"/>, <see cref="Next"/>); hands each battle's setup to the match through
     /// <see cref="MatchSetup.Pending"/> and clears it once the match has read it; and records the match's end. Steps whose scene is not
-    /// in the build are skipped (the save's <c>NextStep</c> does that, with a log here). Cutscenes and the credits wait for the tickets
-    /// that make them (32.7, 32.8): <see cref="CutsceneHandler"/> is their hook, and without one such a step is seen at once.
+    /// in the build are skipped (the save's <c>NextStep</c> does that, with a log here). The story beats (32.7) play in their battle's
+    /// scene, loaded once for the beat and its match (<see cref="BeatPlayer"/>); the meadow's first play starts with its warm-up
+    /// (<see cref="WarmUpPlayer"/>). The ending and the credits wait for 32.8: <see cref="CutsceneHandler"/> is their hook, and without one
+    /// such a step is seen at once.
     /// </summary>
     public sealed class CampaignRunner : MonoBehaviour
     {
@@ -23,8 +25,8 @@ namespace SdfCampaign
         public SceneLoader loader;
 
         /// <summary>
-        /// Plays a cutscene step (or the credits) in its scene, once loaded: given the step and what to call when it is done, returns
-        /// true when it took the step over.
+        /// Plays a cutscene step that is not a beat (the ending, the credits) in its scene, once loaded: given the step and what to call
+        /// when it is done, returns true when it took the step over. The beats of <see cref="Beats"/> do not come through here.
         /// </summary>
         public static Func<CampaignStep, Action, bool> CutsceneHandler;
 
@@ -197,6 +199,7 @@ namespace SdfCampaign
             if (easier)
                 EasierSteps = Mathf.Min(EasierSteps + 1, DifficultyRules.MaxEasierSteps);
             var setup = MakeSetup(Current, retry: true);
+            StopWarmUp();
             if (match != null && match.State != null && Setup != null && setup.blueSize == Setup.blueSize && setup.redSize == Setup.redSize)
             {
                 Setup = setup;
@@ -212,7 +215,8 @@ namespace SdfCampaign
         }
 
         /// <summary>Whether a step can be watched again from the Story gallery: the intro (comic panels) or a step with a cutscene player.</summary>
-        public static bool CanWatch(CampaignStep step) => step.id == CampaignDefinition.Intro || CutsceneHandler != null && step.kind == StepKind.Cutscene;
+        public static bool CanWatch(CampaignStep step) =>
+            step.id == CampaignDefinition.Intro || Beats.Has(step.id) || CutsceneHandler != null && step.kind == StepKind.Cutscene;
 
         /// <summary>A replay from the Story gallery: nothing is recorded, and the way back is the gallery.</summary>
         public void WatchCutscene(string id)
@@ -226,6 +230,12 @@ namespace SdfCampaign
             if (step.id == CampaignDefinition.Intro)
             {
                 PlayIntro(() => flow.Show(GuiScreen.Story));
+                return;
+            }
+            var beat = Beats.Find(step.id);
+            if (beat != null)
+            {
+                PlayBeat(step, beat, replay: true);
                 return;
             }
             loader.Load(step.scene, null, null, () =>
@@ -295,6 +305,12 @@ namespace SdfCampaign
                 PlayIntro(() => FinishCutscene(step));
                 return;
             }
+            var beat = Beats.Find(step.id);
+            if (beat != null)
+            {
+                PlayBeat(step, beat, replay: false);
+                return;
+            }
             if (CutsceneHandler == null && step.kind == StepKind.Credits)
             {
                 // Not played, so not seen: the campaign must not count as complete before its credits exist (32.8)
@@ -343,7 +359,99 @@ namespace SdfCampaign
                 red = setup.redNames,
                 blue = setup.blueNames,
             };
-            loader.Load(step.scene, briefing, Bind, () => flow.Show(GuiScreen.Hud));
+            loader.Load(step.scene, briefing, Bind, () =>
+            {
+                flow.Show(GuiScreen.Hud);
+                BeginMatch();
+            });
+        }
+
+        // ---------------------------------------------------------------- Beats
+
+        // The battle that follows a beat in the same scene: the beat's scene is loaded once for both, no reload
+        private CampaignStep BattleAfter(CampaignStep step)
+        {
+            var next = Definition.IndexOf(step.id) + 1;
+            if (next <= 0 || next >= Definition.Steps.Count)
+                return null;
+            var battle = Definition.Steps[next];
+            return battle.IsBattle && battle.scene == step.scene ? battle : null;
+        }
+
+        /// <summary>
+        /// Plays a beat in its battle's scene: the scene is loaded with the battle's setup, held, the beat plays over it, and its
+        /// hand-over (CLICK TO PLAY) lets the match go (or starts the warm-up). A replay (the Story gallery) records nothing and goes back
+        /// to the gallery when done.
+        /// </summary>
+        private void PlayBeat(CampaignStep step, Beat beat, bool replay)
+        {
+            var battle = BattleAfter(step);
+            if (battle == null)
+            {
+                Debug.LogWarning($"Campaign: {step.id} has no battle after it in {step.scene}; counted as seen");
+                if (replay)
+                    QuitToTitle(GuiScreen.Story);
+                else
+                    FinishCutscene(step);
+                return;
+            }
+            Unbind();
+            MatchHud.Release(flow.gameObject);
+            if (!replay)
+            {
+                // From here the battle is the current step: the match records its end, the scoreboard names its arena
+                Current = battle;
+                EasierSteps = 0;
+                fromLevelSelect = false;
+            }
+            var setup = MakeSetup(battle, retry: false);
+            if (replay)
+                setup.warmUp = false;
+            Setup = replay ? Setup : setup;
+            var held = setup.ToMatchSetup();
+            held.held = true;
+            held.warmUp = false;
+            MatchSetup.Pending = held;
+            BeatPlayer player = null;
+            loader.Load(step.scene, null, () =>
+            {
+                if (replay)
+                {
+                    MatchSetup.Pending = null;
+                    match = null;
+                }
+                else
+                    Bind();
+                var live = Match.Current;
+                if (live == null)
+                    return;
+                player = BeatPlayer.Prepare(beat, BeatWorld.Of(live), flow, () =>
+                {
+                    if (replay)
+                    {
+                        QuitToTitle(GuiScreen.Story);
+                        return;
+                    }
+                    Progress.CompleteCutscene(step.id);
+                    BeginMatch();
+                }, handOver: !replay);
+            }, () =>
+            {
+                if (player != null)
+                    player.Begin();
+                else
+                {
+                    // No match in the scene to play over: the beat is passed over
+                    Debug.LogWarning($"Campaign: {step.scene} has no match; {step.id} not played");
+                    if (replay)
+                        QuitToTitle(GuiScreen.Story);
+                    else
+                    {
+                        Progress.CompleteCutscene(step.id);
+                        flow.Show(GuiScreen.Hud);
+                    }
+                }
+            });
         }
 
         // The scene is live: its match has read the setup in its Start, so the setup is spent
@@ -366,9 +474,29 @@ namespace SdfCampaign
 
         private void Unbind()
         {
+            StopWarmUp();
+            if (flow != null && flow.Match != null)
+                flow.Match.caption.Clear();
             if (match != null)
                 match.Ended -= OnMatchEnded;
             match = null;
+        }
+
+        private void StopWarmUp()
+        {
+            if (match != null && match.TryGetComponent<WarmUpPlayer>(out var warmUp))
+                warmUp.Stop();
+        }
+
+        // The match starts: the meadow's first play begins with its warm-up (the match is held), else it just runs
+        private void BeginMatch()
+        {
+            if (match == null)
+                return;
+            if (Setup != null && Setup.warmUp)
+                WarmUpPlayer.Begin(match, flow);
+            else
+                match.Release();
         }
 
         private void OnMatchEnded(MatchResult result)
