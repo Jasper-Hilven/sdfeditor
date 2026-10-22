@@ -1,0 +1,12 @@
+# SMD inductor 0: a 6 x 6 x 3 mm shielded inductor, 1.5 m long, 1.5 m wide and 0.75 m tall (250 times life size): a square foot with a domed top, dark
+# grey ferrite (pc_inductor_grey). Knee cover: convex collider.
+format 1
+
+# A low square foot under a rounded dome
+Detail detail=1.05
+    Material material=pc_inductor_grey
+        Union
+            Translate translation=(0, 0.2, 0)
+                RoundBox size=(0.75, 0.2, 0.75) roundness=0.08
+            Translate translation=(0, 0.4, 0)
+                RoundBox size=(0.64, 0.35, 0.64) roundness=0.3

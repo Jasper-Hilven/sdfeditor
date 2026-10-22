@@ -1,0 +1,20 @@
+# SMD can capacitor 0: a 4 x 4.5 mm SMD aluminium capacitor, 1 m across and 1.1 m tall (250 times life size): an olive can with a rounded top and a vent cross
+# groove (pc_olive) on a black square base (pc_epoxy_black). Knee cover: convex collider.
+format 1
+
+# A rounded can on a base, the vent cross cut into the top
+Detail detail=0.45
+    Union
+        Material material=pc_olive
+            Subtraction
+                Translate translation=(0, 0.675, 0)
+                    Round radius=0.15
+                        CappedCylinder radius=0.35 height=0.275
+                Union
+                    Translate translation=(0, 1.1, 0)
+                        Box size=(0.3, 0.04, 0.04)
+                    Translate translation=(0, 1.1, 0)
+                        Box size=(0.04, 0.04, 0.3)
+        Material material=pc_epoxy_black
+            Translate translation=(0, 0.15, 0)
+                RoundBox size=(0.5, 0.15, 0.5) roundness=0.1

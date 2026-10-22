@@ -1,0 +1,51 @@
+# SATA ports 0: a 2 x 2 SATA port block, 3.75 m long, 2.5 m deep and 3.75 m tall (250 times life size): four ivory ports, two side by side and two stacked, their
+# L-shaped sockets facing +z, each holding a gold contact strip (pc_plastic_ivory, pc_gold). Tall blocker: convex collider.
+format 1
+
+# Four rounded port blocks, each with an L-shaped pocket on its front and a contact strip on the pocket's back wall
+Detail detail=0.7
+    Union
+        Material material=pc_plastic_ivory
+            Union
+                Subtraction
+                    Translate translation=(-0.9375, 0.9375, 0)
+                        RoundBox size=(0.9375, 0.9375, 1.25) roundness=0.1
+                    Union
+                        Translate translation=(-0.9375, 0.8375, 1.25)
+                            Box size=(0.6, 0.2, 0.5)
+                        Translate translation=(-1.3875, 1.1375, 1.25)
+                            Box size=(0.15, 0.2, 0.5)
+                Subtraction
+                    Translate translation=(-0.9375, 2.8125, 0)
+                        RoundBox size=(0.9375, 0.9375, 1.25) roundness=0.1
+                    Union
+                        Translate translation=(-0.9375, 2.7125, 1.25)
+                            Box size=(0.6, 0.2, 0.5)
+                        Translate translation=(-1.3875, 3.0125, 1.25)
+                            Box size=(0.15, 0.2, 0.5)
+                Subtraction
+                    Translate translation=(0.9375, 0.9375, 0)
+                        RoundBox size=(0.9375, 0.9375, 1.25) roundness=0.1
+                    Union
+                        Translate translation=(0.9375, 0.8375, 1.25)
+                            Box size=(0.6, 0.2, 0.5)
+                        Translate translation=(0.4875, 1.1375, 1.25)
+                            Box size=(0.15, 0.2, 0.5)
+                Subtraction
+                    Translate translation=(0.9375, 2.8125, 0)
+                        RoundBox size=(0.9375, 0.9375, 1.25) roundness=0.1
+                    Union
+                        Translate translation=(0.9375, 2.7125, 1.25)
+                            Box size=(0.6, 0.2, 0.5)
+                        Translate translation=(0.4875, 3.0125, 1.25)
+                            Box size=(0.15, 0.2, 0.5)
+        Material material=pc_gold
+            Union
+                Translate translation=(-0.9375, 0.8375, 0.79)
+                    Box size=(0.5, 0.12, 0.04)
+                Translate translation=(-0.9375, 2.7125, 0.79)
+                    Box size=(0.5, 0.12, 0.04)
+                Translate translation=(0.9375, 0.8375, 0.79)
+                    Box size=(0.5, 0.12, 0.04)
+                Translate translation=(0.9375, 2.7125, 0.79)
+                    Box size=(0.5, 0.12, 0.04)
