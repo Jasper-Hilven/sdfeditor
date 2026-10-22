@@ -41,6 +41,9 @@ public sealed record BoxRegion(Vector2 Center, Vector2 Size, float Angle, float 
 /// <summary>A band <see cref="Width"/> metres wide along the line through <see cref="Points"/>, with round ends: a path.</summary>
 public sealed record PolylineRegion(IReadOnlyList<Vector2> Points, float Width, float Noise, float NoiseScale) : RegionShape(Noise, NoiseScale)
 {
+    /// <summary>Data pulses run along this line, from its first point to its last (ticket 30.9, <see cref="PulseSpec"/>).</summary>
+    public bool Pulse { get; init; }
+
     public override float Distance(Vector2 p)
     {
         var nearest = float.PositiveInfinity;
@@ -75,6 +78,9 @@ public sealed record ModelFootprint(Vector2 Min, Vector2 Max)
     public Vector2 Size => Max - Min;
 
     public Vector2 Center => (Min + Max) / 2;
+
+    /// <summary>How high the model's bounds reach (y max) in its own metres; 0 where unknown (ticket 30.7: the helicopters' keep-outs).</summary>
+    public float Height { get; init; }
 }
 
 /// <summary>

@@ -353,7 +353,9 @@ namespace SdfBattle.Editor
                             joined++;
                     }
                     report.Append($"  {side.Value<string>("side")} castle, upper floors: {joined} of {found} spots joined to the ground\n");
-                    if (found == 0 || joined < found * 0.8f)
+                    // A level with no castle (the computer) has no upper floors to join
+                    var hasCastle = ((JArray)data["placements"]).Any(p => p.Value<string>("model")?.Contains("castle") == true);
+                    if ((found == 0 && hasCastle) || joined < found * 0.8f)
                         problems++;
                 }
 

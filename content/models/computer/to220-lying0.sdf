@@ -1,0 +1,25 @@
+# TO-220 lying 0: a TO-220 transistor lying flat, 4 m long, 2.5 m wide and 1.1 m tall (250 times life size) along x: a black body (pc_epoxy_black) with a
+# tin tab sloping up out of the board at the -x end and three tin legs bent down into the board at the +x end (pc_tin). Knee cover: convex collider.
+format 1
+
+# A rounded body, a sloped tab with a hole and three bent legs
+Detail detail=0.39
+    Union
+        Material material=pc_epoxy_black
+            Translate translation=(-0.1, 0.55, 0)
+                RoundBox size=(0.8, 0.55, 1.25) roundness=0.25
+        Material material=pc_tin
+            Union
+                Subtraction
+                    Translate translation=(-1.35, 0.42, 0)
+                        Rotate rotation=(0, 0, 0.5)
+                            RoundBox size=(0.75, 0.1, 1) roundness=0.05
+                    Translate translation=(-1.55, 0.3, 0)
+                        Rotate rotation=(0, 0, 0.5)
+                            CappedCylinder radius=0.28 height=0.4
+                Capsule a=(0.6, 0.45, -0.8) b=(1.75, 0.45, -0.8) radius=0.13
+                Capsule a=(1.75, 0.45, -0.8) b=(1.75, 0.1, -0.8) radius=0.13
+                Capsule a=(0.6, 0.45, 0) b=(1.75, 0.45, 0) radius=0.13
+                Capsule a=(1.75, 0.45, 0) b=(1.75, 0.1, 0) radius=0.13
+                Capsule a=(0.6, 0.45, 0.8) b=(1.75, 0.45, 0.8) radius=0.13
+                Capsule a=(1.75, 0.45, 0.8) b=(1.75, 0.1, 0.8) radius=0.13

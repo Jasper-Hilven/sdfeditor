@@ -107,7 +107,7 @@ Shader "SdfMushrooms/Toon"
                 float4 uv2 : TEXCOORD2;
                 float4 uv3 : TEXCOORD3;
                 float4 uv4 : TEXCOORD4;
-                float2 uv5 : TEXCOORD5;
+                float3 uv5 : TEXCOORD5;
                 float4 uv6 : TEXCOORD6;
                 float4 uv7 : TEXCOORD7;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -124,7 +124,7 @@ Shader "SdfMushrooms/Toon"
                 float4 uv2 : TEXCOORD5;
                 float4 uv3 : TEXCOORD6;
                 float4 uv4 : TEXCOORD7;
-                float2 uv5 : TEXCOORD8;
+                float3 uv5 : TEXCOORD8;
                 float4 uv6 : TEXCOORD9;
                 float4 uv7 : TEXCOORD10;
                 // The pixel's position and normal in the part's own space, for the pattern (see SdfPattern.hlsl)
@@ -187,12 +187,13 @@ Shader "SdfMushrooms/Toon"
                     }
                 }
 
-                float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5, 0, 0), input.uv6);
+                float3 albedo = SdfToonColor(input.color, input.uv1, input.uv2, input.uv3, input.uv4, float4(input.uv5.xy, 0, 0), input.uv6);
                 // The pattern, in the part's own space (each instance's, under GPU instancing)
                 SdfPattern(input.uv7, input.positionOS, normalize(input.normalOS), input.positionWS,
                     distance(input.positionWS, GetCameraPositionWS()), albedo, n);
                 float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, input.uv0.x, input.uv0.y, input.color.a, saturate(input.uv0.w),
                     saturate(input.uv6.a));
+                color = SdfToonEmit(color, albedo, input.uv5.z);
                 // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows; far away it fades
                 // toward the sky
                 return SdfToonOutput(SkyFade(color, input.positionWS), normalize(input.normalWS), input.positionWS);

@@ -1,0 +1,24 @@
+# Screw mount 0: an M3 pan-head screw in a plated mounting hole, 1.5 m across and 0.63 m tall (250 times life size): a flat tin ring (pc_tin) round a domed
+# steel head with a cross recess (pc_screw_steel). Knee cover: convex collider.
+format 1
+
+# A ring, a dome cut off at the board and a cross cut into the dome
+Detail detail=0.37
+    Union
+        Material material=pc_tin
+            Subtraction
+                Translate translation=(0, 0.05, 0)
+                    CappedCylinder radius=0.75 height=0.05
+                CappedCylinder radius=0.5 height=0.2
+        Material material=pc_screw_steel
+            Subtraction
+                Intersection
+                    Translate translation=(0, 0.08, 0)
+                        Ellipsoid radii=(0.58, 0.55, 0.58)
+                    Translate translation=(0, 0.45, 0)
+                        Box size=(1, 0.45, 1)
+                Union
+                    Translate translation=(0, 0.66, 0)
+                        Box size=(0.32, 0.08, 0.06)
+                    Translate translation=(0, 0.66, 0)
+                        Box size=(0.06, 0.08, 0.32)

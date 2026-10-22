@@ -29,6 +29,8 @@ namespace SdfLevel
         public float speedMultiplier = 1;
         [Tooltip("Set by combat every frame: a blob's slow (ticket 22); multiplies with speedMultiplier")]
         public float slowMultiplier = 1;
+        [Tooltip("Set by the data pulses every frame (ticket 30.9): the speed-up of a scout with a pulse; multiplies with the others")]
+        public float boostMultiplier = 1;
         [Tooltip("Height of a jump in metres")]
         public float jumpHeight = 1.1f;
         [Tooltip("Degrees of turn per unit of mouse movement")]
@@ -170,7 +172,7 @@ namespace SdfLevel
                 return;
             Ride();
             var input = frozen ? Vector2.zero : move;
-            var speed = walkSpeed * Mathf.Max(0, speedMultiplier) * Mathf.Max(0, slowMultiplier);
+            var speed = walkSpeed * Mathf.Max(0, speedMultiplier) * Mathf.Max(0, slowMultiplier) * Mathf.Max(0, boostMultiplier);
             var velocity = transform.TransformDirection(new Vector3(input.x, 0, input.y)) * speed;
 
             if (controller.isGrounded)

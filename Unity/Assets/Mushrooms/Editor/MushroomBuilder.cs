@@ -547,7 +547,7 @@ namespace SdfMushrooms.Editor
 
         /// <summary>
         /// The mesh in Unity's coordinates (x mirrored, so triangles are turned round), with the vertex data packed as SdfSurface.hlsl
-        /// expects it, plus the edge colour per vertex (UV6, see <see cref="EdgeColor"/>) and, only on a mesh with a patterned material,
+        /// expects it, plus the edge colour per vertex (UV6, see <see cref="EdgeColor"/>), the emission (UV5.z, only on a mesh where something glows) and, only on a mesh with a patterned material,
         /// the pattern (UV7, see <see cref="Patterns"/>). The toon look takes nothing from the material, so the material regions are drawn
         /// as one submesh.
         /// </summary>
@@ -566,6 +566,8 @@ namespace SdfMushrooms.Editor
             // Files from before speckles existed have none
             var speckle = data.Get("_SPECKLE", 4) ?? new float[4 * n];
             var speckleShape = data.Get("_SPECKLE_SHAPE", 2) ?? new float[2 * n];
+            // Only meshes where something glows have it (UV5.z); the others keep UV5 as a float2
+            var emission = data.Get("_EMISSION", 1);
             var materialIds = data.Get("_MATERIAL_IDS", 2);
             var materialBlend = data.Get("_MATERIAL_BLEND", 1);
             var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
@@ -590,7 +592,7 @@ namespace SdfMushrooms.Editor
                 uv2[v] = new Vector4(detail[4 * v], detail[4 * v + 1], detail[4 * v + 2], detail[4 * v + 3]);
                 uv3[v] = new Vector4(variation[4 * v], variation[4 * v + 1], variation[4 * v + 2], variation[4 * v + 3]);
                 uv4[v] = new Vector4(speckle[4 * v], speckle[4 * v + 1], speckle[4 * v + 2], speckle[4 * v + 3]);
-                uv5[v] = new Vector4(speckleShape[2 * v], speckleShape[2 * v + 1], 0, 0);
+                uv5[v] = new Vector4(speckleShape[2 * v], speckleShape[2 * v + 1], emission == null ? 0 : emission[v], 0);
                 uv6[v] = materialIds == null || materialBlend == null
                     ? Vector4.zero
                     : EdgeColor(materials, (int)materialIds[2 * v], (int)materialIds[2 * v + 1], materialBlend[v], thickness[v]);
@@ -610,7 +612,7 @@ namespace SdfMushrooms.Editor
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord2, VertexAttributeFormat.Float32, 4),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord3, VertexAttributeFormat.Float32, 4),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord4, VertexAttributeFormat.Float32, 4),
-                new VertexAttributeDescriptor(VertexAttribute.TexCoord5, VertexAttributeFormat.Float32, 2),
+                new VertexAttributeDescriptor(VertexAttribute.TexCoord5, VertexAttributeFormat.Float32, emission == null ? 2 : 3),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord6, VertexAttributeFormat.Float32, 4),
             };
             if (uv7 != null)
@@ -624,7 +626,10 @@ namespace SdfMushrooms.Editor
             mesh.SetUVs(2, uv2);
             mesh.SetUVs(3, uv3);
             mesh.SetUVs(4, uv4);
-            mesh.SetUVs(5, uv5.Select(u => new Vector2(u.x, u.y)).ToArray());
+            if (emission == null)
+                mesh.SetUVs(5, uv5.Select(u => new Vector2(u.x, u.y)).ToArray());
+            else
+                mesh.SetUVs(5, uv5.Select(u => new Vector3(u.x, u.y, u.z)).ToArray());
             mesh.SetUVs(6, uv6);
             if (uv7 != null)
                 mesh.SetUVs(7, uv7);

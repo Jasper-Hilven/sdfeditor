@@ -1,0 +1,87 @@
+# CPU cooler 0: the processor socket with a tower cooler on it, 25 m wide (x), 31 m deep (z) and 40 m tall (250 times life size), centred on x = 0 and z = 0:
+# the socket's frame with its lever along the south edge (-z), a copper cold plate and eight copper heatpipes rising as one closed trunk to a fin stack
+# (aluminium, 12.5 x 31 m, 11 to 38 m up) and a 120 mm fan on each x face (bottom 10 m up) as the parts FanWest and FanEast, which a script spins
+# about the x axis. Mesh collider (only the socket and trunk, below 7.5 m, are walked on).
+format 1
+
+# The plate and pipes, the fin stack and lever, the socket and fan frames, and the two fans' blades
+Detail detail=0.18
+    Union
+        Material material=pc_copper
+            Union
+                Translate translation=(0, 2.75, 0)
+                    RoundBox size=(5, 1.25, 5) roundness=0.4
+                Union
+                    Translate translation=(-0.75, 7.75, -2.25)
+                        CappedCylinder radius=0.75 height=3.75
+                    Translate translation=(-0.75, 7.75, -0.75)
+                        CappedCylinder radius=0.75 height=3.75
+                    Translate translation=(-0.75, 7.75, 0.75)
+                        CappedCylinder radius=0.75 height=3.75
+                    Translate translation=(-0.75, 7.75, 2.25)
+                        CappedCylinder radius=0.75 height=3.75
+                    Translate translation=(0.75, 7.75, -2.25)
+                        CappedCylinder radius=0.75 height=3.75
+                    Translate translation=(0.75, 7.75, -0.75)
+                        CappedCylinder radius=0.75 height=3.75
+                    Translate translation=(0.75, 7.75, 0.75)
+                        CappedCylinder radius=0.75 height=3.75
+                    Translate translation=(0.75, 7.75, 2.25)
+                        CappedCylinder radius=0.75 height=3.75
+        Material material=pc_aluminium
+            Union
+                Union
+                    Translate translation=(0, 24.5, 0)
+                        LimitedRepetition spacing=5 limits=(0, 0, 3)
+                            Box size=(6.25, 13.5, 0.5)
+                    Translate translation=(0, 11.3, 0)
+                        Box size=(6.25, 0.3, 15.5)
+                    Translate translation=(0, 37.7, 0)
+                        Box size=(6.25, 0.3, 15.5)
+                Union
+                    Capsule a=(-5.5, 1.9, -6.6) b=(4.2, 1.9, -6.6) radius=0.35
+                    Capsule a=(4.2, 1.9, -6.6) b=(4.2, 1.9, -5.4) radius=0.35
+        Material material=pc_fan_frame
+            Union
+                Union
+                    Subtraction
+                        Translate translation=(0, 0.75, 0)
+                            RoundBox size=(6, 0.75, 6) roundness=0.3
+                        Translate translation=(0, 1, 0)
+                            Box size=(5.4, 1, 5.4)
+                Translate translation=(-9.375, 25, 0)
+                    Rotate rotation=(0, -1.571, 0)
+                        Union
+                            Subtraction
+                                RoundBox size=(15, 15, 3.125) roundness=1.5
+                                Rotate rotation=(1.571, 0, 0)
+                                    CappedCylinder radius=12.6 height=4
+                            Translate translation=(0, 0, -2.6)
+                                Union
+                                    Box size=(12.9, 0.8, 0.5)
+                                    Box size=(0.8, 12.9, 0.5)
+                            Translate translation=(0, 0, -1.9)
+                                Round radius=0.2
+                                    Rotate rotation=(1.571, 0, 0)
+                                        CappedCylinder radius=3.3 height=0.9
+                Translate translation=(9.375, 25, 0)
+                    Rotate rotation=(0, 1.571, 0)
+                        Union
+                            Subtraction
+                                RoundBox size=(15, 15, 3.125) roundness=1.5
+                                Rotate rotation=(1.571, 0, 0)
+                                    CappedCylinder radius=12.6 height=4
+                            Translate translation=(0, 0, -2.6)
+                                Union
+                                    Box size=(12.9, 0.8, 0.5)
+                                    Box size=(0.8, 12.9, 0.5)
+                            Translate translation=(0, 0, -1.9)
+                                Round radius=0.2
+                                    Rotate rotation=(1.571, 0, 0)
+                                        CappedCylinder radius=3.3 height=0.9
+        Translate translation=(-9.375, 25, 0)
+            Rotate rotation=(0, -1.571, 0)
+                Part part=FanWest
+        Translate translation=(9.375, 25, 0)
+            Rotate rotation=(0, 1.571, 0)
+                Part part=FanEast

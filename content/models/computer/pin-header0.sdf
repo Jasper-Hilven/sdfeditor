@@ -1,0 +1,21 @@
+# Pin header 0: a 2 x 5 pin header with a jumper cap, 3.2 m long, 1.3 m wide and 2.1 m tall (250 times life size): a black housing (pc_epoxy_black), ten gold pins
+# 0.47 m apart so the footprint is shut (pc_gold) and a yellow jumper cap over two of them (pc_plastic_yellow). Tall blocker: convex collider.
+format 1
+
+# The housing, two rows of five pins (a pitch of 0.635 m, the pins 0.16 m thick) and the cap over the last two pins of the front row
+Detail detail=0.77
+    Union
+        Material material=pc_epoxy_black
+            Translate translation=(0, 0.3, 0)
+                RoundBox size=(1.6, 0.3, 0.65) roundness=0.05
+        Material material=pc_gold
+            SymmetryXZ
+                Translate translation=(0, 1.35, 0.3175)
+                    LimitedRepetition spacing=0.635 limits=(2, 0, 0)
+                        Box size=(0.08, 0.75, 0.08)
+        Material material=pc_plastic_yellow
+            Translate translation=(0.9525, 0.95, 0.3175)
+                Subtraction
+                    RoundBox size=(0.52, 0.35, 0.27) roundness=0.06
+                    Translate translation=(0, -0.1, 0)
+                        Box size=(0.46, 0.3, 0.2)

@@ -1,0 +1,21 @@
+# Turret foot, blue (ticket 30.7): the lower half of an electrolytic capacitor can about 2 m high on a black rubber foot: a plain sleeve in the
+# blue team's colour with a thin gold band under its top. The head (turret-computer-blue-head), the can's aluminium top, turns on it.
+# Pivot: the origin is on the ground at the can's axis, +z forward. The head's pivot is at (0, 1.5, 0) in this model, the sleeve's flat top.
+format 1
+collider convex
+
+Detail detail=0.15
+    Union
+        # The rubber foot, a wide low disc
+        Material material=pc_wire_black
+            Translate translation=(0, 0.05, 0)
+                Round radius=0.03
+                    CappedCylinder radius=0.4 height=0.05
+        # The sleeve in the team's colour, to the flat top the head sits on, and a gold band round it
+        Material material=machine_blue_paint
+            Translate translation=(0, 0.8, 0)
+                Round radius=0.03
+                    CappedCylinder radius=0.34 height=0.7
+        Material material=pc_gold
+            Translate translation=(0, 1.38, 0)
+                CappedCylinder radius=0.35 height=0.03

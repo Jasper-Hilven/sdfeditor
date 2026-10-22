@@ -1,0 +1,252 @@
+# Inside the computer: 42's workstation, opened at the side panel and seen at 250 times life size (1 mm = 0.25 m; a 7 mm scout is a small
+# electrolytic capacitor, a 120 mm fan is 30 m, the GPU 67 m). The motherboard is 160 x 120 m, bigger than any real one, with its parts at one
+# scale. One theme, computer hardware: traces, pads, SMD resistors and capacitors, tantalum and electrolytic capacitors, chokes, crystals,
+# transistors, pin headers, SATA and PCIe slots, the BIOS battery, screws, heatsinks, the CPU and its tower cooler, the GPU, RAM, case fans,
+# ribbon cables and power connectors, and the dirt of a real case: solder, thermal paste, dust, a cut zip tie. No text anywhere, nothing
+# outside the case, nothing from the other levels, no cyan. Two RAM banks are the bases (red west, blue east, their light bars the team
+# colour); data runs along the gold traces from the RAM to the CPU in the middle. Nothing lies outside the case.
+format 1
+
+play size=(160, 120) noise=0              # the board, centred on the origin: x across (west -80 to east +80), z along (south -60 to north +60); flat
+seed 5
+
+# The case, lying on its side: the board is the floor, the four walls are the case's steel inside (64 m, a case 160 mm deep) and the ceiling is
+# the tempered-glass side panel. The LED strip, a warm-white band 0.5 m tall at 3 m up, runs all round the four walls: the room's one lit edge.
+# One cool white lamp through the glass, 55 degrees up from the south-west (towards the lamp (-0.41, 0.82, -0.41)), over a low dark-teal ambient
+# so the emissive traces and the strip carry the mood
+room size=(160, 64, 120) walls=case-wall ceiling=case-glass
+    glow=all height=0.5 offset=3 color=(1, 0.95, 0.85)
+    light=(-0.41, 0.82, -0.41) lightColor=(0.92, 0.96, 1) ambient=(0.1, 0.16, 0.17)
+
+# The machines (ticket 24) are computer parts: capacitor turrets, SOIC chip tanks and blower-fan copters, the models turret-computer-<team>-...,
+# tank-computer-..., helicopter-computer-..., with the scouts' floating eyes. The flight ceiling is the default, 20 m
+machines set=computer
+
+# The twist (30.9): data pulses run along the buses (the polylines flagged pulse below) from each base's RAM to the middle, every 4 s at
+# 18 m/s, a 3 m white-gold band over the three traces of a bus. A scout within 1.5 m of one gets +35% move speed for 2.5 s (refreshed by the
+# next pulse, never stacked; the flag carrier too, machines not): the buses are the fast, lit way out to the middle
+pulses every=4 speed=18 length=3 boost=1.35 for=2.5
+
+# The board, from 2D shapes; where regions overlap, the later one wins (trace, then silk, then pad). Each is drawn in its material,
+# materials/ground/ground_<region>.sdfmat; the base is the solder mask. All ruled straight, no wobble: the buses are the lane marks.
+# trace: gold and glowing, three buses a side, each three parallel traces 0.8 m wide and 1.6 m apart (centre to centre) with 45 degree jogs,
+# west then east mirrored; they run from the RAM to the CPU socket (the first point is the RAM end). The north and south buses end at the
+# neutral pods (0, 28) and (0, -28), the centre bus at the socket
+# silk: off-white, a ring 0.6 m larger than each pad's under it, and a rectangle outline round each base courtyard
+# pad: tin, a circle of r 2.2 under every pod and flag stand, a 7 x 7 m square under each spawn zone: soldered spots on the board
+regions base=pcb
+    trace wobble=0
+        Polyline points=[(-44, 8.4), (-39.34, 8.4), (-21.34, 26.4), (0, 26.4)] width=0.8 pulse
+        Polyline points=[(-44, 10), (-40, 10), (-22, 28), (0, 28)] width=0.8 pulse
+        Polyline points=[(-44, 11.6), (-40.66, 11.6), (-22.66, 29.6), (0, 29.6)] width=0.8 pulse
+        Polyline points=[(-42, -1.6), (-7, -1.6)] width=0.8 pulse
+        Polyline points=[(-42, 0), (-7, 0)] width=0.8 pulse
+        Polyline points=[(-42, 1.6), (-7, 1.6)] width=0.8 pulse
+        Polyline points=[(-44, -8.4), (-39.34, -8.4), (-21.34, -26.4), (0, -26.4)] width=0.8 pulse
+        Polyline points=[(-44, -10), (-40, -10), (-22, -28), (0, -28)] width=0.8 pulse
+        Polyline points=[(-44, -11.6), (-40.66, -11.6), (-22.66, -29.6), (0, -29.6)] width=0.8 pulse
+        Polyline points=[(44, 8.4), (39.34, 8.4), (21.34, 26.4), (0, 26.4)] width=0.8 pulse
+        Polyline points=[(44, 10), (40, 10), (22, 28), (0, 28)] width=0.8 pulse
+        Polyline points=[(44, 11.6), (40.66, 11.6), (22.66, 29.6), (0, 29.6)] width=0.8 pulse
+        Polyline points=[(42, -1.6), (7, -1.6)] width=0.8 pulse
+        Polyline points=[(42, 0), (7, 0)] width=0.8 pulse
+        Polyline points=[(42, 1.6), (7, 1.6)] width=0.8 pulse
+        Polyline points=[(44, -8.4), (39.34, -8.4), (21.34, -26.4), (0, -26.4)] width=0.8 pulse
+        Polyline points=[(44, -10), (40, -10), (22, -28), (0, -28)] width=0.8 pulse
+        Polyline points=[(44, -11.6), (40.66, -11.6), (22.66, -29.6), (0, -29.6)] width=0.8 pulse
+    silk wobble=0
+        Polyline points=[(-78.6, -5.6), (-78.6, 5.6), (-43.2, 5.6), (-43.2, -5.6), (-78.6, -5.6)] width=0.4
+        Polyline points=[(78.6, -5.6), (78.6, 5.6), (43.2, 5.6), (43.2, -5.6), (78.6, -5.6)] width=0.4
+        Circle center=(-72, 0) radius=2.8
+        Circle center=(72, 0) radius=2.8
+        Circle center=(-48, 24) radius=2.8
+        Circle center=(48, 24) radius=2.8
+        Circle center=(-48, -24) radius=2.8
+        Circle center=(48, -24) radius=2.8
+        Circle center=(-74, -20) radius=2.8
+        Circle center=(74, -20) radius=2.8
+        Circle center=(-32, 38) radius=2.8
+        Circle center=(32, 38) radius=2.8
+        Circle center=(-32, -42) radius=2.8
+        Circle center=(32, -42) radius=2.8
+        Circle center=(0, 28) radius=2.8
+        Circle center=(0, -28) radius=2.8
+    pad wobble=0
+        Circle center=(-72, 0) radius=2.2
+        Circle center=(72, 0) radius=2.2
+        Circle center=(-48, 24) radius=2.2
+        Circle center=(48, 24) radius=2.2
+        Circle center=(-48, -24) radius=2.2
+        Circle center=(48, -24) radius=2.2
+        Circle center=(-74, -20) radius=2.2
+        Circle center=(74, -20) radius=2.2
+        Circle center=(-32, 38) radius=2.2
+        Circle center=(32, 38) radius=2.2
+        Circle center=(-32, -42) radius=2.2
+        Circle center=(32, -42) radius=2.2
+        Circle center=(0, 28) radius=2.2
+        Circle center=(0, -28) radius=2.2
+        Box2D center=(-62, 21) size=(7, 7)
+        Box2D center=(62, 21) size=(7, 7)
+
+# The unique models, each from content/models/ by name, its base on the ground at (x, z), turned yaw degrees (counter-clockwise from above;
+# yaw 90 turns a model's +z onto +x). Every group starts with a comment line (the overlap and clearance tests read the groups from these
+# comments). Model axes were checked from their bounds: the RAM bank is long along z (yaw 90 puts it on x), the PCIe x16 slot, the x1 slot and
+# the VRM heatsink are long along x, the ribbon bridge along z, the GPU along x with its fans on +z
+place
+    # The bases: two RAM banks each, flush with the back wall, running along x with the courtyard between them (13.4 m wide)
+    ram-bank-red at=(-62, 9) yaw=90
+    ram-bank-red at=(-62, -9) yaw=90
+    # The east banks, blue
+    ram-bank-blue at=(62, 9) yaw=-90
+    ram-bank-blue at=(62, -9) yaw=-90
+    # The courtyards' gates: a PCIe x1 slot across each courtyard's mouth, long along z (it is long along x in model space, so yaw 90),
+    # leaving a 3.6 m gate north and south of it
+    pcie-x1-slot0 at=(-46, 0) yaw=90
+    pcie-x1-slot0 at=(46, 0) yaw=-90
+    # The centre: the CPU cooler on its socket, the blocker that breaks flag to flag; its fans face the two bases
+    cpu-cooler0 at=(0, 0) yaw=0
+    # Thermal paste smeared round the socket, in the cooler's group
+    thermal-paste-dot0 at=(-7.4, 3.1) yaw=20
+    thermal-paste-dot0 at=(7.2, -2.6) yaw=140
+    thermal-paste-dot0 at=(-2.8, 7.6) yaw=75
+    thermal-paste-dot0 at=(3.9, -7.8) yaw=200
+    thermal-paste-dot0 at=(-6.2, -6.6) yaw=310
+    thermal-paste-dot0 at=(6.6, 6.2) yaw=250
+    # The north border: the GPU, fans facing south (the model faces +z, so yaw 180), its backplate against the north wall, closed to the board
+    gpu0 at=(0, 55) yaw=180
+    # The BIOS battery breaking the south lane's line at the middle
+    coin-battery0 at=(0, -50) yaw=0
+    # VRM heatsinks in the north lane near the middle, long along z (they are long along x in model space, so yaw 90), shelter by the electro-gun pod
+    vrm-heatsink0 at=(-16, 38) yaw=90
+    # The east VRM heatsink
+    vrm-heatsink0 at=(16, 38) yaw=-90
+    # Chipset towers: close cover in the south lane, sheltering the poison-gun pods
+    chipset-heatsink0 at=(-50, -46) yaw=0
+    # The east chipset tower
+    chipset-heatsink0 at=(50, -46) yaw=0
+    # The lane walls, PCIe x16 slots each side of the centre lane in each half; long along x as modelled (so yaw 0, spanning x -29.1 to -6.9)
+    pcie-x16-slot0 at=(-18, 16) yaw=0
+    pcie-x16-slot0 at=(-18, -16) yaw=0
+    # The east lane walls
+    pcie-x16-slot0 at=(18, 16) yaw=0
+    pcie-x16-slot0 at=(18, -16) yaw=0
+    # The ribbon bridges draped over each slot's middle, 16 m long along z
+    ribbon-bridge0 at=(-18, 16) yaw=0
+    ribbon-bridge0 at=(-18, -16) yaw=0
+    # The east ribbon bridges
+    ribbon-bridge0 at=(18, 16) yaw=0
+    ribbon-bridge0 at=(18, -16) yaw=0
+    # Power connectors in the south corners, their wire bundles rising to the ceiling; the bundle leans back to -z in model space, so yaw 180
+    # leans it north, into the room, instead of through the south wall
+    power-connector0 at=(-70, -53) yaw=180
+    # The east power connector
+    power-connector0 at=(70, -53) yaw=-180
+    # Case fans on the back walls over each base's RAM, 14 m up, facing the middle (a model's +z turned onto +x, yaw 90, on the west wall)
+    case-fan0 at=(-76.9, 0) y=14 yaw=90
+    # The east case fan
+    case-fan0 at=(76.9, 0) y=14 yaw=-90
+
+# The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its RAM bank pair. The flag stand at the back of the
+# courtyard; the spawn outside the north bank, facing the middle. The minigun pod north of the gate, looking over the north lane; the
+# poison-gun pod south of it, for holding the courtyard; a health pod behind the south bank by the back wall and two on the flanks (the north
+# one at z = 38, not 42, and 32 m out, to keep 10 m from the GPU and the chipset towers). The level's own mix, minigun, poison-gun, electro-gun and flamethrower, which no other
+# level has. The machines (ticket 24): four turrets a side, two either side of the courtyard's mouth, two off the flanks, and the zone for the
+# helicopter and tanks in the open south-west corner behind the base line
+sides
+    west
+        spawn at=(-62, 21) yaw=90 radius=3
+        flag at=(-72, 0)
+        pod minigun at=(-48, 24)
+        pod poison-gun at=(-48, -24)
+        pod health at=(-74, -20)
+        pod health at=(-32, 38)
+        pod health at=(-32, -42)
+        turret at=(-38, 5) yaw=60
+        turret at=(-38, -5) yaw=120
+        turret at=(-62, 32) yaw=30
+        turret at=(-62, -32) yaw=150
+        machines at=(-72, -34) yaw=90 radius=3
+    east
+        spawn at=(62, 21) yaw=-90 radius=3
+        flag at=(72, 0)
+        pod minigun at=(48, 24)
+        pod poison-gun at=(48, -24)
+        pod health at=(74, -20)
+        pod health at=(32, 38)
+        pod health at=(32, -42)
+        turret at=(38, 5) yaw=-60
+        turret at=(38, -5) yaw=-120
+        turret at=(62, 32) yaw=-30
+        turret at=(62, -32) yaw=-150
+        machines at=(72, -34) yaw=-90 radius=3
+# The neutral pods where the two north and the two south buses meet, 56 m apart on x = 0: the electro-gun north, where the north lane is the
+# open one, the flamethrower south, where the close cover is
+neutral
+    pod electro-gun at=(0, 28)
+    pod flamethrower at=(0, -28)
+
+# The small change of the board, scattered by the thousand and drawn instanced: SMD resistors and ceramic caps, solder blobs and via
+# clusters in drifts about 10 m wide with bare board between, and denser handfuls of dust bunnies and cut zip-tie tails. None of it blocks or
+# is taller than a shin. reach is 0: this is a room. It keeps off the traces and the pads (the buses stay clean, the roads read)
+scatter group=parts
+    smd-resistor0
+    smd-resistor1
+    smd-cap0
+    solder-blob0
+    solder-blob1
+    via-pad0
+    density=0.15 cluster=3 clusterScale=10 spacing=0.8 reach=0 avoid=trace,pad margin=0.6 scale=(0.85, 1.15)
+scatter group=parts
+    dust-bunny0
+    dust-bunny1
+    zip-tie-tail0
+    density=0.03 cluster=4 clusterScale=6 spacing=0.9 reach=0 avoid=trace,pad margin=0.8 scale=(0.85, 1.15)
+
+# The tall blockers that hide a player: electrolytic capacitors in three colours, chokes, pin headers with a jumper cap, pin heatsinks,
+# SATA port blocks and the odd PCIe x1 slot, in clumps 10 to 16 m wide with open board between, 3 m clear of everything placed; laid first,
+# so the knee cover below keeps clear of them. Off the traces and pads
+trees group=components
+    cap-electrolytic0
+    cap-electrolytic1
+    cap-electrolytic2
+    choke0
+    pin-header0
+    heatsink-pin0
+    sata-ports0
+    pcie-x1-slot0 weight=0.5
+    band=(-72, -10) density=0.003 spacing=9 cluster=3 clusterScale=16 avoid=trace,pad scale=(0.9, 1.1) margin=3
+# The taller parts nearer the walls: the big can capacitors and the 20 mm electrolytics (a room's indoor border rule)
+trees group=components
+    cap-big0
+    cap-electrolytic2
+    band=(-12, -3) density=0.002 spacing=10 avoid=trace,pad scale=(0.9, 1.1) margin=3
+
+# Knee cover, drawn instanced like a meadow's trees: tantalum and can capacitors, inductors, crystals, lying transistors and mounting
+# screws, mostly 0.6 to 1.1 m high so players jump them and bots go round, in clumps about 18 m wide. band is how far inside the board's
+# edge they stand (negative inside it), clear of the walls
+trees group=smd
+    tantalum-cap0
+    smd-inductor0
+    crystal-smd0
+    to220-lying0
+    screw-mount0
+    smd-can-cap0
+    band=(-76, -6) density=0.005 spacing=7 cluster=2.5 clusterScale=18 avoid=trace,pad scale=(0.9, 1.1) margin=1.5
+
+# How the small parts are drawn round the camera: the finest level to 10 m with the ink outline, the next to 25 m and the coarsest to 45 m,
+# fading out over its last 15 m, shadows from the nearest ring only; no wind, and no ground colour at their feet (tintHeight 0: a board is
+# not grass). The integrated GPU / web preset draws half of them, to 0.7 times the distance
+draw parts
+    rings=[10, 25, 45] outline=1 shadows=1 blend=1 fade=15
+    lowDensity=0.5 lowDistance=0.7 tintHeight=0
+
+# How the knee cover is drawn: LOD0 to 20 m, LOD1 to 50 m and LOD2 beyond, never ended by distance inside the room, all with the ink
+# outline; shadows from the nearest ring (the integrated GPU / web preset: the same); no wind
+draw smd
+    rings=[20, 50, 1000] outline=2 shadows=1 lowDistance=0.7 tintHeight=0
+
+# How the tall blockers are drawn: LOD0 to 25 m, LOD1 to 60 m and LOD2 beyond, with the ink outline; shadows from the nearer two rings (only
+# the nearest on the integrated GPU / web preset); no wind
+draw components
+    rings=[25, 60, 1000] outline=3 shadows=2 lowShadows=1 blend=2 lowDistance=0.7 tintHeight=0

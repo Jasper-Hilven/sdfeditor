@@ -22,7 +22,7 @@ public static class LevelModels
                 return known;
             ModelFootprint? footprint = null;
             if (files.TryGetValue(name, out var path) && RenderFramer.ModelBounds(SdfProgramFile.Load(path)) is { } bounds)
-                footprint = new ModelFootprint(new Vector2(bounds.Min.X, bounds.Min.Z), new Vector2(bounds.Max.X, bounds.Max.Z));
+                footprint = new ModelFootprint(new Vector2(bounds.Min.X, bounds.Min.Z), new Vector2(bounds.Max.X, bounds.Max.Z)) { Height = bounds.Max.Y };
             return footprints[name] = footprint;
         };
     }

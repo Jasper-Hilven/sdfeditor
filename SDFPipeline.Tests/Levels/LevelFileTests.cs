@@ -522,6 +522,77 @@ public class LevelFileTests
     }
 
     /// <summary>
+    /// Ticket 30.8: the computer level is one theme, computer hardware. Every model it names (placed, scattered or strewn) is in
+    /// models/computer/, and the computer machines are in models/machines/; no material, in them or in their parts, is from another
+    /// theme's folder: only computer/, machines/, the machines' eyes (the scouts' floating eyes), and the ground and room materials.
+    /// </summary>
+    [Fact]
+    public void ContentComputer_HasOnlyComputerParts()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "computer" + LevelFile.Extension));
+        var models = Path.Combine(content, "models");
+        var partsFolder = Path.Combine(content, ModelFiles.PartsFolderName);
+        var files = Directory.GetFiles(models, "*.sdf", SearchOption.AllDirectories)
+            .GroupBy(Path.GetFileNameWithoutExtension)
+            .ToDictionary(g => g.Key!, g => g.ToArray());
+
+        var named = level.Placements.Select(p => p.Model)
+            .Concat(level.Scatters.SelectMany(s => s.Entries.Select(e => e.Model)))
+            .Concat(level.Trees.SelectMany(t => t.Entries.Select(e => e.Model)))
+            .Distinct()
+            .ToArray();
+        Assert.NotEmpty(named);
+        Assert.Equal("computer", level.MachineSetName);
+        // The computer machines: every piece of each kind and team, named as the set rule says
+        var machines = Directory.GetFiles(Path.Combine(models, "machines"), "*-computer-*.sdf").Select(Path.GetFileNameWithoutExtension).ToArray();
+        Assert.Equal(18, machines.Length);
+
+        var computer = Path.Combine(models, "computer");
+        var pending = new Stack<string>();
+        foreach (var model in named)
+        {
+            Assert.True(files.TryGetValue(model, out var paths), $"{model} is not in content/models");
+            Assert.Single(paths!);
+            Assert.True(Path.GetDirectoryName(paths![0]) == computer, $"{model} is not from models/computer/: {paths[0]}");
+            pending.Push(paths[0]);
+        }
+        foreach (var model in machines)
+            pending.Push(files[model!].Single());
+
+        var materials = new SortedSet<string>();
+        var parts = new HashSet<string>();
+        while (pending.Count > 0)
+        {
+            var text = File.ReadAllText(pending.Pop());
+            foreach (Match m in Regex.Matches(text, @"^\s*Material\s+material=(\S+)", RegexOptions.Multiline))
+                materials.Add(m.Groups[1].Value);
+            foreach (Match m in Regex.Matches(text, @"^\s*Part\s+part=(\S+)", RegexOptions.Multiline))
+                if (parts.Add(m.Groups[1].Value))
+                    foreach (var file in Directory.EnumerateFiles(partsFolder, m.Groups[1].Value + ".sdf", SearchOption.AllDirectories))
+                        pending.Push(file);
+        }
+        Assert.NotEmpty(materials);
+        var materialFolders = Directory.GetFiles(Path.Combine(content, "..", "materials"), "*.sdfmat", SearchOption.AllDirectories)
+            .ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => Path.GetFileName(Path.GetDirectoryName(f))!);
+        foreach (var material in materials)
+        {
+            Assert.True(materialFolders.TryGetValue(material, out var folder), $"{material} has no material file");
+            Assert.True(folder is "computer" or "machines" or "eye", $"{material} is in materials/{folder}/, not a computer material");
+        }
+        // The board and the case: their own ground and room materials, ruled straight, no sky or hills
+        Assert.Equal("pcb", level.Base);
+        Assert.Equal(["trace", "silk", "pad"], level.Regions.Select(r => r.Name));
+        Assert.All(level.Regions, r => Assert.Equal(0f, r.Wobble));
+        Assert.Equal(("case-wall", "case-glass"), (level.Room!.Walls, level.Room.Ceiling));
+        Assert.Null(level.Sky);
+        Assert.Equal(0, level.Hills.Height);
+        Assert.Equal(["parts", "smd", "components"], level.DrawGroups.Select(g => g.Name));
+    }
+
+    /// <summary>
     /// Every solid toy has a `collider` line (a comment about one does not make a collider: the prefab has none without the line, and a
     /// scene built from it has nothing to bump into); the ground clutter, the track's curves and the pennants have none.
     /// </summary>

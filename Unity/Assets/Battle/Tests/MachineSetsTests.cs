@@ -48,6 +48,9 @@ namespace SdfBattle.Tests
         [TestCase("turret-toy-red-foot", "turret", "toy", "red", "foot")]
         [TestCase("tank-toy-blue-barrel", "tank", "toy", "blue", "barrel")]
         [TestCase("helicopter-toy-red-tail-rotor", "helicopter", "toy", "red", "tail-rotor")]
+        [TestCase("turret-computer-red-foot", "turret", "computer", "red", "foot")]
+        [TestCase("tank-computer-blue-barrel", "tank", "computer", "blue", "barrel")]
+        [TestCase("helicopter-computer-red-tail-rotor", "helicopter", "computer", "red", "tail-rotor")]
         public void APiecesModelName_IsReadBack(string model, string kind, string set, string team, string piece)
         {
             Assert.IsTrue(MachineSets.TryParsePiece(model, out var k, out var s, out var t, out var p));

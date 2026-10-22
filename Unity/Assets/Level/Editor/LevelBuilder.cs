@@ -519,6 +519,8 @@ namespace SdfLevel.Editor
             var placed = AddPlacements(levelRoot.transform, scene, data, parts, placements);
             AddUnderside(levelRoot.transform, scene, data);
             MarkStatic(levelRoot);
+            // The fans' blades turn (ticket 30.5), so they stay out of batching
+            LevelSpinners.Add(levelRoot.transform);
             var scattered = AddScatter(scene, level, meshFolder, data, parts);
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
@@ -527,6 +529,8 @@ namespace SdfLevel.Editor
             var battle = AddBattle(scene, data, player);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
             var movers = AddMovers(scene, data);
+            // The data pulses (ticket 30.9): the overlay mesh and the rule, outside the Level root too
+            LevelPulses.Add(scene, data, name, meshFolder);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
             var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
                 player, battle != null ? battle.gameObject : null);
@@ -599,7 +603,7 @@ namespace SdfLevel.Editor
             var materials = (JObject)data["materials"];
             var grass = MaterialOf(materials, "grass")
                         ?? throw new InvalidDataException("level.json has no grass material (materials.grass.parameters); bake the level again");
-            material.SetVector("_GroundBaseColor", Color(grass, "baseColor", 0));
+            material.SetVector("_GroundBaseColor", Color(grass, "baseColor", grass.Number("emission")));
             material.SetVector("_GroundVariation", Color(grass, "variationColor", grass.Number("variationScale")));
             material.SetVector("_GroundSurface", Surface(grass));
             material.SetVector("_GroundSpeckle", Color(grass, "speckleColor", grass.Number("speckleScale")));
@@ -618,7 +622,7 @@ namespace SdfLevel.Editor
                 var region = channel == null ? null : MaterialOf(materials, channel.Value<string>("name"))
                     ?? throw new InvalidDataException($"level.json has no material for the region {channel.Value<string>("name")}; bake the level again");
                 var stones = channel?.Value<string>("pattern") == "stones";
-                material.SetVector($"_Region{i}Base", region == null ? Vector4.zero : Color(region, "baseColor", 0));
+                material.SetVector($"_Region{i}Base", region == null ? Vector4.zero : Color(region, "baseColor", region.Number("emission")));
                 material.SetVector($"_Region{i}Variation", region == null ? Vector4.zero : Color(region, "variationColor", region.Number("variationScale")));
                 material.SetVector($"_Region{i}Surface", region == null ? new Vector4(0.9f, 0.3f, 0, 0.5f) : Surface(region));
                 material.SetVector($"_Region{i}Speckle", region == null ? Vector4.zero : Color(region, "speckleColor", region.Number("speckleScale")));
@@ -1383,7 +1387,7 @@ namespace SdfLevel.Editor
             AddMatch(root, player);
             // Ticket 24.3: the helicopters' and tanks' prefabs, which the match makes in the machine zones at its start
             if (SdfBattle.Machines.HasMachines(arena))
-                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0);
+                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0, KeepOuts(battle["helicopterKeepOuts"]));
             return arena;
         }
 
@@ -1423,15 +1427,22 @@ namespace SdfLevel.Editor
             }
         }
 
+        /// <summary>The helicopters' keep-outs (ticket 30.7) from level.json's [minX, minZ, maxX, maxZ] boxes, x mirrored as everywhere; none without the field.</summary>
+        private static SdfBattle.KeepOut[] KeepOuts(JToken boxes) =>
+            boxes is JArray array
+                ? array.Select(b => new SdfBattle.KeepOut(new Vector2(-b[2].Value<float>(), b[1].Value<float>()), new Vector2(-b[0].Value<float>(), b[3].Value<float>()))).ToArray()
+                : new SdfBattle.KeepOut[0];
+
         /// <summary>
         /// The machines (ticket 24.3) on Battle: the red and blue tank and helicopter prefabs (Assets/Machines/Prefabs), which the match
         /// makes in each side's machine zone at its start; the turrets are the sides' own scene objects. A missing prefab logs a warning.
         /// </summary>
-        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling)
+        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling, SdfBattle.KeepOut[] keepOuts)
         {
             var machines = battle.AddComponent<SdfBattle.Machines>();
             machines.machineSet = machineSet;
             machines.flightCeiling = flightCeiling;
+            machines.helicopterKeepOuts = keepOuts;
             GameObject Load(SdfBattle.MachineKind kind, SdfBattle.Team team)
             {
                 var path = SdfBattle.Machines.PrefabPath(kind, team, machineSet);

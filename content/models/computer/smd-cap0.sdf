@@ -1,0 +1,14 @@
+# SMD capacitor 0: an 0805 ceramic capacitor, 0.5 m long, 0.31 m wide and 0.31 m tall (250 times life size), standing on the board along x: a tan ceramic
+# body (pc_ceramic_tan) between two tin end caps (pc_tin). Ground clutter: no collider.
+format 1
+
+# Big simple forms: a block and two caps
+Detail detail=0.05
+    Translate translation=(0, 0.155, 0)
+        Union
+            Material material=pc_ceramic_tan
+                RoundBox size=(0.17, 0.15, 0.15) roundness=0.006
+            Material material=pc_tin
+                SymmetryX
+                    Translate translation=(0.2, 0, 0)
+                        RoundBox size=(0.05, 0.155, 0.155) roundness=0.006

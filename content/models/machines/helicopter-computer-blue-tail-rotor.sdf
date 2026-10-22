@@ -1,0 +1,15 @@
+# Helicopter tail rotor, blue (ticket 30.7): a tiny fan on the end of the cable: a little tin hub with a short white blade bar across it,
+# facing out to the side (+x), spun by script.
+# Pivot: the origin is the hub's inner end on the tail rotor's axis (it spins about x); in helicopter-computer-blue-body it is at
+# (0.025, 0.4, -0.35).
+format 1
+
+Detail detail=0.7
+    Rotate rotation=(0, 0, -1.5707964)
+        Union
+            Material material=pc_tin
+                Translate translation=(0, 0.012, 0)
+                    CappedCylinder radius=0.022 height=0.016
+            Material material=pc_fan_white
+                Translate translation=(0, 0.03, 0)
+                    RoundBox size=(0.012, 0.01, 0.1) roundness=0.008
