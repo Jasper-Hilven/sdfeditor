@@ -1,0 +1,19 @@
+# Crisp bag: an empty-looking foil bag of crisps 20 cm long lying flat, puffed in the middle and crumpled, with crimped ends and a
+# yellow window on its front. The bottom is at y = 0, the middle on the origin, the long side along x.
+format 1
+
+Union
+    Material material=home_plastic_red
+        Distort amount=0.006 frequency=35
+            Union
+                # The puffed bag
+                Translate translation=(0, 0.04, 0)
+                    Ellipsoid radii=(0.075, 0.04, 0.07)
+                # The crimped ends, two thin flat flaps
+                SymmetryX
+                    Translate translation=(0.088, 0.02, 0)
+                        RoundBox size=(0.012, 0.018, 0.062) roundness=0.005
+    Material material=home_crisp
+        # The window on the front, a flat oval of the crisps' yellow
+        Translate translation=(0, 0.045, 0.058)
+            Ellipsoid radii=(0.05, 0.026, 0.02)

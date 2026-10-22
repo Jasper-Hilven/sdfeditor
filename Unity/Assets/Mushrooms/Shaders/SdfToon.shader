@@ -195,7 +195,7 @@ Shader "SdfMushrooms/Toon"
                     saturate(input.uv6.a));
                 // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows; far away it fades
                 // toward the sky
-                return float4(SkyFade(color, input.positionWS), 1.0);
+                return SdfToonOutput(SkyFade(color, input.positionWS), normalize(input.normalWS), input.positionWS);
             }
             ENDHLSL
         }

@@ -1,0 +1,15 @@
+# Mouse: a computer mouse 0.1 m long (z) and 6 cm wide, 4 cm high, a flat-bottomed cream dome with a red scroll wheel, the front
+# (buttons) towards +z, the bottom at y = 0, the middle on the origin.
+format 1
+
+Union
+    Material material=home_plastic_light
+        Intersection
+            Translate translation=(0, 0.015, 0)
+                Ellipsoid radii=(0.03, 0.025, 0.05)
+            # Cut flat at y = 0
+            Translate translation=(0, 0.5, 0)
+                Box size=(0.5, 0.5, 0.5)
+    Material material=home_plastic_red
+        # The scroll wheel, between the two buttons
+        Capsule a=(0, 0.038, 0.012) b=(0, 0.038, 0.034) radius=0.007

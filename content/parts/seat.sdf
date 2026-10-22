@@ -1,0 +1,36 @@
+# Seat: the part of the gaming chair that turns on its stem, in the chair's own space: the cushion with its top at 0.5 m, the round
+# back with a headrest, and two armrests, the front towards +z, the turning axis the y axis through the origin. The chair's base and
+# stem stay behind when this turns (the pull-in panel spins it empty).
+format 1
+
+Union
+    Material material=home_fabric_seat
+        Union
+            # The cushion, 48 x 10 x 48 cm, its top at 0.5 m
+            Translate translation=(0, 0.45, 0)
+                RoundBox size=(0.24, 0.05, 0.24) roundness=0.04
+            # The back's cloth, an oval standing up behind the cushion and leaning back a little
+            Translate translation=(0, 0.82, -0.23)
+                Rotate rotation=(-0.12, 0, 0)
+                    Ellipsoid radii=(0.2, 0.3, 0.06)
+    Material material=home_plastic
+        Union
+            # The back's shell round the cloth, bigger and set a little behind it
+            Translate translation=(0, 0.82, -0.27)
+                Rotate rotation=(-0.12, 0, 0)
+                    Ellipsoid radii=(0.23, 0.33, 0.06)
+            # The underside of the cushion
+            Translate translation=(0, 0.38, 0)
+                RoundBox size=(0.15, 0.04, 0.15) roundness=0.03
+            # The armrests: a post and a padded rest on each side
+            Capsule a=(-0.27, 0.42, 0) b=(-0.27, 0.62, 0) radius=0.015
+            Capsule a=(0.27, 0.42, 0) b=(0.27, 0.62, 0) radius=0.015
+            Translate translation=(-0.27, 0.65, 0.02)
+                RoundBox size=(0.03, 0.025, 0.13) roundness=0.02
+            Translate translation=(0.27, 0.65, 0.02)
+                RoundBox size=(0.03, 0.025, 0.13) roundness=0.02
+    Material material=home_plastic_red
+        # The headrest pillow on top of the back
+        Translate translation=(0, 1.17, -0.27)
+            Rotate rotation=(-0.12, 0, 0)
+                Ellipsoid radii=(0.13, 0.07, 0.06)

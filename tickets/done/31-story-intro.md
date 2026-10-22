@@ -171,7 +171,7 @@ Mushroom 7: the existing `amanita-scout`.
   user provides the file: `Unity/Assets/Story/Audio/intro-music.ogg` (the viewer plays nothing and logs one warning if it is
   missing).
 - **End**: Play or Skip loads the first level (32 decides which and how; until then the meadow), through the usual loading.
-- The panels are loaded as `Texture2D` assets in `Assets/Story/Panels/` (`panel-01.png` … `panel-12.png`), imported without
+- The panels are loaded as `Texture2D` assets in `Assets/Story/Panels/` (`panel-01.jpg` … `panel-12.jpg`, JPG at quality 90 rather than PNG: the halftone and paper make a 1080p PNG 2.7 MB, the JPG about 0.45 MB; the viewer loads either as Texture2D), imported without
   mipmaps, compressed for the web (crunched or as JPG-quality), so the web build grows by **no more than about 6 MB**. They are not
   loaded until the intro starts.
 
@@ -183,7 +183,7 @@ Mushroom 7: the existing `amanita-scout`.
   hands.
 - **`StoryCapture`** (editor): Tools > SDF Story > Render Panels, and batchmode `-executeMethod`, as `GuiSnapshot`. Reads
   `content/story/intro.txt`, opens each panel's stage (`Home.unity`, the warp stage, `Meadow.unity`), poses it, renders, runs the
-  comic post pass, letters the panel and writes `Assets/Story/Panels/panel-NN.png`. Also makes the screen textures. A single panel
+  comic post pass, letters the panel and writes `Assets/Story/Panels/panel-NN.jpg`. Also makes the screen textures. A single panel
   can be re-rendered by number.
 - **Panels are generated but committed**: unlike meshes and bakes, the panel PNGs are the shipped art and are checked into git, so a
   fresh clone has the intro without running the capture (which needs the meshed home models and baked meadow).
@@ -221,4 +221,20 @@ Mushroom 7: the existing `amanita-scout`.
 
 ## Status
 
-**Not started.** Presentation changed from a real-time cutscene to comic panels rendered in Unity (2026-10-22).
+Done (subtickets 31.1-31.9, in this folder): the home models and materials (`content/models/home/`, `materials/home/`), the
+placement file `content/scenes/home.txt` and `HomeBuilder` (`Home.unity`, editor-only, not in the build), the panel data
+`content/story/intro.txt` with its reader (`SDFPipeline/Story/StoryFile.cs`, copied to `Unity/Assets/Story/Editor/`), `StoryCapture` with
+the comic look (capture-only toon globals in `SdfComic.hlsl`, ink, halftone, paper), lettering and devices, the screen textures and
+warp stage, all twelve panels rendered as **JPG** (`panel-NN.jpg`, about 5.5 MB, committed as shipped art), and the `StoryIntro`
+viewer (`StoryIntro.Begin(Action onFinished)` is the hook for 32; the default loads the meadow). A test checks that no `.level` places a
+`home/` model.
+
+**After merging into the main checkout:** `sdf unity --resolution 256 --lods 3` (meshes the new `home/` models), then in Unity
+Tools > SDF Story > Build Home, and (only to re-render; the panels are committed) Tools > SDF Story > Render Panels; Tools > SDF Story >
+Build Intro Viewer after adding the music. Generated meshes are git-ignored.
+
+**Left, by eye / in Unity:** the user provides `Assets/Story/Audio/intro-music.ogg` (then rebuild the viewer prefab); a Play-mode run
+of the viewer (cross-fade, keys, letterbox at 4:3 and 21:9, the scene load at the end, button feel); the panels' taste (colours,
+balloon and burst sizes, panel 8's scale-only stretch, panel 10's face-down pose, panel 1's cap hiding the window, Prime's crown size);
+the home models in a toon render; the web build size (about +6 MB expected). The open questions above stay open (arrival place,
+teammate's name, panel split).

@@ -1,0 +1,42 @@
+# Chair: a gaming chair for a mushroom about 1 m tall, the seat's top at 0.5 m and about 1.25 m with the headrest, on a five-star
+# base with wheels and a gas stem. The seat, back and armrests are a separate part, `seat` (content/parts/seat.sdf), which turns about
+# the y axis through the origin and so can spin on its own; the base and stem are the model's body. The feet are on the ground
+# (y = 0), the front towards +z.
+format 1
+
+Union
+    Part part=seat
+    Material material=home_plastic
+        Union
+            # The gas stem from the base up to under the cushion
+            Translate translation=(0, 0.22, 0)
+                CappedCylinder radius=0.035 height=0.17
+            # The hub of the base
+            Translate translation=(0, 0.06, 0)
+                CappedCylinder radius=0.05 height=0.03
+            # The five arms of the base, 72 degrees apart, each with a wheel at its end
+            Rotate rotation=(0, 0, 0)
+                Union
+                    Capsule a=(0, 0.07, 0) b=(0, 0.05, 0.27) radius=0.022
+                    Translate translation=(0, 0.03, 0.28)
+                        Sphere radius=0.03
+            Rotate rotation=(0, 1.2566371, 0)
+                Union
+                    Capsule a=(0, 0.07, 0) b=(0, 0.05, 0.27) radius=0.022
+                    Translate translation=(0, 0.03, 0.28)
+                        Sphere radius=0.03
+            Rotate rotation=(0, 2.5132742, 0)
+                Union
+                    Capsule a=(0, 0.07, 0) b=(0, 0.05, 0.27) radius=0.022
+                    Translate translation=(0, 0.03, 0.28)
+                        Sphere radius=0.03
+            Rotate rotation=(0, 3.7699113, 0)
+                Union
+                    Capsule a=(0, 0.07, 0) b=(0, 0.05, 0.27) radius=0.022
+                    Translate translation=(0, 0.03, 0.28)
+                        Sphere radius=0.03
+            Rotate rotation=(0, 5.0265484, 0)
+                Union
+                    Capsule a=(0, 0.07, 0) b=(0, 0.05, 0.27) radius=0.022
+                    Translate translation=(0, 0.03, 0.28)
+                        Sphere radius=0.03

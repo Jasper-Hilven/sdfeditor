@@ -1,0 +1,76 @@
+# Trophy: the champion's trophy, about 0.4 m tall: a golden minigun, its muzzle up and forward, on a base shaped like a mushroom cap
+# (42's red dome on a dark stem and foot, a gold rim round the dome) with a gold "1st" plaque on the front. The brightest gold in the
+# room (home_gold). The foot is on y = 0, the middle on the y axis, the plaque towards +z.
+format 1
+
+# The golden gun on its own axis, breech at z = 0, muzzle at z = 0.2: six barrels round the axis, two bands, a fat receiver with a
+# drive motor on the side and two grips below
+gun =
+    Union
+        # Six barrels 2.2 cm from the axis, 60 degrees apart
+        Capsule a=(0.022, 0, 0.02) b=(0.022, 0, 0.2) radius=0.0075
+        Capsule a=(0.011, 0.019, 0.02) b=(0.011, 0.019, 0.2) radius=0.0075
+        Capsule a=(-0.011, 0.019, 0.02) b=(-0.011, 0.019, 0.2) radius=0.0075
+        Capsule a=(-0.022, 0, 0.02) b=(-0.022, 0, 0.2) radius=0.0075
+        Capsule a=(-0.011, -0.019, 0.02) b=(-0.011, -0.019, 0.2) radius=0.0075
+        Capsule a=(0.011, -0.019, 0.02) b=(0.011, -0.019, 0.2) radius=0.0075
+        # The bands binding them
+        Translate translation=(0, 0, 0.1)
+            Rotate rotation=(1.5707964, 0, 0)
+                Torus innerRadius=0.007 outerRadius=0.025
+        Translate translation=(0, 0, 0.19)
+            Rotate rotation=(1.5707964, 0, 0)
+                Torus innerRadius=0.006 outerRadius=0.027
+        # The receiver
+        Capsule a=(0, 0, -0.1) b=(0, 0, 0.03) radius=0.034
+        # The motor
+        Translate translation=(0.045, 0.01, -0.03)
+            Sphere radius=0.025
+        # The grips
+        Capsule a=(0, -0.02, -0.07) b=(0, -0.07, -0.09) radius=0.012
+        Capsule a=(0, -0.02, -0.02) b=(0, -0.07, -0.015) radius=0.012
+
+Union
+    Material material=home_plate
+        Union
+            # The foot, a flat round slab
+            Translate translation=(0, 0.01, 0)
+                RoundedCylinder radius=0.1 roundness=0.006 height=0.01
+            # The stem
+            Translate translation=(0, 0.04, 0)
+                CappedCylinder radius=0.03 height=0.03
+    Material material=home_plastic_red
+        # The cap: the top of an ellipsoid, 22 cm across and 7 cm high, its underside flat
+        Intersection
+            Translate translation=(0, 0.07, 0)
+                Ellipsoid radii=(0.11, 0.07, 0.11)
+            Translate translation=(0, 0.3, 0)
+                Box size=(0.5, 0.23, 0.5)
+    Material material=home_gold
+        Union
+            # The rim ring round the cap's lower edge
+            Translate translation=(0, 0.072, 0)
+                Rotate rotation=(0, 0, 0)
+                    Torus innerRadius=0.007 outerRadius=0.108
+            # The post under the gun and the gun itself, tilted muzzle up (a rotation about x by a negative angle lifts +z)
+            Capsule a=(0, 0.12, 0) b=(0, 0.19, -0.02) radius=0.02
+            Translate translation=(0, 0.2, -0.02)
+                Rotate rotation=(-0.95, 0, 0)
+                    $gun
+            # The plaque on the cap's front, slanted with it
+            Translate translation=(0, 0.045, 0.098)
+                Rotate rotation=(0.45, 0, 0)
+                    RoundBox size=(0.04, 0.016, 0.004) roundness=0.002
+    Material material=home_plate
+        # The "1st" on the plaque: a bar and a flag for the 1, two small marks for the "st"
+        Translate translation=(0, 0.045, 0.098)
+            Rotate rotation=(0.45, 0, 0)
+                Union
+                    Translate translation=(-0.022, 0, 0.0045)
+                        Box size=(0.002, 0.009, 0.001)
+                    Translate translation=(-0.027, 0.005, 0.0045)
+                        Box size=(0.005, 0.0015, 0.001)
+                    Translate translation=(0.005, -0.003, 0.0045)
+                        Box size=(0.007, 0.002, 0.001)
+                    Translate translation=(0.02, 0, 0.0045)
+                        Box size=(0.002, 0.008, 0.001)

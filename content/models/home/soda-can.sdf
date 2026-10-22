@@ -1,0 +1,16 @@
+# Soda can: a can 12 cm high and 6.6 cm across in red-orange, with a pale lid, rim and ring-pull tab. The bottom is at y = 0, the
+# middle on the y axis.
+format 1
+
+Union
+    Material material=home_can
+        Translate translation=(0, 0.06, 0)
+            RoundedCylinder radius=0.032 roundness=0.004 height=0.058
+    Material material=home_plastic_light
+        Union
+            # The lid, a little narrower than the can and just above it
+            Translate translation=(0, 0.121, 0)
+                CappedCylinder radius=0.027 height=0.004
+            # The ring-pull tab
+            Translate translation=(0.005, 0.127, 0)
+                RoundBox size=(0.012, 0.002, 0.007) roundness=0.0015

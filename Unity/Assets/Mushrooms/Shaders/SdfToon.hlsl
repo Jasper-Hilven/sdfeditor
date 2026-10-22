@@ -13,6 +13,7 @@
 #define SDF_TOON_INCLUDED
 
 #include "Assets/Mushrooms/Shaders/SdfSky.hlsl"
+#include "Assets/Mushrooms/Shaders/SdfComic.hlsl"
 
 // x = shade threshold (light below it is the shadow tone), y = lit threshold (light above it is the lit tone),
 // z = softness of the band edges (in the same units, -1 to 1), w = how much the baked ambient occlusion darkens (0 to 1)
@@ -46,10 +47,15 @@ float3 SdfToonShade(float3 albedo, float3 n, float3 v, float3 l, float shadow, f
     // Cast shadow counts as facing away, so it falls in the shadow band with a crisp edge
     float light = lerp(-1.0, nl, shadow);
     float soft = max(_ToonBands.z, 1e-4);
+    // The story's panels (SdfComic.hlsl): hard band edges, and a stronger and wider rim
+    float comic = step(0.5, _SdfComic.x);
+    soft = lerp(soft, 0.004, comic);
     float mid = smoothstep(_ToonBands.x - soft, _ToonBands.x + soft, light);
     float lit = smoothstep(_ToonBands.y - soft, _ToonBands.y + soft, light);
     float3 tone = lerp(_ToonShadowTone.rgb * SkyShadowTint(), lerp(_ToonMidTone.rgb, _ToonLitTone.rgb, lit) * tint, mid);
     float3 color = albedo * tone * lerp(1.0, occlusion, _ToonBands.w);
+    gSdfAlbedo = albedo;
+    gSdfBand = lerp(0.25, lerp(0.6, 1.0, step(0.5, lit)), step(0.5, mid));
 
     // Hard highlight: Blinn-Phong as sharp as the surface is smooth (wet is glossy), cut at a threshold; none on rough surfaces
     float r = lerp(roughness, 0.1, saturate(wetness));
@@ -64,7 +70,8 @@ float3 SdfToonShade(float3 albedo, float3 n, float3 v, float3 l, float shadow, f
     // Rim: a band of light along the silhouette on the lit side
     float rim = 1.0 - saturate(dot(n, v));
     float rimEdge = max(fwidth(rim), 1e-3);
-    color += smoothstep(1.0 - _ToonRim.y - rimEdge, 1.0 - _ToonRim.y + rimEdge, rim) * _ToonRim.x * mid * tint * albedo;
+    float rimWidth = _ToonRim.y * lerp(1.0, 1.3, comic);
+    color += smoothstep(1.0 - rimWidth - rimEdge, 1.0 - rimWidth + rimEdge, rim) * _ToonRim.x * lerp(1.0, 1.8, comic) * mid * tint * albedo;
     return SkyTone(color, glow);
 }
 

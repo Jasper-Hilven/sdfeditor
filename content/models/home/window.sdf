@@ -1,0 +1,39 @@
+# Window: a white-framed window for the room shell's opening, 0.8 m wide and 0.7 m high, with a sill and half-drawn curtains on a
+# rod. The origin is the middle of the opening's bottom edge, in the middle of the 10 cm wall (so it goes at (0.6, 1, -1.55) in
+# the room shell), the room side towards +z. The frame is a little bigger than the opening, so its edge hides the cut in the wall;
+# there is no glass, and the dusk card (window-backdrop) goes behind it. The curtains are fluted folds in front of the frame, each
+# covering the outer half of its side of the opening.
+format 1
+
+Union
+    Material material=home_wood
+        Union
+            # The frame: 84 x 74 cm outside, 70 x 60 cm inside, 10 cm deep
+            Subtraction
+                Translate translation=(0, 0.35, 0)
+                    Box size=(0.42, 0.37, 0.05)
+                Translate translation=(0, 0.35, 0)
+                    Box size=(0.35, 0.3, 0.1)
+            # The cross of bars between the four panes
+            Translate translation=(0, 0.35, 0)
+                Box size=(0.015, 0.3, 0.02)
+            Translate translation=(0, 0.35, 0)
+                Box size=(0.35, 0.015, 0.02)
+            # The sill, 96 cm wide, sticking 14 cm into the room
+            Translate translation=(0, -0.02, 0.04)
+                Box size=(0.48, 0.02, 0.1)
+            # The curtain rod with a knob at each end
+            Capsule a=(-0.56, 0.87, 0.11) b=(0.56, 0.87, 0.11) radius=0.013
+            Translate translation=(-0.57, 0.87, 0.11)
+                Sphere radius=0.025
+            Translate translation=(0.57, 0.87, 0.11)
+                Sphere radius=0.025
+    Material material=home_fabric
+        Union
+            # The curtains: five vertical folds a side, from the rod to just under the sill, drawn halfway
+            Translate translation=(-0.35, 0, 0.11)
+                LimitedRepetition spacing=0.06 limits=(2, 0, 0)
+                    Capsule a=(0, 0.06, 0) b=(0, 0.84, 0) radius=0.04
+            Translate translation=(0.35, 0, 0.11)
+                LimitedRepetition spacing=0.06 limits=(2, 0, 0)
+                    Capsule a=(0, 0.06, 0) b=(0, 0.84, 0) radius=0.04

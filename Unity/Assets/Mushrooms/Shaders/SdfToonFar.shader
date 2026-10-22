@@ -131,7 +131,7 @@ Shader "SdfMushrooms/Toon Far"
                 // Lit from the eye, unshadowed, in white
                 float3 color = SdfToonShade(albedo, n, v, v, 1.0, float3(1, 1, 1), input.uv0.x, input.uv0.y, input.color.a,
                     saturate(input.uv0.w), saturate(input.uv6.a));
-                return float4(color * (1.0 + _FarGlow), 1.0);
+                return SdfToonOutput(color * (1.0 + _FarGlow), n, input.positionWS);
             }
             ENDHLSL
         }

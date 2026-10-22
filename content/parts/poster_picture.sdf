@@ -1,0 +1,9 @@
+# Poster picture: the printed picture of the tournament poster, a flat slab 45 x 65 cm and 8 mm deep, centred on x = 0 with its
+# bottom at y = 0.025, its front (+z) at z = 0.026, 6 mm proud of the poster board. It is the one face the story capture paints with a
+# texture (the main menu logo); the mesh has no UVs, so the poster material derives them from the vertex's _LOCAL_POSITION
+# (u = x / 0.45 + 0.5, v = (y - 0.025) / 0.65). Its own material here is a stand-in for that one.
+format 1
+
+Material material=home_poster
+    Translate translation=(0, 0.35, 0.022)
+        Box size=(0.225, 0.325, 0.004)

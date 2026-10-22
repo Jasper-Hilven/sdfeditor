@@ -1,0 +1,17 @@
+# Poster: last year's tournament poster, 0.5 m wide and 0.7 m high, a poster board 2 cm thick (thin enough to read as paper, thick
+# enough to mesh) with a tack in two corners. The picture is a part of its own, `poster_picture` (content/parts/poster_picture.sdf): a
+# flat slab on the board that the story capture paints with a texture. The board's back is against the wall at z = 0, the bottom
+# edge at y = 0, the middle on x = 0.
+format 1
+
+Union
+    Part part=poster_picture
+    Material material=home_paper
+        # The board
+        Translate translation=(0, 0.35, 0.01)
+            RoundBox size=(0.25, 0.35, 0.01) roundness=0.003
+    Material material=home_plastic_red
+        # The tacks, in the top corners
+        SymmetryX
+            Translate translation=(0.225, 0.675, 0.03)
+                Sphere radius=0.01

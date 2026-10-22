@@ -1,0 +1,20 @@
+# Keyboard: a chunky cream keyboard 0.45 m wide (x) and 0.15 m deep (z), 3.2 cm high with the keys, lying on the desk. The case is
+# 2 cm high; the keys are bumps on it: three rows of thirteen and a long space bar in front. The bottom is at y = 0, the middle on
+# the origin, the back towards -z.
+format 1
+
+# Twice the vertices its size would give it: the keys are only a gap or two wide
+Detail detail=2
+    Union
+        Material material=home_plastic_light
+            Translate translation=(0, 0.01, 0)
+                RoundBox size=(0.225, 0.01, 0.075) roundness=0.008
+        Material material=home_plastic
+            Union
+                # Three rows of thirteen keys, 2.6 cm across and 3.2 cm apart
+                Translate translation=(0, 0.02, -0.03)
+                    LimitedRepetition spacing=0.032 limits=(6, 0, 1)
+                        RoundBox size=(0.013, 0.012, 0.013) roundness=0.005
+                # The space bar
+                Translate translation=(0, 0.02, 0.045)
+                    RoundBox size=(0.1, 0.012, 0.013) roundness=0.005

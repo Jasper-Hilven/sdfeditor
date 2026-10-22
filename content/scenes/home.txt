@@ -1,0 +1,70 @@
+# Mushroom 42's room (ticket 31.3): the stage of the story intro's comic panels, built into Assets/Scenes/Home.unity by HomeBuilder
+# (Tools > SDF Story > Build Home); the scene is never edited by hand. It is an editor-only scene, not in the build, and the models are
+# the home/ ones only: no battle level places one of them (a test checks it, and that this file places nothing else).
+#
+# Coordinates are the room's own, in metres, in the pipeline's frame (the one the models are modelled in; the builder mirrors x for
+# Unity as LevelBuilder does): the floor's top is y = 0, x -2..2 and z -1.5..1.5; the back wall (z = -1.5) has the window, the side
+# walls are at x = -2 and x = 2, and the fourth wall, at +z, is left open: that is where the camera stands. yaw is in degrees,
+# counter-clockwise from above, 0 = the model's front towards +z, so yaw 180 faces the back wall, yaw 90 faces +x and yaw -90 faces -x.
+#
+# Lines (key=value after the name; a missing yaw is 0, a missing scale 1):
+#   model <home/ model> at=(x, y, z) [yaw=..] [scale=..]       furniture and props, their feet or backs at the given point
+#   actor <scout prefab or one of its hands> name="..." at=(x, y, z) [yaw=..]   a player, named so that the capture (31.4) finds it
+#   light <name> point at=(x, y, z) color=(r, g, b) intensity=.. range=..
+#   camera at=(x, y, z) look=(x, y, z) fov=..                   a starting view; the capture sets its own
+#   ambient color=(r, g, b)                                      the flat dusk fill
+format 1
+
+# The shell, the window with the dusk card behind it (31.1: the opening is centred on x = 0.6, its sill at y = 1)
+model room-shell at=(0, 0, 0)
+model window at=(0.6, 1, -1.55)
+model window-backdrop at=(0.6, 1.35, -1.75)
+
+# The round rug under the chair
+model rug at=(-0.45, 0, -0.35)
+
+# The desk against the back wall, left of the window; the monitor, keyboard, mousepad and mouse on it (top at y = 0.55)
+model desk at=(-0.6, 0, -1.15)
+model monitor at=(-0.45, 0.55, -1.28)
+model keyboard at=(-0.55, 0.55, -0.97)
+model mousepad at=(-0.17, 0.55, -0.97)
+model mouse at=(-0.17, 0.56, -0.97) yaw=-10
+model lamp at=(-1.05, 0.55, -1.3) yaw=30
+model snack-bowl at=(-1.0, 0.55, -0.95)
+
+# The chair, turned to the desk
+model chair at=(-0.5, 0, -0.45) yaw=180
+
+# Snacks that did not make it to the desk
+model soda-can at=(-1.4, 0, -0.85)
+model crisp-bag at=(-1.45, 0, -0.4) yaw=35
+
+# The right wall: two shelves, the books and the plush on the lower one and the trophy alone on the upper one (the stuff spans
+# 0.73 m, so the trophy has a shelf of its own); shelves face -x (yaw -90), their local x runs along +z
+model shelf at=(1.97, 1.0, -0.3) yaw=-90
+model shelf-stuff at=(1.97, 1.0, -0.3) yaw=-90
+model shelf at=(1.97, 1.65, -0.3) yaw=-90
+model trophy at=(1.97, 1.65, -0.3) yaw=-90
+
+# Last year's tournament poster on the left wall (faces +x)
+model poster at=(-1.98, 1.0, -0.2) yaw=90
+
+# The players. 42 sits on the chair (seat top y = 0.5) with their back to the camera; Mushroom 7 and the four blue hands wait off
+# stage, to the right of the room's open side (x = 10), until a panel moves them in. The scout is 1.6 m tall and the furniture is made for a
+# mushroom about 1 m tall, so 42 is placed at scale 0.65 in every panel of the room (and of the warp); in the meadow they are full size
+actor amanita-scout name="Mushroom 42" at=(-0.5, 0.5, -0.45) yaw=180 scale=0.65
+actor amanita-scout name="Mushroom 7" at=(10, 0, 0)
+actor chanterelle-scout-hand0 name="Chanterelle Hand 1" at=(10, 1, -3)
+actor chanterelle-scout-hand1 name="Chanterelle Hand 2" at=(10.5, 1, -3)
+actor chanterelle-scout-hand0 name="Chanterelle Hand 3" at=(11, 1, -3)
+actor chanterelle-scout-hand1 name="Chanterelle Hand 4" at=(11.5, 1, -3)
+
+# The warm lamp (in the shade) and the cool monitor (just in front of the screen); panels 4 to 7 tint the monitor's blue
+light Lamp point at=(-1.05, 1.0, -1.2) color=(1, 0.68, 0.38) intensity=2.5 range=3.0
+light Monitor point at=(-0.45, 0.95, -0.85) color=(0.45, 0.65, 1) intensity=1.4 range=2.4
+
+# A dusk fill, dim and violet
+ambient color=(0.16, 0.13, 0.22)
+
+# The door corner at 1.1 m, looking across the room
+camera at=(1.8, 1.1, 1.45) look=(-0.4, 0.8, -0.6) fov=60
