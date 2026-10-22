@@ -331,25 +331,22 @@ The train adds 3 draws and 14k triangles at most.
 
 ## Subtickets
 
-One agent each (26's checklist; stubs as in the chessboard's fill: `# STUB: placeholder until the real model lands`, overwritten
-only by the model's owner).
+One agent each (26's checklist; the generic infrastructure first, as 28-30 reuse it). The original seven items are split into eleven:
 
-- **27.1 Models**: the clutter, knee cover, tall blockers, landmarks, track and train in `content/models/toys/`, their materials,
-  `sdf render` and a look at each png, bounds tests in `SDFPipeline.Tests/Models/`, meshed at 256 with 3 LODs within budget. Split
-  across agents if needed: (a) clutter and knee cover, (b) tall blockers, track and train, (c) landmarks.
-- **27.2 Level file**: `content/levels/toybox.level` with every section commented, stubs for missing models; the room line, regions,
-  sides, neutral pods, the hand-placed landmarks and track, the scatter and trees sections, the draw groups; `toybox` in
-  `BattleSidesTests.LevelNames` with its weapons; `ContentToyBox_HasOnlyToys` (every named model from `toys/`, the battle objects or
-  the team machines; no material from another theme); `LevelFileTests` and the scatter tests pass.
-- **27.3 Room look and light**: the room's wall and lid materials and options, a room of any size, the lid crack strip, the light
-  from the north, the fill; the chessboard unchanged.
-- **27.4 Toy castle**: parts in `content/parts/toys/castle/`, `toy-castle0`, `draw castle` group, the pennants; floor heights as 09;
-  the castle's walk joins the floor in the navmesh.
-- **27.5 Toy machines**: tin soldier, tin tank and RC helicopter per team; the level's machine set; helicopters' room limits.
-- **27.6 The train**: the timetable on the track's centre line, the cars, knock-aside and damage, the kill feed's "Toy train", riding
-  for players, carving and the bots' crossing check; EditMode tests for the timetable and the knock-aside.
-- **27.7 Bake and check**: bake, `dotnet test`, the Unity rebuild, Check Navmesh, snapshots on both presets (the table above filled
-  in), a full match with 7 bots, frame time on the web preset; then the main checkout's re-mesh and rebake.
+- [27.1 Room looks](27.1-room-looks.md): walls and lid materials, any room size, the lid-crack strip, data-driven light (generic).
+- [27.2 Machine sets](27.2-machine-sets.md): `machines set=<name>`, prefabs per set, helicopter limits in a room (generic).
+- [27.3 Path movers](27.3-path-movers.md): a looping timetable vehicle, `mover` in the level file, `PathMover`, moving platform in the controller (generic).
+- [27.4 Models: clutter and knee cover](27.4-models-clutter-knee.md)
+- [27.5 Models: tall blockers, track, train](27.5-models-blockers-track-train.md)
+- [27.6 Models: landmarks](27.6-models-landmarks.md)
+- [27.7 Toy castle and pennants](27.7-toy-castle.md)
+- [27.8 Toy machines](27.8-toy-machines.md)
+- [27.9 Level file](27.9-level-file.md): `toybox.level`, tests, ground materials, the bake.
+- [27.10 Train behaviour](27.10-train-behaviour.md): knock-aside, "Toy train" kill, puffs, bots' crossing check.
+- [27.11 Bake and check](27.11-bake-and-check.md): remesh, rebuild, snapshots, budgets.
+
+Open questions were answered with defaults: the train pushes and does 20 damage, riding is in, the machines keep the scouts' floating eyes, the teddy and
+jester have painted toy faces.
 
 ## Acceptance
 
