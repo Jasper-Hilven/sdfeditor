@@ -46,6 +46,7 @@ Shader "SdfMushrooms/Toon Outline"
         float3 color : TEXCOORD0;
         float3 normalWS : TEXCOORD1;
         float3 positionWS : TEXCOORD2;
+        half fogFactor : TEXCOORD3;
         UNITY_VERTEX_INPUT_INSTANCE_ID
     };
 
@@ -73,6 +74,7 @@ Shader "SdfMushrooms/Toon Outline"
         output.color = input.color.rgb;
         output.normalWS = normalWS;
         output.positionWS = positionWS;
+        output.fogFactor = ComputeFogFactor(positionCS.z);
         return output;
     }
 
@@ -102,6 +104,7 @@ Shader "SdfMushrooms/Toon Outline"
             ZTest LEqual
 
             HLSLPROGRAM
+            #pragma multi_compile_fog
             #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma multi_compile_instancing
             #pragma vertex Vert
@@ -110,14 +113,14 @@ Shader "SdfMushrooms/Toon Outline"
 
             Varyings Vert(Attributes input) { return OutlineVert(input); }
 
-            // Faded toward the sky like its surface, so far lines melt into the haze with it
+            // Faded toward the sky and into the fog like its surface, so far lines melt into the haze with it
             float4 Frag(Varyings input) : SV_Target0
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 SdfLodFade(input.positionCS);
                 // The aux pass of the story's panels (SdfComic.hlsl) has no outline: the post pass draws its own ink
                 clip(1.5 - _SdfComic.x);
-                return float4(SkyFade(input.color * _OutlineTone.rgb, input.positionWS), 1.0);
+                return float4(MixFog(SkyFade(input.color * _OutlineTone.rgb, input.positionWS), input.fogFactor), 1.0);
             }
             ENDHLSL
         }

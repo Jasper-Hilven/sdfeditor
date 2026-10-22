@@ -1,0 +1,19 @@
+# Washcloth 0: a folded terry washcloth, 4.5 m square and 0.9 m tall (30 times life size, 15 cm), a peach lower fold and a lilac upper fold laid a little
+# askew on it, the top bulging in a soft pillow (no flat top). The terry loops are the materials' speckle pattern. Knee cover; convex collider.
+format 1
+collider convex
+
+Detail detail=0.4
+    Intersection
+        Union
+            Material material=bath_terry_peach
+                Translate translation=(0, 0.22, 0)
+                    RoundBox size=(2.25, 0.22, 2.25) roundness=0.2
+            Material material=bath_terry_lilac
+                SmoothUnion smoothness=0.2
+                    Translate translation=(0, 0.52, 0)
+                        Rotate rotation=(0, 0.14, 0)
+                            RoundBox size=(1.95, 0.18, 1.95) roundness=0.18
+                    Translate translation=(0, 0.48, 0)
+                        Ellipsoid radii=(1.6, 0.34, 1.6)
+        Plane normal=(0, -1, 0) height=0

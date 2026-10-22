@@ -33,6 +33,7 @@ namespace SdfLevel.Editor
         public const string RoomName = "Room";
         public const string ShaderPath = "Assets/Level/Shaders/SdfRoomFace.shader";
         public const string PlanksShaderPath = "Assets/Level/Shaders/SdfRoomPlanks.shader";
+        public const string TilesShaderPath = "Assets/Level/Shaders/SdfRoomTiles.shader";
         public const string GlowName = "Glow";
 
         /// <summary>The colliders are this thick, outside the faces; the player cannot leave the room however fast it moves.</summary>
@@ -171,6 +172,19 @@ namespace SdfLevel.Editor
             public Vector2 Dovetail;
             /// <summary>Where the cross battens lie, as fractions of the face's length along v (below 0 for none), and their width.</summary>
             public Vector3 Battens = new Vector3(-1, -1, 3);
+            /// <summary>
+            /// Draws the face on SdfRoomTiles.shader instead (ticket 29.1): <see cref="Tile"/> metres square tiles in a checker of the
+            /// material's colour and <see cref="TileAlt"/>, grout between them; a tile size of 0 is one plain colour. The boards, frieze,
+            /// dovetail and batten settings above are not used.
+            /// </summary>
+            public bool Tiled;
+            public float Tile = 5;
+            /// <summary>The second tile's colour (sRGB).</summary>
+            public Color TileAlt = Color.white;
+            /// <summary>How far each tile's tone steps from the next (fraction either way).</summary>
+            public float TileToneStep = 0.02f;
+            /// <summary>The colours' scale: the toon bands darken a white face to grey, so a white room takes a little over 1.</summary>
+            public float TileBrightness = 1;
             /// <summary>Set for a look drawn by SdfRoomCase.shader (the computer case, ticket 30.2, see LevelRoomCase) instead of the planks.</summary>
             public LevelRoomCase.CaseLook Case;
         }
@@ -192,6 +206,10 @@ namespace SdfLevel.Editor
             },
             // The lid's underside: the same boards with two cross battens a quarter and three quarters across
             ["toybox-lid"] = new Look { Battens = new Vector3(0.25f, 0.75f, 3) },
+            // The bathroom's walls (ticket 29.1): glazed tiles 5 m square (17 cm real at 30x), white (the material's colour) and pale mint
+            // in a checker with a grout line between; and its ceiling, plain white paint
+            ["bathroom-wall"] = new Look { Tiled = true, Tile = 5, TileAlt = Srgb(0xCFE6D8), TileBrightness = 1.25f },
+            ["bathroom-ceiling"] = new Look { Tiled = true, Tile = 0, TileBrightness = 1.25f },
             // The computer case (30.2): gunmetal panels, honeycomb vents on the upper half of the west and east walls; smoked glass lid
             // with a diagonal reflection streak and a warm patch off-centre
             ["case-wall"] = new Look
@@ -242,6 +260,8 @@ namespace SdfLevel.Editor
             if (look.Case != null)
                 return LevelRoomCase.Material(name, face, materialName, look.Case, paint, LightLean);
             var parameters = new SdfGlb.Material { Name = materialName, Parameters = (JObject)paint["parameters"] };
+            if (look.Tiled)
+                shader = AssetDatabase.LoadAssetAtPath<Shader>(TilesShaderPath) ?? throw new InvalidOperationException($"The shader {TilesShaderPath} is missing");
 
             var path = $"{LevelBuilder.MaterialFolder}/{name} Room {face.Name.Replace("+", "pos").Replace("-", "neg")}.mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -264,6 +284,18 @@ namespace SdfLevel.Editor
             // Text reads left to right seen from inside where u x v points away from the viewer, against the face's normal
             var reading = Vector3.Dot(Vector3.Cross(face.U, face.V), face.Normal) < 0 ? 1 : -1;
             material.SetVector("_RoomExtent", new Vector4(face.Size.x, face.Size.y, reading, LightLean));
+            if (look.Tiled)
+            {
+                var surface = LevelBuilder.Surface(parameters);
+                material.SetVector("_TileBase", LevelBuilder.Color(parameters, "baseColor", 0));
+                material.SetVector("_TileAlt", look.TileAlt.linear);
+                material.SetVector("_TileGrout", LevelBuilder.Color(parameters, "edgeColor", 0));
+                material.SetVector("_TileSurface", new Vector4(surface.x, surface.y, 0, 0));
+                material.SetVector("_Tile", new Vector4(look.Tile, look.TileToneStep, parameters.Number("edgeThickness") / 2, look.TileBrightness));
+                material.enableInstancing = true;
+                EditorUtility.SetDirty(material);
+                return material;
+            }
             material.SetVector("_WoodBase", LevelBuilder.Color(parameters, "baseColor", 0));
             material.SetVector("_WoodVariation", LevelBuilder.Color(parameters, "variationColor", parameters.Number("variationScale")));
             material.SetVector("_WoodSurface", LevelBuilder.Surface(parameters));

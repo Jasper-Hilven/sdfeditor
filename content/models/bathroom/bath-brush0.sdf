@@ -1,0 +1,23 @@
+# Bath brush 0: a long-handled bath brush lying on the floor (30 times life size), 12 m long (x), the wooden handle 0.9 m thick, the head 3.6 m long and 2.4 m wide (z) with its
+# bristles standing up, 2.4 m tall in all (a wooden back 0.6 m, bristles on it). The handle end is at -x, the head at +x. Origin at the middle of its length on y = 0.
+# Knee cover and wall: the handle is shot over and jumped, the head is a wall. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.5
+    Union
+        # The handle, rounded at the free end, lying on the floor; it runs into the head's back
+        Material material=bath_wood
+            Intersection
+                SmoothUnion smoothness=0.2
+                    Capsule a=(-5.55, 0.45, 0) b=(3.0, 0.45, 0) radius=0.45
+                    # The head's wooden back, a flat rounded plate
+                    Translate translation=(4.2, 0.3, 0)
+                        RoundBox size=(1.8, 0.3, 1.2) roundness=0.2
+                # The blend swells a little under the floor: cut it flat there
+                Translate translation=(0, 1.5, 0)
+                    Box size=(8, 1.5, 4)
+        # The bristles: a dense block on the back, a little rounded on top
+        Material material=bath_bristle
+            Translate translation=(4.2, 1.5, 0)
+                RoundBox size=(1.68, 0.9, 1.08) roundness=0.25

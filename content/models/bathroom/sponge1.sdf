@@ -1,0 +1,19 @@
+# Sponge 1: a butter yellow bath sponge lying scrub side up, 3.4 m long, 2.4 m wide and 1 m tall (30 times life size): the yellow body underneath, the
+# mint scrub layer a puffy mat on top. The pores and the scrub's pits are the materials' speckle patterns. Knee cover; convex collider.
+format 1
+collider convex
+
+Detail detail=0.4
+    Intersection
+        Union
+            Material material=bath_sponge_yellow
+                Translate translation=(0, 0.3, 0)
+                    RoundBox size=(1.7, 0.3, 1.2) roundness=0.28
+            # The scrub: a cushion on top, domed so it has no flat top
+            Material material=bath_scrub_mint
+                SmoothUnion smoothness=0.15
+                    Translate translation=(0, 0.66, 0)
+                        RoundBox size=(1.64, 0.18, 1.12) roundness=0.18
+                    Translate translation=(0, 0.66, 0)
+                        Ellipsoid radii=(1.4, 0.34, 0.9)
+        Plane normal=(0, -1, 0) height=0

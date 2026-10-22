@@ -1,0 +1,35 @@
+# Soap bar 2: a mint soap bar worn thin, 2.6 m long, 1.6 m wide and 0.6 m tall (30 times life size), lying in a little suds that foam up round its
+# foot. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+# The worn cake: a low rounded block with a shallow dome
+Detail detail=0.4
+    Union
+        Material material=bath_soap_mint
+            Intersection
+                SmoothUnion smoothness=0.15
+                    Translate translation=(0, 0.22, 0)
+                        RoundBox size=(1.2, 0.22, 0.7) roundness=0.22
+                    Translate translation=(0, 0.2, 0)
+                        Ellipsoid radii=(1.05, 0.4, 0.58)
+                Plane normal=(0, -1, 0) height=0
+        # Suds round the foot, lower than the cake, so it still reads as soap
+        Material material=bath_foam
+            Intersection
+                SmoothUnion smoothness=0.1
+                    Translate translation=(0.95, 0.12, 0.55)
+                        Ellipsoid radii=(0.38, 0.3, 0.34)
+                    Translate translation=(0.45, 0.1, 0.78)
+                        Ellipsoid radii=(0.3, 0.22, 0.26)
+                    Translate translation=(-0.5, 0.12, 0.74)
+                        Ellipsoid radii=(0.34, 0.26, 0.3)
+                    Translate translation=(-1.05, 0.1, 0.35)
+                        Ellipsoid radii=(0.26, 0.2, 0.24)
+                    Translate translation=(0.2, 0.1, -0.78)
+                        Ellipsoid radii=(0.34, 0.24, 0.3)
+                    Translate translation=(-0.7, 0.1, -0.7)
+                        Ellipsoid radii=(0.26, 0.2, 0.24)
+                    Translate translation=(1.1, 0.1, -0.3)
+                        Ellipsoid radii=(0.28, 0.22, 0.26)
+                Plane normal=(0, -1, 0) height=0

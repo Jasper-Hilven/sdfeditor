@@ -1,0 +1,33 @@
+# Shampoo 2: a butter yellow shampoo bottle lying on its side, 6.6 m long, 3.6 m wide and 2.4 m tall (30 times life size): its base at -z, its white flip cap
+# at +z, the flat side of the oval down, a label up. A knee-to-chest wall: nobody jumps it from the side. Tall blocker: convex collider.
+format 1
+collider convex
+
+# The standing bottle as in shampoo 0, to be laid down along z
+body =
+    Scale scale=(1.5, 1, 1)
+        SmoothUnion smoothness=0.4
+            Translate translation=(0, 2.1, 0)
+                RoundedCylinder radius=0.95 roundness=0.5 height=2.1
+            ArbitraryRoundCone a=(0, 3.2, 0) b=(0, 5.3, 0) radiusA=0.85 radiusB=0.45
+
+Detail detail=0.5
+    Intersection
+        # A quarter turn about x lays +y onto +z and the bottle's front (+z) onto -y; the length is centred on the origin
+        Translate translation=(0, 1.2, -3.3)
+            Rotate rotation=(1.5707964, 0, 0)
+                Union
+                    Material material=bath_plastic_yellow
+                        $body
+                    # The label on what is now the top
+                    Material material=bath_plastic_cream
+                        Translate translation=(0, 3.0, -1.2)
+                            Ellipsoid radii=(1.2, 0.8, 0.2)
+                    Material material=bath_plastic_white
+                        Scale scale=(1.4, 1, 1)
+                            SmoothUnion smoothness=0.1
+                                Translate translation=(0, 5.65, 0)
+                                    RoundedCylinder radius=0.62 roundness=0.15 height=0.5
+                                Translate translation=(0, 5.95, 0)
+                                    Ellipsoid radii=(0.62, 0.65, 0.62)
+        Plane normal=(0, -1, 0) height=0

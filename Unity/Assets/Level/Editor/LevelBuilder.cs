@@ -97,8 +97,9 @@ namespace SdfLevel.Editor
         /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
         /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
         /// Version 22: the movers' behaviour (ticket 27.10): push, damage, kill feed name, puffs, crossing distance.
+        /// Version 23: the level's fog, steam and drips (ticket 29.1, <see cref="LevelAtmosphere"/>), the camera of a foggy room clearing to its colour.
         /// </summary>
-        public const int BuilderVersion = 22;
+        public const int BuilderVersion = 23;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -117,8 +118,8 @@ namespace SdfLevel.Editor
         /// cast no shadows of that light (the ceiling would shade the whole room) and receive none; pieces cast and receive them on the
         /// floor. A wall only grazes an overhead light, so SdfRoomFace.shader leans the light toward each face's own normal: walls in the
         /// lit and mid bands, the ceiling in the mid band, the floor in the lit band with the shadows in the shadow band. There is no
-        /// distance fade (no SkySettings fade amount): a far wall keeps its own colours, no fog, and the camera clears to a flat colour
-        /// it never shows.
+        /// distance fade (no SkySettings fade amount): a far wall keeps its own colours, no fog unless the level asks for one (a
+        /// <c>fog</c> line, <see cref="LevelAtmosphere"/>), and the camera clears to a flat colour it never shows (the fog's, if there is one).
         /// </summary>
         private static readonly MushroomScene.IndoorLighting RoomLight = new MushroomScene.IndoorLighting
         {
@@ -461,6 +462,7 @@ namespace SdfLevel.Editor
 
             var hasRoom = LevelRoom.HasRoom(data);
             var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
+            LevelAtmosphere.ApplyFog(scene, data);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -529,6 +531,10 @@ namespace SdfLevel.Editor
             var battle = AddBattle(scene, data, player);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
             var movers = AddMovers(scene, data);
+            // The level's steam and drips (ticket 29.1) likewise
+            LevelAtmosphere.AddSteam(scene, data);
+            // The zone mask (ticket 29.7): slick and wet zones read by position
+            SdfLevel.Editor.LevelZonesBuilder.Add(scene, level, data, battle);
             // The data pulses (ticket 30.9): the overlay mesh and the rule, outside the Level root too
             LevelPulses.Add(scene, data, name, meshFolder);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
@@ -1273,7 +1279,8 @@ namespace SdfLevel.Editor
             {
                 // Surrounded by walls: no skybox to clear to, a flat colour the room never shows; far enough for the whole cube
                 camera.clearFlags = CameraClearFlags.SolidColor;
-                camera.backgroundColor = UnityEngine.Color.black;
+                // ... or, in a level with fog (ticket 29.1), the fog's colour, as the far walls fade into it
+                camera.backgroundColor = LevelAtmosphere.FogColor(data) ?? UnityEngine.Color.black;
                 camera.farClipPlane = RoomFarPlaneOf(data);
             }
             return player;

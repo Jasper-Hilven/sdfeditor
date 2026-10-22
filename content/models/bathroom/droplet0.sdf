@@ -1,0 +1,10 @@
+# Droplet 0: a domed water drop, 0.3 m across and 0.12 m tall (30 times life size, a 1 cm drop), round.
+# Ground clutter: no collider.
+format 1
+
+# A dome of water: half an ellipsoid on the floor
+Detail detail=0.25
+    Material material=bath_water
+        Intersection
+            Ellipsoid radii=(0.15, 0.12, 0.14)
+            Plane normal=(0, -1, 0) height=0

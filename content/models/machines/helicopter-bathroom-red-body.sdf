@@ -1,0 +1,39 @@
+# Helicopter body, red (ticket 29.6): the bathroom's spray copter: a trigger spray bottle in team red with a white base band, standing on its
+# flat base; the spray head is a white tube along the top with the squirt nozzle at the front and a little fan housing at the back, a
+# white trigger hanging under the nozzle, and the rotor's mast on top. The scouts' floating eyes hover in front of the bottle.
+# Pivot: the origin is on the ground under the middle (the bottle stands on it), +z forward. The rotor's (helicopter-bathroom-red-rotor)
+# pivot is at (0, 0.56, 0) and the tail rotor's (helicopter-bathroom-red-tail-rotor) at (0.025, 0.4, -0.35) in this model: the nozzle
+# faces front, so the fan sits at the back end of the spray head, not on the nozzle.
+format 1
+collider convex
+
+Detail detail=0.4
+    Union
+        # The bottle: a rounded block with a sloping shoulder up to the neck, and its label band
+        Material material=machine_red_paint
+            SmoothUnion smoothness=0.06
+                Translate translation=(0, 0.17, 0)
+                    RoundBox size=(0.13, 0.17, 0.1) roundness=0.06
+                ArbitraryRoundCone a=(0, 0.25, 0) b=(0, 0.38, 0) radiusA=0.105 radiusB=0.05
+        Material material=bath_plastic_white
+            Intersection
+                Translate translation=(0, 0.17, 0)
+                    RoundBox size=(0.15, 0.17, 0.12) roundness=0.06
+                Translate translation=(0, 0.06, 0)
+                    Box size=(0.3, 0.075, 0.3)
+        # The spray head: a tube front to back, the nozzle cone ahead of it, the trigger below, the mast up to the rotor
+        Material material=bath_plastic_white
+            Union
+                Capsule a=(0, 0.42, -0.35) b=(0, 0.42, 0.12) radius=0.055
+                ArbitraryRoundCone a=(0, 0.42, 0.1) b=(0, 0.41, 0.23) radiusA=0.05 radiusB=0.022
+                Capsule a=(0, 0.4, 0.05) b=(0, 0.28, 0.16) radius=0.022
+                Capsule a=(0, 0.45, 0) b=(0, 0.55, 0) radius=0.035
+        # The nozzle's mouth
+        Material material=bath_eye_dark
+            ArbitraryCappedCylinder a=(0, 0.41, 0.225) b=(0, 0.41, 0.235) radius=0.01
+        # Eyes, mirrored: the scouts' eyeballs at a little over half size, floating in front of the bottle, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.075, 0.25, 0.17)
+                Scale scale=(0.55, 0.55, 0.55)
+                    Part part=eye_machine

@@ -160,12 +160,16 @@ namespace SdfLevel.Editor
                         ShootToyBox(scene, eye, scatter, Shot, EyeShot);
                     if (scene.name == "Computer")
                         ShootComputer(scene, scatter, Shot);
+                    if (scene.name == "Bathroom")
+                        ShootBathroom(scene, scatter, Shot);
                     QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                     EyeShot("room_eye_web", eye, Quaternion.Euler(0, 90, 0));
                     if (scene.name == "Toybox")
                         ShootToyBox(scene, eye, scatter, Shot, EyeShot, "_web");
                     if (scene.name == "Computer")
                         ShootComputer(scene, scatter, Shot, "_web");
+                    if (scene.name == "Bathroom")
+                        ShootBathroom(scene, scatter, Shot, "_web");
                     Debug.Log($"SDF level: snapshots written to {directory}");
                     return;
                 }
@@ -344,6 +348,48 @@ namespace SdfLevel.Editor
             View("pc_gpu", OnGround(new Vector3(0, 0, 18)) + up, Quaternion.Euler(-8, 0, 0));
             View("pc_bridge", OnGround(new Vector3(30, 0, 8)) + up, Quaternion.LookRotation(new Vector3(-1, 0, 0.5f)));
             View("pc_ram", OnGround(new Vector3(48, 0, 0)) + up, Quaternion.Euler(-3, 90, 0));
+        }
+
+        /// <summary>
+        /// The bathroom's budget views (ticket 29.9), each logged as the toy box's are: from the west spawn towards the middle, its flag,
+        /// the tub and back; the duck, the drain and the puddle trail, the slicks, the south lane, the scale and window, the base's courtyard
+        /// and cup, the fog on the far walls, above and the whole room from the top. Unity's x is the pipeline's mirrored, so the west spawn
+        /// (pipeline (-47, -17)) stands at Unity x = +47 and faces -x towards the middle.
+        /// </summary>
+        private static void ShootBathroom(Scene scene, InstancedScatterRenderer scatter, Action<string, Vector3, Quaternion, int, int> shot, string suffix = "")
+        {
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            void View(string name, Vector3 position, Quaternion rotation)
+            {
+                shot(name + suffix, position, rotation, 1920, 1080);
+                Debug.Log($"SDF level: {name + suffix} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): {ToyCost(scene, camera, position, rotation, scatter)}");
+            }
+            Vector3 At(float x, float z) => OnGround(new Vector3(x, 0, z)) + up;
+            Quaternion Look(Vector3 from, float x, float y, float z) => Quaternion.LookRotation(new Vector3(x, y, z) - from);
+            var spawn = At(47, -17);
+            View("bath_spawn", spawn, Quaternion.Euler(0, -90, 0));
+            View("bath_spawn_flag", spawn, Look(spawn, 63, 1.5f, 0));
+            View("bath_spawn_tub", spawn, Look(spawn, 0, 12, 38.75f));
+            View("bath_spawn_back", spawn, Quaternion.Euler(0, 90, 0));
+            View("bath_duck", At(16, -14), Look(At(16, -14), 0, 4, 0));
+            View("bath_tub", At(0, 10), Quaternion.Euler(-12, 0, 0));
+            View("bath_puddles", At(0, 6), Quaternion.Euler(-6, 0, 0));
+            View("bath_drain", At(12, -10), Look(At(12, -10), 0, 0.5f, -28));
+            View("bath_scale", At(10, -22), Look(At(10, -22), 0, 3, -40));
+            View("bath_window", At(20, 10), Look(At(20, 10), 0, 18, -50));
+            View("bath_slick_north", At(62, 8), Look(At(62, 8), 40, 0.5f, 32));
+            View("bath_slick_south", At(60, -14), Look(At(60, -14), 40, 0.5f, -40));
+            View("bath_south_lane", At(60, -40), Quaternion.Euler(-2, -90, 0));
+            View("bath_courtyard", At(62, 0), Quaternion.Euler(-2, -90, 0));
+            View("bath_dish_outside", At(40, 0), Quaternion.Euler(0, 90, 0));
+            View("bath_cup", At(52, 8), Look(At(52, 8), 68.5f, 3, 0));
+            View("bath_pyramid", At(10, -4), Look(At(10, -4), 26, 3, -19));
+            View("bath_brush", At(-14, 0), Look(At(-14, 0), -30, 2, 14));
+            View("bath_fog_far", At(72, -46), Quaternion.LookRotation(new Vector3(-1, 0.05f, 0.7f)));
+            View("bath_fog_north", At(0, -20), Quaternion.Euler(-4, 0, 0));
+            View("bath_above", new Vector3(0, 62, -48), Quaternion.Euler(52, 0, 0));
+            View("bath_top", new Vector3(0, 68, 0), Quaternion.Euler(90, 0, 0));
         }
 
         /// <summary>What the toy box draws in a view: the instanced groups (bits, toys, castle parts), the placed models and the movers' cars.</summary>

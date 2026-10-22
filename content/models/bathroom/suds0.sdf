@@ -1,0 +1,28 @@
+# Suds 0: a big heap of bath foam, about 1.4 m across and 0.45 m tall (30 times life size), a tall middle with bubble lumps round and on it.
+# Ground clutter: no collider.
+format 1
+
+# A heap of foam: soft balls smoothed together, the part under the floor cut away
+Detail detail=0.15
+    Material material=bath_foam
+        Intersection
+            SmoothUnion smoothness=0.05
+                Translate translation=(0, 0, 0)
+                    Ellipsoid radii=(0.42, 0.34, 0.4)
+                Translate translation=(0.1, 0, 0.05)
+                    Ellipsoid radii=(0.28, 0.4, 0.26)
+                Translate translation=(0.5, 0, 0.1)
+                    Ellipsoid radii=(0.22, 0.2, 0.22)
+                Translate translation=(-0.45, 0, 0.2)
+                    Ellipsoid radii=(0.24, 0.22, 0.24)
+                Translate translation=(0.15, 0, -0.48)
+                    Ellipsoid radii=(0.22, 0.2, 0.22)
+                Translate translation=(-0.3, 0, -0.38)
+                    Ellipsoid radii=(0.19, 0.16, 0.19)
+                Translate translation=(0.38, 0, 0.42)
+                    Ellipsoid radii=(0.18, 0.15, 0.18)
+                Translate translation=(-0.1, 0, 0.5)
+                    Ellipsoid radii=(0.17, 0.14, 0.17)
+                Translate translation=(0.38, 0, -0.3)
+                    Ellipsoid radii=(0.16, 0.14, 0.16)
+            Plane normal=(0, -1, 0) height=0
