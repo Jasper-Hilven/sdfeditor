@@ -387,9 +387,9 @@ namespace SdfCampaign.Tests
         // --- beats, the sequencer and the warm-up (ticket 32.7) ---
 
         [Test]
-        public void Beats_AreDataForTheFirstTwo_PlayedInTheNextBattlesScene()
+        public void Beats_AreDataForAllSeven_PlayedInTheNextBattlesScene()
         {
-            foreach (var id in new[] { "beat-fungal", "beat-chessboard" })
+            foreach (var id in new[] { "beat-fungal", "beat-chessboard", "beat-toybox", "beat-kitchen", "beat-bathroom", "beat-computer", "beat-boss" })
             {
                 var beat = Beats.Find(id);
                 Assert.IsNotNull(beat, id);
@@ -405,12 +405,14 @@ namespace SdfCampaign.Tests
                     Assert.IsNotNull(shot.move);
                     if (!string.IsNullOrEmpty(shot.move.actor))
                         Assert.IsNotNull(beat.Actor(shot.move.actor), $"{id}: no actor {shot.move.actor}");
-                    if (!string.IsNullOrEmpty(shot.speaker))
+                    if (!string.IsNullOrEmpty(shot.speaker) && shot.speaker != Beats.Ref)
                         Assert.IsNotNull(beat.Actor(shot.speaker), $"{id}: the speaker {shot.speaker} is on the stage");
                 }
             }
             Assert.IsFalse(Beats.Has("meadow"));
-            Assert.IsNull(Beats.Find("beat-toybox"), "later beats come with their levels (32.9)");
+            foreach (var step in Def.Steps)
+                if (step.kind == StepKind.Cutscene && step.id.StartsWith("beat-"))
+                    Assert.IsTrue(Beats.Has(step.id), step.id + " has beat data");
         }
 
         [Test]
@@ -538,6 +540,72 @@ namespace SdfCampaign.Tests
             Assert.AreEqual("beat-fungal", again.NextStep().id, "a beat not yet seen plays first");
             again.CompleteCutscene("beat-fungal");
             Assert.AreEqual("fungal", Fresh(store, scene => scene != "ToyBox").NextStep().id);
+        }
+
+        // --- the remaining arenas by data (ticket 32.9) ---
+
+        [Test]
+        public void TheWholeOrder_FlowsThroughWithEveryScenePresent_AndUnlocksOneArenaAtATime()
+        {
+            var scenes = new HashSet<string>(Def.Steps.Select(s => s.scene));
+            var p = Fresh(null, scenes.Contains);
+            var played = new List<string>();
+            for (var step = p.NextStep(); step != null; step = p.NextStep())
+            {
+                played.Add(step.id);
+                if (step.IsBattle)
+                {
+                    Assert.IsTrue(p.IsUnlocked(step.id), step.id);
+                    var next = Def.Steps.Skip(Def.IndexOf(step.id) + 1).FirstOrDefault(s => s.IsBattle);
+                    if (next != null) Assert.IsFalse(p.IsUnlocked(next.id), next.id + " stays locked until " + step.id + " is won");
+                    p.RecordWin(step.id, 3, 1, 400, Difficulty.Normal);
+                }
+                else p.CompleteCutscene(step.id);
+                Assert.Less(played.Count, 40, "the walk must end");
+            }
+            CollectionAssert.AreEqual(Def.Steps.Select(s => s.id).ToArray(), played.ToArray());
+            Assert.IsTrue(p.Completed);
+        }
+
+        static List<string> Walk(CampaignProgress p)
+        {
+            var ids = new List<string>();
+            for (var step = p.NextStep(); step != null && ids.Count < 60; step = p.NextStep())
+            {
+                ids.Add(step.id);
+                if (step.IsBattle) p.RecordWin(step.id, 3, 1, 400, Difficulty.Normal);
+                else p.CompleteCutscene(step.id);
+            }
+            return ids;
+        }
+
+        [Test]
+        public void AFakeDefinition_WithAnAddedLevel_FlowsWithoutAnyOtherChange()
+        {
+            var steps = Def.Steps.ToList();
+            var at = Def.IndexOf("ending");
+            steps.Insert(at, new CampaignStep("beat-extra", StepKind.Cutscene, "Extra", "Extra"));
+            steps.Insert(at + 1, new CampaignStep("extra", StepKind.Battle, "Extra", "Extra", Def.Find("computer").setup));
+            var def = new CampaignDefinition(steps);
+            var all = new HashSet<string>(steps.Select(s => s.scene));
+            var with = Walk(CampaignProgress.Load(def, new MemoryCampaignStorage(), all.Contains));
+            var without = Walk(CampaignProgress.Load(def, new MemoryCampaignStorage(), scene => scene != "Extra" && all.Contains(scene)));
+            Assert.AreEqual(9, def.Battles().Count());
+            CollectionAssert.AreEqual(steps.Select(s => s.id).ToArray(), with.ToArray());
+            CollectionAssert.AreEqual(steps.Select(s => s.id).Where(id => id != "beat-extra" && id != "extra").ToArray(), without.ToArray());
+        }
+
+        [Test]
+        public void EachMissingScene_IsSkippedWithItsBeat_AndTheRestOfTheOrderHolds()
+        {
+            foreach (var missing in new[] { "ToyBox", "Kitchen", "Bathroom", "Computer", "Boss" })
+            {
+                var p = Fresh(null, scene => scene != missing);
+                var seen = Walk(p);
+                var expected = Def.Steps.Where(s => s.scene != missing).Select(s => s.id).ToArray();
+                CollectionAssert.AreEqual(expected, seen.ToArray(), missing);
+                Assert.IsTrue(p.Completed, missing);
+            }
         }
 
         // --- the ending and the credits (ticket 32.8) ---

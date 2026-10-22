@@ -122,7 +122,8 @@ namespace SdfCampaign
         }
     }
 
-    /// <summary>The beats of the campaign by step id (ticket 32, section 3). Later beats are added here, one entry each (32.9).</summary>
+    /// <summary>The beats of the campaign by step id (ticket 32, section 3). B3-B7 (32.9) are written ahead of their scenes: a beat whose scene is not in the build is skipped
+    /// with its battle. A new beat is one more entry in <see cref="Build"/>.</summary>
     public static class Beats
     {
         public const string Prime = "Chanterelle Prime", Ref = "Ref Puffball";
@@ -145,6 +146,8 @@ namespace SdfCampaign
             var you = Cast.You;
             var seven = Cast.Red[1];
             var thirteen = Cast.Red[2];
+            var ninetyNine = Cast.Red[3];
+            var award = Cast.Blue[4];
             var list = new[]
             {
                 // B1: the red castle at night; Prime steps out of a pixel pop and changes the rules
@@ -180,6 +183,91 @@ namespace SdfCampaign
                         new BeatShot(thirteen, "Is it normal for the tournament to be inside your house?", 5.5f, CameraMove.On(thirteen, 150, 175, 3f, 2.5f)),
                         new BeatShot(Prime, "Board games are a sport now.", 4f, CameraMove.On(Prime, 160, 195, 3.6f, 3f)),
                         new BeatShot(Prime, "The minigun? Banned. Board-game reasons.", 5.5f, CameraMove.On(Prime, 200, 170, 2.6f, 3.4f)),
+                        new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
+                    }),
+                // B3: the toy box, red side; the referee announces from the sky, 42 meets an old toy on the other team
+                new Beat("beat-toybox", "Off the table",
+                    new[]
+                    {
+                        new BeatActor(you, Team.Red, Anchor.RedSpawn, 0, 0, 0),
+                        new BeatActor(seven, Team.Red, Anchor.RedSpawn, -2.3f, -0.6f, 20),
+                        new BeatActor(Prime, Team.Blue, Anchor.RedSpawn, 1f, 5f, 180),
+                    },
+                    new[]
+                    {
+                        new BeatShot("", "The Toy Box.", 4.5f, CameraMove.At(Anchor.RedSpawn, 190, 160, 20, 14, 6, 4.5f, 2.5f)),
+                        new BeatShot(Ref, "Arena four: the toy box. Please do not chew the arena.", 6f, CameraMove.At(Anchor.Centre, 180, 150, 24, 18, 9, 7, 2)),
+                        new BeatShot(you, "Sergeant Clank? You were mine.", 5f, CameraMove.On(you, 160, 190, 3.2f, 2.5f, 1.7f)),
+                        new BeatShot(Prime, "Your toys work for me now. Better dental.", 5.5f, CameraMove.On(Prime, 165, 200, 3.4f, 2.8f)),
+                        new BeatShot(seven, "Is a toy tank allowed to do that?", 4.5f, CameraMove.On(seven, 160, 185, 3f, 2.5f)),
+                        new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
+                    }),
+                // B4: the kitchen; everything is big and hot, and the hob is 42's fault
+                new Beat("beat-kitchen", "Down the hall",
+                    new[]
+                    {
+                        new BeatActor(you, Team.Red, Anchor.RedSpawn, 0, 0, 0),
+                        new BeatActor(thirteen, Team.Red, Anchor.RedSpawn, 2.4f, -0.4f, -20),
+                        new BeatActor(ninetyNine, Team.Red, Anchor.RedSpawn, -2.6f, -0.9f, 15),
+                    },
+                    new[]
+                    {
+                        new BeatShot("", "The Kitchen.", 4.5f, CameraMove.At(Anchor.RedSpawn, 185, 160, 21, 15, 7, 5, 2.5f)),
+                        new BeatShot(thirteen, "Why is everything so big and so hot?", 5f, CameraMove.On(thirteen, 150, 175, 3f, 2.5f)),
+                        new BeatShot(you, "Someone left the hob on. That someone was me.", 6f, CameraMove.On(you, 15, -10, 4f, 3.2f, 1.7f, 1.8f)),
+                        new BeatShot(ninetyNine, "Hot.", 3f, CameraMove.On(ninetyNine, 165, 190, 3.2f, 2.4f)),
+                        new BeatShot(thirteen, "Nobody touch anything. Especially the toaster.", 5f, CameraMove.On(thirteen, 200, 170, 2.8f, 3.4f)),
+                        new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
+                    }),
+                // B5: the bathroom; Prime brings the fifth blue player
+                new Beat("beat-bathroom", "Bath time",
+                    new[]
+                    {
+                        new BeatActor(you, Team.Red, Anchor.RedSpawn, 0, 0, 0),
+                        new BeatActor(seven, Team.Red, Anchor.RedSpawn, -2.3f, -0.6f, 20),
+                        new BeatActor(Prime, Team.Blue, Anchor.RedSpawn, 1.2f, 5f, 180),
+                        new BeatActor(award, Team.Blue, Anchor.RedSpawn, -1f, 5.8f, 170),
+                    },
+                    new[]
+                    {
+                        new BeatShot("", "The Bathroom.", 4.5f, CameraMove.At(Anchor.RedSpawn, 190, 165, 20, 14, 6, 4.5f, 2.5f)),
+                        new BeatShot(Prime, "You're getting close, champion. Have a bath. Meet my fifth player.", 6.5f, CameraMove.On(Prime, 165, 200, 3.6f, 3f)),
+                        new BeatShot(award, "Hi! I got a sticker!", 4f, CameraMove.On(award, 160, 190, 3f, 2.4f)),
+                        new BeatShot(seven, "Five against four? That's rigged!", 4.5f, CameraMove.On(seven, 165, 190, 3f, 2.5f)),
+                        new BeatShot(Prime, "That's strategy.", 3.5f, CameraMove.On(Prime, 205, 170, 3f, 3.8f)),
+                        new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
+                    }),
+                // B6: inside the computer; the scoreboard in the sky says Prime won, and the referee reads out the timers
+                new Beat("beat-computer", "The results file",
+                    new[]
+                    {
+                        new BeatActor(you, Team.Red, Anchor.RedSpawn, 0, 0, 0),
+                        new BeatActor(ninetyNine, Team.Red, Anchor.RedSpawn, -2.6f, -0.9f, 15),
+                        new BeatActor(seven, Team.Red, Anchor.RedSpawn, 2.3f, -0.6f, -20),
+                    },
+                    new[]
+                    {
+                        new BeatShot("", "Inside the computer.", 4.5f, CameraMove.At(Anchor.RedSpawn, 185, 160, 21, 15, 7, 8, 5)),
+                        new BeatShot(you, "CHAMPION: CHANTERELLE PRIME. They edited the results file.", 6.5f, CameraMove.On(you, 15, -10, 4f, 3.2f, 1.7f, 2.2f, 2.4f)),
+                        new BeatShot(ninetyNine, "Delete it.", 3.5f, CameraMove.On(ninetyNine, 165, 190, 3.2f, 2.4f)),
+                        new BeatShot(Ref, "Respawn timers for blue: three seconds. Red: five. That seems... fine?", 7f, CameraMove.At(Anchor.Centre, 180, 150, 24, 18, 9, 7, 2)),
+                        new BeatShot(seven, "It does not seem fine.", 3.5f, CameraMove.On(seven, 160, 185, 3f, 2.5f)),
+                        new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
+                    }),
+                // B7: the boss's scene; Prime explains himself in person
+                new Beat("beat-boss", "Second place",
+                    new[]
+                    {
+                        new BeatActor(you, Team.Red, Anchor.RedSpawn, 0, 0, 0),
+                        new BeatActor(Prime, Team.Blue, Anchor.RedSpawn, 0.8f, 5.5f, 180),
+                    },
+                    new[]
+                    {
+                        new BeatShot("", "The final.", 4.5f, CameraMove.At(Anchor.RedSpawn, 190, 160, 22, 15, 7, 5, 2.5f)),
+                        new BeatShot(Prime, "Last year I lost by one capture. One! So I fixed the results. And the game. And your house.", 8f, CameraMove.On(Prime, 165, 200, 3.8f, 2.8f)),
+                        new BeatShot(you, "You can't fix a house.", 4f, CameraMove.On(you, 160, 190, 3.2f, 2.5f, 1.7f)),
+                        new BeatShot(Prime, "I reorganised your cutlery.", 4.5f, CameraMove.On(Prime, 205, 170, 3f, 3.8f)),
+                        new BeatShot(you, "...Now it's personal.", 4f, CameraMove.On(you, 15, -10, 3.4f, 2.6f, 1.7f)),
                         new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
                     }),
                 // The ending: no scene to move through (it plays over Boot's backdrop, the GUI's Ending screen), so no actors and a still camera
