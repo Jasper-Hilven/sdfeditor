@@ -38,6 +38,15 @@ namespace SdfBattle
             _ => -1,
         };
 
+        /// <summary>The phase's name on the phase card and the Defeat screen; "" for any other.</summary>
+        public static string TitleOf(this BossPhase phase) => phase switch
+        {
+            BossPhase.Phase1 => "THE ROYAL BOX",
+            BossPhase.Phase2 => "THE PRIME-COPTER",
+            BossPhase.Phase3 => "THE CROWN",
+            _ => "",
+        };
+
         /// <summary>The fight phase of a number 1 to 3 (anything else is phase 1).</summary>
         public static BossPhase FromNumber(int number) => number == 2 ? BossPhase.Phase2 : number == 3 ? BossPhase.Phase3 : BossPhase.Phase1;
     }

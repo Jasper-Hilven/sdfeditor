@@ -409,6 +409,7 @@ namespace SdfGui
                 case GuiCommandId.Restart:
                 case GuiCommandId.Retry:
                 case GuiCommandId.RetryEasier:
+                case GuiCommandId.RestartFight:
                 case GuiCommandId.Next:
                 case GuiCommandId.NewRound:
                     m?.StartPlaying();

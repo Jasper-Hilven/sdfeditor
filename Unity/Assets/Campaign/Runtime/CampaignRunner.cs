@@ -116,6 +116,9 @@ namespace SdfCampaign
                 case GuiCommandId.Retry:
                     Retry();
                     return true;
+                case GuiCommandId.RestartFight:
+                    Retry(wholeFight: true);
+                    return true;
                 case GuiCommandId.RetryEasier:
                     Retry(easier: true);
                     return true;
@@ -191,9 +194,11 @@ namespace SdfCampaign
 
         /// <summary>
         /// Starts the battle over: in place when the match can be (same team sizes), else the scene is loaded again. With
-        /// <paramref name="easier"/> (RETRY EASIER) blue's skill drops by one more step, two at most.
+        /// <paramref name="easier"/> (RETRY EASIER) blue's skill drops by one more step, two at most. The boss fight (ticket 33.7) always
+        /// goes on in place: RETRY PHASE starts the phase it got to again, <paramref name="wholeFight"/> (RESTART FIGHT, and RETRY after
+        /// a win) the fight from phase 1; RETRY EASIER gives Prime Easy's damage and wind-ups on top of the chosen difficulty.
         /// </summary>
-        public void Retry(bool easier = false)
+        public void Retry(bool easier = false, bool wholeFight = false)
         {
             if (Current == null || !Current.IsBattle)
                 return;
@@ -201,6 +206,22 @@ namespace SdfCampaign
                 EasierSteps = Mathf.Min(EasierSteps + 1, DifficultyRules.MaxEasierSteps);
             var setup = MakeSetup(Current, retry: true);
             StopWarmUp();
+            var boss = Setup != null && Setup.IsBoss && match != null && match.State != null ? Boss.Current : null;
+            if (boss != null)
+            {
+                Setup = setup;
+                if (setup.retryEasier)
+                    boss.Rules.MakeEasier();
+                if (wholeFight || boss.State.Phase == BossPhase.Victory)
+                    boss.RestartFight();
+                else
+                    boss.RetryPhase();
+                flow.Show(GuiScreen.Hud);
+                Time.timeScale = 1;
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                return;
+            }
             if (match != null && match.State != null && Setup != null && setup.blueSize == Setup.blueSize && setup.redSize == Setup.redSize)
             {
                 Setup = setup;
@@ -559,7 +580,20 @@ namespace SdfCampaign
                 return;
             WinResult? win = null;
             var streak = 0;
-            if (result.Winner == Team.Red && result.RedScore > result.BlueScore)
+            // The boss fight is won when Prime's last bar goes (red wins), whatever the captures say; its medal follows the lives lost
+            var boss = step.setup.IsBoss ? Boss.Current : null;
+            if (boss != null && result.Winner == Team.Red)
+            {
+                var state = boss.State;
+                win = Progress.RecordBossWin(step.id, state.LivesLost, state.LivesLostIn(3), state.FightSeconds, Progress.Difficulty, EasierSteps > 0);
+                Debug.Log($"Campaign: won {step.id} with {state.LivesLost} lives lost in {state.FightSeconds:0}s, {win.Value.medal}{(win.Value.newBest ? " (new best)" : "")}");
+            }
+            else if (boss != null)
+            {
+                streak = Progress.RecordLoss(step.id);
+                Debug.Log($"Campaign: lost {step.id} in phase {boss.PhaseReached}, {streak} in a row");
+            }
+            else if (result.Winner == Team.Red && result.RedScore > result.BlueScore)
             {
                 win = Progress.RecordWin(step.id, result.RedScore, result.BlueScore, result.Seconds, Progress.Difficulty, EasierSteps > 0);
                 Debug.Log($"Campaign: won {step.id} {result.RedScore}-{result.BlueScore} in {result.Seconds:0}s, {win.Value.medal}{(win.Value.newBest ? " (new best)" : "")}");
@@ -579,10 +613,12 @@ namespace SdfCampaign
             var end = flow != null && flow.Match != null ? flow.Match.end : null;
             if (end == null)
                 return;
-            end.seconds = result.Seconds;
+            end.seconds = step.setup.IsBoss && Boss.Current != null ? Boss.Current.State.FightSeconds : result.Seconds;
             end.medal = win.HasValue ? (int)win.Value.medal : 0;
             end.newBest = win.HasValue && win.Value.newBest;
             end.taunt = win.HasValue ? "" : Taunts.Pick(step.id, streak);
+            // The boss's Defeat screen advises on the phase it got to (its numbers are filled in by the HUD as the match ends)
+            end.tip = !win.HasValue && step.setup.IsBoss && Boss.Current != null ? BossTips.Pick(Boss.Current.PhaseReached, streak) : "";
             // Offered after two losses in a row, until it has been pressed twice (blue cannot get clumsier than that)
             end.canRetryEasier = !win.HasValue && Progress.CanRetryEasier(step.id) && EasierSteps < DifficultyRules.MaxEasierSteps;
         }

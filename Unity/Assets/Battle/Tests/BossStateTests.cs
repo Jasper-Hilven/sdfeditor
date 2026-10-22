@@ -555,6 +555,50 @@ namespace SdfBattle.Tests
             Assert.AreEqual(5000, boss.Health);
         }
 
+        // ---------------------------------------------------------------- The HUD's and the end screens' numbers (33.7)
+
+        [Test]
+        public void DamageDealt_CountsWhatCameOffTheBars_ByYou_UntilARestart()
+        {
+            boss.Begin(3);
+            RedCapture();
+            boss.Hurt(300, BossPart.Body, You);
+            boss.Hurt(100, BossPart.Body, RedBot);
+            Assert.AreEqual(300, boss.DamageDealt, 1e-4f, "a bot's hit is not yours");
+            boss.Hurt(100000, BossPart.Body, You);
+            Assert.AreEqual(1900, boss.DamageDealt, 1e-4f, "the overflow is not counted");
+            boss.RestoreCheckpoint();
+            Assert.AreEqual(1900, boss.DamageDealt, 1e-4f, "a retried phase keeps it");
+            boss.Restart();
+            Assert.AreEqual(0, boss.DamageDealt);
+        }
+
+        [Test]
+        public void MakeEasier_ChangesARunningFightsRules()
+        {
+            var rules = BossRules.For(BossDifficulty.Hard);
+            Build(rules);
+            boss.Begin();
+            var windUp = rules.SpecOf(BossAttackKind.SporeMortar).windUp;
+            rules.MakeEasier();
+            Assert.IsTrue(rules.retryEasier);
+            Assert.AreEqual(0.6f, rules.damageScale);
+            Assert.AreEqual(1.3f, rules.windUpScale);
+            Assert.AreEqual(windUp * 1.3f / 0.8f, rules.SpecOf(BossAttackKind.SporeMortar).windUp, 1e-4f, "Easy's wind-ups");
+            Assert.AreEqual(6250, boss.Rules.TotalHealth, "the health stays Hard's");
+            var asBuilt = BossRules.For(BossDifficulty.Hard, true);
+            Assert.AreEqual((asBuilt.damageScale, asBuilt.windUpScale), (rules.damageScale, rules.windUpScale));
+        }
+
+        [Test]
+        public void PhaseTitles_NameTheThreePhases()
+        {
+            Assert.AreEqual("THE ROYAL BOX", BossPhase.Phase1.TitleOf());
+            Assert.AreEqual("THE PRIME-COPTER", BossPhase.Phase2.TitleOf());
+            Assert.AreEqual("THE CROWN", BossPhase.Phase3.TitleOf());
+            Assert.AreEqual("", BossPhase.Transition12.TitleOf());
+        }
+
         // ---------------------------------------------------------------- Difficulty
 
         [Test]

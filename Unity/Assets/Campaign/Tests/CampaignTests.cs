@@ -294,6 +294,70 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(Medal.Bronze, Medals.Of(1, 0, 10, limit, Difficulty.Normal, true), "a one-capture win stays bronze");
         }
 
+        [Test]
+        public void BossMedals_AtTheirEdges()
+        {
+            Assert.AreEqual(Medal.Bronze, Medals.OfBoss(4, 2, 100, Difficulty.Normal, false), "a win with many lives lost");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(3, 3, 900, Difficulty.Normal, false), "3 lives lost is silver, however slow");
+            Assert.AreEqual(Medal.Bronze, Medals.OfBoss(4, 0, 100, Difficulty.Normal, false), "4 lives lost is bronze");
+            Assert.AreEqual(Medal.Gold, Medals.OfBoss(0, 0, 100, Difficulty.Normal, false));
+            Assert.AreEqual(Medal.Gold, Medals.OfBoss(1, 0, 600, Difficulty.Hard, false), "1 life lost, exactly 10 minutes");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(1, 0, 600.1f, Difficulty.Normal, false), "just over 10 minutes");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(1, 1, 300, Difficulty.Normal, false), "a life lost in phase 3");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(2, 0, 300, Difficulty.Normal, false), "2 lives lost in all");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(0, 0, 300, Difficulty.Easy, false), "not on Easy");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(0, 0, 300, Difficulty.Normal, true), "not after RETRY EASIER");
+        }
+
+        [Test]
+        public void RecordBossWin_KeepsTheBestMedal_AndMovesOn()
+        {
+            var p = Fresh();
+            WinThrough(p, "computer");
+            p.CompleteCutscene("beat-boss");
+            var first = p.RecordBossWin("boss", 3, 1, 700, Difficulty.Normal);
+            Assert.AreEqual(Medal.Silver, first.medal);
+            Assert.IsTrue(first.newBest);
+            Assert.AreEqual("ending", p.NextStep().id);
+            var worse = p.RecordBossWin("boss", 5, 2, 400, Difficulty.Normal);
+            Assert.AreEqual(Medal.Bronze, worse.medal);
+            Assert.IsFalse(worse.newBest, "a worse medal is not a best");
+            Assert.AreEqual(Medal.Silver, p.BestMedal("boss"));
+            var gold = p.RecordBossWin("boss", 0, 0, 500, Difficulty.Hard);
+            Assert.IsTrue(gold.newBest);
+            Assert.AreEqual(Medal.Gold, p.BestMedal("boss"));
+            Assert.Throws<System.ArgumentException>(() => p.RecordBossWin("beat-boss", 0, 0, 1, Difficulty.Normal), "not a battle");
+        }
+
+        [Test]
+        public void BossTaunts_ArePrimesFive()
+        {
+            var lines = Taunts.Of(CampaignDefinition.Boss);
+            Assert.AreEqual(5, lines.Count);
+            Assert.AreEqual("Silver suits you.", lines[0]);
+            Assert.AreEqual("Best of one, final answer.", lines[4]);
+            Assert.AreEqual(lines[2], Taunts.Pick(CampaignDefinition.Boss, 3));
+            Assert.AreEqual(lines[0], Taunts.Pick(CampaignDefinition.Boss, 6), "they go round");
+        }
+
+        [Test]
+        public void BossTips_AreForEveryPhase_AndGoRound()
+        {
+            for (var phase = 1; phase <= 3; phase++)
+            {
+                var tips = BossTips.Of(phase);
+                Assert.GreaterOrEqual(tips.Count, 2, "phase " + phase);
+                Assert.AreEqual(tips.Count, tips.Distinct().Count());
+                Assert.AreEqual(tips[0], BossTips.Pick(phase, 1));
+                Assert.AreEqual(tips[1], BossTips.Pick(phase, 2));
+                Assert.AreEqual(tips[0], BossTips.Pick(phase, 1 + tips.Count), "round again");
+            }
+            Assert.AreEqual(BossTips.Of(1)[0], BossTips.Of(0)[0], "clamped");
+            Assert.AreEqual(BossTips.Of(3)[0], BossTips.Of(9)[0], "clamped");
+            StringAssert.Contains("shockwave", string.Join(" ", BossTips.Of(3)));
+            StringAssert.Contains("electro-gun", string.Join(" ", BossTips.Of(2)));
+        }
+
         // --- difficulty ---
 
         [Test]

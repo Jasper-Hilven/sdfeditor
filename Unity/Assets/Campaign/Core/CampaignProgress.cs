@@ -265,6 +265,23 @@ namespace SdfCampaign
             if (redCaptures <= blueCaptures) throw new ArgumentException("not a win");
 
             var medal = Medals.Of(redCaptures, blueCaptures, seconds, step.setup.timeLimitSeconds, difficulty, retriedEasier);
+            return Record(id, medal, redCaptures + "-" + blueCaptures, seconds, difficulty);
+        }
+
+        /// <summary>
+        /// The boss fight was won (ticket 33): the medal follows the lives lost, not the captures (<see cref="Medals.OfBoss"/>), and the
+        /// best score reads "N lives lost". Otherwise as <see cref="RecordWin"/>.
+        /// </summary>
+        public WinResult RecordBossWin(string id, int livesLost, int livesLostInPhase3, float seconds, Difficulty difficulty, bool retriedEasier = false)
+        {
+            var step = definition.Find(id);
+            if (step == null || !step.IsBattle) throw new ArgumentException("not a battle: " + id);
+            var medal = Medals.OfBoss(livesLost, livesLostInPhase3, seconds, difficulty, retriedEasier);
+            return Record(id, medal, livesLost + (livesLost == 1 ? " life lost" : " lives lost"), seconds, difficulty);
+        }
+
+        WinResult Record(string id, Medal medal, string score, float seconds, Difficulty difficulty)
+        {
             var record = Level(id);
             if (record == null)
             {
@@ -277,7 +294,7 @@ namespace SdfCampaign
             {
                 record.medal = Medals.Key(medal);
                 record.bestSeconds = seconds;
-                record.bestScore = redCaptures + "-" + blueCaptures;
+                record.bestScore = score;
                 record.difficulty = DifficultyRules.Key(difficulty);
             }
             record.won = true;

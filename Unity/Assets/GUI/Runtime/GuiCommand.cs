@@ -39,6 +39,9 @@ namespace SdfGui
         Die,
         Win,
         ToggleAutoEvents,
+
+        // After the test panel's, so the saved values of the others stay: the boss's Defeat screen's second retry (ticket 33.7); RETRY there is RETRY PHASE
+        RestartFight,
     }
 
     /// <summary>

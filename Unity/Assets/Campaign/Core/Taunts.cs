@@ -69,13 +69,14 @@ namespace SdfCampaign
                 "Error 42: champion not found.",
                 "I reorganised your cutlery again.",
             },
+            // Prime's own, in his arena (ticket 33, section 8)
             [CampaignDefinition.Boss] = new[]
             {
-                "Second place is a lovely place. I would know.",
-                "I fixed the results. And the game. And you.",
-                "Best of three? I'm up one.",
-                "Look at the size of me. Look at the size of you.",
-                "Champion? You're a footnote.",
+                "Silver suits you.",
+                "Have you considered second place? It's lovely.",
+                "That was my <i>warm-up</i> crown.",
+                "The crowd is cheering. For me.",
+                "Best of one, final answer.",
             },
         };
 
@@ -94,6 +95,45 @@ namespace SdfCampaign
         {
             var lines = Of(arenaId);
             return lines.Count == 0 ? "" : lines[(Math.Max(1, lossesInARow) - 1) % lines.Count];
+        }
+    }
+
+    /// <summary>
+    /// What the boss's Defeat screen advises, by the phase reached (ticket 33, section 8): a few per phase, one at a time in turn like
+    /// the taunts. Plain data.
+    /// </summary>
+    public static class BossTips
+    {
+        private static readonly string[][] ByPhase =
+        {
+            new[]
+            {
+                "Capture Prime's flag: the shield breaks and he kneels. Shoot the gills!",
+                "Prime cannot see you under the balcony.",
+                "Pillars and toadstools stop the Royal Glare. Keep one between you and his eyes.",
+            },
+            new[]
+            {
+                "The electro-gun jumps between the sacs.",
+                "Hide under a toadstool when the cannon's eyes flash.",
+                "When the copter crashes, run in and shoot the gills.",
+            },
+            new[]
+            {
+                "Jump the shockwave.",
+                "Take the crown home: Prime takes half damage while he wears it.",
+                "Shoot the eyes when they are open. They shut during a wind-up.",
+            },
+        };
+
+        /// <summary>The tips of a phase, 1 to 3 (others are clamped).</summary>
+        public static IReadOnlyList<string> Of(int phase) => ByPhase[Math.Max(1, Math.Min(3, phase)) - 1];
+
+        /// <summary>The tip after the <paramref name="lossesInARow"/>th loss in a phase (1 is the first): they go round in order.</summary>
+        public static string Pick(int phase, int lossesInARow)
+        {
+            var tips = Of(phase);
+            return tips[(Math.Max(1, lossesInARow) - 1) % tips.Count];
         }
     }
 }

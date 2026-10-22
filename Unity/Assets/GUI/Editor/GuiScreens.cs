@@ -736,13 +736,17 @@ namespace SdfGui.Editor
 
             // RETRY EASIER comes and goes, so the buttons are laid out and the gap closes
             var row = Object("Buttons", t);
-            Place(row.transform, Centre, new Vector2(0, -450), new Vector2(1300, 90));
+            Place(row.transform, Centre, new Vector2(0, -450), new Vector2(1800, 90));
             var layout = row.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 40;
+            layout.spacing = 30;
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = false;
             layout.childForceExpandWidth = layout.childForceExpandHeight = false;
-            p.ButtonInstance(row.transform, "RETRY", GuiPalette.Moss, GuiCommandId.Retry, Centre, Vector2.zero, new Vector2(320, 86), 42, spots: 0.5f);
+            // After the boss fight RETRY reads RETRY PHASE (33.7), RESTART FIGHT joins it, and the row is 1800 wide at the most
+            var retry = p.ButtonInstance(row.transform, "RETRY", GuiPalette.Moss, GuiCommandId.Retry, Centre, Vector2.zero, new Vector2(320, 86), 42, spots: 0.5f);
+            end.retryLabel = retry.GetComponentInChildren<TMP_Text>();
+            var restart = p.ButtonInstance(row.transform, "RESTART FIGHT", GuiPalette.Violet, GuiCommandId.RestartFight, Centre, Vector2.zero, new Vector2(440, 86), 40, spots: 0.4f);
+            end.restartFight = restart.gameObject;
             var easier = p.ButtonInstance(row.transform, "RETRY EASIER", GuiPalette.Chanterelle, GuiCommandId.RetryEasier, Centre, Vector2.zero, new Vector2(440, 86), 40, spots: 0.4f);
             p.ButtonInstance(row.transform, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, Vector2.zero, new Vector2(300, 86), 42, spots: 0);
             end.retryEasier = easier.gameObject;

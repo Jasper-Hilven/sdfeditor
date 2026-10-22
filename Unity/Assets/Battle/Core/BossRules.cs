@@ -304,11 +304,19 @@ namespace SdfBattle
                     break;
             }
             if (retryEasier)
-            {
-                rules.damageScale = 0.6f;
-                rules.windUpScale = 1.3f;
-            }
+                rules.MakeEasier();
             return rules;
+        }
+
+        /// <summary>
+        /// RETRY EASIER (ticket 33.7): Easy's damage and wind-up rows from now on, on the same object, so a running fight (whose state holds
+        /// these rules) takes them at once. The health stays the chosen difficulty's.
+        /// </summary>
+        public void MakeEasier()
+        {
+            retryEasier = true;
+            damageScale = 0.6f;
+            windUpScale = 1.3f;
         }
     }
 }

@@ -186,6 +186,9 @@ namespace SdfBattle
         /// <summary>Seconds fought so far (the phases, not the transitions' or the intro's time).</summary>
         public float FightSeconds { get; private set; }
 
+        /// <summary>What you took off Prime's bars since the fight began (the Victory screen's number); a retry of a phase keeps it, RESTART FIGHT clears it.</summary>
+        public float DamageDealt { get; private set; }
+
         /// <summary>Prime's attack damage is the rules' scaled numbers; nothing attacks outside a fight phase.</summary>
         public bool CanAttack => Phase.IsFight();
 
@@ -250,6 +253,7 @@ namespace SdfBattle
             LivesLost = 0;
             Array.Clear(livesLostIn, 0, livesLostIn.Length);
             FightSeconds = 0;
+            DamageDealt = 0;
             EnterPhase(BossPhases.FromNumber(startPhase));
         }
 
@@ -422,6 +426,8 @@ namespace SdfBattle
             // The overflow past the bar's end is lost
             var dealt = Math.Min(bars[bar], amount);
             bars[bar] -= dealt;
+            if (by != null && !by.IsBot)
+                DamageDealt += dealt;
             if (by != null && dealt > 0)
             {
                 recent.Add((clock, by.Index, dealt));

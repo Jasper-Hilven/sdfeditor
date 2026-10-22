@@ -16,6 +16,23 @@ namespace SdfCampaign
             return gold ? Medal.Gold : silver ? Medal.Silver : Medal.Bronze;
         }
 
+        /// <summary>Silver: a boss win with this many lives lost in all, or fewer (ticket 33, section 7).</summary>
+        public const int BossSilverLives = 3;
+        /// <summary>Gold: a boss win with this many lives lost in all, or fewer, and none in phase 3.</summary>
+        public const int BossGoldLives = 1;
+        /// <summary>Gold: a boss win within this many seconds.</summary>
+        public const float BossGoldSeconds = 600;
+
+        /// <summary>
+        /// The medal of a won boss fight (ticket 33, section 7): Bronze a win; Silver a win with 3 or fewer lives lost in all; Gold a win
+        /// with no life lost in phase 3 and 1 or fewer in all, within 10 minutes, at Normal or Hard and not with RETRY EASIER.
+        /// </summary>
+        public static Medal OfBoss(int livesLost, int livesLostInPhase3, float seconds, Difficulty difficulty, bool retriedEasier)
+        {
+            var gold = livesLostInPhase3 == 0 && livesLost <= BossGoldLives && seconds <= BossGoldSeconds && difficulty != Difficulty.Easy && !retriedEasier;
+            return gold ? Medal.Gold : livesLost <= BossSilverLives ? Medal.Silver : Medal.Bronze;
+        }
+
         public static string Key(Medal m) => m.ToString().ToLowerInvariant();
 
         public static Medal Parse(string key)

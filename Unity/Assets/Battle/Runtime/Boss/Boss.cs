@@ -89,10 +89,16 @@ namespace SdfBattle
 
         public BossTelegraphs Telegraphs { get; private set; }
 
+        /// <summary>The boss HUD on the match's GUI (ticket 33.7); null when the GUI has no HUD.</summary>
+        public BossHud Hud { get; private set; }
+
         public FxParticles Particles => Combat != null && Combat.Fx != null ? Combat.Fx.Particles : null;
 
         /// <summary>Prime was hit (also a blocked hit): the hit and where, for the HUD's marker and numbers (ticket 33.7).</summary>
         public event Action<BossHit, Vector3> PrimeHurt;
+
+        /// <summary>The fight phase 1 to 3 the fight has got to (the last phase start), for the Defeat screen and its tip (ticket 33.7).</summary>
+        public int PhaseReached => Mathf.Max(0, State.Checkpoint.Phase.BarOf()) + 1;
 
         /// <summary>What the player is to do now, in a line (the HUD's objective line, ticket 33.7).</summary>
         public string Objective
@@ -187,6 +193,12 @@ namespace SdfBattle
             Shield = BossShield.Create(this, Spots.shield != null ? Spots.shield.position : Spots.prime.position, Spots.shieldRadius);
             Attacks = new BossAttacks(this);
             Telegraphs = BossTelegraphs.Create(this);
+            Hud = BossHud.Create(this);
+            PrimeHurt += (hit, at) =>
+            {
+                if (Hud != null)
+                    Hud.ShowHit(hit, at);
+            };
 
             Bots?.SetSkill(Team.Red, new BotSkill(Rules.redBotSkill));
             Bots?.SetSkill(Team.Blue, new BotSkill(Rules.crewSkill));
@@ -312,6 +324,9 @@ namespace SdfBattle
             {
                 case PrimeHit.Part.Shield:
                     Shield?.Hit(point);
+                    // The HUD's dull "BLOCKED" for your own shots
+                    if (damage.Attacker != null && !damage.Attacker.IsBot)
+                        PrimeHurt?.Invoke(new BossHit(damage.Amount, 0, true, false, false), point);
                     return 0;
                 case PrimeHit.Part.Hand:
                     return State.HurtHand(index, damage.Amount, damage.Attacker);

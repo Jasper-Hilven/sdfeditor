@@ -120,6 +120,8 @@ namespace SdfBattle
         {
             foreach (var flagHud in gui.GetComponentsInChildren<FlagHud>(true))
                 Destroy(flagHud);
+            foreach (var bossHud in gui.GetComponentsInChildren<BossHud>(true))
+                Destroy(bossHud);
             foreach (var hud in gui.GetComponents<MatchHud>())
                 Destroy(hud);
             if (gui.TryGetComponent<MatchView>(out var view))
@@ -207,6 +209,21 @@ namespace SdfBattle
             end.kills = you?.Kills ?? 0;
             end.deaths = you?.Deaths ?? 0;
             end.seconds = state.RoundClock;
+            if (state.Rules.objective == MatchObjective.Boss && Boss.Current != null)
+                FeedBossEnd(end, Boss.Current);
+        }
+
+        // The boss fight's end (ticket 33.7): the phase reached, Prime's health left, the lives lost, damage dealt and the fight's time (the
+        // match clock does not run); the campaign adds the tip for the phase reached
+        private void FeedBossEnd(ViewEnd end, Boss boss)
+        {
+            var bossState = boss.State;
+            end.boss = true;
+            end.bossPhase = boss.PhaseReached;
+            end.bossHealthLeft = bossState.Health / Mathf.Max(1, boss.Rules.TotalHealth);
+            end.livesLost = bossState.LivesLost;
+            end.damageDealt = Mathf.RoundToInt(bossState.DamageDealt);
+            end.seconds = bossState.FightSeconds;
         }
 
         private void Feed(float dt)

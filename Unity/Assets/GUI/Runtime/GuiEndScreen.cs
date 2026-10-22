@@ -7,6 +7,9 @@ namespace SdfGui
     /// The match's end screens (ticket 32.6), Victory and Defeat, drawn from <see cref="MatchView.end"/>: the arena, the score in the
     /// teams' colours, your captures, kills, deaths and the time. Victory adds the medal (with NEW BEST when it is one); Defeat adds
     /// Prime's taunt, a tip, and RETRY EASIER when the campaign offers it (the layout closes the gap when it does not).
+    /// After the boss fight (<see cref="ViewEnd.boss"/>, ticket 33.7) the same screens show the phase reached and Prime's health left in
+    /// place of the score, and lives lost, damage dealt, kills and the time in place of the four numbers; the Defeat screen's RETRY
+    /// becomes RETRY PHASE and RESTART FIGHT appears.
     /// </summary>
     [ExecuteAlways]
     public sealed class GuiEndScreen : GuiView
@@ -27,6 +30,10 @@ namespace SdfGui
         public TMP_Text taunt;
         public TMP_Text tip;
         public GameObject retryEasier;
+        [Tooltip("The Defeat screen's RETRY button's label, which says RETRY PHASE after the boss fight")]
+        public TMP_Text retryLabel;
+        [Tooltip("RESTART FIGHT, shown after the boss fight only")]
+        public GameObject restartFight;
 
         public static readonly Color Blue = GuiPalette.Hex(0x3D7BEA);
         public static readonly Color Silver = GuiPalette.Hex(0xC9D3DD);
@@ -60,11 +67,20 @@ namespace SdfGui
         {
             var end = m.end;
             GuiText.Set(arena, (m.arena ?? "").ToUpperInvariant());
-            GuiText.Set(score, $"<color=#{GuiPalette.HexOf(GuiPalette.Amanita)}>{end.redScore}</color>  –  <color=#{GuiPalette.HexOf(Blue)}>{end.blueScore}</color>");
-            GuiText.Set(captures, end.captures.ToString());
-            GuiText.Set(kills, end.kills.ToString());
-            GuiText.Set(deaths, end.deaths.ToString());
-            GuiText.Set(time, Duration(end.seconds));
+            if (end.boss)
+                RenderBossNumbers(end);
+            else
+            {
+                GuiText.Set(score, $"<color=#{GuiPalette.HexOf(GuiPalette.Amanita)}>{end.redScore}</color>  –  <color=#{GuiPalette.HexOf(Blue)}>{end.blueScore}</color>");
+                GuiText.Set(captures, end.captures.ToString());
+                GuiText.Set(kills, end.kills.ToString());
+                GuiText.Set(deaths, end.deaths.ToString());
+                GuiText.Set(time, Duration(end.seconds));
+                Label(captures, "CAPTURES");
+                Label(kills, "KILLS");
+                Label(deaths, "DEATHS");
+                Label(time, "TIME");
+            }
 
             if (victory)
             {
@@ -83,9 +99,35 @@ namespace SdfGui
             {
                 GuiText.Show(taunt, !string.IsNullOrEmpty(end.taunt));
                 GuiText.Set(taunt, $"“{end.taunt}”");
-                GuiText.Set(tip, "TIP  " + (tipText ?? Tips[0]));
+                GuiText.Set(tip, "TIP  " + (end.boss && !string.IsNullOrEmpty(end.tip) ? end.tip : tipText ?? Tips[0]));
                 GuiText.Show(retryEasier, end.canRetryEasier);
+                GuiText.Set(retryLabel, end.boss ? "RETRY PHASE" : "RETRY");
+                GuiText.Show(restartFight, end.boss);
             }
+        }
+
+        // The boss fight's end: where the score was, how far it got or that Prime is beaten; the numbers are lives lost, damage dealt, kills, time
+        private void RenderBossNumbers(ViewEnd end)
+        {
+            var line = victory
+                ? "PRIME DEFEATED"
+                : $"PHASE {end.bossPhase}  ·  PRIME {Mathf.CeilToInt(Mathf.Clamp01(end.bossHealthLeft) * 100)}%";
+            GuiText.Set(score, $"<size=50%>{line}</size>");
+            GuiText.Set(captures, end.livesLost.ToString());
+            GuiText.Set(kills, end.damageDealt.ToString());
+            GuiText.Set(deaths, end.kills.ToString());
+            GuiText.Set(time, Duration(end.seconds));
+            Label(captures, "LIVES LOST");
+            Label(kills, "DAMAGE");
+            Label(deaths, "KILLS");
+            Label(time, "TIME");
+        }
+
+        // A stat's caption is the one text under its number
+        private static void Label(TMP_Text number, string caption)
+        {
+            if (number != null && number.transform.childCount > 0)
+                GuiText.Set(number.transform.GetChild(0).GetComponent<TMP_Text>(), caption);
         }
 
         /// <summary>A match's length: minutes and seconds, the seconds rounded down (the clock counted them up).</summary>
