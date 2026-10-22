@@ -318,7 +318,7 @@ The train adds 3 draws and 14k triangles at most.
 - **The lid crack**: an emissive strip only; if it reads as a gap to look through, add nothing behind it (the house room is another
   theme).
 - **Machines per level**: the builder makes `turret-<team>` and friends for every level; a level must pick its machine set
-  (`machines set=toys` or a per-level prefab prefix). 27.5.
+  (`machines set=toy` or a per-level prefab prefix). 27.5.
 - **Helicopters in a room**: their flight area and limits assume the island's hills; they need the walls and the 20 m ceiling.
 - **The train**: a new moving collider; riding needs moving-platform support in the character controller; a killer that is
   neither player nor machine in the kill feed; carving obstacles on the web (three moving obstacles, which should be cheap; if
