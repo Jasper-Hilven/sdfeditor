@@ -181,6 +181,42 @@ namespace SdfBattle
                 Match.State.RoundReset -= OnRoundReset;
         }
 
+        /// <summary>Tanks of <paramref name="team"/> in play (alive).</summary>
+        public int TanksAlive(Team team)
+        {
+            var n = 0;
+            foreach (var machine in machines)
+                if (machine.Kind == MachineKind.Tank && machine.Team == team && machine.Alive)
+                    n++;
+            return n;
+        }
+
+        /// <summary>Takes every machine of a kind and team out of play, hidden (the boss fight's blue tanks wait for the Prime-copter's drop, ticket 33.5).</summary>
+        public void Stow(Team team, MachineKind kind)
+        {
+            foreach (var machine in machines)
+                if (machine.Kind == kind && machine.Team == team)
+                    machine.Stow();
+        }
+
+        /// <summary>
+        /// Drops a tank of <paramref name="team"/> that is out of play (stowed, or waiting to respawn) from the air at
+        /// <paramref name="from"/>, facing <paramref name="yaw"/>: it falls, lands with a puff and drives as the side's tanks do. Null
+        /// when every tank of the team is already in play.
+        /// </summary>
+        public TankMachine DropTank(Team team, Vector3 from, float yaw)
+        {
+            foreach (var machine in machines)
+            {
+                if (machine is TankMachine tank && tank.Team == team && !tank.Alive)
+                {
+                    tank.DropFrom(from, yaw);
+                    return tank;
+                }
+            }
+            return null;
+        }
+
         // A new round: every machine back where it starts, at full health
         private void OnRoundReset()
         {
@@ -224,7 +260,7 @@ namespace SdfBattle
             for (var i = 0; i < count; i++)
             {
                 var hit = Hits[i];
-                if (Player.Of(hit.collider) != null || Of(hit.collider) != null)
+                if (Player.Of(hit.collider) != null || Of(hit.collider) != null || PrimeCopter.Owns(hit.collider))
                     continue;
                 point = hit.point;
                 normal = hit.normal;

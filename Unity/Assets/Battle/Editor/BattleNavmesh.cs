@@ -459,7 +459,9 @@ namespace SdfBattle.Editor
                 var instance = NavMesh.AddNavMeshData(bossMesh);
                 try
                 {
-                    var (reached, length) = Way(bossFilter, Position(boss["crash"]), Position(sides[0]["flag"]), 4);
+                    // The wreck (ticket 33.5) stands on the crash site, 8 m across: Prime's navmesh starts at its edge, up to 1.8 m (his radius)
+                    // and 3.9 m (its half width) from its middle
+                    var (reached, length) = Way(bossFilter, Position(boss["crash"]), Position(sides[0]["flag"]), 8);
                     if (!reached)
                         problems++;
                     report.Append($"  Boss agent, phase 3, from the wreck to the red flag stand: {(reached ? $"reached, {length:0} m" : length < 0 ? "NOT ON THE NAVMESH" : "NOT REACHED")}\n");

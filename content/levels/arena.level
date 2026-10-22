@@ -13,7 +13,7 @@
 # else. The boss fight has three phases and some models are there in some of them only (phases=): the Royal Box's balcony in phase 1,
 # the ramp it falls into in phases 2 and 3, the centre and east pillars in phases 1 and 2, the toppled pillars in phase 3. The
 # builder puts each range under its own Phase object, which the boss's arena shows and hides, and the navmesh is baked once per
-# phase layout. The wreck of the Prime-copter (phase 3) and the spore shield are made by 33.5 and 33.6 and are not placed here yet.
+# phase layout. The wreck of the Prime-copter stands in phase 3; the spore shield is made by 33.6 and is not placed here yet.
 format 1
 
 layout boss                               # asymmetric sides, phases and the boss section below
@@ -78,6 +78,11 @@ place
     # The toppled east pillars, lying west from their feet at the pillars' places (foot end first, 6 m long, 1.1 m high)
     arena-pillar-toppled at=(22.5, 10) yaw=-90 phases=3
     arena-pillar-toppled at=(22.5, -10) yaw=-90 phases=3
+    # The wreck of the Prime-copter (ticket 33.5), phase 3 only, where the copter crashes at the end of phase 2 (the boss section's crash
+    # point, the middle of the centre circle): the crumpled puffball with a level top 2 m up where the crown is, and a debris ramp
+    # up to it on the side facing the red base (yaw -90 turns the model's ramp, +z, to the west). It crushes the centre pillar (phases
+    # 1-2) it takes the place of
+    primecopter-wreck at=(6, 0) yaw=-90 phases=3
     # The toadstool shelters, overhead cover against the Prime-copter's cannon and the downdraft dive: their caps are 3.9 m up, under
     # the copter's 9 m minimum height. Two before the red side, two before the blue
     shelter-toadstool0 at=(-14, 12) yaw=20

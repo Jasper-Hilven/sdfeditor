@@ -1,0 +1,69 @@
+# Prime-copter wreck (ticket 33.5): what is left of the Prime-copter after phase 2's crash, a landmark at the centre circle for phase 3 and
+# the crown's stand: the puffball squashed flat and tilted, its top a level platform 2 m up (a flat-topped cap the crown sits on, cut off straight at the ramp), a
+# ramp of debris up to it on the front side (+z, 35 degrees, 3.6 m wide, so the crown is a run for anyone), a crumpled rotor leaning
+# on the back, the tail snapped off in the stone, one runner bent into the air and one of its eyes rolled off on the ground. About
+# 7.5 m wide, 8 m deep (rubble and the stump included) and 3.3 m high; blue machine materials, fungal stone, moss. A mesh collider.
+# Origin: the middle of the platform on the ground, front (and the ramp) along +z; the platform's top is at y = 2.0. In the level it
+# stands at the crash point (6, 0), turned towards the red side (yaw -90), in phase 3 only.
+format 1
+collider mesh
+
+Detail detail=0.2
+    Union
+        # The squashed puffball: a flat-topped, tilted blue cap (an ellipsoid cut at 2 m)
+        Material material=machine_blue_cap
+            Intersection
+                Translate translation=(0, 0.3, -0.3)
+                    Rotate rotation=(0, 0, 0.08)
+                        Ellipsoid radii=(3.2, 2.3, 2.8)
+                Translate translation=(0, 1.0, -1.6)
+                    Box size=(4, 1.0, 2.5)
+        # The ramp of debris: a slab of shelf-stone rubble from the ground at z = 3.8 up to the platform's front edge at z = 0.9
+        Material material=arena_stone
+            Intersection
+                Translate translation=(0, 0.753, 2.18)
+                    Rotate rotation=(0.604, 0, 0)
+                        Box size=(1.8, 0.3, 1.8)
+                Translate translation=(0, 3, 2.5)
+                    Box size=(4, 3, 3)
+        # Broken rubble at the ramp's sides and foot
+        Material material=arena_stone
+            Union
+                Translate translation=(2.3, 0.35, 2.6)
+                    Rotate rotation=(0.3, 0.7, 0.2)
+                        Box size=(0.6, 0.35, 0.5)
+                Translate translation=(-2.2, 0.3, 3.0)
+                    Rotate rotation=(0.1, 0.4, 0.3)
+                        Box size=(0.5, 0.3, 0.7)
+                Translate translation=(0.9, 0.2, 3.7)
+                    Rotate rotation=(0.2, 0.9, 0.1)
+                        Box size=(0.5, 0.2, 0.4)
+                Translate translation=(-1.2, 0.25, -2.9)
+                    Rotate rotation=(0.3, 0.2, 0.1)
+                        Box size=(0.8, 0.25, 0.5)
+        Material material=arena_moss
+            Translate translation=(2.2, 0.2, 1.3)
+                Ellipsoid radii=(0.9, 0.2, 0.7)
+        # The mast, snapped and leaning out of the back of the platform, and the tail's stump in the stone behind
+        Material material=machine_blue_flesh
+            Union
+                ArbitraryRoundCone a=(0.9, 1.9, -1.3) b=(1.7, 2.9, -1.7) radiusA=0.34 radiusB=0.22
+                ArbitraryRoundCone a=(-0.6, 0.9, -2.0) b=(-1.3, 0.35, -3.1) radiusA=0.42 radiusB=0.24
+                # The bent runner, up in the air at the side
+                ArbitraryRoundCone a=(2.6, 0.5, 0.4) b=(3.3, 1.8, 0.9) radiusA=0.2 radiusB=0.15
+        # The crumpled rotor: the five-lobed cap, bent and leaning on the back of the platform
+        Material material=machine_blue_cap
+            Translate translation=(-2.0, 1.5, -2.0)
+                Rotate rotation=(0.6, 0.3, 0.45)
+                    Scale scale=(0.6, 0.6, 0.6)
+                        Round radius=0.05
+                            RadialWave amount=0.245 count=5
+                                Intersection
+                                    Translate translation=(0, 0.21, 0)
+                                        Ellipsoid radii=(2.45, 0.42, 2.45)
+                                    Translate translation=(0, 1.61, 0)
+                                        Box size=(2.8, 1.4, 2.8)
+        # One of its eyes, rolled off on the ground
+        Translate translation=(-3.5, 0.46, 1.0)
+            Scale scale=(3.85, 3.85, 3.85)
+                Part part=eye_machine

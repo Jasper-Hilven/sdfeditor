@@ -93,6 +93,24 @@ namespace SdfLevel
         /// <summary>Jumps on the next update, if on the ground then; in the air it is forgotten (no double jump).</summary>
         public void Jump() => jumpWanted = true;
 
+        /// <summary>Metres a second squared a shove slows by.</summary>
+        public const float ShoveDrag = 20;
+
+        // A shove still going (ticket 33.5: the dive's push, later the slam's and the grab's throw): metres a second, flat, slowing to 0
+        private Vector3 shove;
+
+        /// <summary>
+        /// Pushes the player <paramref name="metres"/> along <paramref name="direction"/> (flat) over a short moment: a speed that slows
+        /// by <see cref="ShoveDrag"/> and walks on top of the player's own, through the same CharacterController, so walls stop it.
+        /// </summary>
+        public void Shove(Vector3 direction, float metres)
+        {
+            direction.y = 0;
+            if (direction.sqrMagnitude < 1e-6f || metres <= 0)
+                return;
+            shove = direction.normalized * Mathf.Sqrt(2 * ShoveDrag * metres);
+        }
+
         /// <summary>Puts the player at <paramref name="position"/> (its feet) facing <paramref name="yaw"/>, level, standing still.</summary>
         public void Teleport(Vector3 position, float yaw)
         {
@@ -106,6 +124,7 @@ namespace SdfLevel
             SetAim(yaw, 0);
             verticalSpeed = 0;
             standingOn = null;
+            shove = Vector3.zero;
             move = Vector2.zero;
             jumpWanted = false;
         }
@@ -185,6 +204,8 @@ namespace SdfLevel
                 verticalSpeed -= gravity * Time.deltaTime;
             }
             jumpWanted = false;
+            velocity += shove;
+            shove = Vector3.MoveTowards(shove, Vector3.zero, ShoveDrag * Time.deltaTime);
             velocity.y = verticalSpeed;
             var flags = controller.Move(velocity * Time.deltaTime);
             // A head against a ceiling (a gate's arch, a stair above) ends the rise

@@ -34,6 +34,7 @@ public class ArenaTests(ITestOutputHelper output)
         ["arena/arena-barrier1"] = 3_000,
         ["arena/arena-wall"] = 2_000,
         ["arena/floodlight-mushroom"] = 15_000,
+        ["arena/primecopter-wreck"] = 15_000,
         ["arena/crowd/crowd-mushroom0"] = 1_200,
         ["arena/crowd/crowd-mushroom1"] = 1_200,
         ["arena/crowd/crowd-mushroom2"] = 1_200,
@@ -198,8 +199,8 @@ public class ArenaTests(ITestOutputHelper output)
             var text = File.ReadAllText(ModelPath(name));
             foreach (var material in MaterialsUsed(text))
                 Assert.True(all.Contains(material), $"{name} uses {material}, which has no .sdfmat");
-            // Every cap, crowd or banner material lives in materials/arena/
-            foreach (var material in MaterialsUsed(text).Where(m => m != "prime_gold"))
+            // Every cap, crowd or banner material lives in materials/arena/ (the wreck of the Prime-copter, 33.5, is in the machines' blue)
+            foreach (var material in MaterialsUsed(text).Where(m => m != "prime_gold" && !m.StartsWith("machine_blue_")))
                 Assert.True(File.Exists(Path.Combine(MaterialsFolder(), "arena", material + ".sdfmat")), $"{name}: {material} is not in materials/arena/");
         }
         Assert.NotEmpty(folders);

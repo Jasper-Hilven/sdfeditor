@@ -345,7 +345,8 @@ public class BossLevelTests
                 Assert.True(i.Position.Y >= 0.5f, "a crowd member stands above the floor, from the first tier up");
             });
             Assert.Equal(46, baked.Placements.Count(p => p.Model == "arena-wall"));
-            Assert.Equal(new[] { "1", "1-2", "1-2", "1-2", "2-3", "3", "3" }, baked.Placements.Where(p => p.Phases is not null).Select(p => p.Phases!.Value.ToString()).Order(StringComparer.Ordinal));
+            // The balcony; the ramp, the three pillars of phases 1-2; the toppled pillars and the wreck of the Prime-copter (33.5)
+            Assert.Equal(new[] { "1", "1-2", "1-2", "1-2", "2-3", "3", "3", "3" }, baked.Placements.Where(p => p.Phases is not null).Select(p => p.Phases!.Value.ToString()).Order(StringComparer.Ordinal));
         }
         finally
         {

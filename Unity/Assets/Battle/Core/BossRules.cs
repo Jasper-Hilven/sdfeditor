@@ -137,6 +137,22 @@ namespace SdfBattle
         [Tooltip("Metres: the slam's reach; phase 3's glare is for targets farther than this")]
         public float closeRange = 20;
 
+        [Header("Prime-copter (phase 2, ticket 33.5)")]
+        [Tooltip("Metres over the floor the copter's body cruises at: lowest and highest (Prime's feet hang 7 m below)")]
+        public float copterMinHeight = 14;
+        public float copterMaxHeight = 18;
+        [Tooltip("Metres it keeps over the highest thing under or ahead of it, whatever the cruise")]
+        public float copterClearance = 9;
+        [Tooltip("Metres a second it flies at, and metres inside the wall (the play area's edge) it stays")]
+        public float copterSpeed = 6;
+        public float copterMargin = 8;
+        [Tooltip("The dive: metres over the floor the copter goes down to, and the circle's radius on the floor")]
+        public float diveHeight = 6;
+        public float diveRadius = 6;
+        [Tooltip("The crash on the wreck's place: damage (at Normal) to everyone within the radius, in metres")]
+        public float crashDamage = 50;
+        public float crashRadius = 8;
+
         [Header("Crew and lives")]
         public float crewSkill = 0.7f;
         [Tooltip("Blue scouts in phases 1, 2 and 3")]
@@ -181,6 +197,9 @@ namespace SdfBattle
         public int CrewSize(BossPhase phase) => crewSizes[Math.Max(0, Math.Min(crewSizes.Length - 1, phase.BarOf()))];
 
         public float CrewRespawn(BossPhase phase) => crewRespawnSeconds[Math.Max(0, Math.Min(crewRespawnSeconds.Length - 1, phase.BarOf()))];
+
+        /// <summary>The crash's damage after the difficulty's scale.</summary>
+        public float CrashDamage => crashDamage * damageScale;
 
         /// <summary>Seconds a window lasts after the difficulty's scale.</summary>
         public float Window(float seconds) => seconds * stunScale;

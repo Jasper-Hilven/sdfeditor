@@ -190,6 +190,16 @@ namespace SdfBattle
             Place();
         }
 
+        /// <summary>Takes it out of play, hidden, until <see cref="Restart"/> brings it back (see <see cref="MachineState.Stow"/>).</summary>
+        public void Stow()
+        {
+            State.Stow();
+            LoseTarget();
+            EndBurst();
+            SetColliders(false);
+            Show(false);
+        }
+
         /// <summary>Puts it where it starts or respawns: a turret where it stands, the others at a free spot of the machine zone.</summary>
         protected abstract void Place();
 

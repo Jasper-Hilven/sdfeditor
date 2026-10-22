@@ -91,6 +91,17 @@ namespace SdfBattle
                 Respawned?.Invoke(this);
         }
 
+        /// <summary>
+        /// Out of play with no way back of its own (no death, no event): <see cref="Alive"/> is false and it never respawns until
+        /// <see cref="Reset"/> brings it back. The Prime-copter's tank drop keeps its tanks stowed like this (ticket 33.5).
+        /// </summary>
+        public void Stow()
+        {
+            Health.Hurt(Health.Current);
+            Alive = false;
+            RespawnIn = float.PositiveInfinity;
+        }
+
         private void Respawn()
         {
             Health.Reset(Stats.health);
