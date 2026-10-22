@@ -57,6 +57,8 @@ namespace SdfBattle
         private Player target;
         // Ticket 24: an enemy machine in its way, shot at while no player is in sight; never a goal
         private Machine machineTarget;
+        // Ticket 33.6: a part of the boss (Prime, a sac, a hand) in its way, shot at like a machine; never a goal
+        private IDamageable bossTarget;
         private float machineSeenAt = float.NegativeInfinity;
         private Vector3 lookAt;
         private float lookAtUntil;
@@ -120,6 +122,7 @@ namespace SdfBattle
             hasPath = false;
             target = null;
             machineTarget = null;
+            bossTarget = null;
             aim?.Lose();
             memory?.Forget();
             thinkIn = (float)random.NextDouble() * 0.3f;
@@ -259,39 +262,93 @@ namespace SdfBattle
         private void SenseMachine(Vector3 eye, Vector3 forward, float now)
         {
             var machines = Machines.Current;
-            if (target != null || machines == null)
+            if (target != null)
             {
                 machineTarget = null;
+                bossTarget = null;
                 return;
             }
             Machine best = null;
             var bestDistance = MachineReach;
-            foreach (var machine in machines.All)
+            if (machines != null)
             {
-                if (!machine.Alive || machine.Team == Team)
-                    continue;
-                var centre = machine.Center;
-                var distance = Vector3.Distance(eye, centre);
-                if (distance >= bestDistance || (machine != machineTarget && !BotSight.InView(eye, forward, centre, botSkill)))
-                    continue;
-                if (machines.Visible(eye, machine))
-                    (best, bestDistance) = (machine, distance);
+                foreach (var machine in machines.All)
+                {
+                    if (!machine.Alive || machine.Team == Team)
+                        continue;
+                    var centre = machine.Center;
+                    var distance = Vector3.Distance(eye, centre);
+                    if (distance >= bestDistance || (machine != machineTarget && !BotSight.InView(eye, forward, centre, botSkill)))
+                        continue;
+                    if (machines.Visible(eye, machine))
+                        (best, bestDistance) = (machine, distance);
+                }
             }
             if (best != null)
             {
                 machineTarget = best;
+                bossTarget = null;
                 machineSeenAt = now;
                 aim.Acquire(MachineAimId + best.State.Index);
+                return;
             }
-            else if (machineTarget != null && (!machineTarget.Alive || now - machineSeenAt > 1))
+            if (machineTarget != null && (!machineTarget.Alive || now - machineSeenAt > 1))
             {
                 machineTarget = null;
                 if (aim.Target >= MachineAimId)
                     aim.Lose();
             }
+            if (machineTarget == null)
+                SenseBoss(eye, forward, now);
         }
 
-        private bool MachineInSight(float now) => target == null && machineTarget != null && machineTarget.Alive && now - machineSeenAt <= SeenRecently;
+        /// <summary>The aim's ids for the boss fight's parts (Prime's, the sacs, the hands), past the machines'.</summary>
+        private const int BossAimId = 20000;
+
+        /// <summary>Metres within which it shoots at a part of the boss on its way (the electro-gun reaches the sacs from 60).</summary>
+        private const float BossReach = 60;
+
+        /// <summary>
+        /// Ticket 33.6: with no player and no machine to shoot at, the nearest part of the boss the bots may shoot (<see cref="Bots.BossTargets"/>:
+        /// what can be hurt now) in its view and line of sight, as it does a machine in its way.
+        /// </summary>
+        private void SenseBoss(Vector3 eye, Vector3 forward, float now)
+        {
+            IDamageable best = null;
+            var bestDistance = BossReach;
+            var index = 0;
+            var bestIndex = 0;
+            foreach (var part in owner.BossTargets)
+            {
+                index++;
+                if (part == null || !part.Alive || part.Team == Team)
+                    continue;
+                var centre = part.Center;
+                var distance = Vector3.Distance(eye, centre);
+                if (distance >= bestDistance || (part != bossTarget && !BotSight.InView(eye, forward, centre, botSkill)))
+                    continue;
+                if (owner.LineOfSightTo(eye, part))
+                    (best, bestDistance, bestIndex) = (part, distance, index);
+            }
+            if (best != null)
+            {
+                bossTarget = best;
+                machineSeenAt = now;
+                aim.Acquire(BossAimId + bestIndex);
+            }
+            else if (bossTarget != null && (!bossTarget.Alive || now - machineSeenAt > 1))
+            {
+                bossTarget = null;
+                if (aim.Target >= BossAimId)
+                    aim.Lose();
+            }
+        }
+
+        private bool MachineInSight(float now) => target == null && now - machineSeenAt <= SeenRecently &&
+            ((machineTarget != null && machineTarget.Alive) || (bossTarget != null && bossTarget.Alive));
+
+        /// <summary>The middle of what it shoots at on its way: the machine, or a part of the boss.</summary>
+        private Vector3 ExtraCentre() => machineTarget != null ? machineTarget.Center : bossTarget.Center;
 
         private bool TargetInSight(float now) =>
             target != null && target.State.Alive && memory.SinceSeen(target.State.Index, now) <= SeenRecently;
@@ -449,6 +506,13 @@ namespace SdfBattle
                         roaming = false;
                         return true;
                     }
+                    // Ticket 33.6: nobody to find, but Prime to harass: a spot at shooting range from him, where it already stands if it can
+                    if (owner.HuntFocusOf(Team) is Vector3 focus)
+                    {
+                        destination = FocusSpot(focus);
+                        roaming = false;
+                        return true;
+                    }
                     if (!roaming || Flat(roamPoint - feet).magnitude < 2)
                         PickRoamPoint();
                     destination = roamPoint;
@@ -471,6 +535,19 @@ namespace SdfBattle
                 default:
                     return false;
             }
+        }
+
+        /// <summary>Where to stand to shoot at <paramref name="focus"/> from <see cref="Bots.huntFocusRange"/> away: here when it is about that far already.</summary>
+        private Vector3 FocusSpot(Vector3 focus)
+        {
+            var feet = transform.position;
+            var away = Flat(feet - focus);
+            var range = owner.huntFocusRange;
+            if (away.magnitude > range * 0.6f && away.magnitude < range * 1.4f)
+                return feet;
+            var direction = away.sqrMagnitude > 1e-4f ? away.normalized : transform.forward;
+            var spot = focus + direction * range;
+            return BotNavigation.Snap(spot, 6, out var onMesh) ? onMesh : spot;
         }
 
         /// <summary>Somewhere to look for a fight: round the middle of the island, leaning to the enemy's half.</summary>
@@ -598,6 +675,9 @@ namespace SdfBattle
                 sidestepLeft -= dt;
                 want = sidestep;
             }
+            // Ticket 33.6: in a marker of Prime's, whatever else it is up to, it steps out of it
+            if (owner.Dangers.Count > 0 && BotDanger.Escape(new Vector2(feet.x, feet.z), owner.Dangers, out var way))
+                want = new Vector3(way.x, 0, way.y);
             want.y = 0;
             if (want.sqrMagnitude > 1)
                 want.Normalize();
@@ -715,7 +795,7 @@ namespace SdfBattle
             else if (MachineInSight(now))
             {
                 // A machine in its way: straight at its middle, with the aim's error; not with a lobbed gun
-                var to = machineTarget.Center - eye;
+                var to = ExtraCentre() - eye;
                 wantYaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
                 wantPitch = -Mathf.Asin(Mathf.Clamp(to.y / Mathf.Max(0.01f, to.magnitude), -1, 1)) * Mathf.Rad2Deg;
                 var offset = aim.Tick(dt);

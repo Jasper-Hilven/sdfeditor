@@ -30,6 +30,12 @@ namespace SdfBattle
         /// <summary>What wins the match; the boss fight (ticket 33) is its own.</summary>
         public MatchObjective objective;
         public bool sporesOn = true;
+        /// <summary>The boss fight's difficulty, 0 Easy, 1 Normal, 2 Hard (<see cref="BossDifficulty"/>, ticket 33.6); the campaign's difficulty by number.</summary>
+        public int bossDifficulty = 1;
+        /// <summary>RETRY EASIER: the boss fight takes Easy's damage and wind-up rows.</summary>
+        public bool retryEasier;
+        /// <summary>The boss fight's first phase, 1 to 3 (RETRY PHASE).</summary>
+        public int bossStartPhase = 1;
         /// <summary>Seconds a dead blue player waits; red keeps the rules' own.</summary>
         public float blueRespawnSeconds = 5;
         /// <summary>The match starts held (ticket 32.7): a story beat plays first, and whoever plays it lets the match go.</summary>

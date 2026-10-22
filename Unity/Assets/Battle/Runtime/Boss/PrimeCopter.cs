@@ -101,6 +101,9 @@ namespace SdfBattle
 
         public HangingPendulum Pendulum => pendulum;
 
+        /// <summary>The four spore sacs' hit shapes (alive or not: ask <see cref="SacAlive"/>), for the bots to shoot at (ticket 33.6).</summary>
+        public System.Collections.Generic.IReadOnlyList<PrimeSac> SacShapes => sacs;
+
         public PrimeCopterRig Rig => rig;
 
         public BossState State => state;

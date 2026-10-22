@@ -241,6 +241,27 @@ namespace SdfBattle
             Died?.Invoke(death);
         }
 
+        /// <summary>
+        /// Takes a player out of the match, or brings them back (ticket 33.6: the boss fight's blue crew is as big as the phase says).
+        /// Benched, a living player leaves at once (a <see cref="DeathCause.Removed"/> death: no message, no gore, the flag they carry falls, and it
+        /// counts as a death) and does not respawn, not at a new round either; back, they appear at their spawn zone at once.
+        /// </summary>
+        public void SetBenched(PlayerState player, bool benched)
+        {
+            if (player == null || player.Benched == benched)
+                return;
+            if (benched)
+            {
+                player.Benched = true;
+                if (player.Alive)
+                    ReportDeath(new Death(player, DeathCause.Removed));
+                return;
+            }
+            player.Benched = false;
+            if (Started)
+                Spawn(player);
+        }
+
         /// <summary>The player fell off the island, or below the kill height.</summary>
         public void ReportFall(PlayerState victim) => ReportDeath(new Death(victim, DeathCause.Fell));
 
@@ -279,6 +300,8 @@ namespace SdfBattle
 
         private void Spawn(PlayerState player)
         {
+            if (player.Benched)
+                return;
             player.Spawn(Rules.maxHealth, Rules.spawnProtectionSeconds);
             Spawned?.Invoke(player);
         }

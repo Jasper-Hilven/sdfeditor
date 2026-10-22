@@ -43,6 +43,13 @@ namespace SdfBattle
             return column;
         }
 
+        /// <summary>Another colour from now on (the crown's gold on the blue flag's column, ticket 33.6).</summary>
+        public void SetColour(Color colour)
+        {
+            if (material != null)
+                material.SetColor("_Color", colour.linear);
+        }
+
         private void OnDestroy()
         {
             if (material != null)

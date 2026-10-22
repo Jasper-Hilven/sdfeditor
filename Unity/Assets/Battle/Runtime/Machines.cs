@@ -108,6 +108,7 @@ namespace SdfBattle
 #endif
             var root = new GameObject(ObjectName).transform;
             root.SetParent(transform, false);
+            var bossLevel = FindFirstObjectByType<BossSpots>() != null;
             foreach (var side in new[] { arena.west, arena.east })
             {
                 if (side == null)
@@ -119,7 +120,8 @@ namespace SdfBattle
                             Add<TurretMachine>(rig, MachineKind.Turret, team, side);
                 if (side.machineSpawn == null)
                     continue;
-                for (var i = 0; i < rules.helicoptersPerSide; i++)
+                // The boss fight's blue helicopter is the Prime-copter (ticket 33.5), flown by the boss; no other
+                for (var i = 0; i < (bossLevel ? 0 : rules.helicoptersPerSide); i++)
                     Make<HelicopterMachine>(team == Team.Red ? redHelicopter : blueHelicopter, MachineKind.Helicopter, team, side, root, i);
                 for (var i = 0; i < rules.tanksPerSide; i++)
                     Make<TankMachine>(team == Team.Red ? redTank : blueTank, MachineKind.Tank, team, side, root, i);
@@ -319,6 +321,13 @@ namespace SdfBattle
         }
 
         private static readonly IComparer<RaycastHit> Comparer = Comparer<RaycastHit>.Create(ByDistance);
+
+        /// <summary>Whether a circle of <paramref name="margin"/> metres round a point is inside the play area (the boss' dive stays on the floor).</summary>
+        public static bool PlayAreaContains(Vector3 point, float margin)
+        {
+            PlayArea(out var min, out var max);
+            return point.x - margin >= min.x && point.x + margin <= max.x && point.z - margin >= min.y && point.z + margin <= max.y;
+        }
 
         /// <summary>The play area's corners (x, z), from the scene info; a 150 x 100 m field round the origin without one.</summary>
         public static void PlayArea(out Vector2 min, out Vector2 max)

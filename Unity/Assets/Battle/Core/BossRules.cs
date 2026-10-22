@@ -196,6 +196,21 @@ namespace SdfBattle
 
         public int CrewSize(BossPhase phase) => crewSizes[Math.Max(0, Math.Min(crewSizes.Length - 1, phase.BarOf()))];
 
+        /// <summary>Blue scouts in play in a fight phase: its crew, and with Sore Loser (phase 3) the scouts that arrive with it.</summary>
+        public int CrewCount(BossPhase phase, bool soreLoser) => CrewSize(phase) + (soreLoser && phase == BossPhase.Phase3 ? soreLoserCrew : 0);
+
+        /// <summary>The most blue scouts any phase has in play: the crew the match must make bodies for.</summary>
+        public int MostCrew
+        {
+            get
+            {
+                var most = 0;
+                foreach (var phase in new[] { BossPhase.Phase1, BossPhase.Phase2, BossPhase.Phase3 })
+                    most = Math.Max(most, CrewCount(phase, true));
+                return most;
+            }
+        }
+
         public float CrewRespawn(BossPhase phase) => crewRespawnSeconds[Math.Max(0, Math.Min(crewRespawnSeconds.Length - 1, phase.BarOf()))];
 
         /// <summary>The crash's damage after the difficulty's scale.</summary>

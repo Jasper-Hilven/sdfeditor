@@ -64,6 +64,9 @@ namespace SdfCampaign
             sporesOn = sporesOn,
             blueRespawnSeconds = blueRespawnSeconds,
             warmUp = warmUp,
+            bossDifficulty = (int)difficulty,
+            retryEasier = retryEasier,
+            bossStartPhase = bossStartPhase,
         };
 
         public BattleSetup Clone()

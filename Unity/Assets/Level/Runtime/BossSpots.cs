@@ -19,5 +19,17 @@ namespace SdfLevel
 
         [Tooltip("The shield dome's radius in metres")]
         public float shieldRadius = 7;
+
+        [Header("Prefabs of the boss's runtime (set by the level builder; the editor finds them by path when empty)")]
+        [Tooltip("Assets/Prime/Prefabs/chanterelle-prime.prefab")]
+        public GameObject primePrefab;
+        [Tooltip("Assets/Machines/Prefabs/primecopter.prefab")]
+        public GameObject copterPrefab;
+        [Tooltip("Assets/Mushrooms/minigun-gold.prefab, the champion's minigun on its plinth")]
+        public GameObject goldMinigunPrefab;
+        [Tooltip("Assets/Mushrooms/prime-crown.prefab (the story's crown), the flag of phase 3")]
+        public GameObject crownPrefab;
+        [Tooltip("Assets/Pickups/Pods/health-pod.prefab, for the dais and the crowd's health caps")]
+        public GameObject healthPodPrefab;
     }
 }

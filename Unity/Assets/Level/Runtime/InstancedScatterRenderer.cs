@@ -116,6 +116,9 @@ namespace SdfLevel
         private static readonly int CameraId = Shader.PropertyToID("_ScatterCamera");
         private static readonly int WindId = Shader.PropertyToID("_ScatterWind");
 
+        /// <summary>The draw group that cheers with the global <c>_CrowdCheer</c> (ticket 33.6): the boss arena's crowd.</summary>
+        public const string CheeringGroup = "crowd";
+
         [Tooltip("The level's instances.bin (copied as a .bytes asset by LevelBuilder)")]
         public TextAsset instances;
         public ScatterDrawGroup[] groups = Array.Empty<ScatterDrawGroup>();
@@ -539,7 +542,7 @@ namespace SdfLevel
                             properties.SetVectorArray(TintId, batchTints);
                             properties.SetVector(RingId, groupRings[prototypeGroups[p]][k]);
                             properties.SetVector(CameraId, eye);
-                            properties.SetVector(WindId, new Vector4(group.wind, group.windHeight, group.tintHeight, 0));
+                            properties.SetVector(WindId, new Vector4(group.wind, group.windHeight, group.tintHeight, group.name == CheeringGroup ? 1 : 0));
                             var castShadows = shadows && part.shadows;
                             var parameters = new RenderParams(surface)
                             {

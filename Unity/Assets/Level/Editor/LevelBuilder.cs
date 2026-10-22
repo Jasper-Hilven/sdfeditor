@@ -98,8 +98,9 @@ namespace SdfLevel.Editor
         /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
         /// Version 22: the boss arena (ticket 33.3): the placed models tagged with phases under <see cref="PhaseGroup"/> objects, Boss Spots
         /// (<see cref="BossSpots"/>), and the navmeshes per phase layout.
+        /// Version 23: the boss's prefabs on Boss Spots (ticket 33.6).
         /// </summary>
-        public const int BuilderVersion = 22;
+        public const int BuilderVersion = 23;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -762,6 +763,12 @@ namespace SdfLevel.Editor
             spots.plinth = Spot("plinth", "Plinth");
             spots.shield = Spot("shield", "Shield");
             spots.shieldRadius = boss["shield"].Value<float?>("radius") ?? spots.shieldRadius;
+            // The prefabs the boss's runtime (33.6) makes its things from; a missing one is left empty (a warning from the runtime)
+            spots.primePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prime/Prefabs/chanterelle-prime.prefab");
+            spots.copterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Machines/Prefabs/primecopter.prefab");
+            spots.goldMinigunPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/minigun-gold.prefab");
+            spots.crownPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/prime-crown.prefab");
+            spots.healthPodPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Pickups/Pods/health-pod.prefab");
         }
 
         public const string MoversName = "Movers";
