@@ -14,6 +14,23 @@ namespace SdfBattle
         RoundEnd,
     }
 
+    /// <summary>How a single-round match ended (ticket 32.3): the winner, the score and the seconds the round took, countdown included.</summary>
+    public readonly struct MatchResult
+    {
+        public MatchResult(Team winner, int redScore, int blueScore, float seconds)
+        {
+            Winner = winner;
+            RedScore = redScore;
+            BlueScore = blueScore;
+            Seconds = seconds;
+        }
+
+        public Team Winner { get; }
+        public int RedScore { get; }
+        public int BlueScore { get; }
+        public float Seconds { get; }
+    }
+
     /// <summary>
     /// The match's rules (ticket 20) in plain C#, so EditMode tests can play it through without a scene: the roster, the phases
     /// (countdown → playing → round end → the next round's countdown), the score per team, the clock and sudden death, deaths, respawns
@@ -62,8 +79,14 @@ namespace SdfBattle
 
         public IReadOnlyList<PlayerState> Players => players;
 
-        /// <summary>Whether players may move: not during the countdown, when everyone waits at their spawn.</summary>
-        public bool CanMove => Phase != RoundPhase.Countdown;
+        /// <summary>
+        /// The match is held (ticket 32.7: a story beat or the warm-up plays first): the clock, the respawn waits and the phases stand still,
+        /// nobody moves or hurts anybody. Set and cleared by whoever plays the scene before the match; not part of a round, so a restart leaves it.
+        /// </summary>
+        public bool Held { get; set; }
+
+        /// <summary>Whether players may move: not during the countdown, when everyone waits at their spawn, nor while the match is held.</summary>
+        public bool CanMove => Phase != RoundPhase.Countdown && !Held;
 
         /// <summary>
         /// A new round begins, before anyone spawns: scores and counts are back to zero, every player is about to respawn. Rules with
@@ -89,6 +112,12 @@ namespace SdfBattle
         /// <summary>The round is over: the winner.</summary>
         public event Action<Team> RoundEnded;
 
+        /// <summary>A single-round match (<see cref="MatchRules.singleRound"/>) is over for good: winner, score and seconds. Raised once, with <see cref="RoundEnded"/>.</summary>
+        public event Action<MatchResult> MatchEnded;
+
+        /// <summary>A single-round match has ended: no next round will start.</summary>
+        public bool Over { get; private set; }
+
         public int Score(Team team) => score[(int)team];
 
         /// <summary>The players of one team, in roster order.</summary>
@@ -109,6 +138,20 @@ namespace SdfBattle
             return player;
         }
 
+        /// <summary>
+        /// Starts the round over in place (RETRY, ticket 32): scores, counts, clock and flags back to the start, everyone respawns, whatever
+        /// the phase; a finished single-round match plays again.
+        /// </summary>
+        public void Restart()
+        {
+            if (!Started)
+            {
+                Begin();
+                return;
+            }
+            StartRound();
+        }
+
         /// <summary>Starts the first round: everyone spawns and the countdown begins.</summary>
         public void Begin()
         {
@@ -119,7 +162,7 @@ namespace SdfBattle
         /// <summary>Lets <paramref name="seconds"/> pass: the phase's timer or the clock, the respawn waits and the spawn protection.</summary>
         public void Tick(float seconds)
         {
-            if (!Started || seconds <= 0)
+            if (!Started || seconds <= 0 || Held)
                 return;
             RoundClock += seconds;
             switch (Phase)
@@ -138,6 +181,8 @@ namespace SdfBattle
                     }
                     break;
                 case RoundPhase.RoundEnd:
+                    if (Over)
+                        break;
                     PhaseTimeLeft = Math.Max(0, PhaseTimeLeft - seconds);
                     if (PhaseTimeLeft <= 0)
                     {
@@ -175,7 +220,7 @@ namespace SdfBattle
             var victim = death.Victim;
             if (victim == null || !victim.Alive)
                 return;
-            victim.Die(Rules.respawnSeconds);
+            victim.Die(Rules.RespawnOf(victim.Team));
             if (death.CountsAsKill)
                 death.Killer.Kills++;
             Died?.Invoke(death);
@@ -189,15 +234,16 @@ namespace SdfBattle
 
         /// <summary>
         /// Whether something of team <paramref name="attacker"/> (a player or a machine) can hurt <paramref name="victim"/>: the victim
-        /// is alive and no longer protected, of the other team (friendly fire is off), and the round is not counting down.
+        /// is alive and no longer protected, of the other team (friendly fire is off), the round is not counting down and the match is not held.
         /// </summary>
         public bool CanHurt(PlayerState victim, Team attacker) =>
-            victim != null && victim.Alive && !victim.Protected && Started && Phase != RoundPhase.Countdown
+            victim != null && victim.Alive && !victim.Protected && Started && Phase != RoundPhase.Countdown && !Held
             && (Rules.friendlyFire || attacker != victim.Team);
 
         private void StartRound()
         {
             Round++;
+            Over = false;
             score[0] = score[1] = 0;
             SuddenDeath = false;
             Winner = null;
@@ -239,6 +285,11 @@ namespace SdfBattle
             PhaseTimeLeft = Rules.resultSeconds;
             SetPhase(RoundPhase.RoundEnd);
             RoundEnded?.Invoke(winner);
+            if (Rules.singleRound)
+            {
+                Over = true;
+                MatchEnded?.Invoke(new MatchResult(winner, score[0], score[1], RoundClock));
+            }
         }
 
         private void SetPhase(RoundPhase phase)

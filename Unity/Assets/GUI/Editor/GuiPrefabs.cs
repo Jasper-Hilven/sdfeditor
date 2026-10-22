@@ -7,8 +7,8 @@ using static SdfGui.Editor.GuiFactory;
 namespace SdfGui.Editor
 {
     /// <summary>
-    /// The GUI's reusable components as prefabs in Assets/GUI/Prefabs/Components: panel, button, slider, toggle, selector, avatar, ping
-    /// bars, progress bar, banner, player row and kill feed entry. The screens (<see cref="GuiScreens"/>) are made of instances of
+    /// The GUI's reusable components as prefabs in Assets/GUI/Prefabs/Components: panel, button, slider, toggle, selector, avatar,
+    /// progress bar, banner, player row and kill feed entry. The screens (<see cref="GuiScreens"/>) are made of instances of
     /// these, so a change to a component prefab shows on every screen. Rebuilt by Tools > SDF GUI > Rebuild Prefabs and Scene, which
     /// replaces them: change the builder rather than the prefabs to keep a change.
     /// </summary>
@@ -19,7 +19,7 @@ namespace SdfGui.Editor
 
         private readonly GuiFactory f;
 
-        public GameObject Panel, Button, Slider, Toggle, Selector, Avatar, PingBars, ProgressBar, Banner, PlayerRow, KillFeedEntry;
+        public GameObject Panel, Button, Slider, Toggle, Selector, Avatar, ProgressBar, Banner, PlayerRow, KillFeedEntry, LevelCard;
 
         public GuiPrefabs(GuiFactory factory) => f = factory;
 
@@ -33,11 +33,11 @@ namespace SdfGui.Editor
             Toggle = BuildToggle();
             Selector = BuildSelector();
             Avatar = BuildAvatar();
-            PingBars = BuildPingBars();
             ProgressBar = BuildProgressBar();
             Banner = BuildBanner();
             PlayerRow = BuildPlayerRow();
             KillFeedEntry = BuildKillFeedEntry();
+            LevelCard = BuildLevelCard();
         }
 
         private static string PathOf(string name) => $"{ComponentFolder}/{name}.prefab";
@@ -190,26 +190,6 @@ namespace SdfGui.Editor
             return Save(disc.gameObject, PathOf("Avatar"));
         }
 
-        private GameObject BuildPingBars()
-        {
-            var root = Object("Ping Bars", null);
-            Place(root.transform, Centre, Vector2.zero, new Vector2(84, 32));
-            var ping = root.AddComponent<GuiPingBars>();
-            ping.bars = new ToonShape[3];
-            for (var i = 0; i < 3; i++)
-            {
-                var height = 12 + i * 9;
-                ping.bars[i] = f.Shape(root.transform, $"Bar {i + 1}", ToonShapeKind.Pill, GuiPalette.Moss, BottomLeft, new Vector2(i * 14, 0), new Vector2(11, height), s =>
-                {
-                    s.Outline = 2.5f;
-                    s.Shadow = 0;
-                    s.Shading = 0;
-                });
-            }
-            ping.label = f.Text(root.transform, "Label", "40", TextStyle.Body, 22, GuiPalette.Ink, BottomRight, new Vector2(0, -2), new Vector2(44, 32), TextAlignmentOptions.BottomRight);
-            return Save(root, PathOf("Ping Bars"));
-        }
-
         private GameObject BuildProgressBar()
         {
             var bar = f.Shape(null, "Progress Bar", ToonShapeKind.Pill, GuiPalette.Moss, Centre, Vector2.zero, new Vector2(320, 42), s =>
@@ -254,9 +234,8 @@ namespace SdfGui.Editor
             row.rank = f.Text(t, "Rank", "1", TextStyle.Label, 28, GuiPalette.Dusk, Left, new Vector2(12, 0), new Vector2(40, 50));
             row.avatar = Instance<GuiAvatar>(Avatar, t, "Avatar", Left, new Vector2(58, 0), new Vector2(50, 50));
             row.playerName = f.Text(t, "Name", "Player", TextStyle.Body, 28, GuiPalette.Ink, Left, new Vector2(122, 0), new Vector2(250, 50), TextAlignmentOptions.Left);
-            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-230, 0), new Vector2(60, 50));
-            row.status = f.Text(t, "Status", "READY", TextStyle.Label, 24, GuiPalette.MossDark, Right, new Vector2(-104, 0), new Vector2(110, 50));
-            row.ping = Instance<GuiPingBars>(PingBars, t, "Ping", Right, new Vector2(-14, 0));
+            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-124, 0), new Vector2(60, 50));
+            row.status = f.Text(t, "Status", "ALIVE", TextStyle.Label, 24, GuiPalette.MossDark, Right, new Vector2(-14, 0), new Vector2(110, 50));
             return Save(background.gameObject, PathOf("Player Row"));
         }
 
@@ -294,6 +273,59 @@ namespace SdfGui.Editor
             Fixed(entry.headshot, 38, 28);
             entry.victim = f.Text(t, "Victim", "Victim", TextStyle.BodyInk, 27, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(100, 40));
             return Save(background.gameObject, PathOf("Kill Feed Entry"));
+        }
+
+        // One arena on Level Select (ticket 32.5): snapshot (or a stand-in colour), name, best medal and time, PLAY; a cover with a padlock
+        // when locked or a plain note when the scene is not built yet
+        private GameObject BuildLevelCard()
+        {
+            var card = f.Panel(null, "Level Card", GuiPalette.Cream, Centre, Vector2.zero, new Vector2(400, 356), 26);
+            var view = card.gameObject.AddComponent<GuiLevelCard>();
+            var t = card.transform;
+            var pictureSize = new Vector2(372, 196);
+
+            var frame = Object("Picture", t);
+            Place(frame.transform, Top, new Vector2(0, -14), pictureSize);
+            view.standIn = f.Shape(frame.transform, "Stand In", ToonShapeKind.Box, GuiPalette.Moss, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.CornerRadius = 16;
+                s.Outline = 4;
+                s.Shadow = 0;
+            });
+            Stretch(view.standIn);
+            var snapshot = Object("Snapshot", frame.transform).AddComponent<RawImage>();
+            snapshot.raycastTarget = false;
+            snapshot.enabled = false;
+            Stretch(snapshot, 4);
+            view.picture = snapshot;
+
+            view.title = f.Text(t, "Title", "1  MEADOW", TextStyle.Label, 36, GuiPalette.Ink, Top, new Vector2(0, -214), new Vector2(380, 44));
+            view.title.enableAutoSizing = true;
+            view.title.fontSizeMin = 22;
+            view.title.fontSizeMax = 36;
+            view.info = f.Text(t, "Info", "SILVER  ·  6:11", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -254), new Vector2(380, 36));
+            view.play = ButtonInstance(t, "PLAY", GuiPalette.Moss, GuiCommandId.PlayLevel, Bottom, new Vector2(0, 12), new Vector2(200, 50), 34, spots: 0.4f).GetComponent<GuiCommand>();
+
+            var cover = f.Shape(t, "Cover", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Top, new Vector2(0, -14), pictureSize, s =>
+            {
+                s.CornerRadius = 16;
+                s.Outline = 4;
+                s.Shadow = 0;
+                s.Shading = 0;
+            });
+            view.cover = cover.gameObject;
+            view.coverText = f.Text(cover.transform, "Text", "Win the previous arena", TextStyle.BodyInk, 30, GuiPalette.Cream, Centre, new Vector2(0, -52), new Vector2(350, 44));
+            var padlock = Object("Padlock", cover.transform);
+            Place(padlock.transform, Centre, new Vector2(0, 24), new Vector2(70, 100));
+            f.Shape(padlock.transform, "Shackle", ToonShapeKind.Ring, GuiPalette.Paper, Centre, new Vector2(0, 26), new Vector2(46, 50));
+            f.Shape(padlock.transform, "Body", ToonShapeKind.Box, GuiPalette.Chanterelle, Centre, new Vector2(0, -14), new Vector2(66, 50), s =>
+            {
+                s.CornerRadius = 10;
+                s.Outline = 4;
+                s.Shadow = 3;
+            });
+            view.padlock = padlock;
+            return Save(card.gameObject, PathOf("Level Card"));
         }
 
         private static void Fixed(Component component, float width, float height)

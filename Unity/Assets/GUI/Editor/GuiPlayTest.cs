@@ -23,19 +23,43 @@ namespace SdfGui.Editor
         {
             (0.05f, "01 start", _ => { }),
             (1.2f, "02 firing", f => { f.Match.Fire(0.4f); f.Execute(GuiCommandId.YouKill, GuiScreen.Hud); }),
-            (1.4f, "03 hit and crumble", f => { f.Execute(GuiCommandId.Damage, GuiScreen.Hud); f.Execute(GuiCommandId.Crumble, GuiScreen.Hud); f.Execute(GuiCommandId.TogglePickup, GuiScreen.Hud); }),
+            (1.4f, "03 hit", f => { f.Execute(GuiCommandId.Damage, GuiScreen.Hud); f.Execute(GuiCommandId.TogglePickup, GuiScreen.Hud); }),
             (1.6f, "04 reload", f => f.Execute(GuiCommandId.Reload, GuiScreen.Hud)),
             (2.2f, "05 scoreboard", f => f.Show(GuiScreen.Scoreboard)),
             (2.4f, "06 pause", f => f.Show(GuiScreen.Pause)),
-            (2.6f, "07 lobby filling", f => f.Execute(GuiCommandId.Play, GuiScreen.Hud)),
-            (5.5f, "08 lobby later", _ => { }),
-            (5.7f, "09 new round", f => f.Execute(GuiCommandId.StartNow, GuiScreen.Hud)),
-            (5.9f, "10 died", f => f.Execute(GuiCommandId.Die, GuiScreen.Hud)),
-            (6.1f, "11 spectating", f => f.Execute(GuiCommandId.Spectate, GuiScreen.Hud)),
-            (6.3f, "12 won", f => { f.Execute(GuiCommandId.StartNow, GuiScreen.Hud); f.Execute(GuiCommandId.Win, GuiScreen.Hud); }),
-            (6.5f, "13 settings", f => f.Show(GuiScreen.Settings)),
-            (6.7f, "14 main menu", f => f.Show(GuiScreen.MainMenu)),
+            (2.6f, "07 play from the menu", f => f.Execute(GuiCommandId.Continue, GuiScreen.Hud)),
+            (3.0f, "08 new round", f => f.Execute(GuiCommandId.NewRound, GuiScreen.Hud)),
+            (3.2f, "09 died", f => f.Execute(GuiCommandId.Die, GuiScreen.Hud)),
+            (3.4f, "10 spectating", f => f.Execute(GuiCommandId.Spectate, GuiScreen.Hud)),
+            (3.6f, "11 won", f => { f.Execute(GuiCommandId.NewRound, GuiScreen.Hud); f.Execute(GuiCommandId.Win, GuiScreen.Hud); }),
+            (3.8f, "12 settings", f => f.Show(GuiScreen.Settings)),
+            (4.0f, "13 title", f => f.Show(GuiScreen.Title)),
+            (4.2f, "14 pause", f => { f.Show(GuiScreen.Hud); f.Show(GuiScreen.Pause); }),
+            (4.4f, "15 resume", f => { Expect(Time.timeScale == 0, "Pause stops the time"); f.Execute(GuiCommandId.Resume, GuiScreen.Hud); }),
+            (4.6f, "16 playing again", _ => Expect(Time.timeScale == 1, "Resume sets the time going again")),
+            (4.8f, "17 level select", f => f.Show(GuiScreen.LevelSelect)),
+            (5.0f, "18 new campaign", f => { f.Show(GuiScreen.Title); f.Execute(GuiCommandId.NewCampaign, GuiScreen.Hud); Expect(f.screen == GuiScreen.Difficulty, "NEW CAMPAIGN without a save opens the difficulty card"); }),
+            (5.2f, "19 story", f => f.Show(GuiScreen.Story)),
+            (5.4f, "20 confirm", f => { f.Show(GuiScreen.Pause); f.Ask("Leave the match?\nThe campaign is saved at the start of this arena.", () => f.Show(GuiScreen.Title)); Expect(f.ConfirmOpen && f.screen == GuiScreen.Pause, "the card shows over the pause menu"); }),
+            (5.6f, "21 cancelled", f => { f.Execute(GuiCommandId.Cancel, GuiScreen.Hud); Expect(!f.ConfirmOpen && f.screen == GuiScreen.Pause, "NO closes the card and leaves the pause menu"); }),
+            (5.8f, "22 yes", f => { f.Ask("Leave the match?", () => f.Show(GuiScreen.Title)); f.Execute(GuiCommandId.Confirm, GuiScreen.Hud); Expect(!f.ConfirmOpen && f.screen == GuiScreen.Title, "YES runs what was asked"); }),
+            // The match's end (32.6): slow-down 1 s, banner 2 s, then Victory; RETRY starts over; DEFEAT is the other screen
+            (6.0f, "23 new round", f => f.Execute(GuiCommandId.NewRound, GuiScreen.Hud)),
+            (6.2f, "23b round won", f => f.Execute(GuiCommandId.Win, GuiScreen.Hud)),
+            (6.6f, "24 slow-down", f => Expect(f.Ending && Time.timeScale < 0.5f && f.screen == GuiScreen.Hud, "the end slows the time down first")),
+            (7.6f, "25 banner", f => Expect(f.screen == GuiScreen.MatchEnd && Mathf.Approximately(Time.timeScale, 1), "then the banner shows at full speed")),
+            (9.6f, "26 victory", f => Expect(f.screen == GuiScreen.Victory && f.Match.end.won && !f.Ending, "then Victory")),
+            (9.8f, "27 retry", f => { f.Execute(GuiCommandId.Retry, GuiScreen.Hud); Expect(f.screen == GuiScreen.Hud && f.Match.phase == MatchPhase.Playing && !f.Match.end.set, "RETRY starts the round again"); }),
+            (10.0f, "28 defeat", f => { f.Show(GuiScreen.Defeat); Expect(f.screen == GuiScreen.Defeat && !f.Match.end.won, "the Defeat screen shows"); }),
+            (10.2f, "29 ending", f => { f.Show(GuiScreen.Ending); Expect(f.screen == GuiScreen.Ending && !f.Shows(GuiScreen.Hud) && f.Match.caption.Visible, "the Ending screen shows the caption box without the HUD"); }),
+            (10.4f, "30 credits", f => { f.Show(GuiScreen.Credits); Expect(f.screen == GuiScreen.Credits && f.GetComponentInChildren<GuiCredits>(false) != null, "the Credits screen shows"); }),
         };
+
+        private static void Expect(bool ok, string what)
+        {
+            if (!ok)
+                throw new Exception("Expected: " + what);
+        }
 
         private static float started = -1;
         private static int next;

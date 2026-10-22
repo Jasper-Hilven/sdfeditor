@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace SdfBattle
 {
     /// <summary>
-    /// Combat on the HUD (ticket 22), on top of what <see cref="MatchHud"/> writes into the GUI's <see cref="FakeMatch"/> (the health
+    /// Combat on the HUD (ticket 22), on top of what <see cref="MatchHud"/> writes into the GUI's <see cref="MatchView"/> (the health
     /// bar reads <see cref="PlayerState.Health"/>, the kill feed the match's deaths): the hit marker (bigger and red on a kill), the
     /// damage direction and the red of being hit, the "eliminated" pop-up (its title one of <see cref="DeathLines"/>), the crosshair's
     /// spread with the weapon's, and the four weapon slots (the HUD prefab's, <see cref="GuiHud.weaponSlots"/>) with the weapons' icons,
@@ -20,7 +20,7 @@ namespace SdfBattle
 
         private Combat combat;
         private MatchHud matchHud;
-        private FakeMatch view;
+        private MatchView view;
         private GuiIconSet icons;
         private TMP_Text weaponLabel;
         private GuiBar healthBar;
@@ -94,7 +94,7 @@ namespace SdfBattle
                 return;
             var weapon = arsenal.Weapon;
             view.spread = weapon != null ? Mathf.Clamp01(arsenal.Trigger.Spread(arsenal.Zoomed) / Mathf.Max(0.1f, fullSpread)) : 0;
-            view.weapon = Mathf.Max(0, System.Array.IndexOf(FakeMatch.Weapons, WeaponIds.ModelOf(inventory.CurrentWeapon)));
+            view.weapon = Mathf.Max(0, System.Array.IndexOf(MatchView.Weapons, WeaponIds.ModelOf(inventory.CurrentWeapon)));
             if (weaponLabel != null && weapon != null)
             {
                 // The minigun's burst: its heat in the label, and the wait while it spins down

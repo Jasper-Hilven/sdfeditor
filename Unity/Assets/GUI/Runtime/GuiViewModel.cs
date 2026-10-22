@@ -29,7 +29,7 @@ namespace SdfGui
             base.OnEnable();
         }
 
-        protected override void Render(FakeMatch m)
+        protected override void Render(MatchView m)
         {
             var fraction = m.ammo / (float)Mathf.Max(1, m.magazine);
             if (tank != null)

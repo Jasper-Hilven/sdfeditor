@@ -19,7 +19,7 @@ namespace SdfBattle
         /// <summary>The player's place in the match's roster, <see cref="MatchState.Players"/>.</summary>
         public int Index { get; }
 
-        /// <summary>The name the HUD and the kill feed show: plain names like "Red 2" for the bots until they get fake ones.</summary>
+        /// <summary>The name the HUD and the kill feed show: the cast's names (<see cref="Cast"/>), plain ones like "Red 2" past them.</summary>
         public string Name { get; set; }
 
         public Team Team { get; }

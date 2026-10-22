@@ -54,12 +54,20 @@ namespace SdfGui.Editor
                 {
                     foreach (GuiScreen screen in Enum.GetValues(typeof(GuiScreen)))
                     {
+                        // The yes/no card shows over a screen: the pause menu, as in a match
+                        if (screen == GuiScreen.Confirm)
+                            flow.Show(GuiScreen.Pause);
                         flow.Show(screen);
                         shoot(Path.Combine(directory, $"{screen}.png"));
                     }
+                    // The title once the campaign is complete: the gold crown on the logo's cap (ticket 32.8)
+                    GuiCampaign.PreviewComplete = true;
+                    flow.Show(GuiScreen.Title);
+                    shoot(Path.Combine(directory, "TitleComplete.png"));
                 }
                 finally
                 {
+                    GuiCampaign.PreviewComplete = false;
                     flow.Show(shown);
                 }
             });

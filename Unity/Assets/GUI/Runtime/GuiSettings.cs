@@ -8,6 +8,12 @@ namespace SdfGui
         public static readonly string[] GoreLevels = { "Off", "Splatty", "Extra Splatty", "Ultra Gore" };
 
         /// <summary>
+        /// Writes the settings out. A web build writes PlayerPrefs to the browser's storage only on Save, so the settings menu calls it when it
+        /// closes rather than at every slider step.
+        /// </summary>
+        public static void Save() => PlayerPrefs.Save();
+
+        /// <summary>
         /// The gore level, an index into <see cref="GoreLevels"/>: off (a killed scout just vanishes, no blood), splatty (the default: it
         /// bursts, its pieces fly, its team's blood splats about) extra splatty (more blood) or ultra gore (three times the blood, and every piece flies far, trailing blood). SdfBattle.Gore
         /// reads it at each death.

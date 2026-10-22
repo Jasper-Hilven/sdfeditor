@@ -23,7 +23,7 @@ namespace SdfGui.Editor
         public const string SetPath = Folder + "/Icons.asset";
         private const int Size = 384;
 
-        public static IEnumerable<string> Models => new[] { "amanita-scout", "chanterelle-scout" }.Concat(FakeMatch.Weapons);
+        public static IEnumerable<string> Models => new[] { "amanita-scout", "chanterelle-scout" }.Concat(MatchView.Weapons);
 
         [MenuItem("Tools/SDF GUI/Render Icons")]
         public static void RenderFromMenu()
@@ -82,7 +82,7 @@ namespace SdfGui.Editor
                 foreach (var group in instance.GetComponentsInChildren<LODGroup>())
                     group.ForceLOD(0);
                 var bounds = Bounds(instance);
-                var character = !FakeMatch.Weapons.Contains(model);
+                var character = !MatchView.Weapons.Contains(model);
                 // Characters face +z; a weapon is shown across its longest horizontal side
                 var direction = character
                     ? new Vector3(0.25f, 0.2f, 1).normalized

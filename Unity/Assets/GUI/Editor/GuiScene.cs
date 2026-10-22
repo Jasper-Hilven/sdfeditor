@@ -15,7 +15,7 @@ namespace SdfGui.Editor
 {
     /// <summary>
     /// Builds the GUI and its test scene, Assets/Scenes/GUI.unity: the icons, the component and screen prefabs, the GUI prefab (the
-    /// canvas with every screen, the test panel, the <see cref="FakeMatch"/> and the <see cref="GuiFlow"/>), the first-person gun with
+    /// canvas with every screen, the test panel, the <see cref="MatchView"/> and the <see cref="GuiFlow"/>), the first-person gun with
     /// its diegetic HUD, and the scene: a few mushrooms in a clearing seen from eye height, the gun in hand, the GUI over it.
     /// <para>
     /// The views draw from the match in the editor too, so opening the scene shows exactly the first frame of play: pick a screen on
@@ -82,12 +82,13 @@ namespace SdfGui.Editor
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
             root.AddComponent<GraphicRaycaster>();
-            SampleRound(root.AddComponent<FakeMatch>());
+            SampleRound(root.AddComponent<MatchView>());
             var flow = root.AddComponent<GuiFlow>();
             flow.screen = GuiScreen.Hud;
 
             // Lowest first: the HUD under the screens that show over it
-            var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.RoundEnd, GuiScreen.Lobby, GuiScreen.MainMenu, GuiScreen.Settings, GuiScreen.Gallery };
+            var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.MatchEnd, GuiScreen.Victory, GuiScreen.Defeat, GuiScreen.Title, GuiScreen.Settings, GuiScreen.Gallery, GuiScreen.Loading,
+                GuiScreen.LevelSelect, GuiScreen.Difficulty, GuiScreen.Story, GuiScreen.Caption, GuiScreen.Cutscene, GuiScreen.Ending, GuiScreen.Credits, GuiScreen.Confirm };
             foreach (var screen in order)
             {
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(screens.Screens[screen], root.transform);
@@ -96,39 +97,47 @@ namespace SdfGui.Editor
             }
             var test = (GameObject)PrefabUtility.InstantiatePrefab(screens.TestPanel, root.transform);
             Stretch(test.transform);
+
+            // Last, over everything: the black scene changes fade through (ticket 32.4)
+            var fade = Object("Fade", root.transform);
+            Stretch(fade.transform);
+            var fadeImage = fade.AddComponent<Image>();
+            fadeImage.color = Color.clear;
+            fadeImage.enabled = false;
+            fade.AddComponent<GuiFade>();
             return Save(root, GuiPrefabPath);
         }
 
-        /// <summary>A round two minutes in: three players out, you with two kills, hurt and halfway through your spores.</summary>
-        private static void SampleRound(FakeMatch match)
+        /// <summary>A round two minutes in: four players out, you with two kills, hurt and halfway through your spores.</summary>
+        private static void SampleRound(MatchView match)
         {
-            match.players = FakeMatch.NewRoster("You", 1);
+            match.players = MatchView.NewRoster(SdfBattle.Cast.You);
             var p = match.players;
             p[0].kills = 2;
             p[3].kills = 1;
-            p[6].kills = 1;
-            foreach (var (victim, place) in new[] { (5, 12), (9, 11), (2, 10) })
+            p[4].kills = 1;
+            foreach (var (victim, place) in new[] { (5, 8), (6, 7), (2, 6) })
             {
                 p[victim].alive = false;
                 p[victim].placement = place;
             }
-            match.feed = new List<FakeKill>
+            match.feed = new List<ViewKill>
             {
-                new FakeKill { killer = 0, victim = 5, weapon = 0, headshot = false, age = 4.2f },
-                new FakeKill { killer = 3, victim = 9, weapon = 2, headshot = true, age = 3.1f },
-                new FakeKill { killer = 6, victim = 2, weapon = 3, headshot = false, age = 1.9f },
-                new FakeKill { killer = 0, victim = 7, weapon = 0, headshot = true, age = 0.6f },
+                new ViewKill { killer = 0, victim = 5, weapon = 0, headshot = false, age = 4.2f },
+                new ViewKill { killer = 3, victim = 6, weapon = 2, headshot = true, age = 3.1f },
+                new ViewKill { killer = 4, victim = 2, weapon = 3, headshot = false, age = 1.9f },
+                new ViewKill { killer = 0, victim = 7, weapon = 0, headshot = true, age = 0.6f },
             };
             p[7].alive = false;
-            p[7].placement = 9;
+            p[7].placement = 5;
             match.phase = MatchPhase.Playing;
             match.timeLeft = 134;
-            match.ringsFallen = 1;
             match.health = 72;
             match.ammo = 164;
             // What the death screen shows when picked in the editor
             match.killedBy = 3;
             match.killedByWeapon = 2;
+            match.respawnIn = 5;
         }
 
         // ---------------------------------------------------------------- The first-person gun

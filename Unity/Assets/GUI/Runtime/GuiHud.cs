@@ -81,7 +81,7 @@ namespace SdfGui
         private float countdown = -1;
         private int countdownStep;
 
-        protected override void Render(FakeMatch m)
+        protected override void Render(MatchView m)
         {
             var aliveYou = m.YouAreAlive;
 

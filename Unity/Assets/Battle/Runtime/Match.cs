@@ -58,6 +58,12 @@ namespace SdfBattle
 
         public MatchState State { get; private set; }
 
+        /// <summary>The campaign's setup this match plays by (<see cref="MatchSetup.Pending"/> at its start); null plays the scene's own numbers.</summary>
+        public MatchSetup Setup { get; private set; }
+
+        /// <summary>A single-round match ended (ticket 32.3): winner, score, seconds. Never raised without a setup that asks for one round.</summary>
+        public event System.Action<MatchResult> Ended;
+
         /// <summary>The HUD on this match (the GUI's view of it); null when the scene has no GUI.</summary>
         public MatchHud Hud { get; private set; }
 
@@ -100,6 +106,13 @@ namespace SdfBattle
                 enabled = false;
                 return;
             }
+            // The campaign's setup (ticket 32.3) overrides the numbers; the rules are copied so the scene's own stay as authored
+            Setup = MatchSetup.Pending;
+            if (Setup != null)
+            {
+                rules = JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(rules));
+                Setup.Apply(rules);
+            }
             random = new System.Random(seed);
             var lowest = Mathf.Min(Arena.west.spawn.position.y, Arena.east.spawn.position.y);
             killHeight = lowest - killDepth;
@@ -108,6 +121,7 @@ namespace SdfBattle
             State = new MatchState(rules);
             State.Spawned += OnSpawned;
             State.Died += OnDied;
+            State.MatchEnded += result => Ended?.Invoke(result);
             MakePlayers();
             Current = this;
             if (gui != null)
@@ -127,9 +141,61 @@ namespace SdfBattle
             // Bots (ticket 23): their brains, after combat (their arsenals) and before the first round (their spawns)
             Bots.Create(this);
             State.Begin();
+            // A beat or the warm-up plays before the match (ticket 32.7): held from the first frame
+            if (Setup != null && (Setup.held || Setup.warmUp))
+                Hold();
         }
 
-        /// <summary>You first, then your team's bots (Red 2, 3, 4), then the other team's (Blue 1 to 4).</summary>
+        /// <summary>The match is held: the clock stands still and nobody moves or fires, except you with <paramref name="youFree"/> (the warm-up).</summary>
+        public void Hold(bool youFree = false)
+        {
+            if (State == null)
+                return;
+            State.Held = true;
+            YouFree = youFree;
+        }
+
+        /// <summary>Lets a held match go: the clock runs and everyone may move.</summary>
+        public void Release()
+        {
+            if (State == null)
+                return;
+            State.Held = false;
+            YouFree = false;
+        }
+
+        /// <summary>The match is held but you may walk, jump and fire (the meadow's warm-up).</summary>
+        public bool YouFree { get; private set; }
+
+        /// <summary>The match is held.</summary>
+        public bool Held => State != null && State.Held;
+
+        /// <summary>
+        /// RETRY (ticket 32): the match starts over in place, scores and clock at zero, flags home, everyone respawned. A new
+        /// <paramref name="setup"/> changes what can change without new bodies: the captures, the clock, blue's respawn, the bots' skill;
+        /// the team sizes need the scene loaded again.
+        /// </summary>
+        public void Retry(MatchSetup setup = null)
+        {
+            if (State == null)
+                return;
+            Release();
+            if (setup != null)
+            {
+                Setup = setup;
+                var sizes = (rules.teamSize, rules.blueTeamSize);
+                setup.Apply(rules);
+                (rules.teamSize, rules.blueTeamSize) = sizes;
+                if (Bots.Current != null)
+                    foreach (var team in Teams.All)
+                        Bots.Current.SetSkill(team, new BotSkill(setup.SkillOf(team)));
+                if (Spores.Current != null)
+                    Spores.Current.State.Enabled = setup.sporesOn;
+            }
+            State.Restart();
+        }
+
+        /// <summary>You first, then your team's bots (the cast's numbers 2 to 4), then the other team's (1 to 4), named by <see cref="Cast"/>.</summary>
         private void MakePlayers()
         {
             if (you == null)
@@ -149,7 +215,7 @@ namespace SdfBattle
                 var player = you.GetComponent<Player>();
                 if (player == null)
                     player = you.gameObject.AddComponent<Player>();
-                player.Bind(State.AddPlayer("You", yourTeam, false));
+                player.Bind(State.AddPlayer(Setup != null ? Setup.NameOf(yourTeam, 1) : Cast.You, yourTeam, false));
                 players.Add(player);
             }
             else
@@ -163,8 +229,8 @@ namespace SdfBattle
             foreach (var team in new[] { yourTeam, yourTeam.Other() })
             {
                 var first = team == yourTeam && you != null ? 2 : 1;
-                for (var number = first; number <= rules.teamSize; number++)
-                    players.Add(MakeBot($"{team.Name()} {number}", team, root));
+                for (var number = first; number <= rules.SizeOf(team); number++)
+                    players.Add(MakeBot(Setup != null ? Setup.NameOf(team, number) : Cast.Name(team, number), team, root));
             }
         }
 
@@ -189,7 +255,7 @@ namespace SdfBattle
             var frozen = !State.CanMove;
             foreach (var player in players)
             {
-                player.Controller.frozen = frozen;
+                player.Controller.frozen = frozen && !(YouFree && player.IsYou);
                 if (player.State.Alive && HasFallen(player.transform.position))
                     State.ReportFall(player.State);
             }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using SdfCampaign;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,8 +10,8 @@ namespace SdfGui.Editor
 {
     /// <summary>
     /// The screens of the GUI as prefabs in Assets/GUI/Prefabs/Screens, each filling the canvas and built from the component prefabs
-    /// (<see cref="GuiPrefabs"/>): main menu, lobby, HUD, scoreboard, pause, settings, death, round end, the gallery of every component
-    /// and the test panel. Each has a <see cref="GuiScreenRoot"/> for <see cref="GuiFlow"/> and draws from the match through its view.
+    /// (<see cref="GuiPrefabs"/>): title, level select, difficulty, confirm, story, HUD, scoreboard, pause, settings, death, the banner and Victory and Defeat,
+    /// the developer's gallery of every component and the test panel. Each has a <see cref="GuiScreenRoot"/> for <see cref="GuiFlow"/> and draws from the match through its view.
     /// </summary>
     public sealed class GuiScreens
     {
@@ -30,15 +31,25 @@ namespace SdfGui.Editor
 
         public void Build()
         {
-            Screens[GuiScreen.MainMenu] = MainMenu();
-            Screens[GuiScreen.Lobby] = Lobby();
+            Screens[GuiScreen.Title] = Title();
             Screens[GuiScreen.Hud] = Hud();
             Screens[GuiScreen.Scoreboard] = Scoreboard();
             Screens[GuiScreen.Pause] = Pause();
             Screens[GuiScreen.Settings] = Settings();
             Screens[GuiScreen.Death] = Death();
-            Screens[GuiScreen.RoundEnd] = RoundEnd();
+            Screens[GuiScreen.MatchEnd] = MatchEnd();
+            Screens[GuiScreen.Victory] = Victory();
+            Screens[GuiScreen.Defeat] = Defeat();
             Screens[GuiScreen.Gallery] = Gallery();
+            Screens[GuiScreen.Loading] = Loading();
+            Screens[GuiScreen.LevelSelect] = LevelSelect();
+            Screens[GuiScreen.Difficulty] = Difficulty();
+            Screens[GuiScreen.Story] = Story();
+            Screens[GuiScreen.Confirm] = Confirm();
+            Screens[GuiScreen.Caption] = Caption();
+            Screens[GuiScreen.Cutscene] = Cutscene();
+            Screens[GuiScreen.Ending] = Ending();
+            Screens[GuiScreen.Credits] = Credits();
             TestPanel = Test();
         }
 
@@ -60,12 +71,13 @@ namespace SdfGui.Editor
             return dim;
         }
 
-        // ---------------------------------------------------------------- Main menu
+        // ---------------------------------------------------------------- Title
 
-        private GameObject MainMenu()
+        private GameObject Title()
         {
-            var root = Root("Main Menu", GuiScreen.MainMenu);
+            var root = Root("Title", GuiScreen.Title);
             var t = root.transform;
+            var title = root.AddComponent<GuiTitle>();
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), -0.2f);
 
             // Logo: a big spotted cap with the name on it, the 2 on a gold burst
@@ -80,6 +92,28 @@ namespace SdfGui.Editor
                 s.Seed = 3;
                 s.Wobble = 2;
             });
+            // The gold crown that "campaign complete" puts on the cap (GuiTitle shows it): a band with three points, tipped on the cap's left shoulder
+            var crown = Object("Crown", logo.transform);
+            Place(crown.transform, Centre, new Vector2(-330, 178), new Vector2(190, 120));
+            crown.transform.localRotation = Quaternion.Euler(0, 0, 11);
+            for (var i = 0; i < 3; i++)
+            {
+                // A diamond standing on its corner, its lower half hidden behind the band
+                var point = f.Shape(crown.transform, $"Point {i + 1}", ToonShapeKind.Box, GuiPalette.Gold, Centre, new Vector2(-62 + i * 62, 12), new Vector2(54, 54), s =>
+                {
+                    s.Outline = 5;
+                    s.Shadow = 0;
+                    s.CornerRadius = 5;
+                });
+                point.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
+            }
+            f.Panel(crown.transform, "Band", GuiPalette.Gold, Centre, new Vector2(0, -26), new Vector2(190, 44), 12).Outline = 6;
+            f.Shape(crown.transform, "Gem", ToonShapeKind.Pill, GuiPalette.Amanita, Centre, new Vector2(0, -26), new Vector2(26, 26), s =>
+            {
+                s.Outline = 3;
+                s.Shadow = 0;
+            });
+            title.crown = crown;
             f.Text(logo.transform, "Minigun", "MINIGUN", TextStyle.Title, 120, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(900, 130));
             f.Text(logo.transform, "Mushrooms", "MUSHROOMS", TextStyle.Title, 104, GuiPalette.Gold, Centre, new Vector2(0, -40), new Vector2(900, 120));
             var burst = f.Shape(logo.transform, "Two Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, new Vector2(470, -100), new Vector2(190, 190), s =>
@@ -89,59 +123,134 @@ namespace SdfGui.Editor
                 s.Seed = 0.2f;
             });
             f.FillText(burst.transform, "Two", "2", TextStyle.Title, 110, GuiPalette.Amanita);
-            f.Text(logo.transform, "Tagline", "The finest online multiplayer. Probably.", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -170), new Vector2(900, 50));
+            f.Text(logo.transform, "Tagline", "Last year's champion. Probably still.", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -170), new Vector2(900, 50));
 
+            // Top to bottom; GuiTitle shows what the save allows, and the layout closes the gaps
             var buttons = Object("Buttons", t);
-            Place(buttons.transform, Centre, new Vector2(0, -170), new Vector2(420, 420));
-            p.ButtonInstance(buttons.transform, "PLAY", GuiPalette.Amanita, GuiCommandId.Play, Top, Vector2.zero, new Vector2(420, 100), 52);
-            p.ButtonInstance(buttons.transform, "SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, Top, new Vector2(0, -120), new Vector2(380, 80), 38, GuiScreen.Settings, 0.4f);
-            p.ButtonInstance(buttons.transform, "GUI GALLERY", GuiPalette.Moss, GuiCommandId.Show, Top, new Vector2(0, -220), new Vector2(380, 80), 38, GuiScreen.Gallery, 0.4f);
-            p.ButtonInstance(buttons.transform, "QUIT", GuiPalette.Dusk, GuiCommandId.Quit, Top, new Vector2(0, -320), new Vector2(380, 80), 38, spots: 0);
+            Place(buttons.transform, Top, new Vector2(0, -500), new Vector2(420, 540));
+            var layout = buttons.AddComponent<VerticalLayoutGroup>();
+            layout.spacing = 12;
+            layout.childAlignment = TextAnchor.UpperCenter;
+            layout.childControlWidth = layout.childControlHeight = false;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            Button Menu(string text, Color color, GuiCommandId command, GuiScreen screen = GuiScreen.Hud, float spots = 0.4f) =>
+                p.ButtonInstance(buttons.transform, text, color, command, Top, Vector2.zero, new Vector2(380, 72), 38, screen, spots);
+            var resume = p.ButtonInstance(buttons.transform, "CONTINUE", GuiPalette.Amanita, GuiCommandId.Continue, Top, Vector2.zero, new Vector2(420, 100), 52);
+            var newCampaign = Menu("NEW CAMPAIGN", GuiPalette.Moss, GuiCommandId.NewCampaign);
+            var levelSelect = Menu("LEVEL SELECT", GuiPalette.Violet, GuiCommandId.Show, GuiScreen.LevelSelect);
+            Menu("SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, GuiScreen.Settings);
+            Menu("GALLERY", GuiPalette.SporeDeep, GuiCommandId.Show, GuiScreen.Story);
+            var quit = Menu("QUIT", GuiPalette.Dusk, GuiCommandId.Quit, spots: 0);
+            title.continueButton = resume.gameObject;
+            title.newCampaignShape = newCampaign.GetComponent<ToonShape>();
+            title.levelSelectButton = levelSelect.gameObject;
+            title.quitButton = quit.gameObject;
 
-            var online = f.Text(t, "Players Online", "12,483 players online", TextStyle.BodyInk, 30, GuiPalette.Cream, BottomLeft, new Vector2(5, 5), new Vector2(600, 44), TextAlignmentOptions.Left);
-            var status = online.gameObject.AddComponent<GuiStatus>();
-            status.what = GuiStatus.What.PlayersOnline;
-            status.label = online;
-            f.Text(t, "Version", "v0.1 · fake multiplayer edition", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.7f), BottomRight, new Vector2(-5, 5), new Vector2(600, 44), TextAlignmentOptions.Right);
+            title.progress = f.Text(t, "Progress", "", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.7f), BottomLeft, new Vector2(5, 5), new Vector2(700, 44), TextAlignmentOptions.Left);
+            title.version = f.Text(t, "Version", Application.version, TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.7f), BottomRight, new Vector2(-5, 5), new Vector2(600, 44), TextAlignmentOptions.Right);
             return Save(root);
         }
 
-        // ---------------------------------------------------------------- Lobby
+        // ---------------------------------------------------------------- Level select, difficulty, confirm and story
 
-        private GameObject Lobby()
+        private ToonShape Backdrop(Transform parent)
         {
-            var root = Root("Lobby", GuiScreen.Lobby);
-            var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.2f);
-            var lobby = root.AddComponent<GuiLobby>();
-
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 10), new Vector2(1260, 860)).transform;
-            var header = p.BannerInstance(panel, "Header", "FINDING PLAYERS...", GuiPalette.Amanita, Top, new Vector2(0, 50), new Vector2(760, 104), 54);
-            lobby.title = header.GetComponentInChildren<TMP_Text>();
-
-            // Mode card and the fill of the lobby
-            var mode = f.Panel(panel, "Mode", GuiPalette.Night, TopLeft, new Vector2(40, -80), new Vector2(1180, 100), 20);
-            f.Text(mode.transform, "Mode", "LAST MUSHROOM STANDING", TextStyle.Title, 40, GuiPalette.Gold, Left, new Vector2(30, 14), new Vector2(620, 50), TextAlignmentOptions.Left);
-            f.Text(mode.transform, "Map", "Floating Island  ·  12 players  ·  free for all", TextStyle.BodyInk, 26, GuiPalette.Cream, Left, new Vector2(30, -24), new Vector2(620, 40), TextAlignmentOptions.Left);
-            lobby.count = f.Text(mode.transform, "Count", "12/12", TextStyle.Title, 56, GuiPalette.Cream, Right, new Vector2(-30, 0), new Vector2(200, 70), TextAlignmentOptions.Right);
-            lobby.fillBar = p.BarInstance(mode.transform, "Fill", GuiPalette.Moss, 1, Right, new Vector2(-250, 0), new Vector2(260, 34), 0);
-
-            // Twelve player rows, in two columns
-            var rows = Object("Players", panel);
-            Place(rows.transform, Top, new Vector2(0, -210), new Vector2(1180, 6 * 70));
-            var players = new List<GuiPlayerRow>();
-            for (var i = 0; i < FakeMatch.LobbySize; i++)
+            var backdrop = f.Shape(parent, "Backdrop", ToonShapeKind.Box, GuiPalette.Night, Centre, Vector2.zero, Vector2.zero, s =>
             {
-                var column = i / 6;
-                var row = Instance<GuiPlayerRow>(p.PlayerRow, rows.transform, $"Player {i + 1}", column == 0 ? TopLeft : TopRight, new Vector2(0, -(i % 6) * 70), new Vector2(570, 60));
-                players.Add(row);
-            }
-            lobby.rows = players.ToArray();
+                s.Outline = 0;
+                s.Shadow = 0;
+                s.Shading = 0;
+                s.CornerRadius = 0;
+                s.raycastTarget = true;
+            });
+            Stretch(backdrop);
+            return backdrop;
+        }
 
-            lobby.countdown = f.Text(panel, "Countdown", "Dropping onto the island in 5", TextStyle.Label, 36, GuiPalette.Dusk, Bottom, new Vector2(-150, 64), new Vector2(760, 60), TextAlignmentOptions.Left);
-            ((RectTransform)lobby.countdown.transform).anchoredPosition = new Vector2(-180, 60);
-            p.ButtonInstance(panel, "START NOW", GuiPalette.Moss, GuiCommandId.StartNow, BottomRight, new Vector2(-300, 34), new Vector2(300, 84), 38, spots: 0.5f);
-            p.ButtonInstance(panel, "LEAVE", GuiPalette.Dusk, GuiCommandId.LeaveMatch, BottomRight, new Vector2(-40, 34), new Vector2(230, 84), 38, spots: 0);
+        private GameObject LevelSelect()
+        {
+            var root = Root("Level Select", GuiScreen.LevelSelect);
+            var t = root.transform;
+            var view = root.AddComponent<GuiLevelSelect>();
+            Backdrop(t);
+            p.BannerInstance(t, "Header", "LEVEL SELECT", GuiPalette.Violet, Top, new Vector2(0, -24), new Vector2(640, 100), 56);
+            p.ButtonInstance(t, "BACK", GuiPalette.Dusk, GuiCommandId.Back, TopRight, new Vector2(-5, -5), new Vector2(200, 76), 36, spots: 0);
+
+            f.Text(t, "Difficulty Label", "DIFFICULTY", TextStyle.BodyInk, 36, GuiPalette.Cream, Top, new Vector2(-300, -150), new Vector2(300, 50), TextAlignmentOptions.Right);
+            view.difficulty = Instance<GuiSelector>(p.Selector, t, "Difficulty", Top, new Vector2(110, -143));
+            view.difficulty.options = new[] { "Easy", "Normal", "Hard" };
+            view.difficulty.index = 1;
+            view.difficulty.label.text = "Normal";
+
+            // Two rows of four, in campaign order
+            view.cards = Enumerable.Range(0, 8)
+                .Select(i => Instance<GuiLevelCard>(p.LevelCard, t, $"Level {i + 1}", Top, new Vector2(-645 + i % 4 * 430, -230 - i / 4 * 386)))
+                .ToArray();
+            return Save(root);
+        }
+
+        private GameObject Difficulty()
+        {
+            var root = Root("Difficulty", GuiScreen.Difficulty);
+            var t = root.transform;
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.3f);
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(820, 740)).transform;
+            p.BannerInstance(panel, "Header", "NEW CAMPAIGN", GuiPalette.Moss, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
+            f.Text(panel, "Question", "How sharp are the blue mushrooms?", TextStyle.Label, 36, GuiPalette.Ink, Top, new Vector2(0, -80), new Vector2(740, 50));
+            (string name, Color color, string note)[] levels =
+            {
+                ("EASY", GuiPalette.Moss, "Blue is clumsier and never plays more than four."),
+                ("NORMAL", GuiPalette.Amanita, "The story as it was written."),
+                ("HARD", GuiPalette.AmanitaDark, "Blue is sharper. Much sharper."),
+            };
+            for (var i = 0; i < levels.Length; i++)
+            {
+                var y = -150 - i * 148;
+                var button = p.ButtonInstance(panel, levels[i].name, levels[i].color, GuiCommandId.BeginCampaign, Top, new Vector2(0, y), new Vector2(400, 90), 46, spots: 0.5f);
+                button.GetComponent<GuiCommand>().value = i;
+                f.Text(panel, levels[i].name + " Note", levels[i].note, TextStyle.Body, 28, GuiPalette.Dusk, Top, new Vector2(0, y - 98), new Vector2(760, 36));
+            }
+            p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(0, 28), new Vector2(260, 76), 38, spots: 0);
+            return Save(root);
+        }
+
+        private GameObject Confirm()
+        {
+            var root = Root("Confirm", GuiScreen.Confirm);
+            var t = root.transform;
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.7f), -0.3f);
+            var view = root.AddComponent<GuiConfirm>();
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, Vector2.zero, new Vector2(800, 380)).transform;
+            view.question = f.Text(panel, "Question", "Leave the match?\nThe campaign is saved at the start of this arena.", TextStyle.Body, 40, GuiPalette.Ink, Top, new Vector2(0, -50),
+                new Vector2(720, 170));
+            view.question.textWrappingMode = TextWrappingModes.Normal;
+            p.ButtonInstance(panel, "YES", GuiPalette.Moss, GuiCommandId.Confirm, Bottom, new Vector2(-170, 36), new Vector2(280, 90), 46, spots: 0.5f);
+            p.ButtonInstance(panel, "NO", GuiPalette.Dusk, GuiCommandId.Cancel, Bottom, new Vector2(170, 36), new Vector2(280, 90), 46, spots: 0);
+            return Save(root);
+        }
+
+        private GameObject Story()
+        {
+            var root = Root("Story", GuiScreen.Story);
+            var t = root.transform;
+            var view = root.AddComponent<GuiStory>();
+            Backdrop(t);
+            p.BannerInstance(t, "Header", "THE STORY SO FAR", GuiPalette.SporeDeep, Top, new Vector2(0, -24), new Vector2(760, 100), 56);
+            p.ButtonInstance(t, "BACK", GuiPalette.Dusk, GuiCommandId.Back, TopRight, new Vector2(-5, -5), new Vector2(200, 76), 36, spots: 0);
+
+            // The intro, the seven beats, the ending and the credits, two columns of five
+            const int rows = 10;
+            view.titles = new TMP_Text[rows];
+            view.states = new TMP_Text[rows];
+            view.watch = new GuiCommand[rows];
+            for (var i = 0; i < rows; i++)
+            {
+                var row = p.PanelInstance(t, $"Scene {i + 1}", GuiPalette.Cream, Top, new Vector2(-440 + i % 2 * 880, -180 - i / 2 * 150), new Vector2(840, 120));
+                view.titles[i] = f.Text(row.transform, "Title", "Nightfall", TextStyle.Label, 40, GuiPalette.Ink, Left, new Vector2(28, 0), new Vector2(520, 60), TextAlignmentOptions.Left);
+                view.states[i] = f.Text(row.transform, "State", "Not seen yet", TextStyle.Body, 30, GuiPalette.Dusk, Right, new Vector2(-28, 0), new Vector2(240, 50), TextAlignmentOptions.Right);
+                var watch = p.ButtonInstance(row.transform, "WATCH", GuiPalette.Moss, GuiCommandId.WatchCutscene, Right, new Vector2(-20, 0), new Vector2(220, 76), 38, spots: 0.4f);
+                view.watch[i] = watch.GetComponent<GuiCommand>();
+            }
             return Save(root);
         }
 
@@ -221,8 +330,8 @@ namespace SdfGui.Editor
             // Moments: elimination pop-up, pick-up prompt, spectating
             var popup = Object("Eliminated", t);
             Place(popup.transform, Centre, new Vector2(0, -170), new Vector2(700, 140));
-            hud.eliminatedTitle = f.Text(popup.transform, "Title", "ELIMINATED", TextStyle.Title, 62, GuiPalette.Gold, Top, Vector2.zero, new Vector2(700, 76));
-            hud.eliminatedName = f.Text(popup.transform, "Name", "xX_Morel_Xx", TextStyle.BodyInk, 40, GuiPalette.Cream, Bottom, new Vector2(0, 6), new Vector2(700, 56));
+            hud.eliminatedTitle = f.Text(popup.transform, "Title", "SAUTÉED!", TextStyle.Title, 62, GuiPalette.Gold, Top, Vector2.zero, new Vector2(700, 76));
+            hud.eliminatedName = f.Text(popup.transform, "Name", "Runner-Up", TextStyle.BodyInk, 40, GuiPalette.Cream, Bottom, new Vector2(0, 6), new Vector2(700, 56));
             hud.eliminatedPopup = popup;
 
             var pickup = f.Panel(t, "Pick Up", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), Bottom, new Vector2(0, 220), new Vector2(520, 76), 20);
@@ -451,18 +560,17 @@ namespace SdfGui.Editor
             var root = Root("Scoreboard", GuiScreen.Scoreboard);
             var t = root.transform;
             var board = root.AddComponent<GuiScoreboard>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, -10), new Vector2(980, 900)).transform;
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, -10), new Vector2(980, 840)).transform;
             p.BannerInstance(panel, "Header", "SCOREBOARD", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
-            board.subtitle = f.Text(panel, "Subtitle", "LAST MUSHROOM STANDING", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -66), new Vector2(900, 40));
+            board.subtitle = f.Text(panel, "Subtitle", "MEADOW  ·  FIRST TO 3 CAPTURES  ·  10:00", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -66), new Vector2(900, 40));
             var columns = Object("Columns", panel);
             Place(columns.transform, Top, new Vector2(0, -110), new Vector2(900, 30));
             f.Text(columns.transform, "Player", "PLAYER", TextStyle.Label, 22, GuiPalette.Dusk, Left, new Vector2(122, 0), new Vector2(200, 30), TextAlignmentOptions.Left);
-            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-230, 0), new Vector2(80, 30));
-            f.Text(columns.transform, "Status", "STATUS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-104, 0), new Vector2(110, 30));
-            f.Text(columns.transform, "Ping", "PING", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-14, 0), new Vector2(84, 30), TextAlignmentOptions.Right);
+            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-124, 0), new Vector2(80, 30));
+            f.Text(columns.transform, "Status", "STATUS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-14, 0), new Vector2(110, 30));
             var rows = Object("Players", panel);
-            Place(rows.transform, Top, new Vector2(0, -146), new Vector2(900, 12 * 60));
-            board.rows = Enumerable.Range(0, FakeMatch.LobbySize)
+            Place(rows.transform, Top, new Vector2(0, -146), new Vector2(900, MatchView.ScoreboardRows * 60));
+            board.rows = Enumerable.Range(0, MatchView.ScoreboardRows)
                 .Select(i => Instance<GuiPlayerRow>(p.PlayerRow, rows.transform, $"Player {i + 1}", Top, new Vector2(0, -i * 60), new Vector2(900, 52)))
                 .ToArray();
             f.Text(panel, "Hint", "hold TAB", TextStyle.Body, 24, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(300, 30));
@@ -476,11 +584,16 @@ namespace SdfGui.Editor
             var root = Root("Pause", GuiScreen.Pause);
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
-            // No title: the match is not paused, it keeps going
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 360)).transform;
-            f.Text(panel, "Note", "The match keeps going: it's online!", TextStyle.Body, 28, GuiPalette.Dusk, Top, new Vector2(0, -40), new Vector2(560, 40));
-            p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -110), new Vector2(420, 96), 46, spots: 0.5f);
-            p.ButtonInstance(panel, "SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, Top, new Vector2(0, -230), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
+            // The match stops while this is up (GuiFlow)
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 540)).transform;
+            p.BannerInstance(panel, "Header", "PAUSED", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
+            p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -90), new Vector2(420, 96), 46, spots: 0.5f);
+            // The two that throw the match away ask first
+            p.ButtonInstance(panel, "RESTART", GuiPalette.Amanita, GuiCommandId.Restart, Top, new Vector2(0, -210), new Vector2(420, 86), 40, spots: 0.4f)
+                .GetComponent<GuiCommand>().confirm = "Restart this match?";
+            p.ButtonInstance(panel, "SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, Top, new Vector2(0, -312), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
+            p.ButtonInstance(panel, "QUIT TO MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Top, new Vector2(0, -414), new Vector2(420, 86), 40, spots: 0)
+                .GetComponent<GuiCommand>().confirm = "Leave the match?\nThe campaign is saved at the start of this arena.";
             return Save(root);
         }
 
@@ -490,14 +603,14 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.3f);
             var menu = root.AddComponent<GuiSettingsMenu>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(980, 820)).transform;
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(980, 930)).transform;
             p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
 
             var y = -110f;
             Transform Row(string label)
             {
                 var row = Object(label, panel);
-                // Seven rows close together, so the last stays clear of the back button
+                // Eight rows close together, so the last stays clear of the back button
                 Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 84));
                 f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 60), TextAlignmentOptions.Left);
                 y -= 86;
@@ -508,6 +621,10 @@ namespace SdfGui.Editor
             menu.gore.options = GuiSettings.GoreLevels;
             menu.gore.index = 1;
             menu.gore.label.text = GuiSettings.GoreLevels[1];
+            menu.difficulty = Instance<GuiSelector>(p.Selector, Row("Difficulty"), "Difficulty", Right, Vector2.zero);
+            menu.difficulty.options = new[] { "Easy", "Normal", "Hard" };
+            menu.difficulty.index = 1;
+            menu.difficulty.label.text = "Normal";
             menu.sensitivity = Instance<Slider>(p.Slider, Row("Mouse sensitivity"), "Sensitivity", Right, new Vector2(-10, 0));
             menu.volume = Instance<Slider>(p.Slider, Row("Volume"), "Volume", Right, new Vector2(-10, 0));
             menu.volume.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
@@ -528,44 +645,285 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.AmanitaDark, 0.6f), 0.45f);
             var result = root.AddComponent<GuiRoundResult>();
-            result.death = true;
             result.icons = f.Kit.icons;
             result.title = f.Text(t, "Title", "SPLATTERED!", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, 340), new Vector2(1200, 170));
             result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Killer", Centre, new Vector2(-300, 70), new Vector2(120, 120));
-            result.detail = f.Text(t, "Detail", "by xX_Morel_Xx\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
+            result.detail = f.Text(t, "Detail", "by Runner-Up\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
             result.weapon = f.Icon(t, "Weapon", "sniper", Centre, new Vector2(330, 70), new Vector2(200, 110));
+            result.back = f.Text(t, "Back", "Back in 5", TextStyle.Title, 56, GuiPalette.Gold, Centre, new Vector2(0, -90), new Vector2(600, 70));
             // No stats: the battle has no places (you respawn), and your kills are on the scoreboard
             return Save(root);
         }
 
-        private GameObject RoundEnd()
+        // ---------------------------------------------------------------- End of the match (ticket 32.6)
+
+        // The 2 s banner over the HUD: RED WINS! or BLUE WINS!, coloured by GuiEndBanner
+        private GameObject MatchEnd()
         {
-            var root = Root("Round End", GuiScreen.RoundEnd);
+            var root = Root("Match End", GuiScreen.MatchEnd);
             var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), -0.2f);
-            var result = root.AddComponent<GuiRoundResult>();
-            result.death = false;
-            result.icons = f.Kit.icons;
-            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Gold, 0.5f), Centre, new Vector2(0, 120), new Vector2(900, 900));
-            f.Shape(t, "Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, new Vector2(0, 120), new Vector2(360, 360), s =>
+            var end = root.AddComponent<GuiEndBanner>();
+            var banner = p.BannerInstance(t, "Banner", "RED WINS!", GuiPalette.Amanita, Centre, new Vector2(0, -110), new Vector2(1000, 160), 100);
+            end.shape = banner;
+            end.label = banner.GetComponentInChildren<TMP_Text>();
+            return Save(root);
+        }
+
+        // The arena and the score under the banner, and your numbers in a panel; both end screens have them
+        private void EndNumbers(Transform t, GuiEndScreen end, float scoreY, float statsY)
+        {
+            end.arena = f.Text(t, "Arena", "MEADOW", TextStyle.Title, 46, GuiPalette.Gold, Centre, new Vector2(0, scoreY + 120), new Vector2(1200, 60));
+            end.score = f.Text(t, "Score", "3 – 1", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, scoreY), new Vector2(1200, 170));
+            var stats = f.Panel(t, "Stats", GuiPalette.WithAlpha(GuiPalette.Night, 0.92f), Centre, new Vector2(0, statsY), new Vector2(1100, 130), 26);
+            TMP_Text Stat(string label, float x)
             {
-                s.Outline = 7;
-                s.Shadow = 10;
-                s.Wobble = 3;
+                var number = f.Text(stats.transform, label, "0", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(x, 14), new Vector2(240, 80));
+                f.Text(number.transform, label + " Label", label.ToUpperInvariant(), TextStyle.BodyInk, 24, GuiPalette.Paper, Centre, new Vector2(0, -52), new Vector2(240, 30));
+                return number;
+            }
+            end.captures = Stat("Captures", -390);
+            end.kills = Stat("Kills", -130);
+            end.deaths = Stat("Deaths", 130);
+            end.time = Stat("Time", 390);
+        }
+
+        private GameObject Victory()
+        {
+            var root = Root("Victory", GuiScreen.Victory);
+            var t = root.transform;
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.2f);
+            var end = root.AddComponent<GuiEndScreen>();
+            end.victory = true;
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Gold, 0.4f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
+            p.BannerInstance(t, "Title", "VICTORY!", GuiPalette.Moss, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
+            EndNumbers(t, end, 160, -300);
+
+            // The medal: a burst in the medal's colour (set by the view) with its name, and NEW BEST under it
+            var medal = Object("Medal", t);
+            Place(medal.transform, Centre, new Vector2(0, -50), new Vector2(210, 210));
+            end.medal = medal;
+            end.medalShape = f.Shape(medal.transform, "Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, Vector2.zero, new Vector2(210, 210), s =>
+            {
+                s.Outline = 6;
+                s.Shadow = 8;
+                s.Wobble = 2;
             });
-            result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Winner", Centre, new Vector2(0, 120), new Vector2(220, 220));
-            result.title = p.BannerInstance(t, "Title", "LAST MUSHROOM STANDING!", GuiPalette.Amanita, Centre, new Vector2(0, 360), new Vector2(1180, 130), 76).GetComponentInChildren<TMP_Text>();
-            result.detail = f.Text(t, "Detail", "You outlasted everyone", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, -90), new Vector2(1200, 60));
+            end.medalLabel = f.FillText(end.medalShape.transform, "Name", "GOLD", TextStyle.Title, 44, GuiPalette.Ink);
+            end.newBest = f.Text(t, "New Best", "NEW BEST!", TextStyle.Title, 52, GuiPalette.Gold, Centre, new Vector2(0, -185), new Vector2(600, 64));
 
-            var stats = f.Panel(t, "Stats", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, new Vector2(0, -210), new Vector2(620, 150), 26);
-            result.placement = f.Text(stats.transform, "Placement", "#1 of 12", TextStyle.Title, 76, GuiPalette.Gold, Left, new Vector2(40, 10), new Vector2(330, 90), TextAlignmentOptions.Left);
-            f.Text(stats.transform, "Placement Label", "PLACE", TextStyle.BodyInk, 24, GuiPalette.Paper, BottomLeft, new Vector2(42, 12), new Vector2(200, 30), TextAlignmentOptions.Left);
-            result.kills = f.Text(stats.transform, "Kills", "5", TextStyle.Title, 76, GuiPalette.Cream, Right, new Vector2(-40, 10), new Vector2(160, 90), TextAlignmentOptions.Right);
-            f.Text(stats.transform, "Kills Label", "KILLS", TextStyle.BodyInk, 24, GuiPalette.Paper, BottomRight, new Vector2(-42, 12), new Vector2(200, 30), TextAlignmentOptions.Right);
-            result.next = f.Text(t, "Next", "Next round in 10", TextStyle.BodyInk, 32, GuiPalette.Paper, Centre, new Vector2(0, -320), new Vector2(600, 44));
+            p.ButtonInstance(t, "CONTINUE", GuiPalette.Moss, GuiCommandId.Next, Centre, new Vector2(-400, -430), new Vector2(380, 96), 46, spots: 0.5f);
+            p.ButtonInstance(t, "RETRY", GuiPalette.Chanterelle, GuiCommandId.Retry, Centre, new Vector2(0, -430), new Vector2(300, 86), 42, spots: 0.4f);
+            p.ButtonInstance(t, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, new Vector2(400, -430), new Vector2(300, 86), 42, spots: 0);
+            return Save(root);
+        }
 
-            p.ButtonInstance(t, "NEXT ROUND", GuiPalette.Moss, GuiCommandId.NextRound, Centre, new Vector2(-180, -420), new Vector2(330, 90), 42, spots: 0.4f);
-            p.ButtonInstance(t, "MAIN MENU", GuiPalette.Dusk, GuiCommandId.LeaveMatch, Centre, new Vector2(180, -420), new Vector2(330, 90), 42, spots: 0);
+        private GameObject Defeat()
+        {
+            var root = Root("Defeat", GuiScreen.Defeat);
+            var t = root.transform;
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.88f), -0.2f);
+            var end = root.AddComponent<GuiEndScreen>();
+            end.victory = false;
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiEndScreen.Blue, 0.35f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
+            p.BannerInstance(t, "Title", "DEFEATED", GuiEndScreen.Blue, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
+            EndNumbers(t, end, 160, -230);
+
+            // Prime's taunt on a cream card
+            var card = p.PanelInstance(t, "Taunt Card", GuiPalette.Cream, Centre, new Vector2(0, -20), new Vector2(1300, 160));
+            end.taunt = f.Text(card.transform, "Taunt", "\u201CSilver suits you.\u201D", TextStyle.Body, 50, GuiPalette.Ink, Centre, new Vector2(0, 16), new Vector2(1220, 80));
+            f.Text(card.transform, "Taunt By", "CHANTERELLE PRIME", TextStyle.Label, 26, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(600, 34));
+            end.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -365), new Vector2(1500, 50));
+
+            // RETRY EASIER comes and goes, so the buttons are laid out and the gap closes
+            var row = Object("Buttons", t);
+            Place(row.transform, Centre, new Vector2(0, -450), new Vector2(1300, 90));
+            var layout = row.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 40;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = false;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            p.ButtonInstance(row.transform, "RETRY", GuiPalette.Moss, GuiCommandId.Retry, Centre, Vector2.zero, new Vector2(320, 86), 42, spots: 0.5f);
+            var easier = p.ButtonInstance(row.transform, "RETRY EASIER", GuiPalette.Chanterelle, GuiCommandId.RetryEasier, Centre, Vector2.zero, new Vector2(440, 86), 40, spots: 0.4f);
+            p.ButtonInstance(row.transform, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, Vector2.zero, new Vector2(300, 86), 42, spots: 0);
+            end.retryEasier = easier.gameObject;
+            return Save(root);
+        }
+
+        // ---------------------------------------------------------------- Loading: the briefing
+
+        private GameObject Loading()
+        {
+            var root = Root("Loading", GuiScreen.Loading);
+            var t = root.transform;
+            var loading = root.AddComponent<GuiLoading>();
+            var backdrop = f.Shape(t, "Backdrop", ToonShapeKind.Box, GuiPalette.Night, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.Outline = 0;
+                s.Shadow = 0;
+                s.Shading = 0;
+                s.CornerRadius = 0;
+                s.raycastTarget = true;
+            });
+            Stretch(backdrop);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.18f), Centre, new Vector2(0, 80), new Vector2(1500, 900));
+            var banner = p.BannerInstance(t, "Arena Banner", "ARENA", GuiPalette.Amanita, Top, new Vector2(0, -60), new Vector2(1000, 130), 76);
+            loading.arena = banner.GetComponentInChildren<TMP_Text>();
+            loading.goal = f.Text(t, "Goal", "CAPTURE THE FLAG", TextStyle.BodyInk, 46, GuiPalette.Gold, Top, new Vector2(0, -220), new Vector2(1400, 64));
+
+            var red = p.PanelInstance(t, "Red Roster", GuiPalette.Cream, Centre, new Vector2(-340, -10), new Vector2(520, 400));
+            loading.redNames = f.Text(red.transform, "Names", "RED TEAM", TextStyle.Body, 40, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 340), TextAlignmentOptions.Top);
+            var blue = p.PanelInstance(t, "Blue Roster", GuiPalette.Cream, Centre, new Vector2(340, -10), new Vector2(520, 400));
+            loading.blueNames = f.Text(blue.transform, "Names", "BLUE TEAM", TextStyle.Body, 40, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 340), TextAlignmentOptions.Top);
+            f.Text(t, "Versus", "VS", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(140, 90));
+
+            loading.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Bottom, new Vector2(0, 190), new Vector2(1500, 50));
+            loading.progress = p.BarInstance(t, "Progress", GuiPalette.Moss, 0, Bottom, new Vector2(0, 110), new Vector2(900, 56), 30);
+            loading.progress.format = "{0:0}%";
+            loading.clickToPlay = f.Text(t, "Click To Play", "CLICK TO PLAY", TextStyle.Title, 80, GuiPalette.Gold, Bottom, new Vector2(0, 90), new Vector2(1000, 110));
+            loading.clickToPlay.gameObject.SetActive(false);
+            return Save(root);
+        }
+
+        // ---------------------------------------------------------------- The caption box (ticket 32.7)
+
+        // The warm-up's prompts over the HUD
+        private GameObject Caption()
+        {
+            var root = Root("Caption", GuiScreen.Caption);
+            CaptionBox(root, false);
+            return Save(root);
+        }
+
+        // A story beat: the scene alone, the caption box and letterbox bars
+        private GameObject Cutscene()
+        {
+            var root = Root("Cutscene", GuiScreen.Cutscene);
+            CaptionBox(root, true);
+            return Save(root);
+        }
+
+        // The speaker over one wrapped line low on the screen, the skip hint and its bar 5 px from the corner, optionally the bars
+        private void CaptionBox(GameObject root, bool letterbox)
+        {
+            var t = root.transform;
+            var caption = root.AddComponent<GuiCaption>();
+            if (letterbox)
+            {
+                void Bar(string name, Vector2 anchor)
+                {
+                    f.Shape(t, name, ToonShapeKind.Box, Color.black, anchor, Vector2.zero, new Vector2(4000, 110), s =>
+                    {
+                        s.Outline = 0;
+                        s.Shadow = 0;
+                        s.Shading = 0;
+                        s.CornerRadius = 0;
+                    });
+                }
+                Bar("Bar Top", Top);
+                Bar("Bar Bottom", Bottom);
+                caption.bars = t.Find("Bar Top").gameObject;
+            }
+            var box = Object("Box", t);
+            Place(box.transform, Bottom, new Vector2(0, letterbox ? 150 : 300), new Vector2(1300, 210));
+            caption.box = box.AddComponent<CanvasGroup>();
+            f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, new Vector2(1300, 210), 26);
+            caption.speaker = f.Text(box.transform, "Speaker", "MUSHROOM 7", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44));
+            caption.line = f.Text(box.transform, "Line", "Fill your spores and press Q. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
+            caption.line.textWrappingMode = TextWrappingModes.Normal;
+            caption.line.alignment = TextAlignmentOptions.Center;
+
+            // Over the HUD the corner is the weapons' (and the health's): the hint sits in the box; alone, 5 px from the screen's corner
+            var hintParent = letterbox ? t : box.transform;
+            var corner = letterbox ? new Vector2(-5, 5) : new Vector2(-24, 10);
+            caption.hint = f.Text(hintParent, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight, corner + new Vector2(0, 25), new Vector2(500, 40), TextAlignmentOptions.Right);
+            var track = f.Panel(hintParent, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, corner, new Vector2(260, 22), 8);
+            track.Outline = 3;
+            track.Shadow = 0;
+            var fill = f.Shape(track.transform, "Fill", ToonShapeKind.Box, GuiPalette.Gold, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.CornerRadius = 6;
+                s.Outline = 0;
+                s.Shadow = 0;
+            });
+            Stretch(fill, 3);
+            fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
+            caption.skipBar = fill.GetComponent<RectTransform>();
+        }
+
+        // ---------------------------------------------------------------- The ending and the credits (ticket 32.8)
+
+        // 42's desk and the monitor, drawn from the GUI's own shapes and the scouts' avatars (Home.unity is editor-only): the ending's lines go
+        // in the caption box under it. No new props.
+        private GameObject Ending()
+        {
+            var root = Root("Ending", GuiScreen.Ending);
+            var t = root.transform;
+            Backdrop(t);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.2f), Centre, new Vector2(330, 160), new Vector2(1100, 800));
+
+            // The desk along the bottom of the picture, the trophy and 42 in the chair on it
+            f.Panel(t, "Desk", GuiPalette.AmanitaDark, Centre, new Vector2(0, -145), new Vector2(1500, 130), 24);
+            void Avatar(Transform parent, string name, Color colour, int icon, Vector2 position, float size)
+            {
+                var avatar = Instance<GuiAvatar>(p.Avatar, parent, name, Centre, position, new Vector2(size, size));
+                avatar.Set(colour, icon, false);
+            }
+            f.Panel(t, "Chair", GuiPalette.Dusk, Centre, new Vector2(-470, 20), new Vector2(380, 360), 60);
+            Avatar(t, "Mushroom 42", GuiPalette.Amanita, 0, new Vector2(-470, 50), 300);
+            var trophy = f.Shape(t, "Trophy Cup", ToonShapeKind.Cap, GuiPalette.Gold, Centre, new Vector2(-110, 50), new Vector2(120, 110), s =>
+            {
+                s.Outline = 5;
+                s.Shadow = 6;
+                s.Spots = 0;
+            });
+            trophy.rectTransform.localRotation = Quaternion.Euler(0, 0, 180);
+            f.Panel(t, "Trophy Stem", GuiPalette.Gold, Centre, new Vector2(-110, -25), new Vector2(26, 50), 6);
+            f.Panel(t, "Trophy Base", GuiPalette.Gold, Centre, new Vector2(-110, -65), new Vector2(110, 30), 10);
+
+            // The monitor: the referee and, tiny, Prime
+            f.Panel(t, "Monitor Stand", GuiPalette.Dusk, Centre, new Vector2(330, -60), new Vector2(200, 36), 12);
+            f.Panel(t, "Monitor", GuiPalette.Dusk, Centre, new Vector2(330, 150), new Vector2(760, 440), 36);
+            var screen = f.Panel(t, "Monitor Screen", GuiPalette.SporeDeep, Centre, new Vector2(330, 150), new Vector2(690, 370), 22);
+            screen.Outline = 4;
+            Avatar(screen.transform, "Ref Puffball", GuiPalette.Cream, 1, new Vector2(-130, 20), 230);
+            f.Text(screen.transform, "Ref Name", "REF PUFFBALL", TextStyle.Label, 30, GuiPalette.Cream, Bottom, new Vector2(-130, 22), new Vector2(300, 40));
+            Avatar(screen.transform, "Prime", GuiPalette.Sky, 1, new Vector2(190, -40), 96);
+            f.Text(screen.transform, "Prime Name", "PRIME", TextStyle.Label, 24, GuiPalette.Cream, Bottom, new Vector2(190, 22), new Vector2(200, 34));
+
+            CaptionBox(root, true);
+            return Save(root);
+        }
+
+        // 45 s of text going up a dark screen; GuiCredits places the text, CreditsPlayer times it
+        private GameObject Credits()
+        {
+            var root = Root("Credits", GuiScreen.Credits);
+            var t = root.transform;
+            var credits = root.AddComponent<GuiCredits>();
+            Backdrop(t);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.12f), Centre, new Vector2(0, 0), new Vector2(1500, 1000));
+
+            var viewport = Object("Viewport", t);
+            Stretch(viewport.transform);
+            viewport.AddComponent<RectMask2D>();
+            credits.viewport = (RectTransform)viewport.transform;
+            credits.text = f.Text(viewport.transform, "Text", CreditsRoll.RichText(), TextStyle.BodyInk, 44, GuiPalette.Cream, Top, Vector2.zero, new Vector2(1500, 3000));
+            credits.text.alignment = TextAlignmentOptions.Top;
+            credits.text.lineSpacing = 18;
+
+            credits.hint = f.Text(t, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight, new Vector2(-5, 30), new Vector2(500, 40), TextAlignmentOptions.Right);
+            var track = f.Panel(t, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, new Vector2(-5, 5), new Vector2(260, 22), 8);
+            track.Outline = 3;
+            track.Shadow = 0;
+            var fill = f.Shape(track.transform, "Fill", ToonShapeKind.Box, GuiPalette.Gold, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.CornerRadius = 6;
+                s.Outline = 0;
+                s.Shadow = 0;
+            });
+            Stretch(fill, 3);
+            fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
+            credits.skipBar = fill.GetComponent<RectTransform>();
             return Save(root);
         }
 
@@ -678,9 +1036,9 @@ namespace SdfGui.Editor
                 s.Outline = 5;
             });
 
-            // People: avatars, ping, a lobby row, kill feed entries
+            // People: avatars, scoreboard rows, kill feed entries
             var people = Section("Players", new Vector2(300, -790), new Vector2(1570, 260));
-            var roster = FakeMatch.NewRoster("You", 7);
+            var roster = MatchView.NewRoster(SdfBattle.Cast.You);
             for (var i = 0; i < 6; i++)
             {
                 var avatar = Instance<GuiAvatar>(p.Avatar, people, $"Avatar {i + 1}", TopLeft, new Vector2(30 + i * 86, -64));
@@ -689,26 +1047,15 @@ namespace SdfGui.Editor
                 avatar.dimmed = i == 5;
                 avatar.disc.color = i == 5 ? Color.Lerp(roster[i].color, GuiPalette.Dusk, 0.75f) : roster[i].color;
             }
-            var pings = new[] { 24, 88, 180 };
-            for (var i = 0; i < pings.Length; i++)
-            {
-                var ping = Instance<GuiPingBars>(p.PingBars, people, $"Ping {pings[i]}", TopLeft, new Vector2(30 + i * 110, -170));
-                ping.ping = pings[i];
-                ping.label.text = pings[i].ToString();
-                var lit = pings[i] < 60 ? 3 : pings[i] < 120 ? 2 : 1;
-                var tone = lit == 3 ? GuiPalette.Moss : lit == 2 ? GuiPalette.Chanterelle : GuiPalette.Amanita;
-                for (var b = 0; b < 3; b++)
-                    ping.bars[b].color = b < lit ? tone : GuiPalette.WithAlpha(GuiPalette.Dusk, 0.8f);
-            }
-            var row = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row", TopLeft, new Vector2(560, -64), new Vector2(540, 60));
+            var row = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row", TopLeft, new Vector2(560, -64), new Vector2(470, 60));
             row.background.color = GuiPalette.Gold;
-            row.playerName.text = "You";
+            row.playerName.text = SdfBattle.Cast.You;
             row.rank.text = "1";
             row.status.text = "YOU";
-            var row2 = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row Out", TopLeft, new Vector2(560, -140), new Vector2(540, 60));
+            var row2 = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row Out", TopLeft, new Vector2(560, -140), new Vector2(470, 60));
             row2.background.color = Color.Lerp(GuiPalette.Paper, GuiPalette.Dusk, 0.55f);
-            row2.playerName.text = "puffball99";
-            row2.rank.text = "12";
+            row2.playerName.text = SdfBattle.Cast.Blue[0];
+            row2.rank.text = "8";
             row2.status.text = "OUT";
             row2.status.color = GuiPalette.Amanita;
             var entry = Instance<GuiKillFeedEntry>(p.KillFeedEntry, people, "Kill Feed Entry", TopRight, new Vector2(-24, -70), new Vector2(410, 52));
@@ -767,7 +1114,7 @@ namespace SdfGui.Editor
             canvas.sortingOrder = 50;
             root.AddComponent<GraphicRaycaster>();
 
-            var panel = f.Panel(root.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.92f), Left, new Vector2(24, -10), new Vector2(262, 690), 18);
+            var panel = f.Panel(root.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.92f), Left, new Vector2(24, -10), new Vector2(262, 780), 18);
             panel.Outline = 4;
             panel.Shadow = 6;
             var t = panel.transform;
@@ -798,25 +1145,28 @@ namespace SdfGui.Editor
             }
 
             Heading("Screens");
-            Add("MENU", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.MainMenu);
-            Add("LOBBY", GuiPalette.Dusk, GuiCommandId.Play);
+            Add("TITLE", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Title);
             Add("HUD", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Hud);
             Add("SCORES", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Scoreboard);
             Add("PAUSE", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Pause);
             Add("SETTINGS", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Settings);
             Add("DEATH", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Death);
-            Add("ROUND END", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.RoundEnd);
+            Add("VICTORY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Victory);
+            Add("DEFEAT", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Defeat);
             Add("GALLERY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Gallery);
+            Add("LEVELS", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.LevelSelect);
+            Add("DIFFICULTY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Difficulty);
+            Add("STORY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Story);
+            Add("CONFIRM", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Confirm);
             EndRow();
             Heading("Round");
-            Add("NEW ROUND", GuiPalette.MossDark, GuiCommandId.StartNow);
+            Add("NEW ROUND", GuiPalette.MossDark, GuiCommandId.NewRound);
             Add("BOTS ON/OFF", GuiPalette.MossDark, GuiCommandId.ToggleAutoEvents);
             Add("HIT ME", GuiPalette.AmanitaDark, GuiCommandId.Damage);
             Add("HEAL", GuiPalette.MossDark, GuiCommandId.Heal);
             Add("MY KILL", GuiPalette.AmanitaDark, GuiCommandId.YouKill);
             Add("HEADSHOT", GuiPalette.AmanitaDark, GuiCommandId.YouHeadshot);
             Add("BOT KILL", GuiPalette.Violet, GuiCommandId.BotKill);
-            Add("CRUMBLE", GuiPalette.Violet, GuiCommandId.Crumble);
             Add("PICK UP", GuiPalette.SporeDeep, GuiCommandId.TogglePickup);
             Add("RELOAD", GuiPalette.SporeDeep, GuiCommandId.Reload);
             Add("DIE", GuiPalette.AmanitaDark, GuiCommandId.Die);
@@ -826,7 +1176,6 @@ namespace SdfGui.Editor
             var state = f.Text(t, "State", "Playing", TextStyle.Body, 18, GuiPalette.Paper, TopLeft, new Vector2(14, y), new Vector2(234, 70), TextAlignmentOptions.TopLeft);
             state.textWrappingMode = TextWrappingModes.Normal;
             var status = state.gameObject.AddComponent<GuiStatus>();
-            status.what = GuiStatus.What.TestState;
             status.label = state;
             return GuiFactory.Save(root, $"{Folder}/Test Panel.prefab");
         }

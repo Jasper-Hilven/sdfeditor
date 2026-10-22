@@ -6,23 +6,34 @@ namespace SdfGui
     public enum GuiCommandId
     {
         Show,
-        Play,
-        StartNow,
         Back,
         Resume,
-        LeaveMatch,
+        QuitToMenu,
         Spectate,
-        NextRound,
         Quit,
         ToggleTestPanel,
 
+        // The campaign's (ticket 32.5): the GuiFlow.Campaign hook runs them where a campaign is, and without one they start the showcase round
+        Continue,
+        NewCampaign,
+        BeginCampaign,
+        PlayLevel,
+        Restart,
+        WatchCutscene,
+        Confirm,
+        Cancel,
+        // The end screens' (ticket 32.6): CONTINUE after a win, RETRY, and RETRY EASIER after two losses in a row
+        Next,
+        Retry,
+        RetryEasier,
+
         // Test panel: events of a round on demand
+        NewRound,
         Damage,
         Heal,
         YouKill,
         YouHeadshot,
         BotKill,
-        Crumble,
         TogglePickup,
         Reload,
         Die,
@@ -40,14 +51,26 @@ namespace SdfGui
         public GuiCommandId command;
         [Tooltip("The screen for Show")]
         public GuiScreen screen;
+        [Tooltip("The level (a campaign step id) for PlayLevel and WatchCutscene")]
+        public string level = "";
+        [Tooltip("BeginCampaign: the difficulty, 0 Easy, 1 Normal, 2 Hard")]
+        public int value;
+        [Tooltip("When set, the yes/no card asks this first and the command runs on yes")]
+        public string confirm = "";
 
         private void Awake() => GetComponent<Button>().onClick.AddListener(Run);
 
         public void Run()
         {
             var flow = GuiFlow.Find(this);
-            if (flow != null)
-                flow.Execute(command, screen);
+            if (flow == null)
+                return;
+            // Copied: the card runs it later, when this button may have been given another level
+            var (c, s, l, v) = (command, screen, level, value);
+            if (!string.IsNullOrEmpty(confirm))
+                flow.Ask(confirm, () => flow.Execute(c, s, l, v));
+            else
+                flow.Execute(c, s, l, v);
         }
     }
 }

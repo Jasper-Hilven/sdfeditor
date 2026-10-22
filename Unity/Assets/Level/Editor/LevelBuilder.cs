@@ -1398,7 +1398,7 @@ namespace SdfLevel.Editor
             if (gui != null)
             {
                 match.gui = (GameObject)PrefabUtility.InstantiatePrefab(gui, battle.scene);
-                if (match.gui.TryGetComponent<SdfGui.FakeMatch>(out var view))
+                if (match.gui.TryGetComponent<SdfGui.MatchView>(out var view))
                 {
                     MatchHud.ShowRoundStart(view, match.rules);
                     PrefabUtility.RecordPrefabInstancePropertyModifications(view);

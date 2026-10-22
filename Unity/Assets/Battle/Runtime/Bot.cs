@@ -33,6 +33,7 @@ namespace SdfBattle
         private const float SeenRecently = 0.35f;
 
         private Bots owner;
+        private BotSkill botSkill;
         private Player player;
         private Arsenal arsenal;
         private System.Random random;
@@ -88,6 +89,13 @@ namespace SdfBattle
 
         public IReadOnlyList<Vector3> Corners => corners;
 
+        /// <summary>Aims with another skill from now on (RETRY EASIER, ticket 32).</summary>
+        public void UseSkill(BotSkill value)
+        {
+            botSkill = value;
+            aim = new BotAim(botSkill, random);
+        }
+
         /// <summary>Ties the brain to its body; <see cref="Bots"/> calls it once.</summary>
         public void Bind(Bots bots, Player body, BotStyle botStyle, Temperament botTemperament, int seed)
         {
@@ -97,8 +105,9 @@ namespace SdfBattle
             style = botStyle;
             temperament = botTemperament;
             random = new System.Random(seed);
-            aim = new BotAim(bots.skill, random);
-            memory = new BotMemory(bots.Match.Players.Count, bots.skill.MemorySeconds);
+            botSkill = bots.SkillOf(body.Team);
+            aim = new BotAim(botSkill, random);
+            memory = new BotMemory(bots.Match.Players.Count, botSkill.MemorySeconds);
             OnSpawned();
         }
 
@@ -195,7 +204,7 @@ namespace SdfBattle
         {
             var eye = arsenal != null ? arsenal.EyePosition : transform.position + Vector3.up * 1.5f;
             var forward = player.Controller.AimDirection;
-            var skill = owner.skill;
+            var skill = botSkill;
             var ownFlag = owner.Flags != null ? owner.Flags.State.Flag(Team) : null;
             Player best = null;
             var bestScore = float.PositiveInfinity;
@@ -263,7 +272,7 @@ namespace SdfBattle
                     continue;
                 var centre = machine.Center;
                 var distance = Vector3.Distance(eye, centre);
-                if (distance >= bestDistance || (machine != machineTarget && !BotSight.InView(eye, forward, centre, owner.skill)))
+                if (distance >= bestDistance || (machine != machineTarget && !BotSight.InView(eye, forward, centre, botSkill)))
                     continue;
                 if (machines.Visible(eye, machine))
                     (best, bestDistance) = (machine, distance);
@@ -680,7 +689,7 @@ namespace SdfBattle
         private void Aim(float dt, float now)
         {
             var controller = player.Controller;
-            var skill = owner.skill;
+            var skill = botSkill;
             var weapon = arsenal != null ? arsenal.Weapon : null;
             var eye = arsenal != null ? arsenal.EyePosition : transform.position + Vector3.up * 1.5f;
             float wantYaw, wantPitch;
