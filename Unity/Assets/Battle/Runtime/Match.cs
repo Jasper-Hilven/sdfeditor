@@ -129,7 +129,7 @@ namespace SdfBattle
             State.Begin();
         }
 
-        /// <summary>You first, then your team's bots (Red 2, 3, 4), then the other team's (Blue 1 to 4).</summary>
+        /// <summary>You first, then your team's bots (the cast's numbers 2 to 4), then the other team's (1 to 4), named by <see cref="Cast"/>.</summary>
         private void MakePlayers()
         {
             if (you == null)
@@ -149,7 +149,7 @@ namespace SdfBattle
                 var player = you.GetComponent<Player>();
                 if (player == null)
                     player = you.gameObject.AddComponent<Player>();
-                player.Bind(State.AddPlayer("You", yourTeam, false));
+                player.Bind(State.AddPlayer(Cast.You, yourTeam, false));
                 players.Add(player);
             }
             else
@@ -164,7 +164,7 @@ namespace SdfBattle
             {
                 var first = team == yourTeam && you != null ? 2 : 1;
                 for (var number = first; number <= rules.teamSize; number++)
-                    players.Add(MakeBot($"{team.Name()} {number}", team, root));
+                    players.Add(MakeBot(Cast.Name(team, number), team, root));
             }
         }
 

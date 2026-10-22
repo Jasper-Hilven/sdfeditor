@@ -24,7 +24,7 @@ namespace SdfGui
         public static readonly Color Night = Hex(0x3A2D47);
         public static readonly Color Dusk = Hex(0x5B4870);
 
-        /// <summary>The colours the fake players are told apart by, in the order they are handed out.</summary>
+        /// <summary>The colours the players are told apart by, in the order they are handed out.</summary>
         public static readonly Color[] Players =
         {
             Amanita, Chanterelle, Moss, Sky, Violet, Hex(0xD95F8C), Hex(0xF07FB0), SporeDeep, Hex(0xC9875A), Hex(0x6F8FE0), Hex(0xB8D44A), Hex(0xE06A3A),

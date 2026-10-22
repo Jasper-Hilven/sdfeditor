@@ -10,10 +10,10 @@ namespace SdfGui
         public TMP_Text subtitle;
         public GuiPlayerRow[] rows = new GuiPlayerRow[0];
 
-        protected override void Render(FakeMatch m)
+        protected override void Render(MatchView m)
         {
-            GuiText.Set(subtitle, $"LAST MUSHROOM STANDING  ·  {m.Alive} LEFT  ·  {GuiText.Clock(m.timeLeft)}");
-            var ordered = m.players.Where(p => p.joined)
+            GuiText.Set(subtitle, $"{m.arena}  ·  {m.goal}  ·  {GuiText.Clock(m.timeLeft)}".ToUpperInvariant());
+            var ordered = m.players
                 .OrderBy(p => p.placement == 1 ? 0 : p.alive ? 1 : 2)
                 .ThenByDescending(p => p.alive ? p.kills : -p.placement)
                 .ToList();

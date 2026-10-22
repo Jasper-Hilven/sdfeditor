@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace SdfGui
 {
     /// <summary>
-    /// One line of the kill feed: its line (<see cref="FakeKill.line"/>, SdfBattle.DeathLines: "{killer} sautéed {icon} {victim}") with the
+    /// One line of the kill feed: its line (<see cref="ViewKill.line"/>, SdfBattle.DeathLines: "{killer} sautéed {icon} {victim}") with the
     /// weapon's icon (a popped cap for a headshot) where its {icon} is, the text before it in <see cref="killer"/> and after it in
     /// <see cref="victim"/>; the plain line is the killer, the icon, the victim.
     /// </summary>
@@ -19,7 +19,7 @@ namespace SdfGui
         public CanvasGroup group;
         public GuiIconSet icons;
 
-        public void Show(FakeMatch m, FakeKill kill, float alpha)
+        public void Show(MatchView m, ViewKill kill, float alpha)
         {
             var killerPlayer = m.Player(kill.killer);
             var victimPlayer = m.Player(kill.victim);

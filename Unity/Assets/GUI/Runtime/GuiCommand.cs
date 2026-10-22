@@ -12,7 +12,6 @@ namespace SdfGui
         Resume,
         LeaveMatch,
         Spectate,
-        NextRound,
         Quit,
         ToggleTestPanel,
 
@@ -22,7 +21,6 @@ namespace SdfGui
         YouKill,
         YouHeadshot,
         BotKill,
-        Crumble,
         TogglePickup,
         Reload,
         Die,

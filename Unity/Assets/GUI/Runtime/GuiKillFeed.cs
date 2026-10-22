@@ -12,7 +12,7 @@ namespace SdfGui
         public float showSeconds = 5;
         public float fadeSeconds = 1;
 
-        protected override void Render(FakeMatch m)
+        protected override void Render(MatchView m)
         {
             var first = Mathf.Max(0, m.feed.Count - entries.Length);
             for (var i = 0; i < entries.Length; i++)

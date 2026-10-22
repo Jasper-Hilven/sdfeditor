@@ -23,19 +23,27 @@ namespace SdfGui.Editor
         {
             (0.05f, "01 start", _ => { }),
             (1.2f, "02 firing", f => { f.Match.Fire(0.4f); f.Execute(GuiCommandId.YouKill, GuiScreen.Hud); }),
-            (1.4f, "03 hit and crumble", f => { f.Execute(GuiCommandId.Damage, GuiScreen.Hud); f.Execute(GuiCommandId.Crumble, GuiScreen.Hud); f.Execute(GuiCommandId.TogglePickup, GuiScreen.Hud); }),
+            (1.4f, "03 hit", f => { f.Execute(GuiCommandId.Damage, GuiScreen.Hud); f.Execute(GuiCommandId.TogglePickup, GuiScreen.Hud); }),
             (1.6f, "04 reload", f => f.Execute(GuiCommandId.Reload, GuiScreen.Hud)),
             (2.2f, "05 scoreboard", f => f.Show(GuiScreen.Scoreboard)),
             (2.4f, "06 pause", f => f.Show(GuiScreen.Pause)),
-            (2.6f, "07 lobby filling", f => f.Execute(GuiCommandId.Play, GuiScreen.Hud)),
-            (5.5f, "08 lobby later", _ => { }),
-            (5.7f, "09 new round", f => f.Execute(GuiCommandId.StartNow, GuiScreen.Hud)),
-            (5.9f, "10 died", f => f.Execute(GuiCommandId.Die, GuiScreen.Hud)),
-            (6.1f, "11 spectating", f => f.Execute(GuiCommandId.Spectate, GuiScreen.Hud)),
-            (6.3f, "12 won", f => { f.Execute(GuiCommandId.StartNow, GuiScreen.Hud); f.Execute(GuiCommandId.Win, GuiScreen.Hud); }),
-            (6.5f, "13 settings", f => f.Show(GuiScreen.Settings)),
-            (6.7f, "14 main menu", f => f.Show(GuiScreen.MainMenu)),
+            (2.6f, "07 play from the menu", f => f.Execute(GuiCommandId.Play, GuiScreen.Hud)),
+            (3.0f, "08 new round", f => f.Execute(GuiCommandId.StartNow, GuiScreen.Hud)),
+            (3.2f, "09 died", f => f.Execute(GuiCommandId.Die, GuiScreen.Hud)),
+            (3.4f, "10 spectating", f => f.Execute(GuiCommandId.Spectate, GuiScreen.Hud)),
+            (3.6f, "11 won", f => { f.Execute(GuiCommandId.StartNow, GuiScreen.Hud); f.Execute(GuiCommandId.Win, GuiScreen.Hud); }),
+            (3.8f, "12 settings", f => f.Show(GuiScreen.Settings)),
+            (4.0f, "13 main menu", f => f.Show(GuiScreen.MainMenu)),
+            (4.2f, "14 pause", f => { f.Show(GuiScreen.Hud); f.Show(GuiScreen.Pause); }),
+            (4.4f, "15 resume", f => { Expect(Time.timeScale == 0, "Pause stops the time"); f.Execute(GuiCommandId.Resume, GuiScreen.Hud); }),
+            (4.6f, "16 playing again", _ => Expect(Time.timeScale == 1, "Resume sets the time going again")),
         };
+
+        private static void Expect(bool ok, string what)
+        {
+            if (!ok)
+                throw new Exception("Expected: " + what);
+        }
 
         private static float started = -1;
         private static int next;

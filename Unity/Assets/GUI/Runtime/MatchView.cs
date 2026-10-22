@@ -8,22 +8,19 @@ namespace SdfGui
 {
     public enum MatchPhase
     {
-        Lobby,
         Countdown,
         Playing,
         Over,
     }
 
     [Serializable]
-    public sealed class FakePlayer
+    public sealed class ViewPlayer
     {
         public string name;
         public Color color;
         [Tooltip("Index into the avatar icons")]
         public int avatar;
-        public int ping;
         public int kills;
-        public bool joined = true;
         public bool alive = true;
         public bool you;
         [Tooltip("Place at the end of the round, 1 for the winner; 0 while alive")]
@@ -31,7 +28,7 @@ namespace SdfGui
     }
 
     [Serializable]
-    public struct FakeKill
+    public struct ViewKill
     {
         public int killer;
         [Tooltip("The killer's name (rich text) when it is no player: a machine (battle scenes); empty for a player")]
@@ -49,46 +46,44 @@ namespace SdfGui
     }
 
     /// <summary>
-    /// The state of a round of last mushroom standing against fake players, and the bots that play it: everything the GUI shows. The
-    /// GUI's views only read it (in the editor too, they are [ExecuteAlways]), so what the scene shows when opened is exactly what the
-    /// first frame at runtime shows; only in play mode does the match move on (players join the lobby, bots eliminate each other, the
-    /// island crumbles, the clock runs) and do the transient effects (hit markers, damage, pop-ups) fade.
+    /// The state of a round as the GUI shows it, and, in the GUI scene, the bots that play it for the showcase: everything the GUI
+    /// shows. The GUI's views only read it (in the editor too, they are [ExecuteAlways]), so what the scene shows when opened is exactly
+    /// what the first frame at runtime shows; only in play mode does the showcase round move on (bots eliminate each other, the clock
+    /// runs) and do the transient effects (hit markers, damage, pop-ups) fade.
     /// <para>
     /// The player acts through <see cref="Fire"/>, <see cref="Reload"/> and the test commands (<see cref="GuiCommandId"/>); the bots
-    /// through <see cref="Update"/>. Pausing does not stop it: the match is "online".
+    /// through <see cref="Update"/>. The pause menu stops the time (<see cref="GuiFlow"/>), so the round stops with it.
     /// </para>
     /// <para>
     /// In a battle scene it is the HUD's view of the real match instead (<see cref="driven"/>): SdfBattle.MatchHud writes the match
     /// into it every frame and it does nothing of its own.
     /// </para>
     /// </summary>
-    public sealed class FakeMatch : MonoBehaviour
+    public sealed class MatchView : MonoBehaviour
     {
-        public const int LobbySize = 12;
+        /// <summary>Players in the showcase round (the scoreboard has a row for each): you and seven bots, 4 against 4.</summary>
+        public const int RosterSize = 8;
+
+        /// <summary>Rows on the scoreboard: room for the larger teams of the campaign (up to 5 against 5).</summary>
+        public const int ScoreboardRows = 10;
 
         /// <summary>Prefab names of the weapons, which are also the names of their icons.</summary>
         public static readonly string[] Weapons = { "minigun", "pistol", "sniper", "flamethrower", "poison-gun", "electro-gun", "blob-gun" };
 
         public static readonly string[] WeaponNames = { "Minigun", "Pistol", "Sniper", "Flamethrower", "Poison Gun", "Electro Gun", "Blob Gun" };
 
-        public static readonly string[] BotNames =
-        {
-            "xX_Morel_Xx", "SporeLord", "Shiitake_Snipes", "fungi4life", "ChanterELLE", "PortobelloPaul", "MycoMayhem", "truffle_shuffle",
-            "Enoki_Ninja", "DeathCapDan", "puffball99", "GillsNThrills", "oyster_boi", "LionsMane", "toadstool_tom", "hyphae_hero",
-        };
-
         [Header("Round")]
         public MatchPhase phase = MatchPhase.Playing;
         public float roundSeconds = 180;
         public float timeLeft = 134;
-        [Tooltip("Seconds left of the lobby countdown, or of the wait for the next round once it is over")]
+        [Tooltip("The arena and the goal, the scoreboard's subtitle")]
+        public string arena = "Meadow";
+        public string goal = "First to 3 captures";
+        [Tooltip("Seconds left of the countdown, or of the wait for the next round once it is over")]
         public float countdown;
-        [Tooltip("Rings of the island's edge that have fallen")]
-        public int ringsFallen = 1;
-        public int rings = 4;
 
         [Header("Players")]
-        public List<FakePlayer> players = new List<FakePlayer>();
+        public List<ViewPlayer> players = new List<ViewPlayer>();
         public int you;
         [Tooltip("Who eliminated you, -1 while you are alive")]
         public int killedBy = -1;
@@ -100,9 +95,11 @@ namespace SdfGui
         [Tooltip("The death screen's lines under it ({killer}, {weapon}, {streak}); empty for the plain ones")]
         public string killedDetail;
         public int killedStreak;
+        [Tooltip("Seconds until you are back, while you are out in a battle (0 shows no wait)")]
+        public float respawnIn;
         [Tooltip("Who the camera follows once you are out")]
         public int spectating = -1;
-        public List<FakeKill> feed = new List<FakeKill>();
+        public List<ViewKill> feed = new List<ViewKill>();
 
         [Header("You")]
         public float health = 72;
@@ -123,8 +120,6 @@ namespace SdfGui
         [Range(0, 1)] public float damage;
         [Tooltip("Where the last hit came from, degrees clockwise from straight ahead")]
         public float damageAngle;
-        [Tooltip("Seconds the crumble warning still shows")]
-        public float crumbleWarning;
         [Tooltip("Seconds the elimination pop-up still shows")]
         public float eliminated;
         public int eliminatedPlayer;
@@ -133,18 +128,15 @@ namespace SdfGui
         public string eliminatedTitle;
 
         [Header("Bots")]
-        [Tooltip("Bots eliminate each other, crumble the island and now and then hit you")]
+        [Tooltip("Bots eliminate each other and now and then hit you")]
         public bool autoEvents = true;
         [Tooltip("Written by a real match every frame (SdfBattle.MatchHud, in the battle scenes): nothing here moves on by itself, and " +
                  "firing, reloading and the test commands do nothing")]
         public bool driven;
         public Vector2 secondsBetweenKills = new Vector2(3, 8);
-        public float seed = 1;
 
         private float nextKill;
-        private float nextJoin;
         private float nextShot;
-        private float nextPing;
         private float fireCarry;
 
         // The bots wait as they would between moves before their first one, so the first frame of play is the scene as saved
@@ -152,32 +144,27 @@ namespace SdfGui
         {
             nextKill = Time.time + Random.Range(secondsBetweenKills.x, secondsBetweenKills.y);
             nextShot = Time.time + Random.Range(5f, 12f);
-            nextJoin = Time.time + 0.6f;
-            nextPing = Time.time + 1;
         }
 
-        public FakePlayer You => players.Count > you ? players[you] : null;
-        public int Alive => players.Count(p => p.joined && p.alive);
-        public int Joined => players.Count(p => p.joined);
+        public ViewPlayer You => players.Count > you ? players[you] : null;
+        public int Alive => players.Count(p => p.alive);
         public bool YouAreAlive => You == null || You.alive;
-        public float RingTime => roundSeconds / (rings + 1);
-        public int YourPlacement => You == null ? 0 : You.alive ? Alive : You.placement;
 
-        public FakePlayer Player(int index) => index >= 0 && index < players.Count ? players[index] : null;
+        public ViewPlayer Player(int index) => index >= 0 && index < players.Count ? players[index] : null;
 
-        /// <summary>The roster a new match starts with: you and the bots, each with a colour, an avatar and a ping.</summary>
-        public static List<FakePlayer> NewRoster(string yourName, int seed)
+        /// <summary>The roster a new match starts with: you and the cast, red against blue, each with a colour and an avatar.</summary>
+        public static List<ViewPlayer> NewRoster(string yourName)
         {
-            var state = Random.state;
-            Random.InitState(seed);
-            var names = BotNames.OrderBy(_ => Random.value).Take(LobbySize - 1).ToList();
-            Random.state = state;
-            var roster = new List<FakePlayer> { new FakePlayer { name = yourName, you = true, ping = 24 } };
-            roster.AddRange(names.Select((n, i) => new FakePlayer { name = n, ping = 18 + (i * 37 + seed * 13) % 140 }));
+            var roster = new List<ViewPlayer> { new ViewPlayer { name = yourName, you = true } };
+            for (var i = 1; i < RosterSize; i++)
+            {
+                var team = i < RosterSize / 2 ? SdfBattle.Team.Red : SdfBattle.Team.Blue;
+                roster.Add(new ViewPlayer { name = SdfBattle.Cast.Name(team, team == SdfBattle.Team.Red ? i + 1 : i - RosterSize / 2 + 1) });
+            }
             for (var i = 0; i < roster.Count; i++)
             {
                 roster[i].color = GuiPalette.Players[i % GuiPalette.Players.Length];
-                roster[i].avatar = i % 2;
+                roster[i].avatar = i < RosterSize / 2 ? 0 : 1;
             }
             return roster;
         }
@@ -188,25 +175,8 @@ namespace SdfGui
                 return;
             var dt = Time.deltaTime;
             Fade(dt);
-            UpdatePings();
-            switch (phase)
-            {
-                case MatchPhase.Lobby:
-                    if (Time.time >= nextJoin)
-                        JoinOne();
-                    break;
-                case MatchPhase.Countdown:
-                    countdown -= dt;
-                    if (countdown <= 0)
-                        StartPlaying();
-                    break;
-                case MatchPhase.Playing:
-                    Play(dt);
-                    break;
-                case MatchPhase.Over:
-                    countdown = Mathf.Max(0, countdown - dt);
-                    break;
-            }
+            if (phase == MatchPhase.Playing)
+                Play(dt);
         }
 
         private void Fade(float dt)
@@ -214,7 +184,6 @@ namespace SdfGui
             spread = Mathf.MoveTowards(spread, 0, dt * 2.5f);
             hitMarker = Mathf.MoveTowards(hitMarker, 0, dt * 4);
             damage = Mathf.MoveTowards(damage, 0, dt * 1.2f);
-            crumbleWarning = Mathf.Max(0, crumbleWarning - dt);
             eliminated = Mathf.Max(0, eliminated - dt);
             for (var i = 0; i < feed.Count; i++)
             {
@@ -234,21 +203,9 @@ namespace SdfGui
             }
         }
 
-        private void UpdatePings()
-        {
-            if (Time.time < nextPing)
-                return;
-            nextPing = Time.time + 1;
-            foreach (var player in players)
-                player.ping = Mathf.Clamp(player.ping + Random.Range(-6, 7), 12, 220);
-        }
-
         private void Play(float dt)
         {
             timeLeft = Mathf.Max(0, timeLeft - dt);
-            var ring = Mathf.Min(rings, Mathf.FloorToInt((roundSeconds - timeLeft) / RingTime));
-            if (ring > ringsFallen)
-                Crumble();
             if (!autoEvents)
                 return;
             if (Time.time >= nextKill)
@@ -265,47 +222,19 @@ namespace SdfGui
 
         // ---------------------------------------------------------------- Phases
 
-        /// <summary>Back to an empty lobby that fills up with players, then counts down to a new round.</summary>
-        public void StartLobby()
-        {
-            players = NewRoster(You?.name ?? "You", Mathf.RoundToInt(seed += 1));
-            foreach (var player in players.Where(p => !p.you))
-                player.joined = false;
-            phase = MatchPhase.Lobby;
-            feed.Clear();
-            killedBy = -1;
-            spectating = -1;
-            nextJoin = Time.time + 0.6f;
-        }
-
-        private void JoinOne()
-        {
-            var waiting = players.Where(p => !p.joined).ToList();
-            if (waiting.Count == 0)
-            {
-                phase = MatchPhase.Countdown;
-                countdown = 5;
-                return;
-            }
-            waiting[Random.Range(0, waiting.Count)].joined = true;
-            nextJoin = Time.time + Random.Range(0.25f, 1.1f);
-        }
-
-        /// <summary>Starts the round now, with everyone in the lobby filled in.</summary>
+        /// <summary>Starts the round now: everyone in, full health and ammo, the clock full.</summary>
         public void StartPlaying()
         {
             if (players.Count == 0)
-                players = NewRoster("You", Mathf.RoundToInt(seed));
+                players = NewRoster(SdfBattle.Cast.You);
             foreach (var player in players)
             {
-                player.joined = true;
                 player.alive = true;
                 player.kills = 0;
                 player.placement = 0;
             }
             phase = MatchPhase.Playing;
             timeLeft = roundSeconds;
-            ringsFallen = 0;
             health = maxHealth;
             ammo = magazine;
             reload = 0;
@@ -415,28 +344,20 @@ namespace SdfGui
             killedTitle = SdfBattle.DeathLines.Shared.Title(kind, GuiSettings.Gore);
             killedDetail = SdfBattle.DeathLines.Shared.Detail(kind, GuiSettings.Gore);
             killedStreak = 0;
+            respawnIn = 0;
             if (killer >= 0)
                 Eliminate(killer, you, killedByWeapon, headshot);
             else
                 You.alive = false;
         }
 
-        /// <summary>Everyone else is eliminated: you are the last mushroom standing.</summary>
+        /// <summary>Everyone else is eliminated: you win the round.</summary>
         public void Win()
         {
             if (phase != MatchPhase.Playing || !YouAreAlive)
                 return;
             while (RandomAlive(you) >= 0)
                 YouKill(Random.value < 0.4f);
-        }
-
-        /// <summary>The next ring of the island's edge breaks off, with a warning.</summary>
-        public void Crumble()
-        {
-            if (phase != MatchPhase.Playing)
-                return;
-            ringsFallen = Mathf.Min(rings, ringsFallen + 1);
-            crumbleWarning = 3.5f;
         }
 
         public void TogglePickup() => pickup = string.IsNullOrEmpty(pickup) ? "Spore Sac" : "";
@@ -450,18 +371,17 @@ namespace SdfGui
                 players[killer].kills++;
             var names = (killer >= 0 ? players[killer].name?.Length ?? 0 : 0) + (dead.name?.Length ?? 0);
             var line = SdfBattle.DeathLines.Shared.Feed(KindOf(weaponIndex, headshot), GuiSettings.Gore, names);
-            feed.Add(new FakeKill { killer = killer, victim = victim, weapon = weaponIndex, headshot = headshot, line = line });
+            feed.Add(new ViewKill { killer = killer, victim = victim, weapon = weaponIndex, headshot = headshot, line = line });
             if (feed.Count > 6)
                 feed.RemoveAt(0);
             if (spectating == victim)
                 spectating = killer;
             if (Alive <= 1)
             {
-                var winner = players.FindIndex(p => p.joined && p.alive);
+                var winner = players.FindIndex(p => p.alive);
                 if (winner >= 0)
                     players[winner].placement = 1;
                 phase = MatchPhase.Over;
-                countdown = 10;
             }
         }
 
@@ -472,7 +392,7 @@ namespace SdfGui
 
         private int RandomAlive(params int[] except)
         {
-            var candidates = Enumerable.Range(0, players.Count).Where(i => players[i].joined && players[i].alive && !except.Contains(i)).ToList();
+            var candidates = Enumerable.Range(0, players.Count).Where(i => players[i].alive && !except.Contains(i)).ToList();
             return candidates.Count == 0 ? -1 : candidates[Random.Range(0, candidates.Count)];
         }
     }

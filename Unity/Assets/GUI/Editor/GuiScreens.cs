@@ -9,7 +9,7 @@ namespace SdfGui.Editor
 {
     /// <summary>
     /// The screens of the GUI as prefabs in Assets/GUI/Prefabs/Screens, each filling the canvas and built from the component prefabs
-    /// (<see cref="GuiPrefabs"/>): main menu, lobby, HUD, scoreboard, pause, settings, death, round end, the gallery of every component
+    /// (<see cref="GuiPrefabs"/>): main menu, HUD, scoreboard, pause, settings, death, round end, the gallery of every component
     /// and the test panel. Each has a <see cref="GuiScreenRoot"/> for <see cref="GuiFlow"/> and draws from the match through its view.
     /// </summary>
     public sealed class GuiScreens
@@ -31,7 +31,6 @@ namespace SdfGui.Editor
         public void Build()
         {
             Screens[GuiScreen.MainMenu] = MainMenu();
-            Screens[GuiScreen.Lobby] = Lobby();
             Screens[GuiScreen.Hud] = Hud();
             Screens[GuiScreen.Scoreboard] = Scoreboard();
             Screens[GuiScreen.Pause] = Pause();
@@ -89,7 +88,7 @@ namespace SdfGui.Editor
                 s.Seed = 0.2f;
             });
             f.FillText(burst.transform, "Two", "2", TextStyle.Title, 110, GuiPalette.Amanita);
-            f.Text(logo.transform, "Tagline", "The finest online multiplayer. Probably.", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -170), new Vector2(900, 50));
+            f.Text(logo.transform, "Tagline", "Last year's champion. Probably still.", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -170), new Vector2(900, 50));
 
             var buttons = Object("Buttons", t);
             Place(buttons.transform, Centre, new Vector2(0, -170), new Vector2(420, 420));
@@ -98,50 +97,7 @@ namespace SdfGui.Editor
             p.ButtonInstance(buttons.transform, "GUI GALLERY", GuiPalette.Moss, GuiCommandId.Show, Top, new Vector2(0, -220), new Vector2(380, 80), 38, GuiScreen.Gallery, 0.4f);
             p.ButtonInstance(buttons.transform, "QUIT", GuiPalette.Dusk, GuiCommandId.Quit, Top, new Vector2(0, -320), new Vector2(380, 80), 38, spots: 0);
 
-            var online = f.Text(t, "Players Online", "12,483 players online", TextStyle.BodyInk, 30, GuiPalette.Cream, BottomLeft, new Vector2(5, 5), new Vector2(600, 44), TextAlignmentOptions.Left);
-            var status = online.gameObject.AddComponent<GuiStatus>();
-            status.what = GuiStatus.What.PlayersOnline;
-            status.label = online;
-            f.Text(t, "Version", "v0.1 · fake multiplayer edition", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.7f), BottomRight, new Vector2(-5, 5), new Vector2(600, 44), TextAlignmentOptions.Right);
-            return Save(root);
-        }
-
-        // ---------------------------------------------------------------- Lobby
-
-        private GameObject Lobby()
-        {
-            var root = Root("Lobby", GuiScreen.Lobby);
-            var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.2f);
-            var lobby = root.AddComponent<GuiLobby>();
-
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 10), new Vector2(1260, 860)).transform;
-            var header = p.BannerInstance(panel, "Header", "FINDING PLAYERS...", GuiPalette.Amanita, Top, new Vector2(0, 50), new Vector2(760, 104), 54);
-            lobby.title = header.GetComponentInChildren<TMP_Text>();
-
-            // Mode card and the fill of the lobby
-            var mode = f.Panel(panel, "Mode", GuiPalette.Night, TopLeft, new Vector2(40, -80), new Vector2(1180, 100), 20);
-            f.Text(mode.transform, "Mode", "LAST MUSHROOM STANDING", TextStyle.Title, 40, GuiPalette.Gold, Left, new Vector2(30, 14), new Vector2(620, 50), TextAlignmentOptions.Left);
-            f.Text(mode.transform, "Map", "Floating Island  ·  12 players  ·  free for all", TextStyle.BodyInk, 26, GuiPalette.Cream, Left, new Vector2(30, -24), new Vector2(620, 40), TextAlignmentOptions.Left);
-            lobby.count = f.Text(mode.transform, "Count", "12/12", TextStyle.Title, 56, GuiPalette.Cream, Right, new Vector2(-30, 0), new Vector2(200, 70), TextAlignmentOptions.Right);
-            lobby.fillBar = p.BarInstance(mode.transform, "Fill", GuiPalette.Moss, 1, Right, new Vector2(-250, 0), new Vector2(260, 34), 0);
-
-            // Twelve player rows, in two columns
-            var rows = Object("Players", panel);
-            Place(rows.transform, Top, new Vector2(0, -210), new Vector2(1180, 6 * 70));
-            var players = new List<GuiPlayerRow>();
-            for (var i = 0; i < FakeMatch.LobbySize; i++)
-            {
-                var column = i / 6;
-                var row = Instance<GuiPlayerRow>(p.PlayerRow, rows.transform, $"Player {i + 1}", column == 0 ? TopLeft : TopRight, new Vector2(0, -(i % 6) * 70), new Vector2(570, 60));
-                players.Add(row);
-            }
-            lobby.rows = players.ToArray();
-
-            lobby.countdown = f.Text(panel, "Countdown", "Dropping onto the island in 5", TextStyle.Label, 36, GuiPalette.Dusk, Bottom, new Vector2(-150, 64), new Vector2(760, 60), TextAlignmentOptions.Left);
-            ((RectTransform)lobby.countdown.transform).anchoredPosition = new Vector2(-180, 60);
-            p.ButtonInstance(panel, "START NOW", GuiPalette.Moss, GuiCommandId.StartNow, BottomRight, new Vector2(-300, 34), new Vector2(300, 84), 38, spots: 0.5f);
-            p.ButtonInstance(panel, "LEAVE", GuiPalette.Dusk, GuiCommandId.LeaveMatch, BottomRight, new Vector2(-40, 34), new Vector2(230, 84), 38, spots: 0);
+            f.Text(t, "Version", Application.version, TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.7f), BottomRight, new Vector2(-5, 5), new Vector2(600, 44), TextAlignmentOptions.Right);
             return Save(root);
         }
 
@@ -221,8 +177,8 @@ namespace SdfGui.Editor
             // Moments: elimination pop-up, pick-up prompt, spectating
             var popup = Object("Eliminated", t);
             Place(popup.transform, Centre, new Vector2(0, -170), new Vector2(700, 140));
-            hud.eliminatedTitle = f.Text(popup.transform, "Title", "ELIMINATED", TextStyle.Title, 62, GuiPalette.Gold, Top, Vector2.zero, new Vector2(700, 76));
-            hud.eliminatedName = f.Text(popup.transform, "Name", "xX_Morel_Xx", TextStyle.BodyInk, 40, GuiPalette.Cream, Bottom, new Vector2(0, 6), new Vector2(700, 56));
+            hud.eliminatedTitle = f.Text(popup.transform, "Title", "SAUTÉED!", TextStyle.Title, 62, GuiPalette.Gold, Top, Vector2.zero, new Vector2(700, 76));
+            hud.eliminatedName = f.Text(popup.transform, "Name", "Runner-Up", TextStyle.BodyInk, 40, GuiPalette.Cream, Bottom, new Vector2(0, 6), new Vector2(700, 56));
             hud.eliminatedPopup = popup;
 
             var pickup = f.Panel(t, "Pick Up", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), Bottom, new Vector2(0, 220), new Vector2(520, 76), 20);
@@ -451,18 +407,17 @@ namespace SdfGui.Editor
             var root = Root("Scoreboard", GuiScreen.Scoreboard);
             var t = root.transform;
             var board = root.AddComponent<GuiScoreboard>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, -10), new Vector2(980, 900)).transform;
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, -10), new Vector2(980, 840)).transform;
             p.BannerInstance(panel, "Header", "SCOREBOARD", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
-            board.subtitle = f.Text(panel, "Subtitle", "LAST MUSHROOM STANDING", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -66), new Vector2(900, 40));
+            board.subtitle = f.Text(panel, "Subtitle", "MEADOW  ·  FIRST TO 3 CAPTURES  ·  10:00", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -66), new Vector2(900, 40));
             var columns = Object("Columns", panel);
             Place(columns.transform, Top, new Vector2(0, -110), new Vector2(900, 30));
             f.Text(columns.transform, "Player", "PLAYER", TextStyle.Label, 22, GuiPalette.Dusk, Left, new Vector2(122, 0), new Vector2(200, 30), TextAlignmentOptions.Left);
-            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-230, 0), new Vector2(80, 30));
-            f.Text(columns.transform, "Status", "STATUS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-104, 0), new Vector2(110, 30));
-            f.Text(columns.transform, "Ping", "PING", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-14, 0), new Vector2(84, 30), TextAlignmentOptions.Right);
+            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-124, 0), new Vector2(80, 30));
+            f.Text(columns.transform, "Status", "STATUS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-14, 0), new Vector2(110, 30));
             var rows = Object("Players", panel);
-            Place(rows.transform, Top, new Vector2(0, -146), new Vector2(900, 12 * 60));
-            board.rows = Enumerable.Range(0, FakeMatch.LobbySize)
+            Place(rows.transform, Top, new Vector2(0, -146), new Vector2(900, MatchView.ScoreboardRows * 60));
+            board.rows = Enumerable.Range(0, MatchView.ScoreboardRows)
                 .Select(i => Instance<GuiPlayerRow>(p.PlayerRow, rows.transform, $"Player {i + 1}", Top, new Vector2(0, -i * 60), new Vector2(900, 52)))
                 .ToArray();
             f.Text(panel, "Hint", "hold TAB", TextStyle.Body, 24, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(300, 30));
@@ -476,11 +431,11 @@ namespace SdfGui.Editor
             var root = Root("Pause", GuiScreen.Pause);
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
-            // No title: the match is not paused, it keeps going
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 360)).transform;
-            f.Text(panel, "Note", "The match keeps going: it's online!", TextStyle.Body, 28, GuiPalette.Dusk, Top, new Vector2(0, -40), new Vector2(560, 40));
-            p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -110), new Vector2(420, 96), 46, spots: 0.5f);
-            p.ButtonInstance(panel, "SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, Top, new Vector2(0, -230), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
+            // The match stops while this is up (GuiFlow)
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 370)).transform;
+            p.BannerInstance(panel, "Header", "PAUSED", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
+            p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -90), new Vector2(420, 96), 46, spots: 0.5f);
+            p.ButtonInstance(panel, "SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, Top, new Vector2(0, -210), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
             return Save(root);
         }
 
@@ -532,8 +487,9 @@ namespace SdfGui.Editor
             result.icons = f.Kit.icons;
             result.title = f.Text(t, "Title", "SPLATTERED!", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, 340), new Vector2(1200, 170));
             result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Killer", Centre, new Vector2(-300, 70), new Vector2(120, 120));
-            result.detail = f.Text(t, "Detail", "by xX_Morel_Xx\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
+            result.detail = f.Text(t, "Detail", "by Runner-Up\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
             result.weapon = f.Icon(t, "Weapon", "sniper", Centre, new Vector2(330, 70), new Vector2(200, 110));
+            result.back = f.Text(t, "Back", "Back in 5", TextStyle.Title, 56, GuiPalette.Gold, Centre, new Vector2(0, -90), new Vector2(600, 70));
             // No stats: the battle has no places (you respawn), and your kills are on the scoreboard
             return Save(root);
         }
@@ -554,18 +510,14 @@ namespace SdfGui.Editor
                 s.Wobble = 3;
             });
             result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Winner", Centre, new Vector2(0, 120), new Vector2(220, 220));
-            result.title = p.BannerInstance(t, "Title", "LAST MUSHROOM STANDING!", GuiPalette.Amanita, Centre, new Vector2(0, 360), new Vector2(1180, 130), 76).GetComponentInChildren<TMP_Text>();
-            result.detail = f.Text(t, "Detail", "You outlasted everyone", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, -90), new Vector2(1200, 60));
+            result.title = p.BannerInstance(t, "Title", "ROUND WON!", GuiPalette.Amanita, Centre, new Vector2(0, 360), new Vector2(1180, 130), 76).GetComponentInChildren<TMP_Text>();
+            result.detail = f.Text(t, "Detail", "Your team wins", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, -90), new Vector2(1200, 60));
 
-            var stats = f.Panel(t, "Stats", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, new Vector2(0, -210), new Vector2(620, 150), 26);
-            result.placement = f.Text(stats.transform, "Placement", "#1 of 12", TextStyle.Title, 76, GuiPalette.Gold, Left, new Vector2(40, 10), new Vector2(330, 90), TextAlignmentOptions.Left);
-            f.Text(stats.transform, "Placement Label", "PLACE", TextStyle.BodyInk, 24, GuiPalette.Paper, BottomLeft, new Vector2(42, 12), new Vector2(200, 30), TextAlignmentOptions.Left);
-            result.kills = f.Text(stats.transform, "Kills", "5", TextStyle.Title, 76, GuiPalette.Cream, Right, new Vector2(-40, 10), new Vector2(160, 90), TextAlignmentOptions.Right);
-            f.Text(stats.transform, "Kills Label", "KILLS", TextStyle.BodyInk, 24, GuiPalette.Paper, BottomRight, new Vector2(-42, 12), new Vector2(200, 30), TextAlignmentOptions.Right);
-            result.next = f.Text(t, "Next", "Next round in 10", TextStyle.BodyInk, 32, GuiPalette.Paper, Centre, new Vector2(0, -320), new Vector2(600, 44));
+            var stats = f.Panel(t, "Stats", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, new Vector2(0, -210), new Vector2(360, 150), 26);
+            result.kills = f.Text(stats.transform, "Kills", "5", TextStyle.Title, 76, GuiPalette.Cream, Centre, new Vector2(0, 10), new Vector2(160, 90));
+            f.Text(stats.transform, "Kills Label", "KILLS", TextStyle.BodyInk, 24, GuiPalette.Paper, Bottom, new Vector2(0, 12), new Vector2(200, 30));
 
-            p.ButtonInstance(t, "NEXT ROUND", GuiPalette.Moss, GuiCommandId.NextRound, Centre, new Vector2(-180, -420), new Vector2(330, 90), 42, spots: 0.4f);
-            p.ButtonInstance(t, "MAIN MENU", GuiPalette.Dusk, GuiCommandId.LeaveMatch, Centre, new Vector2(180, -420), new Vector2(330, 90), 42, spots: 0);
+            p.ButtonInstance(t, "MAIN MENU", GuiPalette.Dusk, GuiCommandId.LeaveMatch, Centre, new Vector2(0, -420), new Vector2(330, 90), 42, spots: 0);
             return Save(root);
         }
 
@@ -678,9 +630,9 @@ namespace SdfGui.Editor
                 s.Outline = 5;
             });
 
-            // People: avatars, ping, a lobby row, kill feed entries
+            // People: avatars, scoreboard rows, kill feed entries
             var people = Section("Players", new Vector2(300, -790), new Vector2(1570, 260));
-            var roster = FakeMatch.NewRoster("You", 7);
+            var roster = MatchView.NewRoster(SdfBattle.Cast.You);
             for (var i = 0; i < 6; i++)
             {
                 var avatar = Instance<GuiAvatar>(p.Avatar, people, $"Avatar {i + 1}", TopLeft, new Vector2(30 + i * 86, -64));
@@ -689,26 +641,15 @@ namespace SdfGui.Editor
                 avatar.dimmed = i == 5;
                 avatar.disc.color = i == 5 ? Color.Lerp(roster[i].color, GuiPalette.Dusk, 0.75f) : roster[i].color;
             }
-            var pings = new[] { 24, 88, 180 };
-            for (var i = 0; i < pings.Length; i++)
-            {
-                var ping = Instance<GuiPingBars>(p.PingBars, people, $"Ping {pings[i]}", TopLeft, new Vector2(30 + i * 110, -170));
-                ping.ping = pings[i];
-                ping.label.text = pings[i].ToString();
-                var lit = pings[i] < 60 ? 3 : pings[i] < 120 ? 2 : 1;
-                var tone = lit == 3 ? GuiPalette.Moss : lit == 2 ? GuiPalette.Chanterelle : GuiPalette.Amanita;
-                for (var b = 0; b < 3; b++)
-                    ping.bars[b].color = b < lit ? tone : GuiPalette.WithAlpha(GuiPalette.Dusk, 0.8f);
-            }
-            var row = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row", TopLeft, new Vector2(560, -64), new Vector2(540, 60));
+            var row = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row", TopLeft, new Vector2(560, -64), new Vector2(470, 60));
             row.background.color = GuiPalette.Gold;
-            row.playerName.text = "You";
+            row.playerName.text = SdfBattle.Cast.You;
             row.rank.text = "1";
             row.status.text = "YOU";
-            var row2 = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row Out", TopLeft, new Vector2(560, -140), new Vector2(540, 60));
+            var row2 = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row Out", TopLeft, new Vector2(560, -140), new Vector2(470, 60));
             row2.background.color = Color.Lerp(GuiPalette.Paper, GuiPalette.Dusk, 0.55f);
-            row2.playerName.text = "puffball99";
-            row2.rank.text = "12";
+            row2.playerName.text = SdfBattle.Cast.Blue[0];
+            row2.rank.text = "8";
             row2.status.text = "OUT";
             row2.status.color = GuiPalette.Amanita;
             var entry = Instance<GuiKillFeedEntry>(p.KillFeedEntry, people, "Kill Feed Entry", TopRight, new Vector2(-24, -70), new Vector2(410, 52));
@@ -799,7 +740,6 @@ namespace SdfGui.Editor
 
             Heading("Screens");
             Add("MENU", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.MainMenu);
-            Add("LOBBY", GuiPalette.Dusk, GuiCommandId.Play);
             Add("HUD", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Hud);
             Add("SCORES", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Scoreboard);
             Add("PAUSE", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Pause);
@@ -816,7 +756,6 @@ namespace SdfGui.Editor
             Add("MY KILL", GuiPalette.AmanitaDark, GuiCommandId.YouKill);
             Add("HEADSHOT", GuiPalette.AmanitaDark, GuiCommandId.YouHeadshot);
             Add("BOT KILL", GuiPalette.Violet, GuiCommandId.BotKill);
-            Add("CRUMBLE", GuiPalette.Violet, GuiCommandId.Crumble);
             Add("PICK UP", GuiPalette.SporeDeep, GuiCommandId.TogglePickup);
             Add("RELOAD", GuiPalette.SporeDeep, GuiCommandId.Reload);
             Add("DIE", GuiPalette.AmanitaDark, GuiCommandId.Die);
@@ -826,7 +765,6 @@ namespace SdfGui.Editor
             var state = f.Text(t, "State", "Playing", TextStyle.Body, 18, GuiPalette.Paper, TopLeft, new Vector2(14, y), new Vector2(234, 70), TextAlignmentOptions.TopLeft);
             state.textWrappingMode = TextWrappingModes.Normal;
             var status = state.gameObject.AddComponent<GuiStatus>();
-            status.what = GuiStatus.What.TestState;
             status.label = state;
             return GuiFactory.Save(root, $"{Folder}/Test Panel.prefab");
         }

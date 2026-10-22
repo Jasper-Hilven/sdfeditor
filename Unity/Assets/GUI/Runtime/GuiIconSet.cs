@@ -19,7 +19,7 @@ namespace SdfGui
 
         public Icon[] icons = Array.Empty<Icon>();
 
-        /// <summary>The avatars the fake players are drawn with, by <see cref="FakePlayer.avatar"/>.</summary>
+        /// <summary>The avatars the players are drawn with, by <see cref="ViewPlayer.avatar"/>.</summary>
         public string[] avatars = { "amanita-scout", "chanterelle-scout" };
 
         public Sprite Get(string iconName)
@@ -32,6 +32,6 @@ namespace SdfGui
 
         public Sprite Avatar(int index) => avatars.Length == 0 ? null : Get(avatars[Mathf.Abs(index) % avatars.Length]);
 
-        public Sprite Weapon(int index) => index >= 0 && index < FakeMatch.Weapons.Length ? Get(FakeMatch.Weapons[index]) : null;
+        public Sprite Weapon(int index) => index >= 0 && index < MatchView.Weapons.Length ? Get(MatchView.Weapons[index]) : null;
     }
 }

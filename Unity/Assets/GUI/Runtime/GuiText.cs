@@ -26,7 +26,7 @@ namespace SdfGui
         }
 
         /// <summary>A player's name in their colour, for rich text.</summary>
-        public static string Name(FakePlayer player) =>
+        public static string Name(ViewPlayer player) =>
             player == null ? "the island" : $"<color=#{GuiPalette.HexOf(player.color)}>{player.name}</color>";
 
         public static string Clock(float seconds)

@@ -7,8 +7,8 @@ using static SdfGui.Editor.GuiFactory;
 namespace SdfGui.Editor
 {
     /// <summary>
-    /// The GUI's reusable components as prefabs in Assets/GUI/Prefabs/Components: panel, button, slider, toggle, selector, avatar, ping
-    /// bars, progress bar, banner, player row and kill feed entry. The screens (<see cref="GuiScreens"/>) are made of instances of
+    /// The GUI's reusable components as prefabs in Assets/GUI/Prefabs/Components: panel, button, slider, toggle, selector, avatar,
+    /// progress bar, banner, player row and kill feed entry. The screens (<see cref="GuiScreens"/>) are made of instances of
     /// these, so a change to a component prefab shows on every screen. Rebuilt by Tools > SDF GUI > Rebuild Prefabs and Scene, which
     /// replaces them: change the builder rather than the prefabs to keep a change.
     /// </summary>
@@ -19,7 +19,7 @@ namespace SdfGui.Editor
 
         private readonly GuiFactory f;
 
-        public GameObject Panel, Button, Slider, Toggle, Selector, Avatar, PingBars, ProgressBar, Banner, PlayerRow, KillFeedEntry;
+        public GameObject Panel, Button, Slider, Toggle, Selector, Avatar, ProgressBar, Banner, PlayerRow, KillFeedEntry;
 
         public GuiPrefabs(GuiFactory factory) => f = factory;
 
@@ -33,7 +33,6 @@ namespace SdfGui.Editor
             Toggle = BuildToggle();
             Selector = BuildSelector();
             Avatar = BuildAvatar();
-            PingBars = BuildPingBars();
             ProgressBar = BuildProgressBar();
             Banner = BuildBanner();
             PlayerRow = BuildPlayerRow();
@@ -190,26 +189,6 @@ namespace SdfGui.Editor
             return Save(disc.gameObject, PathOf("Avatar"));
         }
 
-        private GameObject BuildPingBars()
-        {
-            var root = Object("Ping Bars", null);
-            Place(root.transform, Centre, Vector2.zero, new Vector2(84, 32));
-            var ping = root.AddComponent<GuiPingBars>();
-            ping.bars = new ToonShape[3];
-            for (var i = 0; i < 3; i++)
-            {
-                var height = 12 + i * 9;
-                ping.bars[i] = f.Shape(root.transform, $"Bar {i + 1}", ToonShapeKind.Pill, GuiPalette.Moss, BottomLeft, new Vector2(i * 14, 0), new Vector2(11, height), s =>
-                {
-                    s.Outline = 2.5f;
-                    s.Shadow = 0;
-                    s.Shading = 0;
-                });
-            }
-            ping.label = f.Text(root.transform, "Label", "40", TextStyle.Body, 22, GuiPalette.Ink, BottomRight, new Vector2(0, -2), new Vector2(44, 32), TextAlignmentOptions.BottomRight);
-            return Save(root, PathOf("Ping Bars"));
-        }
-
         private GameObject BuildProgressBar()
         {
             var bar = f.Shape(null, "Progress Bar", ToonShapeKind.Pill, GuiPalette.Moss, Centre, Vector2.zero, new Vector2(320, 42), s =>
@@ -254,9 +233,8 @@ namespace SdfGui.Editor
             row.rank = f.Text(t, "Rank", "1", TextStyle.Label, 28, GuiPalette.Dusk, Left, new Vector2(12, 0), new Vector2(40, 50));
             row.avatar = Instance<GuiAvatar>(Avatar, t, "Avatar", Left, new Vector2(58, 0), new Vector2(50, 50));
             row.playerName = f.Text(t, "Name", "Player", TextStyle.Body, 28, GuiPalette.Ink, Left, new Vector2(122, 0), new Vector2(250, 50), TextAlignmentOptions.Left);
-            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-230, 0), new Vector2(60, 50));
-            row.status = f.Text(t, "Status", "READY", TextStyle.Label, 24, GuiPalette.MossDark, Right, new Vector2(-104, 0), new Vector2(110, 50));
-            row.ping = Instance<GuiPingBars>(PingBars, t, "Ping", Right, new Vector2(-14, 0));
+            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-124, 0), new Vector2(60, 50));
+            row.status = f.Text(t, "Status", "ALIVE", TextStyle.Label, 24, GuiPalette.MossDark, Right, new Vector2(-14, 0), new Vector2(110, 50));
             return Save(background.gameObject, PathOf("Player Row"));
         }
 

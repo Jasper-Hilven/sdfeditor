@@ -14,7 +14,7 @@ namespace SdfBattle
     /// <item>a marker over each flag that is not at home (not the one on your back), pinned to the screen's edge with an arrow when the
     /// flag is off screen, with its distance;</item>
     /// <item>banners: "You have the flag", "Blue took your flag", "Red scored", "Your flag was returned" and the like;</item>
-    /// <item>the round's result as a team result ("Red wins 3 – 1") instead of last mushroom standing.</item>
+    /// <item>the round's result as a team result ("Red wins 3 – 1") instead of the GUI's plain round result.</item>
     /// </list>
     /// </summary>
     [DefaultExecutionOrder(100)]
@@ -260,7 +260,7 @@ namespace SdfBattle
             }
         }
 
-        /// <summary>The round's end as a team result, over the GUI's last-mushroom-standing words.</summary>
+        /// <summary>The round's end as a team result, over the GUI's plain round result.</summary>
         private void ShowResult(MatchState match)
         {
             if (match.Phase != RoundPhase.RoundEnd || match.Winner == null)

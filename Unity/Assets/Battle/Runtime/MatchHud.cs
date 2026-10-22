@@ -6,8 +6,8 @@ using UnityEngine.EventSystems;
 namespace SdfBattle
 {
     /// <summary>
-    /// The GUI on a real match (ticket 20). The GUI's views read a <see cref="FakeMatch"/> (the showcase's state of a round); in a
-    /// battle scene this makes the GUI from its prefab, sets its FakeMatch to <see cref="FakeMatch.driven"/> (no fake bots, no clock of
+    /// The GUI on a real match (ticket 20). The GUI's views read a <see cref="MatchView"/> (the showcase's state of a round); in a
+    /// battle scene this makes the GUI from its prefab, sets its MatchView to <see cref="MatchView.driven"/> (no showcase bots, no clock of
     /// its own) and writes the <see cref="Match"/> into it every frame before the views draw: the phase, the clock and countdown, the
     /// roster in team colours with who is alive and their kills, your health, who killed you, the kill feed, and the words for each death
     /// (<see cref="DeathLines"/>: the feed's line, the death screen's title and lines, picked as it happens). So the views stay as they
@@ -17,9 +17,9 @@ namespace SdfBattle
     public sealed class MatchHud : MonoBehaviour
     {
         public Match match;
-        public FakeMatch view;
+        public MatchView view;
 
-        private readonly List<FakeKill> feed = new List<FakeKill>();
+        private readonly List<ViewKill> feed = new List<ViewKill>();
         private int killedBy = -1;
         private int killedByWeapon;
         private string killedByName;
@@ -46,10 +46,10 @@ namespace SdfBattle
                 gui = Instantiate(prefab);
                 gui.name = prefab.name;
             }
-            var view = gui.GetComponent<FakeMatch>();
+            var view = gui.GetComponent<MatchView>();
             if (view == null)
             {
-                Debug.LogWarning($"Match: the GUI {gui.name} has no FakeMatch for its views to read; no HUD");
+                Debug.LogWarning($"Match: the GUI {gui.name} has no MatchView for its views to read; no HUD");
                 Destroy(gui);
                 return null;
             }
@@ -77,14 +77,15 @@ namespace SdfBattle
         /// Sets <paramref name="view"/> to be driven by a match, and to what it shows as a round starts: the full clock, full health, no
         /// kills, pop-ups or hits yet. The level builder sets the scene's GUI so, so the scene shows the HUD as play opens.
         /// </summary>
-        public static void ShowRoundStart(FakeMatch view, MatchRules rules)
+        public static void ShowRoundStart(MatchView view, MatchRules rules)
         {
             view.driven = true;
+            view.arena = view.gameObject.scene.name;
+            view.goal = $"First to {rules.capturesToWin} captures";
             view.autoEvents = false;
             view.phase = MatchPhase.Playing;
             view.roundSeconds = view.timeLeft = rules.roundSeconds;
             view.countdown = 0;
-            view.rings = view.ringsFallen = 0;
             view.maxHealth = view.health = rules.maxHealth;
             view.ammo = view.magazine;
             view.reload = 0;
@@ -92,7 +93,7 @@ namespace SdfBattle
             view.killedBy = view.spectating = -1;
             view.killedByName = view.killedTitle = view.killedDetail = view.eliminatedTitle = null;
             view.feed.Clear();
-            view.spread = view.hitMarker = view.damage = view.crumbleWarning = view.eliminated = 0;
+            view.spread = view.hitMarker = view.damage = view.eliminated = 0;
             view.hitMarkerKill = view.eliminatedHeadshot = false;
         }
 
@@ -119,7 +120,7 @@ namespace SdfBattle
         {
             var victim = death.Victim.Index;
             var killer = death.Killer?.Index ?? -1;
-            var weapon = System.Array.IndexOf(FakeMatch.Weapons, death.Weapon);
+            var weapon = System.Array.IndexOf(MatchView.Weapons, death.Weapon);
             var kind = memory.Record(death, out var streak);
             LastKind = kind;
             LastVictim = death.Victim;
@@ -145,7 +146,7 @@ namespace SdfBattle
             {
                 // A line that fits with both names in the entry
                 var line = DeathLines.Shared.Feed(kind, gore, (death.KillerName?.Length ?? 0) + (death.Victim.Name?.Length ?? 0));
-                feed.Add(new FakeKill
+                feed.Add(new ViewKill
                 {
                     killer = killer, killerName = machine, victim = victim, weapon = weapon, headshot = death.Headshot, line = line, streak = streak,
                 });
@@ -168,14 +169,11 @@ namespace SdfBattle
             view.roundSeconds = state.Rules.roundSeconds;
             view.timeLeft = state.TimeLeft;
             view.countdown = state.PhaseTimeLeft;
-            view.rings = 0;
-            view.ringsFallen = 0;
-            view.crumbleWarning = 0;
 
             // The roster in team colours; the round's winners are first, you before your team mates
             var players = view.players;
             while (players.Count < state.Players.Count)
-                players.Add(new FakePlayer());
+                players.Add(new ViewPlayer());
             if (players.Count > state.Players.Count)
                 players.RemoveRange(state.Players.Count, players.Count - state.Players.Count);
             var winnerShown = false;
@@ -187,7 +185,6 @@ namespace SdfBattle
                 shown.color = BattleSide.ColorOf(BattleSide.SideOf(p.Team));
                 shown.avatar = (int)p.Team;
                 shown.kills = p.Kills;
-                shown.joined = true;
                 shown.alive = p.Alive;
                 shown.you = !p.IsBot;
                 var won = state.Winner == p.Team && !winnerShown;
@@ -205,6 +202,7 @@ namespace SdfBattle
             view.killedTitle = you != null && !you.Alive ? killedTitle : null;
             view.killedDetail = you != null && !you.Alive ? killedDetail : null;
             view.killedStreak = killedStreak;
+            view.respawnIn = you != null && !you.Alive ? you.RespawnIn : 0;
             view.spectating = -1;
             // No weapons yet (ticket 22): a full tank, nothing to reload or pick up
             view.ammo = view.magazine;
