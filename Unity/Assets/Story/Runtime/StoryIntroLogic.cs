@@ -17,6 +17,26 @@ namespace SdfStory
     }
 
     /// <summary>
+    /// The rule that one advance (Next, a click on the screen, a key) shuts further advances out for <see cref="Seconds"/>, so one
+    /// press counts once however many paths see it. Skip does not use it. Times are in seconds, from an unscaled clock.
+    /// </summary>
+    public sealed class AdvanceCooldown
+    {
+        public const float Seconds = 0.5f;
+
+        private float lastAdvance = float.NegativeInfinity;
+
+        /// <summary>Whether an advance at <paramref name="now"/> is allowed; if so it starts the cooldown.</summary>
+        public bool TryAdvance(float now)
+        {
+            if (now - lastAdvance < Seconds)
+                return false;
+            lastAdvance = now;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// The intro viewer's logic without any engine types: which panel shows, what Next and Skip do, what the Next button reads, and
     /// where the panel sits on a screen of any shape. <see cref="StoryIntro"/> wraps it in a screen.
     /// </summary>

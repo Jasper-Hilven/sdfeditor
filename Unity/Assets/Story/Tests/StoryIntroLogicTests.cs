@@ -66,6 +66,25 @@ namespace SdfStory.Tests
             Assert.IsTrue(none.Finished);
         }
 
+        [Test]
+        public void AdvanceCooldownIgnoresAdvancesForHalfASecondAfterOne()
+        {
+            var cooldown = new AdvanceCooldown();
+            Assert.IsTrue(cooldown.TryAdvance(0));
+            Assert.IsFalse(cooldown.TryAdvance(0));
+            Assert.IsFalse(cooldown.TryAdvance(0.49f));
+            Assert.IsTrue(cooldown.TryAdvance(0.5f));
+            Assert.IsFalse(cooldown.TryAdvance(0.9f));
+            Assert.IsTrue(cooldown.TryAdvance(1.0f));
+        }
+
+        [Test]
+        public void AdvanceCooldownAllowsTheFirstAdvanceAtAnyTime()
+        {
+            Assert.IsTrue(new AdvanceCooldown().TryAdvance(-5));
+            Assert.IsTrue(new AdvanceCooldown().TryAdvance(0));
+        }
+
         private static void AssertBox(NormalizedRect r, float x, float y, float w, float h)
         {
             Assert.AreEqual(x, r.X, 1e-4f, "x");
