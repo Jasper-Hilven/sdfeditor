@@ -1,0 +1,13 @@
+# Tank barrel, red (ticket 27.8): a short silver tin cannon from a round knuckle, with a brass ring at the muzzle.
+# Pivot: the origin is the knuckle's centre, the hinge it tilts about (local x); it points along +z. In tank-toy-red-turret it is at
+# (0, 0.05, 0.13).
+format 1
+
+Detail detail=0.45
+    Union
+        Material material=toy_tin
+            Union
+                Sphere radius=0.04
+                ArbitraryCappedCylinder a=(0, 0, 0) b=(0, 0, 0.24) radius=0.025
+        Material material=toy_brass
+            ArbitraryCappedCylinder a=(0, 0, 0.2) b=(0, 0, 0.245) radius=0.032

@@ -1,0 +1,41 @@
+# Helicopter body, blue (ticket 27.8): a toy RC helicopter 0.8 m across the rotor: a round blue enamelled fuselage and canopy with a white
+# belly stripe, on two white plastic skids, a silver tin mast on top for the rotor and a white tail boom with a fin behind, which carries
+# the tail rotor; the scouts' floating eyes hover in front of the canopy.
+# Pivot: the origin is on the ground under the middle (the skids stand on it), +z forward. The rotor's (helicopter-toy-blue-rotor)
+# pivot is at (0, 0.56, 0) and the tail rotor's (helicopter-toy-blue-tail-rotor) at (0.025, 0.4, -0.35) in this model.
+format 1
+collider convex
+
+Detail detail=0.4
+    Union
+        # The fuselage and canopy in one rounded egg
+        Material material=machine_blue_paint
+            Translate translation=(0, 0.3, 0.02)
+                Ellipsoid radii=(0.17, 0.15, 0.25)
+        Material material=toy_plastic_white
+            Union
+                # The belly stripe, a band round the egg's lower third
+                Intersection
+                    Translate translation=(0, 0.3, 0.02)
+                        Ellipsoid radii=(0.178, 0.158, 0.258)
+                    Translate translation=(0, 0.19, 0)
+                        Box size=(0.3, 0.02, 0.4)
+                # The tail boom up to the tail rotor's hub, and its fin
+                ArbitraryRoundCone a=(0, 0.32, -0.15) b=(0, 0.4, -0.35) radiusA=0.06 radiusB=0.025
+                Translate translation=(0, 0.46, -0.33)
+                    RoundBox size=(0.012, 0.07, 0.045) roundness=0.01
+                # The skids, mirrored: two legs down to a runner along z each side
+                SymmetryX
+                    Union
+                        Capsule a=(0.1, 0.2, 0.1) b=(0.13, 0.03, 0.1) radius=0.022
+                        Capsule a=(0.1, 0.2, -0.1) b=(0.13, 0.03, -0.1) radius=0.022
+                        Capsule a=(0.13, 0.022, -0.2) b=(0.13, 0.022, 0.22) radius=0.022
+        # The mast up to the rotor's hub
+        Material material=toy_tin
+            Capsule a=(0, 0.42, 0) b=(0, 0.55, 0) radius=0.03
+        # Eyes, mirrored: the scouts' eyeballs at a little over half size, floating in front of the canopy, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.085, 0.37, 0.25)
+                Scale scale=(0.55, 0.55, 0.55)
+                    Part part=eye_machine

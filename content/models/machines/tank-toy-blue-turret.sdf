@@ -1,0 +1,29 @@
+# Tank turret, blue (ticket 27.8): the tank's blue enamelled dome on a flat tin flange, with a small brass hatch knob, turning on the hull;
+# the scouts' floating eyes hover over the dome's front, looking where the barrel points.
+# Pivot: the origin is at the bottom of the flange on the turret's axis (it turns about y); in tank-toy-blue-body it is at (0, 0.3, 0).
+# The barrel's (tank-toy-blue-barrel) pivot is at (0, 0.05, 0.13) in this model, in the dome's front.
+format 1
+collider convex
+
+Detail detail=0.32
+    Union
+        Material material=toy_tin
+            Translate translation=(0, 0.025, 0)
+                CappedCylinder radius=0.16 height=0.025
+        Material material=machine_blue_paint
+            Round radius=0.01
+                Intersection
+                    Translate translation=(0, 0.06, 0)
+                        Ellipsoid radii=(0.17, 0.12, 0.17)
+                    # A box rather than a plane, so the dome counts towards the model's bounds
+                    Translate translation=(0, 0.3, 0)
+                        Box size=(0.3, 0.26, 0.3)
+        Material material=toy_brass
+            Translate translation=(0, 0.185, -0.03)
+                Sphere radius=0.022
+        # Eyes, mirrored: the scouts' eyeballs at a little over half size, floating over the dome's front, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.075, 0.3, 0.07)
+                Scale scale=(0.55, 0.55, 0.55)
+                    Part part=eye_machine
