@@ -31,18 +31,19 @@ public class BattleSidesTests
     /// <summary>The least room round a battle object's edge, in metres, to a model or to another battle object.</summary>
     private const float Gap = 0.2f;
 
-    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard"];
+    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox"];
 
-    /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun.</summary>
+    /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun.</summary>
     private static readonly Dictionary<string, string[]> SideWeapons = new()
     {
         ["meadow"] = ["minigun", "pistol"],
         ["fungal"] = ["minigun", "pistol"],
         ["chessboard"] = ["electro-gun", "poison-gun"],
+        ["toybox"] = ["pistol", "blob-gun"],
     };
 
-    /// <summary>The levels whose sides have machines (ticket 24): only the fungal level for now.</summary>
-    private static readonly string[] MachineLevels = ["fungal"];
+    /// <summary>The levels whose sides have machines (ticket 24): the fungal level and the toy box.</summary>
+    private static readonly string[] MachineLevels = ["fungal", "toybox"];
 
     public static TheoryData<string> Levels => new(LevelNames);
 
@@ -166,7 +167,7 @@ public class BattleSidesTests
         var level = Load(name);
         var footprints = LevelModels.In(Path.Combine(Content, "models"));
         var regions = new GroundRegions(level, model => footprints(model)!);
-        var castles = level.Placements.Where(p => p.Model.StartsWith("castle", StringComparison.Ordinal)).ToList();
+        var castles = level.Placements.Where(p => p.Model.StartsWith("castle", StringComparison.Ordinal) || p.Model.StartsWith("toy-castle", StringComparison.Ordinal)).ToList();
         var shapes = new Dictionary<string, Func<Vector3, float>>();
         var files = ModelFiles.All(Path.Combine(Content, "models")).ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => f);
 
@@ -185,7 +186,8 @@ public class BattleSidesTests
                 for (var t = 0f; t <= 1 && !walled; t += 0.01f)
                 {
                     var local = Placement2D.ToLocal(Vector2.Lerp(castle.At, turret.At, t) - castle.At, castle.Yaw) / castle.Scale;
-                    walled = shape(new Vector3(local.X, 3 / castle.Scale, local.Y)) < 0;
+                    // A model's field is 0 inside, not below it, when its Detail clamps it (toy-castle0): inside is 0 or a hair over
+                    walled = shape(new Vector3(local.X, 3 / castle.Scale, local.Y)) <= 0.005f;
                 }
                 if (!walled)
                     problems.Add($"the {side.Name} turret on line {turret.Line} at ({turret.At.X}, {turret.At.Y}) is not outside its castle's walls");
@@ -374,7 +376,7 @@ public class BattleSidesTests
                         continue;
                     for (var x = -radius; x <= radius && !hit; x += 0.15f)
                     for (var z = -radius; z <= radius && !hit; z += 0.15f)
-                        if (x * x + z * z <= radius * radius && sdf(Local(item.At + new Vector2(x, z), height)) < 0)
+                        if (x * x + z * z <= radius * radius && sdf(Local(item.At + new Vector2(x, z), height)) <= 0.005f)
                         {
                             hit = true;
                             problems.Add($"the {item.Name} on line {item.Line} at ({item.At.X}, {item.At.Y}) runs into {placement.Model} " +
