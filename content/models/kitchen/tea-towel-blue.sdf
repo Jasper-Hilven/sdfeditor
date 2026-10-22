@@ -1,0 +1,38 @@
+# Tea towel blue (ticket 28.6): the east side's gingham tea towel, blue and cream, draped over the bread box's lid and down its +x side (60 times life size). It
+# is built in the bread box's own frame (origin the box's middle on y = 0, turned by the same yaw) and placed at the box's position, so the level turns both alike. A cloth 0.2 m
+# thick lies on the deck (y 12.6 to 12.8, x 3.4 to 12.2, z -1.8 to 6.7, clear of the steel pull) and hangs 6 m down the wall's outer face (x 12.0 to 12.2, to y 6.8) round a
+# rounded bend. Gingham: cream cloth (kitchen_gingham_cream) with a grid of stripes 0.8 m wide every 1.6 m in team_blue_cloth (materials/buildings/, the team's cloth, kept out of
+# materials/kitchen/ whose test allows no red or blue); the stripes are the cloth's own shape cut by repeated bars, a little proud of the cream. No collider.
+format 1
+collider none
+shadows near
+
+Detail detail=0.07
+    Union
+        Material material=kitchen_gingham_cream
+            Subtraction
+                Translate translation=(7.8, 9.8, 2.45)
+                    RoundBox size=(4.40, 3.00, 4.25) roundness=0.5
+                Translate translation=(3.5, 6.3, 2.45)
+                    RoundBox size=(8.5, 6.30, 6) roundness=0.3
+        Material material=team_blue_cloth
+            Intersection
+                Subtraction
+                    Translate translation=(7.8, 9.8, 2.45)
+                        RoundBox size=(4.45, 3.05, 4.3) roundness=0.5
+                    Translate translation=(3.5, 6.3, 2.45)
+                        RoundBox size=(8.45, 6.25, 6) roundness=0.3
+                Xor
+                    Repetition spacing=(0, 0, 1.6)
+                        Box size=(60, 60, 0.4)
+                    Union
+                        Intersection
+                            Repetition spacing=(1.6, 0, 0)
+                                Box size=(0.4, 60, 60)
+                            Translate translation=(0, 16, 0)
+                                Box size=(60, 4, 60)
+                        Intersection
+                            Repetition spacing=(0, 1.6, 0)
+                                Box size=(60, 0.4, 60)
+                            Translate translation=(16, 0, 0)
+                                Box size=(4, 60, 60)
