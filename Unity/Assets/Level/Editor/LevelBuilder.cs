@@ -95,8 +95,9 @@ namespace SdfLevel.Editor
         /// Version 18: the sides' turrets and machine zones (ticket 24.2), the turrets obstacles in the navmesh.
         /// Version 19: the machines' prefabs on Battle (ticket 24.3, <see cref="SdfBattle.Machines"/>); the match without a countdown.
         /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
+        /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
         /// </summary>
-        public const int BuilderVersion = 20;
+        public const int BuilderVersion = 21;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -523,6 +524,8 @@ namespace SdfLevel.Editor
             AssetDatabase.SaveAssets();
             var player = AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
             var battle = AddBattle(scene, data, player);
+            // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
+            var movers = AddMovers(scene, data);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
             var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
                 player, battle != null ? battle.gameObject : null);
@@ -544,7 +547,7 @@ namespace SdfLevel.Editor
                 throw new InvalidDataException("the room's squares or edges are wrong, see above");
             if (openedHere)
                 EditorSceneManager.CloseScene(scene, true);
-            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {scattered:N0} scattered ({scatterColliders} with colliders), {navmeshes} navmeshes");
+            Debug.Log($"SDF level: built {scenePath} from {level}, {((JArray)ground["chunks"]).Count} chunks, {triangles:N0} ground triangles at LOD0, {placed} placed models, {movers} movers, {scattered:N0} scattered ({scatterColliders} with colliders), {navmeshes} navmeshes");
         }
 
         /// <summary>A corner of the play area (level.json "play" min or max) in Unity's coordinates, x mirrored.</summary>
@@ -707,6 +710,82 @@ namespace SdfLevel.Editor
                 count++;
             }
             return count;
+        }
+
+        public const string MoversName = "Movers";
+
+        /// <summary>
+        /// The level's movers (level.json "movers", ticket 27.3), under <see cref="MoversName"/> at the scene's root: one object per mover
+        /// with a <see cref="PathMover"/> and, below it, the cars in train order, each an empty object with a kinematic
+        /// <see cref="Rigidbody"/> and a <see cref="PathMoverCar"/> over an instance of its model's prefab with convex mesh colliders (a model without a collider gets a box round its
+        /// renderers). The path is in Unity's coordinates, x mirrored as for placements. The cars start where the timetable has them at clock 0.
+        /// A mover whose model has no prefab is left out, with a warning. Returns how many movers were built.
+        /// </summary>
+        private static int AddMovers(Scene scene, JObject data)
+        {
+            if (!(data["movers"] is JArray movers) || movers.Count == 0)
+                return 0;
+            var root = new GameObject(MoversName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            var count = 0;
+            foreach (var entry in movers)
+            {
+                var name = entry.Value<string>("name");
+                var cars = (JArray)entry["cars"];
+                var prefabs = cars.Select(c => AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{c.Value<string>("model")}.prefab")).ToArray();
+                if (prefabs.Any(p => p == null))
+                {
+                    Debug.LogWarning($"SDF level: the mover {name} is left out: there is no prefab for its car {cars[Array.FindIndex(prefabs, p => p == null)].Value<string>("model")}; mesh content/models (sdf unity) and let the prefabs build");
+                    continue;
+                }
+                var mover = new GameObject($"Mover {name}");
+                mover.transform.SetParent(root.transform, false);
+                var component = mover.AddComponent<PathMover>();
+                component.path = ((JArray)entry["path"]).Select(p => new Vector2(-p[0].Value<float>(), p[1].Value<float>())).ToArray();
+                component.heights = (entry["heights"] as JArray)?.Select(h => new Vector2(h[0].Value<float>(), h[1].Value<float>())).ToArray() ?? new Vector2[0];
+                component.carLengths = cars.Select(c => c.Value<float>("length")).ToArray();
+                component.speed = entry.Value<float>("speed");
+                component.gap = entry.Value<float>("gap");
+                component.phase = entry.Value<float>("phase");
+                for (var i = 0; i < prefabs.Length; i++)
+                {
+                    // The car's own object holds the body and the mover's parts, so the model's prefab instance stays unmodified
+                    // (components added to a prefab instance do not always survive the scene's save)
+                    var car = new GameObject($"{name} car {i + 1} ({cars[i].Value<string>("model")})");
+                    car.transform.SetParent(mover.transform, false);
+                    var model = (GameObject)PrefabUtility.InstantiatePrefab(prefabs[i], scene);
+                    model.transform.SetParent(car.transform, false);
+                    MakeCarCollide(car);
+                    var body = car.AddComponent<Rigidbody>();
+                    body.isKinematic = true;
+                    body.useGravity = false;
+                    body.interpolation = RigidbodyInterpolation.None;
+                    car.AddComponent<PathMoverCar>();
+                }
+                component.Place(0);
+                count++;
+            }
+            return count;
+        }
+
+        /// <summary>A car's colliders: every mesh collider convex (a moving body needs hulls); a car without one gets a box round its renderers.</summary>
+        private static void MakeCarCollide(GameObject car)
+        {
+            var meshColliders = car.GetComponentsInChildren<MeshCollider>();
+            foreach (var collider in meshColliders)
+                collider.convex = true;
+            if (meshColliders.Length > 0 || car.GetComponentInChildren<Collider>() != null)
+                return;
+            var renderers = car.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+                return;
+            var bounds = renderers[0].bounds;
+            foreach (var renderer in renderers)
+                bounds.Encapsulate(renderer.bounds);
+            var box = car.AddComponent<BoxCollider>();
+            box.center = car.transform.InverseTransformPoint(bounds.center);
+            box.size = bounds.size;
+            Debug.LogWarning($"SDF level: the mover car {car.name} has no collider; it gets a box round its renderers (give its model a convex collider)");
         }
 
         /// <summary>

@@ -130,6 +130,16 @@ namespace SDFPipeline.Levels;
 /// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
 /// </para>
 /// <para>
+/// A <c>mover</c> (ticket 27.3; there may be several, each with its own name) is a vehicle on a fixed timetable: <c>mover train speed=7
+/// gap=0.5 phase=0</c>, with below it its closed path, <c>Stadium center=(0, 0) halfLength=12 radius=20</c> (straights along z at
+/// x = centre ± radius, half-circle ends; anticlockwise from above, arc length 0 at the east straight's south end) or <c>Polyline
+/// points=[(-10, 0), (0, 8), (10, 0)]</c> (corners, closed); optionally <c>heights keys=[(0, 0), (30, 3.8)]</c>, (arc length, y) keys
+/// of the cars' height above y = 0, linear between them and round the loop (0 everywhere by default); and its cars, head first, one
+/// <c>car toy-train-engine length=4.8</c> per line (a model from content/models/ and its length along the path). Its position is
+/// <c>speed * (round clock + phase)</c> metres along the path, <c>phase</c> in seconds, so nothing is saved; the cars follow the path's
+/// centre line, <c>gap</c> metres apart (0.5 by default). The train must be shorter than the path. See <see cref="MoverSpec"/>.
+/// </para>
+/// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
 /// or more weapon <c>pod</c>s and one or more <c>pod health</c>, below it. A side's weapon pods are any of minigun, pistol, sniper,
 /// electro-gun, flamethrower, poison-gun and blob-gun, each at most once, and both sides have the same ones (most levels give each side a
@@ -171,11 +181,12 @@ public static class LevelFile
     private const string Machines = "machines";
     private const string Flag = "flag";
     private const string Pod = "pod";
+    private const string Mover = "mover";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines, Mover];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
-    private static readonly string[] Repeatable = [Scatter, Trees, Draw];
+    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -213,6 +224,7 @@ public static class LevelFile
         var roomLine = 0;
         MachineSet? machineSet = null;
         var machineSetLine = 0;
+        var movers = new List<MoverSpec>();
         (BattleSide West, BattleSide East)? sides = null;
         IReadOnlyList<BattleObject>? neutral = null;
         var seen = new Dictionary<string, int>();
@@ -271,6 +283,12 @@ public static class LevelFile
                 case Neutral:
                     neutral = ReadNeutral(line, cursor);
                     break;
+                case Mover:
+                    var mover = ReadMover(line, cursor);
+                    if (movers.FirstOrDefault(m => m.Name == mover.Name) is { } twin)
+                        throw new SdfProgramFileException(line.Number, $"Mover '{mover.Name}' is given twice, first on line {twin.Line}");
+                    movers.Add(mover);
+                    break;
                 case Machines:
                     machineSet = ReadMachineSet(line, cursor);
                     machineSetLine = line.Number;
@@ -306,7 +324,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -467,6 +485,99 @@ public static class LevelFile
             : null;
         parameters.Done("set", "ceiling");
         return new MachineSet(name, ceiling);
+    }
+
+    private static readonly string[] MoverShapes = ["Stadium", "Polyline"];
+
+    /// <summary>
+    /// mover train speed=7 gap=0.5 phase=0, with below it the path (<c>Stadium center=(0, 0) halfLength=12 radius=20</c> or
+    /// <c>Polyline points=[...]</c>, closed), optionally <c>heights keys=[(0, 0), (6, 3.8)]</c> and the cars, head first, as
+    /// <c>car toy-train-engine length=4.8</c> (ticket 27.3).
+    /// </summary>
+    private static MoverSpec ReadMover(SourceLine line, Cursor cursor)
+    {
+        var name = cursor.ReadName("the mover's name, like train");
+        var parameters = Parameters.Read($"mover {name}", line with { Children = [] }, cursor);
+        var speed = parameters.Number("speed", null, 0.1f, 100, "metres per second, 0.1 to 100");
+        var gap = parameters.Number("gap", 0.5f, 0, 20, "metres between the cars, 0 to 20");
+        var phase = parameters.Number("phase", 0, -100000, 100000, "seconds the timetable is ahead at the round's start");
+        parameters.Done("speed", "gap", "phase");
+
+        IReadOnlyList<Vector2>? path = null;
+        SourceLine? pathLine = null;
+        (IReadOnlyList<Vector2> Keys, SourceLine Line)? heights = null;
+        var cars = new List<MoverCar>();
+        foreach (var child in line.Children)
+        {
+            var childCursor = new Cursor(child);
+            var entry = childCursor.ReadName($"the path ({string.Join(" or ", MoverShapes)}), 'heights' or 'car'");
+            if (entry is "Stadium" or "Polyline")
+            {
+                if (path is not null)
+                    throw childCursor.Error($"Mover {name} has its path twice, first on line {pathLine!.Number}");
+                var shape = Parameters.Read($"mover {name}'s {entry}", child, childCursor);
+                if (entry == "Stadium")
+                {
+                    var center = shape.Vector2("center", new Vector2(0, 0), "a point like (0, 0)");
+                    var halfLength = shape.Number("halfLength", null, 0, 1000, "half the straights' length in metres, 0 to 1000");
+                    var radius = shape.Number("radius", null, 1, 1000, "the ends' radius in metres, 1 to 1000");
+                    shape.Done("center", "halfLength", "radius");
+                    path = MoverSpec.Stadium(center, halfLength, radius);
+                }
+                else
+                {
+                    var points = shape.Points("points", "corners like [(-10, 0), (0, 8), (10, 0)] (x, z in metres), closed by a leg back to the first");
+                    shape.Done("points");
+                    if (points.Length < 3)
+                        throw childCursor.Error($"Mover {name}'s polyline needs three corners or more to be a loop");
+                    path = points;
+                }
+                pathLine = child;
+            }
+            else if (entry == "heights")
+            {
+                if (heights is not null)
+                    throw childCursor.Error($"Mover {name} has its heights twice, first on line {heights.Value.Line.Number}");
+                var keys = Parameters.Read($"mover {name}'s heights", child, childCursor);
+                var list = keys.Points("keys", "(arc length, y) keys like [(0, 0), (30, 3.8)], metres");
+                keys.Done("keys");
+                heights = (list, child);
+            }
+            else if (entry == "car")
+            {
+                var model = childCursor.ReadFileName("a model's name, like toy-train-engine");
+                var car = Parameters.Read($"mover {name}'s car {model}", child, childCursor);
+                var length = car.Number("length", null, 0.1f, 200, "the car's length along the path in metres, 0.1 to 200");
+                car.Done("length");
+                cars.Add(new MoverCar(model, length, child.Number));
+            }
+            else
+                throw childCursor.Error($"A mover has a path ({string.Join(" or ", MoverShapes)}), 'heights' and 'car' lines; there is no '{entry}'");
+        }
+
+        if (path is null)
+            throw cursor.Error($"Mover {name} needs a path indented below it, like 'Stadium center=(0, 0) halfLength=12 radius=20'");
+        if (cars.Count == 0)
+            throw cursor.Error($"Mover {name} needs one or more cars indented below it, like 'car toy-train-engine length=4.8'");
+        var length1 = MoverSpec.PathLength(path);
+        var keyList = heights?.Keys ?? [];
+        var previous = -1f;
+        foreach (var key in keyList)
+        {
+            if (key.X < 0 || key.X >= length1)
+                throw new SdfProgramFileException(heights!.Value.Line.Number,
+                    $"Mover {name}'s height key at arc length {FileSyntax.Number(key.X)} is off the path, which is {FileSyntax.Number(length1)} m long (keys are from 0 up to its length)");
+            if (key.X <= previous)
+                throw new SdfProgramFileException(heights!.Value.Line.Number, $"Mover {name}'s height keys must go along the path, each arc length more than the one before");
+            if (key.Y is < -1000 or > 1000)
+                throw new SdfProgramFileException(heights!.Value.Line.Number, $"Mover {name}'s height {FileSyntax.Number(key.Y)} is not a height in metres");
+            previous = key.X;
+        }
+        var spec = new MoverSpec(name, speed, phase, gap, path, keyList, cars, line.Number);
+        if (spec.TrainLength > length1 - 1)
+            throw new SdfProgramFileException(line.Number,
+                $"Mover {name}'s cars and gaps take {FileSyntax.Number(spec.TrainLength)} m, but the path is {FileSyntax.Number(length1)} m round; the train would meet itself");
+        return spec;
     }
 
     private static readonly string[] GlowWalls = ["north", "south", "east", "west"];

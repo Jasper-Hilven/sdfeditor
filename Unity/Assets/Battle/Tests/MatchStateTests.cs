@@ -383,5 +383,19 @@ namespace SdfBattle.Tests
             Assert.AreEqual(8, late.Index);
             CollectionAssert.AreEqual(new[] { late }, spawned);
         }
+
+        [Test]
+        public void RoundClock_CountsFromTheRoundsStart_AndOnThroughSuddenDeath()
+        {
+            var match = FourVsFour();
+            match.Begin();
+            Run(match, 5);
+            Assert.AreEqual(5f, match.RoundClock, 0.01f);
+
+            // On past the round's end (a tie goes to sudden death, where TimeLeft stays 0)
+            Run(match, match.Rules.roundSeconds, 1);
+            Assert.AreEqual(5f + match.Rules.roundSeconds, match.RoundClock, 0.05f);
+            Assert.AreEqual(0f, match.TimeLeft, 0.01f);
+        }
     }
 }

@@ -124,6 +124,16 @@ public static class LevelBaker
         foreach (var entry in level.Scatters.Concat(level.Trees).SelectMany(s => s.Entries))
             if (!(modelExists ?? (name => models?.Invoke(name) is not null))(entry.Model))
                 throw new ProgramFiles.SdfProgramFileException(entry.Line, $"There is no model '{entry.Model}' in content/models/");
+        // The movers' cars (ticket 27.3) need their models, and their paths stay on the island
+        foreach (var mover in level.Movers)
+        {
+            foreach (var car in mover.Cars)
+                if (!(modelExists ?? (name => models?.Invoke(name) is not null))(car.Model))
+                    throw new ProgramFiles.SdfProgramFileException(car.Line, $"There is no model '{car.Model}' in content/models/");
+            foreach (var corner in mover.Path)
+                if (!terrain.OnIsland(corner.X, corner.Y))
+                    throw new ProgramFiles.SdfProgramFileException(mover.Line, $"Mover {mover.Name}'s path goes beyond the island's edge, at ({corner.X}, {corner.Y})");
+        }
         var groundColors = regions.Regions.Select(r => r.Material).Prepend(level.BaseMaterial)
             .Select(m => AverageColor(materials.Resolve(m))).ToArray();
         // The trees sections' models need their footprints too where a later section keeps clear of them (LevelScatter.KeepsClearOf),
@@ -339,10 +349,25 @@ public static class LevelBaker
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
             // flags/flag-stand-<side>.prefab) and Assets/Machines/Prefabs (turret-<team>.prefab). Null for a level without sides
             battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level) : null,
+            // Vehicles on a closed path and a timetable (ticket 27.3), or none: the path's corners (x, z), its length, (arc length, y)
+            // height keys, and the cars head first with their lengths. Their position is speed * (round clock + phase) metres along the
+            // path, anticlockwise as the corners go; Unity's PathMover places each model's prefab there, with a kinematic convex collider
+            movers = level.Movers.Count == 0 ? null : level.Movers.Select(m => new
+            {
+                name = m.Name,
+                speed = m.Speed,
+                phase = m.Phase,
+                gap = m.Gap,
+                length = m.Length,
+                path = m.Path.Select(Array).ToArray(),
+                heights = m.Heights.Count == 0 ? null : m.Heights.Select(Array).ToArray(),
+                cars = m.Cars.Select(c => new { model = c.Model, length = c.Length }).ToArray(),
+            }).ToArray(),
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
                 .Concat(level.Edge.Underside is { } under ? [under.Model] : [])
+                .Concat(level.Movers.SelectMany(m => m.Cars.Select(c => c.Model)))
                 .Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
         };
         var json = JsonSerializer.SerializeToUtf8Bytes(document, JsonOptions);

@@ -45,6 +45,8 @@ namespace SdfLevel
         private float verticalSpeed;
         private Vector2 move;
         private bool jumpWanted;
+        private PathMoverCar standingOn;
+        private int standingFrame = -1;
 
         /// <summary>Where the view looks up or down, degrees, positive down (as a camera's x rotation).</summary>
         public float Pitch => pitch;
@@ -103,6 +105,7 @@ namespace SdfLevel
                 controller.enabled = enabledBefore;
             SetAim(yaw, 0);
             verticalSpeed = 0;
+            standingOn = null;
             move = Vector2.zero;
             jumpWanted = false;
         }
@@ -137,10 +140,35 @@ namespace SdfLevel
                 Jump();
         }
 
+        /// <summary>
+        /// A moving platform (ticket 27.3): when the last move ended on a <see cref="PathMoverCar"/>, the car's step this frame carries the
+        /// player along and turns them with it; on anything else nothing changes.
+        /// </summary>
+        private void Ride()
+        {
+            if (standingOn == null || standingFrame != Time.frameCount - 1 || !controller.isGrounded)
+                return;
+            var carried = standingOn.Carry(transform.position, out var yawChange);
+            if (carried != Vector3.zero)
+                controller.Move(carried);
+            if (yawChange != 0)
+                SetAim(Yaw + yawChange, pitch);
+        }
+
+        // The ground the last move ended on: a car of a path mover, if it was
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (hit.normal.y < 0.45f)
+                return;
+            standingOn = hit.collider.GetComponentInParent<PathMoverCar>();
+            standingFrame = Time.frameCount;
+        }
+
         private void Move()
         {
             if (controller == null || !controller.enabled)
                 return;
+            Ride();
             var input = frozen ? Vector2.zero : move;
             var speed = walkSpeed * Mathf.Max(0, speedMultiplier) * Mathf.Max(0, slowMultiplier);
             var velocity = transform.TransformDirection(new Vector3(input.x, 0, input.y)) * speed;
