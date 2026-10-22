@@ -1,0 +1,15 @@
+# Swab 0: a whole cotton swab, 2.25 m long (30 times life size, 7.5 cm), a white plastic stick with a cotton tip 0.3 m long at each end.
+# Lying on the floor along z, resting on its tips. Ground clutter: no collider.
+format 1
+
+# Thin stick and two soft tips
+Detail detail=0.22
+    Union
+        Material material=bath_swab_stick
+            Capsule a=(0, 0.14, -1.0) b=(0, 0.14, 1.0) radius=0.05
+        Material material=bath_cotton
+            Union
+                Translate translation=(0, 0.14, 0.975)
+                    Ellipsoid radii=(0.14, 0.14, 0.15)
+                Translate translation=(0, 0.14, -0.975)
+                    Ellipsoid radii=(0.14, 0.14, 0.15)
