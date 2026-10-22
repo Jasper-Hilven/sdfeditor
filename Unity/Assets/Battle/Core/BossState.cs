@@ -71,7 +71,7 @@ namespace SdfBattle
     /// windows in which the weak points are open, 42's lives, the checkpoints, and the events the world and the HUD follow. Plain C#, so
     /// EditMode tests play whole fights without a scene; time moves only through <see cref="Tick"/>.
     /// <list type="bullet">
-    /// <item>Bars: 1500 / 1500 / 2000 at Normal (<see cref="BossRules"/>). A bar cannot be hurt past its end; its last point sends the fight to the
+    /// <item>Bars: 1800 / 4500 / 14000 at Normal (<see cref="BossRules"/>). A bar cannot be hurt past its end; its last point sends the fight to the
     /// next transition (<see cref="FinishTransition"/> goes on), or to <see cref="BossPhase.Victory"/> after bar 3.</item>
     /// <item>Phase 1: the shield stops everything until a red capture of the blue flag; Prime then kneels for 12 s (gills ×2). A blue
     /// capture heals 250, at most to the bar's top.</item>

@@ -39,7 +39,7 @@ namespace SdfBattle
 
         [Header("Boss (ticket 33)")]
         [Tooltip("Hurting Chanterelle Prime: spores per 100 damage dealt")]
-        public float bossDamagePer100 = 5;
+        public float bossDamagePer100 = 1.5f;
         [Tooltip("Bursting one of the Prime-copter's spore sacs")]
         public float bossSac = 15;
         [Tooltip("Bursting one of Prime's hands")]

@@ -105,11 +105,11 @@ namespace SdfBattle.Tests
             planner.Reset(BossPhase.Phase1);
             Step(BossPhase.Phase1, 2.1f, targets);
             Assert.AreEqual(1, Starts(BossAttackKind.SporeMortar));
-            Assert.AreEqual(6, planner.CooldownLeft(BossAttackKind.SporeMortar), 0.1f);
+            Assert.AreEqual(8, planner.CooldownLeft(BossAttackKind.SporeMortar), 0.1f);
             // The mortar's 2.7 s are done, the glare goes next (its opening is 6 s from the phase start)
             Step(BossPhase.Phase1, 3.0f, targets);
-            Assert.AreEqual(1, Starts(BossAttackKind.SporeMortar), "6 s have not passed");
-            // The glare takes its turn at 6 s (4.5 s long), then the mortar's 6 s are long over
+            Assert.AreEqual(1, Starts(BossAttackKind.SporeMortar), "8 s have not passed");
+            // The glare takes its turn at 6 s (4.5 s long), then the mortar's 8 s are long over
             Step(BossPhase.Phase1, 8.0f, targets);
             Assert.GreaterOrEqual(Starts(BossAttackKind.SporeMortar), 2);
         }
@@ -394,8 +394,8 @@ namespace SdfBattle.Tests
                 Assert.Greater(spec.cooldown, spec.windUp, kind.ToString());
             }
             Assert.AreEqual(1.2f, rules.SpecOf(BossAttackKind.SporeMortar).windUp, 1e-4f);
-            Assert.AreEqual(20, rules.SpecOf(BossAttackKind.SporeMortar).damage);
-            Assert.AreEqual(14, rules.SpecOf(BossAttackKind.RoyalGlare).cooldown);
+            Assert.AreEqual(15, rules.SpecOf(BossAttackKind.SporeMortar).damage);
+            Assert.AreEqual(18, rules.SpecOf(BossAttackKind.RoyalGlare).cooldown);
             Assert.AreEqual(30, rules.SpecOf(BossAttackKind.RoyalGlare).damage);
             Assert.AreEqual(12, rules.SpecOf(BossAttackKind.CapCannon).count);
             Assert.AreEqual(35, rules.SpecOf(BossAttackKind.TankDrop).cooldown);

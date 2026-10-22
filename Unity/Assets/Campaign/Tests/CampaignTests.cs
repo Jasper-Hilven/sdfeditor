@@ -467,6 +467,20 @@ namespace SdfCampaign.Tests
         }
 
         [Test]
+        public void TheBoss_SlotsInByData_AsTheLastBattle_OnTheArenaScene()
+        {
+            var boss = Def.Find("boss");
+            Assert.AreEqual("Arena", boss.scene, "33.9: the Champion's Arena is Assets/Scenes/Arena.unity");
+            Assert.AreEqual("Arena", Def.Find("beat-boss").scene, "B7 plays in the same scene");
+            Assert.AreSame(boss, Def.Battles().Last(), "the last arena of Level Select");
+            Assert.IsTrue(boss.setup.IsBoss);
+            Assert.AreEqual(MatchObjective.Boss, boss.setup.objective);
+            // Until the scene is in the build the step is skipped with its beat, the ending follows the computer
+            var p = Fresh(null, scene => scene != "Arena");
+            Assert.IsFalse(Walk(p).Contains("boss"));
+        }
+
+        [Test]
         public void BossSetup_FollowsTheDifficulty_AndRetryEasier()
         {
             var setup = Def.Find("boss").setup;
@@ -476,9 +490,9 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(5, easy.BossRules().lives);
             Assert.AreEqual(3, normal.BossRules().lives);
             Assert.AreEqual(2, hard.BossRules().lives);
-            Assert.AreEqual(3750, easy.BossRules().TotalHealth);
-            Assert.AreEqual(5000, normal.BossRules().TotalHealth);
-            Assert.AreEqual(6250, hard.BossRules().TotalHealth);
+            Assert.AreEqual(20300, easy.BossRules().TotalHealth);
+            Assert.AreEqual(20300, normal.BossRules().TotalHealth);
+            Assert.AreEqual(25400, hard.BossRules().TotalHealth);
             Assert.AreEqual(0.55f, easy.blueSkill, 1e-4f, "the crew's skill is the campaign's, 0.55 / 0.7 / 0.85");
             Assert.AreEqual(0.70f, normal.blueSkill, 1e-4f);
             Assert.AreEqual(0.85f, hard.blueSkill, 1e-4f);
@@ -487,7 +501,7 @@ namespace SdfCampaign.Tests
             var retry = DifficultyRules.Apply(setup, Difficulty.Hard, 1);
             Assert.AreEqual(0.6f, retry.BossRules().damageScale, "Easy's damage row");
             Assert.AreEqual(1.3f, retry.BossRules().windUpScale, "Easy's wind-up row");
-            Assert.AreEqual(6250, retry.BossRules().TotalHealth, "on the chosen difficulty's health");
+            Assert.AreEqual(25400, retry.BossRules().TotalHealth, "on the chosen difficulty's health");
         }
 
         // --- beats, the sequencer and the warm-up (ticket 32.7) ---
@@ -825,7 +839,7 @@ namespace SdfCampaign.Tests
         [Test]
         public void EachMissingScene_IsSkippedWithItsBeat_AndTheRestOfTheOrderHolds()
         {
-            foreach (var missing in new[] { "Toybox", "Kitchen", "Bathroom", "Computer", "Boss" })
+            foreach (var missing in new[] { "Toybox", "Kitchen", "Bathroom", "Computer", "Arena" })
             {
                 var p = Fresh(null, scene => scene != missing);
                 var seen = Walk(p);

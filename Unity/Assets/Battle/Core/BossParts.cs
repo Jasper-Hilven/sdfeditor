@@ -3,7 +3,7 @@ using System;
 namespace SdfBattle
 {
     /// <summary>
-    /// The parts of the boss that have health of their own (ticket 33): the Prime-copter's four spore sacs in phase 2 (200 each, they grow
+    /// The parts of the boss that have health of their own (ticket 33): the Prime-copter's four spore sacs in phase 2 (400 each, they grow
     /// back two at a time when the daze ends with the bar not empty) and Prime's two hands in phase 3 (300 each, a burst hand grows back
     /// after 20 s). Plain data like <see cref="Health"/>; the scene registers the sacs and hands with <c>Combat.Register</c> so the
     /// electro-gun's bolt and the flame's cone find them, and <see cref="BossState"/> turns what they lose into the bar's damage.

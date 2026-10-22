@@ -110,22 +110,22 @@ namespace SdfBattle.Tests
         {
             boss.Begin();
             Assert.AreEqual(BossPhase.Phase1, boss.Phase);
-            Assert.AreEqual(1500, boss.BarMax(0));
-            Assert.AreEqual(1500, boss.BarMax(1));
-            Assert.AreEqual(2000, boss.BarMax(2));
-            Assert.AreEqual(5000, boss.Health);
+            Assert.AreEqual(1800, boss.BarMax(0));
+            Assert.AreEqual(4500, boss.BarMax(1));
+            Assert.AreEqual(14000, boss.BarMax(2));
+            Assert.AreEqual(20300, boss.Health);
 
             RedCapture();
-            Assert.AreEqual(1500, boss.CurrentBar);
+            Assert.AreEqual(1800, boss.CurrentBar);
             EmptyBar();
             Assert.AreEqual(BossPhase.Transition12, boss.Phase);
             Assert.AreEqual(0, boss.BarHealth(0));
-            Assert.AreEqual(3500, boss.Health, "the next bars are untouched");
+            Assert.AreEqual(18500, boss.Health, "the next bars are untouched");
 
             boss.FinishTransition();
             Assert.AreEqual(BossPhase.Phase2, boss.Phase);
             Assert.AreEqual(1, boss.Bar);
-            Assert.AreEqual(1500, boss.CurrentBar);
+            Assert.AreEqual(4500, boss.CurrentBar);
         }
 
         [Test]
@@ -143,7 +143,7 @@ namespace SdfBattle.Tests
             Assert.AreEqual(BossPhase.Phase3, boss.Phase);
             Assert.AreEqual(0, boss.BarHealth(0));
             Assert.AreEqual(0, boss.BarHealth(1));
-            Assert.AreEqual(2000, boss.CurrentBar);
+            Assert.AreEqual(14000, boss.CurrentBar);
         }
 
         [Test]
@@ -172,7 +172,7 @@ namespace SdfBattle.Tests
                 Assert.IsTrue(hit.Blocked, part.ToString());
                 Assert.AreEqual(0, hit.Dealt);
             }
-            Assert.AreEqual(1500, boss.CurrentBar);
+            Assert.AreEqual(1800, boss.CurrentBar);
         }
 
         [Test]
@@ -208,14 +208,14 @@ namespace SdfBattle.Tests
             boss.Begin();
             RedCapture();
             Hits(50, 2); // 200 gone
-            Assert.AreEqual(1300, boss.CurrentBar);
+            Assert.AreEqual(1600, boss.CurrentBar);
             Run(13);
             BlueCapture();
-            Assert.AreEqual(1500, boss.CurrentBar, "250 offered, 200 fit");
+            Assert.AreEqual(1800, boss.CurrentBar, "250 offered, 200 fit");
             CollectionAssert.Contains(events, "healed 200");
 
             BlueCapture();
-            Assert.AreEqual(1500, boss.CurrentBar, "nothing over the top");
+            Assert.AreEqual(1800, boss.CurrentBar, "nothing over the top");
         }
 
         [Test]
@@ -226,7 +226,7 @@ namespace SdfBattle.Tests
             Hits(200, 2); // 800 gone
             Run(13);
             BlueCapture();
-            Assert.AreEqual(700 + 250, boss.CurrentBar);
+            Assert.AreEqual(1000 + 250, boss.CurrentBar);
         }
 
         [Test]
@@ -235,12 +235,12 @@ namespace SdfBattle.Tests
             boss.Begin();
             RedCapture();
             var hit = boss.Hurt(100000, BossPart.Body, You);
-            Assert.AreEqual(1500, hit.Dealt);
+            Assert.AreEqual(1800, hit.Dealt);
             Assert.IsTrue(hit.BarEmptied);
             Assert.AreEqual(BossPhase.Transition12, boss.Phase);
             boss.FinishTransition();
-            Assert.AreEqual(1500, boss.CurrentBar, "the next bar did not take the overflow");
-            Assert.AreEqual(3500, boss.Health);
+            Assert.AreEqual(4500, boss.CurrentBar, "the next bar did not take the overflow");
+            Assert.AreEqual(18500, boss.Health);
         }
 
         // ---------------------------------------------------------------- Phase 2: sacs, crash, daze
@@ -253,7 +253,7 @@ namespace SdfBattle.Tests
             ToPhase2();
             foreach (var part in new[] { BossPart.Body, BossPart.Gills, BossPart.Eyes })
                 Assert.IsTrue(boss.Hurt(500, part, You).Blocked, part.ToString());
-            Assert.AreEqual(1500, boss.CurrentBar);
+            Assert.AreEqual(4500, boss.CurrentBar);
         }
 
         [Test]
@@ -262,9 +262,9 @@ namespace SdfBattle.Tests
             ToPhase2();
             Assert.AreEqual(4, boss.Parts.SacsAlive);
             Assert.AreEqual(150, boss.HurtSac(0, 150, You));
-            Assert.AreEqual(1350, boss.CurrentBar);
-            Assert.AreEqual(50, boss.HurtSac(0, 150, You), "only what the sac had left");
-            Assert.AreEqual(1300, boss.CurrentBar);
+            Assert.AreEqual(4350, boss.CurrentBar);
+            Assert.AreEqual(250, boss.HurtSac(0, 300, You), "only what the sac had left");
+            Assert.AreEqual(4100, boss.CurrentBar);
             Assert.AreEqual(3, boss.Parts.SacsAlive);
             Assert.AreEqual(0, boss.HurtSac(0, 50, You), "a burst sac takes nothing");
         }
@@ -274,10 +274,10 @@ namespace SdfBattle.Tests
         {
             ToPhase2();
             for (var i = 0; i < 3; i++)
-                boss.HurtSac(i, 200, You);
+                boss.HurtSac(i, 400, You);
             Assert.AreEqual(CopterStage.Flying, boss.Copter);
-            boss.HurtSac(3, 200, You);
-            Assert.AreEqual(700, boss.CurrentBar, "800 came from the four sacs");
+            boss.HurtSac(3, 400, You);
+            Assert.AreEqual(4500 - 1600, boss.CurrentBar, "1600 came from the four sacs");
             Assert.AreEqual(CopterStage.Crashing, boss.Copter);
             Assert.IsTrue(boss.Hurt(100, BossPart.Gills, You).Blocked, "not yet dazed during the warning");
 
@@ -286,7 +286,7 @@ namespace SdfBattle.Tests
             Run(0.2f);
             Assert.AreEqual(CopterStage.Dazed, boss.Copter);
             Assert.AreEqual(BossStunKind.Daze, boss.StunKind);
-            Assert.AreEqual(15, boss.VulnerableLeft, 0.2f);
+            Assert.AreEqual(10, boss.VulnerableLeft, 0.2f);
             Assert.AreEqual(100, boss.Hurt(50, BossPart.Gills, You).Dealt);
         }
 
@@ -295,16 +295,16 @@ namespace SdfBattle.Tests
         {
             ToPhase2();
             for (var i = 0; i < 4; i++)
-                boss.HurtSac(i, 200, You);
+                boss.HurtSac(i, 400, You);
             Run(2.1f);
-            Run(15.1f);
+            Run(10.1f);
             Assert.IsFalse(boss.Vulnerable);
             Assert.AreEqual(CopterStage.Flying, boss.Copter);
             Assert.AreEqual(2, boss.Parts.SacsAlive);
-            Assert.AreEqual(700, boss.CurrentBar, "the bar is not healed");
+            Assert.AreEqual(4500 - 1600, boss.CurrentBar, "the bar is not healed");
             Assert.IsTrue(boss.Hurt(100, BossPart.Gills, You).Blocked);
-            boss.HurtSac(0, 200, You);
-            boss.HurtSac(1, 200, You);
+            boss.HurtSac(0, 400, You);
+            boss.HurtSac(1, 400, You);
             Assert.AreEqual(CopterStage.Crashing, boss.Copter, "all the sacs are gone again: down it goes once more");
         }
 
@@ -313,10 +313,10 @@ namespace SdfBattle.Tests
         {
             ToPhase2();
             for (var i = 0; i < 4; i++)
-                boss.HurtSac(i, 200, You);
+                boss.HurtSac(i, 400, You);
             Run(2.1f);
-            // 700 left: 350 on the gills at ×2
-            boss.Hurt(350, BossPart.Gills, You);
+            // 2900 left: 1450 on the gills at ×2
+            boss.Hurt(1450, BossPart.Gills, You);
             Assert.AreEqual(BossPhase.Transition23, boss.Phase);
         }
 
@@ -440,7 +440,7 @@ namespace SdfBattle.Tests
             boss.Begin(3);
             RedCapture();
             Assert.AreEqual(300, boss.HurtHand(0, 500, You) + 0f, "a hand takes at most its health");
-            Assert.AreEqual(2000, boss.CurrentBar, "a hand's health is not Prime's");
+            Assert.AreEqual(14000, boss.CurrentBar, "a hand's health is not Prime's");
             Assert.AreEqual(BossStunKind.HandStun, boss.StunKind);
             Assert.AreEqual(4, boss.VulnerableLeft, 0.1f);
             Assert.IsFalse(boss.Parts.HandAlive(0));
@@ -458,10 +458,10 @@ namespace SdfBattle.Tests
             boss.SoreLoserStarted += () => started++;
             RedCapture();
             var normal = boss.Rules.SpecOf(BossAttackKind.CapSlam).windUp;
-            boss.Hurt(1400, BossPart.Body, You);
-            Assert.IsFalse(boss.SoreLoser, "600 of 2000 left");
+            boss.Hurt(10400, BossPart.Body, You);
+            Assert.IsFalse(boss.SoreLoser, "3600 of 14000 left");
             boss.Hurt(101, BossPart.Body, You);
-            Assert.IsTrue(boss.SoreLoser, "499 left, under 500");
+            Assert.IsTrue(boss.SoreLoser, "3499 left, under 3500");
             Assert.AreEqual(1, started);
             boss.Hurt(10, BossPart.Body, You);
             Assert.AreEqual(1, started, "once");
@@ -511,7 +511,7 @@ namespace SdfBattle.Tests
             EmptyBar();
             boss.FinishTransition();
             Assert.AreEqual(BossPhase.Phase2, boss.Phase);
-            boss.HurtSac(0, 200, You);
+            boss.HurtSac(0, 400, You);
             boss.ReportDeath(You);
             boss.ReportDeath(You);
             Assert.AreEqual(1, boss.Lives);
@@ -520,7 +520,7 @@ namespace SdfBattle.Tests
 
             boss.RestoreCheckpoint();
             Assert.AreEqual(BossPhase.Phase2, boss.Phase);
-            Assert.AreEqual(1500, boss.CurrentBar);
+            Assert.AreEqual(4500, boss.CurrentBar);
             Assert.AreEqual(0, boss.BarHealth(0), "phase 1 stays spent");
             Assert.AreEqual(4, boss.Parts.SacsAlive);
             Assert.AreEqual(3, boss.Lives);
@@ -539,7 +539,7 @@ namespace SdfBattle.Tests
             boss.Hurt(500, BossPart.Body, You);
             boss.RestoreCheckpoint();
             Assert.AreEqual(BossPhase.Phase3, boss.Phase);
-            Assert.AreEqual(2000, boss.CurrentBar);
+            Assert.AreEqual(14000, boss.CurrentBar);
             Assert.IsFalse(boss.CrownCaptured);
             Assert.IsTrue(boss.Immune, "the crown is Prime's again");
         }
@@ -552,7 +552,7 @@ namespace SdfBattle.Tests
             boss.Restart();
             Assert.AreEqual(BossPhase.Phase1, boss.Phase);
             Assert.AreEqual(0, boss.LivesLost);
-            Assert.AreEqual(5000, boss.Health);
+            Assert.AreEqual(20300, boss.Health);
         }
 
         // ---------------------------------------------------------------- The HUD's and the end screens' numbers (33.7)
@@ -566,9 +566,9 @@ namespace SdfBattle.Tests
             boss.Hurt(100, BossPart.Body, RedBot);
             Assert.AreEqual(300, boss.DamageDealt, 1e-4f, "a bot's hit is not yours");
             boss.Hurt(100000, BossPart.Body, You);
-            Assert.AreEqual(1900, boss.DamageDealt, 1e-4f, "the overflow is not counted");
+            Assert.AreEqual(13900, boss.DamageDealt, 1e-4f, "the overflow is not counted");
             boss.RestoreCheckpoint();
-            Assert.AreEqual(1900, boss.DamageDealt, 1e-4f, "a retried phase keeps it");
+            Assert.AreEqual(13900, boss.DamageDealt, 1e-4f, "a retried phase keeps it");
             boss.Restart();
             Assert.AreEqual(0, boss.DamageDealt);
         }
@@ -585,7 +585,7 @@ namespace SdfBattle.Tests
             Assert.AreEqual(0.6f, rules.damageScale);
             Assert.AreEqual(1.3f, rules.windUpScale);
             Assert.AreEqual(windUp * 1.3f / 0.8f, rules.SpecOf(BossAttackKind.SporeMortar).windUp, 1e-4f, "Easy's wind-ups");
-            Assert.AreEqual(6250, boss.Rules.TotalHealth, "the health stays Hard's");
+            Assert.AreEqual(25400, boss.Rules.TotalHealth, "the health stays Hard's");
             var asBuilt = BossRules.For(BossDifficulty.Hard, true);
             Assert.AreEqual((asBuilt.damageScale, asBuilt.windUpScale), (rules.damageScale, rules.windUpScale));
         }
@@ -607,17 +607,17 @@ namespace SdfBattle.Tests
             var easy = BossRules.For(BossDifficulty.Easy);
             var normal = BossRules.For(BossDifficulty.Normal);
             var hard = BossRules.For(BossDifficulty.Hard);
-            CollectionAssert.AreEqual(new float[] { 1100, 1100, 1550 }, easy.bars);
-            CollectionAssert.AreEqual(new float[] { 1500, 1500, 2000 }, normal.bars);
-            CollectionAssert.AreEqual(new float[] { 1900, 1900, 2450 }, hard.bars);
-            Assert.AreEqual(3750, easy.TotalHealth);
-            Assert.AreEqual(5000, normal.TotalHealth);
-            Assert.AreEqual(6250, hard.TotalHealth);
+            CollectionAssert.AreEqual(new float[] { 1800, 4500, 14000 }, easy.bars, "Easy keeps Normal's bars (33.9)");
+            CollectionAssert.AreEqual(new float[] { 1800, 4500, 14000 }, normal.bars);
+            CollectionAssert.AreEqual(new float[] { 2250, 5650, 17500 }, hard.bars);
+            Assert.AreEqual(20300, easy.TotalHealth);
+            Assert.AreEqual(20300, normal.TotalHealth);
+            Assert.AreEqual(25400, hard.TotalHealth);
 
             var mortar = BossAttackKind.SporeMortar;
-            Assert.AreEqual(12, easy.SpecOf(mortar).damage, 1e-4f);
-            Assert.AreEqual(20, normal.SpecOf(mortar).damage, 1e-4f);
-            Assert.AreEqual(26, hard.SpecOf(mortar).damage, 1e-4f);
+            Assert.AreEqual(9, easy.SpecOf(mortar).damage, 1e-4f);
+            Assert.AreEqual(15, normal.SpecOf(mortar).damage, 1e-4f);
+            Assert.AreEqual(19.5f, hard.SpecOf(mortar).damage, 1e-4f);
             Assert.AreEqual(1.2f * 1.3f, easy.SpecOf(mortar).windUp, 1e-4f);
             Assert.AreEqual(1.2f, normal.SpecOf(mortar).windUp, 1e-4f);
             Assert.AreEqual(1.2f * 0.8f, hard.SpecOf(mortar).windUp, 1e-4f);
@@ -638,7 +638,7 @@ namespace SdfBattle.Tests
             var rules = BossRules.For(BossDifficulty.Hard, retryEasier: true);
             Assert.AreEqual(0.6f, rules.damageScale);
             Assert.AreEqual(1.3f, rules.windUpScale);
-            CollectionAssert.AreEqual(new float[] { 1900, 1900, 2450 }, rules.bars);
+            CollectionAssert.AreEqual(new float[] { 2250, 5650, 17500 }, rules.bars);
             Assert.AreEqual(0.85f, rules.stunScale, "windows stay the chosen difficulty's");
         }
 
@@ -708,15 +708,15 @@ namespace SdfBattle.Tests
         }
 
         [Test]
-        public void Spores_PrimesDamage_FivePer100_AfterTheMultipliers()
+        public void Spores_PrimesDamage_1_5Per100_AfterTheMultipliers()
         {
             boss.Begin(3);
             EmptyMeter();
             Assert.IsTrue(boss.Immune);
             boss.Hurt(100, BossPart.Body, You);
-            Assert.AreEqual(2.5f, spores.MeterOf(You).Amount, 1e-4f, "50 dealt at half damage");
+            Assert.AreEqual(0.75f, spores.MeterOf(You).Amount, 1e-4f, "50 dealt at half damage");
             boss.Hurt(60, BossPart.Eyes, You);
-            Assert.AreEqual(2.5f + 3, spores.MeterOf(You).Amount, 1e-4f, "eyes double, immunity halves: 60 dealt");
+            Assert.AreEqual(0.75f + 0.9f, spores.MeterOf(You).Amount, 1e-4f, "eyes double, immunity halves: 60 dealt");
         }
 
         [Test]
@@ -725,10 +725,10 @@ namespace SdfBattle.Tests
             ToPhase2();
             EmptyMeter();
             spores.Rules.bossDamagePer100 = 0;
-            boss.HurtSac(0, 200, You);
+            boss.HurtSac(0, 400, You);
             Assert.AreEqual(15, spores.MeterOf(You).Amount, 1e-4f, "a sac");
             for (var i = 1; i < 4; i++)
-                boss.HurtSac(i, 200, You);
+                boss.HurtSac(i, 400, You);
             Assert.AreEqual(4 * 15 + 25, spores.MeterOf(You).Amount, 1e-4f, "four sacs and the stun of the crash");
 
             boss.Begin(3);

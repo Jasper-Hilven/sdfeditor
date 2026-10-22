@@ -59,6 +59,7 @@ namespace SdfBattle.Editor
             SessionState.SetString(ShotsKey, at >= 0 && at + 1 < args.Length ? args[at + 1] : "");
             SessionState.SetBool(ActiveKey, true);
             EditorSceneManager.OpenScene("Assets/Scenes/Arena.unity");
+            BossBudget.Remember();
             EditorApplication.EnterPlaymode();
         }
 
@@ -75,6 +76,13 @@ namespace SdfBattle.Editor
                 return;
             Directory.CreateDirectory(shots);
             SdfGui.Editor.GuiSnapshot.ShootOpen(match.gameObject.scene, Path.Combine(shots, name + ".png"));
+        }
+
+        // What the player's camera sees at this moment (ticket 33.9; the instanced groups need the GPU, so run without -nographics)
+        private static void Budget(string label)
+        {
+            var camera = match.You != null ? match.You.GetComponentInChildren<Camera>() : null;
+            BossBudget.Measure(label, boss, camera != null ? camera : Camera.main);
         }
 
         private static void Note(string line)
@@ -105,6 +113,9 @@ namespace SdfBattle.Editor
             {
                 hooked = true;
                 shots = SessionState.GetString(ShotsKey, "");
+                // Ticket 33.9: the budget's numbers are the web preset's (-webPreset), the one the 500k triangles and 200 draws are for
+                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-webPreset") >= 0)
+                    QualitySettings.SetQualityLevel(SdfMushrooms.Editor.RenderPipelineSetup.WebLevel, true);
                 Time.timeScale = Speed;
                 boss.transitionSeconds = 2;
                 // The campaign's part (ticket 33.8): the story beats play through the real sequencer, and a win may have its beat before Victory
@@ -179,6 +190,7 @@ namespace SdfBattle.Editor
                         return false;
                     Expect(seen.Contains(BossAttackKind.SporeMortar) || seen.Contains(BossAttackKind.RoyalGlare), "phase 1 attacks start");
                     boss.Hud.ShowHit(new BossHit(100, 0, true, false, false), boss.Body.transform.position + Vector3.up * 4);
+                    Budget("phase 1, 14 s in (Prime behind the shield, 4 crew, 4 turrets, 3 red bots)");
                     Shot("hud-2-shield");
                     return true;
                 case 2: // a red capture drops the shield
@@ -234,6 +246,7 @@ namespace SdfBattle.Editor
                     if (waited < 22)
                         return false;
                     Expect(seen.Contains(BossAttackKind.CapCannon) || seen.Contains(BossAttackKind.DowndraftDive), "phase 2 attacks start");
+                    Budget("phase 2, 22 s in (the Prime-copter flying, Prime hanging, tanks, 2 crew)");
                     return true;
                 case 5: // the four sacs, the crash, the daze
                     for (var i = 0; i < 4; i++)
@@ -245,6 +258,7 @@ namespace SdfBattle.Editor
                         return false;
                     Expect(state.Copter == CopterStage.Dazed && boss.Copter.Down, "the copter lands and Prime is dazed");
                     Expect(state.Vulnerable, "the daze opens the gills");
+                    Budget("phase 2, the crash (the copter down, the dust and debris)");
                     return true;
                 case 7: // the gills finish bar 2
                     state.Hurt(state.CurrentBar + 1, BossPart.Gills, RedBot());
@@ -279,6 +293,7 @@ namespace SdfBattle.Editor
                     if (waited < 16)
                         return false;
                     Expect(seen.Contains(BossAttackKind.CapSlam) || seen.Contains(BossAttackKind.HandGrab) || seen.Contains(BossAttackKind.RoyalGlare), "phase 3 attacks start");
+                    Budget("phase 3, 16 s in (Prime on foot, the wreck, 2 crew)");
                     return true;
                 case 10: // the crown comes home: immunity off, the champion's minigun out
                     // The red raider may have the crown already: start from the crown home
@@ -403,6 +418,8 @@ namespace SdfBattle.Editor
             SessionState.SetBool(ActiveKey, false);
             foreach (var line in log.ToArray())
                 Debug.Log(line);
+            foreach (var line in BossBudget.Lines)
+                Debug.Log("SDF boss budget: " + line);
             if (errors.Count == 0)
                 Debug.Log($"SDF boss play test: PASSED, attacks seen: {string.Join(", ", seen)}");
             else

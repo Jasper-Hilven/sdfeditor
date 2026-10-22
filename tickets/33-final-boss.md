@@ -208,7 +208,8 @@ the wind-ups are 30% longer, on Hard 20% shorter (§7).
 
 ## 6. The fight
 
-Prime's health: **5000 at Normal**, in three bars: **1500 / 1500 / 2000**. The HUD bar shows three segments; a bar cannot be
+Prime's health: **20300 at Normal**, in three bars: **1800 / 4500 / 14000** (33.9 tuned these from the first guesses 5000 = 1500 / 1500 / 2000,
+which a balance simulation showed to be a 3.5 minute fight; the weapons do far more per second than the first numbers assumed). The HUD bar shows three segments; a bar cannot be
 damaged past its end (overflow is lost), so every phase plays out. All damage below is at Normal, against 42's 100 health (200 with
 overheal); compare 22's pistol 12 a hit, the minigun's 7, a machine's 6, the flamethrower's 70/s.
 
@@ -222,15 +223,15 @@ the balcony, the red one on the Champion's Corner.
 
 | Attack | Wind-up (Normal) | Effect | Every |
 |---|---|---|---|
-| **Spore Mortar** | 1.2 s: Prime's hands scoop, green eye glow; a 3 m ring on the floor under each target | 3 lobbed spore balls (22's poison ball, blue-green) at 42 and up to two red bots; 20 on landing within 3 m, then a cloud 8/s for 3 s (22's `Area`) | 6 s |
-| **Royal Glare** | 1.0 s: eyes glow white-blue, a thin aim line from both eyes to the target | a beam 3 s long that follows the target at 25 °/s (sidestep to outrun it); 30/s while on you; stopped by pillars, shelters and walls (ray) | 14 s, only on a target in sight |
+| **Spore Mortar** | 1.2 s: Prime's hands scoop, green eye glow; a 3 m ring on the floor under each target | 3 lobbed spore balls (22's poison ball, blue-green) at 42 and up to two red bots; 15 on landing within 3 m, then a cloud 8/s for 3 s (22's `Area`) | 8 s |
+| **Royal Glare** | 1.0 s: eyes glow white-blue, a thin aim line from both eyes to the target | a beam 3 s long that follows the target at 25 °/s (sidestep to outrun it); 30/s while on you; stopped by pillars, shelters and walls (ray) | 18 s, only on a target in sight |
 | **Crew** | Prime points; caption "Blue team, on the field!" | the 4 blue scouts (32's names: Runner-Up, Honourable Mention, Participant, Also-Ran), respawning in 8 s; the 4 blue turrets | from the start |
 
 **What the player must do**: take the blue flag and capture it at the red stand while the red flag is home (21's rule, unchanged).
 Each capture: the shield shatters, Prime stumbles and **kneels** for **12 s** (cap tilted forward, gills to the field, eyes dizzy),
 the crowd roars. Damage counts only then: gills ×2. Then the shield regrows (1 s, a rising dome) and the blue flag is back on its
-stand. Expected: two captures at Normal (in 12 s, dual pistols on the gills do up to 1440 alone; with misses and the bots' help
-about 900-1200).
+stand. Expected: three captures at Normal (33.9: 42 captures at the red stand, 96 m from the dais, so the pistols' falloff and spread
+leave about 670 per 12 s window, not the 900-1200 first guessed; 1440 is the figure at point-blank).
 
 - The blue crew plays CTF too: a **blue capture** heals Prime 250 (at most to the bar's top) with a taunt ("Points for the home
   team!").
@@ -259,11 +260,11 @@ inside the wall by 8 m).
 | **Tank Drop** | 1 s: a hatch under the copter opens, a blue light | drops a **blue tank** (24, 60 health) that lands with a puff and drives as 24's tanks do; at most 2 alive, respawning in the machine zone | 35 s |
 | **Crew** | | 2 blue scouts, respawning in 8 s; the 4 turrets | |
 
-**What the player must do**: burst the copter's **4 spore sacs** (glowing blue puffs hanging under its rim, 1 m round, **200 health
-each**; their damage counts on the bar, 800 in all). The electro-gun's bolt jumps between them (they hang about 2.5 m apart, inside
+**What the player must do**: burst the copter's **4 spore sacs** (glowing blue puffs hanging under its rim, 1 m round, **400 health
+each**; their damage counts on the bar, 1600 in all). The electro-gun's bolt jumps between them (they hang about 2.5 m apart, inside
 its 6 m jump). When the fourth bursts, the rotor sputters: the copter **crash-lands** at the centre circle (6, 0) (2 s wind-up: a
-huge shadow there and a falling whistle; 50 within 8 m on impact) and Prime sits **dazed** on the wreck for **15 s**: gills ×2.
-The remaining 700 come from that window. If the window ends with bar 2 left, two sacs regrow and the copter takes off again,
+huge shadow there and a falling whistle; 50 within 8 m on impact) and Prime sits **dazed** on the wreck for **10 s**: gills ×2.
+The remaining 2900 come from that window and the next ones. If the window ends with bar 2 left, two sacs regrow and the copter takes off again,
 smoking.
 
 **Transition 2 → 3** (6 s):
@@ -347,7 +348,7 @@ and the flag as in 25. Rush carries the flag or the crown; Armour halves Prime's
 
 | | Easy | Normal | Hard |
 |---|---|---|---|
-| Prime's health | 3750 (1100 / 1100 / 1550) | 5000 | 6250 (1900 / 1900 / 2450) |
+| Prime's health | 20300 (1800 / 4500 / 14000, as Normal: its ease is in the rows below, 33.9) | 20300 (1800 / 4500 / 14000) | 25400 (2250 / 5650 / 17500) |
 | Prime's damage | ×0.6 | ×1 | ×1.3 |
 | Wind-ups | ×1.3 | ×1 | ×0.8 |
 | Stun windows | ×1.25 | ×1 | ×0.85 |
@@ -457,7 +458,7 @@ scale with every piece touching its parent; the copter within 5.5 m with the rot
 ### UI (runtime, built into the HUD like `FlagHud` and `SporeHud`; ~5 px from the edges)
 
 - **Boss bar**: top centre under the clock's row (which shows no clock here: the score row becomes the lives row): "CHANTERELLE PRIME"
-  in Lilita One, a bar in three segments (1500 / 1500 / 2000 wide in proportion), the current one bright, the spent ones grey, the
+  in Lilita One, a bar in three segments (1800 / 4500 / 14000 wide in proportion), the current one bright, the spent ones grey, the
   coming ones dim; a white "chip" trailing behind damage for 0.5 s; a shield icon over the bar while the shield is up (no damage
   possible); a half-shield icon for Royal Immunity; a gold flash on weak-point damage; "STUNNED 12" counting down in the window.
 - **Name card**: once, at the fight's start (2.5 s): a blue banner sliding in from the right with "CHANTERELLE PRIME", under it
@@ -540,21 +541,24 @@ scale with every piece touching its parent; the copter within 5.5 m with the rot
 
 ## 11. Performance (Integrated GPU / Web: 500k triangles, 200 draws)
 
-Estimated per frame from the busiest view (the red spawn looking east in phase 2, with the copter, two tanks, four turrets, seven bots
-and the crowd); measured with `LevelSnapshot` in each phase's layout and listed here once built.
+Measured in 33.9 (web preset, 256-cell meshes, 3 LODs) by `BossBudget` inside `BossPlayTest -webPreset`: every enabled renderer in 42's own
+camera frustum at the red spawn looking east (the busiest view), LOD groups at the level they pick, a draw per material (outlines
+included, static batching not credited), at moments of each phase with the real Prime, copter, machines, scouts and effects. The
+instanced groups (crowd, clutter) do not draw in a batch run, so they are added from 33.3's `LevelSnapshot` of the same view (52.6k
+triangles, 22 draws). The HUD canvases and screen-space effects are not counted.
 
-| Group | Triangles (web) | Draws |
-|---|---|---|
-| Ground and stands (terrain chunks) | 45k | 12 |
-| Foliage and clutter (sparse) | 25k | 12 |
-| Crowd (about 700, `rings=[20, 50, 1000]`, `lowDensity=0.6`) | 80k | 15 |
-| Arena pieces (wall, pillars, shelters, barriers, rocks) | 70k | 35 |
-| Landmarks (Royal Box, corner, floodlights, wreck) | 60k | 20 |
-| Prime and the copter (LOD0 near, LOD1 at 30 m+) | 25-60k | 14 |
-| Machines (4 turrets, 2 tanks) | 35k | 24 |
-| Scouts (7 bots) | 60k | 28 |
-| Weapons, effects, markers, HUD | 15k | 25 |
-| **Total** | **about 450k** | **about 185** |
+| Moment (red spawn, looking east) | Scene renderers | + instanced (33.3) | Total triangles | Total draws |
+|---|---|---|---|---|
+| Phase 1, 14 s in: shield, 4 crew, 4 turrets, 3 red bots | 90.5k tri / 159 draws | 52.6k / 22 | about 143k | about 181 |
+| Phase 2, 22 s in: copter flying, Prime hanging, tanks | 91.1k / 171 | 52.6k / 22 | about 144k | about 193 |
+| Phase 2, the crash: copter down | 90.2k / 166 | 52.6k / 22 | about 143k | about 188 |
+| Phase 3, 16 s in: Prime on foot, wreck, 2 crew | 100.8k / 174 | 52.6k / 22 | about 153k | about 196 |
+
+By group in the busiest moment (phase 3): placed models 22.6k / 64, ground 9.8k / 31, scouts 22.2k / 34, Prime 3.1k / 8, machines 1.5k /
+4, effects and other 41k / 33. Triangles are far under the 500k budget (about 30%); **draws are the tight one: 196 of 200 before the
+HUD**, so a view with more in it (the blue stand looking west with the tanks) can pass 200 on the web preset. Cheapest cuts, if a
+human run shows it: batch the scouts' parts (34 draws), drop the outline material on the crowd's far ring, or merge the 61 placed
+models' outline materials. The first estimate (450k, 185 draws) was far too high on triangles and about right on draws.
 
 - Prime is one object on screen; no instancing. Its hit shapes are 6 capsules and spheres tested in code, no mesh colliders.
 - The planner ticks 10 times a second; the markers are one `FxBuffer` draw; the crowd's cheer is one shader uniform.

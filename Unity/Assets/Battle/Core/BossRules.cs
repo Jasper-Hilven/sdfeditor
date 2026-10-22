@@ -94,8 +94,8 @@ namespace SdfBattle
         public bool retryEasier;
 
         [Header("Prime")]
-        [Tooltip("The three bars: the Royal Box, the Prime-copter, the Crown")]
-        public float[] bars = { 1500, 1500, 2000 };
+        [Tooltip("The three bars: the Royal Box, the Prime-copter, the Crown. Tuned in 33.9 by BossBalanceTests (the first guesses, 1500 / 1500 / 2000, gave a 3.5 minute fight; Easy keeps Normal's bars, its ease is in the damage, the wind-ups, the windows and the lives)")]
+        public float[] bars = { 1800, 4500, 14000 };
         [Tooltip("What Prime's damage to players is multiplied by")]
         public float damageScale = 1;
         [Tooltip("What the wind-ups are multiplied by (longer on Easy)")]
@@ -111,7 +111,7 @@ namespace SdfBattle
         [Tooltip("The champion's minigun against Prime only")]
         public float championMinigunMultiplier = 1.5f;
         public int sacCount = 4;
-        public float sacHealth = 200;
+        public float sacHealth = 400;
         [Tooltip("Sacs that grow back when the daze ends with the bar not empty")]
         public int sacRegrow = 2;
         public float handHealth = 300;
@@ -123,7 +123,7 @@ namespace SdfBattle
         [Tooltip("Phase 2: from the last sac to the wreck, a warning")]
         public float crashSeconds = 2;
         [Tooltip("Phase 2: dazed on the wreck")]
-        public float dazeSeconds = 15;
+        public float dazeSeconds = 10;
         [Tooltip("Phase 3: a burst hand")]
         public float handStunSeconds = 4;
         [Tooltip("Phase 1: a blue capture heals this much, at most to the bar's top")]
@@ -263,10 +263,10 @@ namespace SdfBattle
 
         public static BossAttackSpec[] DefaultAttacks() => new[]
         {
-            // 3 balls, 20 each on landing, then the cloud
-            new BossAttackSpec(BossAttackKind.SporeMortar, 1.2f, 1.0f, 0.5f, 6, 20, 0, 3),
+            // 3 balls, 15 each on landing, then the cloud
+            new BossAttackSpec(BossAttackKind.SporeMortar, 1.2f, 1.0f, 0.5f, 8, 15, 0, 3),
             // 30 a second while on you, 3 s long
-            new BossAttackSpec(BossAttackKind.RoyalGlare, 1.0f, 3.0f, 0.5f, 14, 30),
+            new BossAttackSpec(BossAttackKind.RoyalGlare, 1.0f, 3.0f, 0.5f, 18, 30),
             // 12 shots of 8 over 2 s
             new BossAttackSpec(BossAttackKind.CapCannon, 0.8f, 2.0f, 0.5f, 7, 8, 0, 12),
             // 30 in the circle and a push of 6 m; the climb back is the recovery
@@ -285,7 +285,7 @@ namespace SdfBattle
             switch (difficulty)
             {
                 case BossDifficulty.Easy:
-                    rules.bars = new float[] { 1100, 1100, 1550 };
+                    rules.bars = new float[] { 1800, 4500, 14000 };
                     rules.damageScale = 0.6f;
                     rules.windUpScale = 1.3f;
                     rules.stunScale = 1.25f;
@@ -294,7 +294,7 @@ namespace SdfBattle
                     rules.lives = 5;
                     break;
                 case BossDifficulty.Hard:
-                    rules.bars = new float[] { 1900, 1900, 2450 };
+                    rules.bars = new float[] { 2250, 5650, 17500 };
                     rules.damageScale = 1.3f;
                     rules.windUpScale = 0.8f;
                     rules.stunScale = 0.85f;

@@ -5,7 +5,7 @@ namespace SdfCampaign
 {
     /// <summary>
     /// The ordered steps of the campaign with the numbers of ticket 32, section 2 (at Normal). Steps whose scenes do not exist yet
-    /// (toy box to boss) are named here all the same; whether a scene can be played is decided by a check from outside
+    /// (toy box to the boss's Champion's Arena) are named here all the same; whether a scene can be played is decided by a check from outside
     /// (<see cref="CampaignProgress"/> takes it), so adding a level is adding its scene.
     /// </summary>
     public sealed class CampaignDefinition
@@ -59,7 +59,7 @@ namespace SdfCampaign
                 Battle(Bathroom, "Bathroom", "Bathroom", 4, 5, 0.60f, 0.55f, 3, 10),
                 new("beat-computer", StepKind.Cutscene, "Computer", "The results file"),
                 Battle(Computer, "Computer", "Inside the computer", 4, 5, 0.70f, 0.60f, 3, 12, blueRespawn: 3),
-                new("beat-boss", StepKind.Cutscene, "Boss", "Second place"),
+                new("beat-boss", StepKind.Cutscene, "Arena", "Second place"),
                 BossBattle(),
                 // The ending plays over Boot's backdrop (Home.unity is editor-only), like the credits
                 new(Ending, StepKind.Cutscene, "Boot", "Ending"),
@@ -93,7 +93,7 @@ namespace SdfCampaign
         // numbers per difficulty are BossRules.For.
         static CampaignStep BossBattle()
         {
-            return new CampaignStep(Boss, StepKind.Battle, "Boss", "Chanterelle Prime", new BattleSetup
+            return new CampaignStep(Boss, StepKind.Battle, "Arena", "Chanterelle Prime", new BattleSetup
             {
                 redSize = 4,
                 blueSize = 5,
