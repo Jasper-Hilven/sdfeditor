@@ -1,0 +1,32 @@
+# Toilet roll 0: one roll of toilet paper standing on its end, 3 m tall and 3.6 m round (30 times life size), a barrel with a rounded top and foot, the quilted
+# paper pattern from the shader (blocks with faint joints) and in the top the cardboard core as a shadowed recess, not a hole.
+# Tall blocker: convex collider.
+format 1
+collider convex
+
+# The roll: a round-edged drum bulging at the middle, so top and foot are domed; cut to 0 to 3 m
+roll =
+    Intersection
+        Intersection
+            Translate translation=(0, 1.5, 0)
+                RoundedCylinder radius=1.8 roundness=0.3 height=1.5
+            Translate translation=(0, 1.5, 0)
+                Ellipsoid radii=(1.95, 1.65, 1.95)
+        Translate translation=(0, 1.5, 0)
+            Box size=(2.5, 1.5, 2.5)
+
+Detail detail=0.5
+    Union
+        # The paper, with the core's hole cut in the top
+        Material material=bath_paper
+            Subtraction
+                $roll
+                Translate translation=(0, 2.4, 0)
+                    CappedCylinder radius=0.62 height=1.0
+        # The cardboard tube, a little below the paper's top, closed at the bottom of the recess
+        Material material=bath_paper_core
+            Subtraction
+                Translate translation=(0, 2.2, 0)
+                    CappedCylinder radius=0.62 height=0.8
+                Translate translation=(0, 2.5, 0)
+                    CappedCylinder radius=0.5 height=0.9

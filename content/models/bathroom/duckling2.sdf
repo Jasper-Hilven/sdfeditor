@@ -1,0 +1,30 @@
+# Duckling 2: a small yellow rubber duck (body #F7D24A, beak #F29A3A) tipped over on its side, about 1.2 m long and 0.8 m tall (30 times life size): it has
+# fallen on one wing, head and beak pointing along +z, an eye up. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+# The upright duck laid on its side (a quarter turn about z) and set on the floor
+Detail detail=0.3
+    Intersection
+        Translate translation=(0, 0.37, 0)
+            Rotate rotation=(0, 0, 1.45)
+                Scale scale=(0.78, 0.78, 0.78)
+                    Union
+                        Material material=bath_rubber_yellow
+                            SmoothUnion smoothness=0.08
+                                Translate translation=(0, -0.02, 0)
+                                    Ellipsoid radii=(0.42, 0.34, 0.5)
+                                Translate translation=(0, 0.62, 0.3)
+                                    Sphere radius=0.3
+                                ArbitraryRoundCone a=(0, 0.05, -0.34) b=(0, 0.36, -0.62) radiusA=0.17 radiusB=0.05
+                                SymmetryX
+                                    Translate translation=(0.38, 0.05, -0.05)
+                                        Ellipsoid radii=(0.07, 0.17, 0.27)
+                        Material material=bath_beak_orange
+                            Translate translation=(0, 0.56, 0.63)
+                                Ellipsoid radii=(0.16, 0.06, 0.2)
+                        Material material=bath_eye_dark
+                            SymmetryX
+                                Translate translation=(0.17, 0.7, 0.52)
+                                    Sphere radius=0.05
+        Plane normal=(0, -1, 0) height=0

@@ -1,0 +1,15 @@
+# Soap bar 0: a cream soap bar, 3 m long, 1.8 m wide and 0.9 m tall (30 times life size, 10 x 6 x 3 cm), domed on top and soft at the corners,
+# lying on the floor with its long side along x. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+# A rounded block with a dome swelling out of its top, the part under the floor cut away
+Detail detail=0.4
+    Material material=bath_soap_cream
+        Intersection
+            SmoothUnion smoothness=0.2
+                Translate translation=(0, 0.3, 0)
+                    RoundBox size=(1.38, 0.3, 0.7) roundness=0.3
+                Translate translation=(0, 0.3, 0)
+                    Ellipsoid radii=(1.2, 0.5, 0.6)
+            Plane normal=(0, -1, 0) height=0
