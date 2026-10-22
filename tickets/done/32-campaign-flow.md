@@ -485,4 +485,19 @@ pointer lock after every CLICK TO PLAY, Escape in the browser opening Pause.
 
 ## Status
 
-**Not started.**
+Done in code (subtickets 32.1-32.10, in this folder), with the beat and ending format changed from 31's dropped sequencer to 32's own
+(`Beat`, `BeatSequencer`, `BeatPlayer`: caption lines over a slow camera move in the loaded scene; the ending plays over Boot's
+backdrop, as `Home.unity` is editor-only). Built: the fake multiplayer gone, `SdfCampaign.Core` (steps, setups, save `campaign.v1`,
+medals, difficulty), `Match` taking a `MatchSetup`, `Boot.unity` with `CampaignRunner`, `SceneLoader`, Loading and the persistent GUI,
+Title, Level Select, Confirm, Difficulty, Story, Victory, Defeat, retry in place, the meadow warm-up, beats B1-B7 and the ending as
+data, credits, and a settings save fix. EditMode tests pass (`SdfCampaign.Tests`, `SdfBattle.Tests`: 290); the batch play test
+`SdfCampaign.Editor.CampaignPlayTest.Run` walks the flow with 0 errors.
+
+Left:
+- Play-mode and by-eye checks: beats with real scout puppets (camera and stage numbers are first guesses), the warm-up, banner timing,
+  the Loading screen with real names, the ending screen's room, the credits author name and wording, Level Select snapshots
+  (`Assets/Campaign/Resources/LevelCards/<Scene>.png`), `intro-music.ogg` (31).
+- The web run of 32.10's checklist (Chrome and Safari), and open question 8 (Addressables) if the data file is large.
+- Levels 27-30 and the boss 33 slot in by data: see 32.9's "Adding a level to the campaign". Until their scenes exist those steps are
+  skipped (Level Select shows "Coming soon") and the ending follows the chessboard.
+- Boss step numbers are placeholders until ticket 33.
