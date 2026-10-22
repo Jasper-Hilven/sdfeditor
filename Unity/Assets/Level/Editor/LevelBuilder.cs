@@ -519,6 +519,8 @@ namespace SdfLevel.Editor
             var placed = AddPlacements(levelRoot.transform, scene, data, parts, placements);
             AddUnderside(levelRoot.transform, scene, data);
             MarkStatic(levelRoot);
+            // The fans' blades turn (ticket 30.5), so they stay out of batching
+            LevelSpinners.Add(levelRoot.transform);
             var scattered = AddScatter(scene, level, meshFolder, data, parts);
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();

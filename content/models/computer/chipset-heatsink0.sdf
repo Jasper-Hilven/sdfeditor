@@ -1,0 +1,20 @@
+# Chipset heatsink 0: a BGA chip under a squat finned heatsink, 10 m long (x), 10 m deep (z) and 6.25 m tall (250 times life size): a green carrier
+# (pc_pcb_green), the black chip (pc_epoxy_black) and an aluminium base with five tall fins (pc_aluminium). A building. Convex collider.
+format 1
+
+# The carrier, the chip, the heatsink's base and its fins
+Detail detail=0.63
+    Union
+        Material material=pc_pcb_green
+            Translate translation=(0, 0.3, 0)
+                RoundBox size=(5, 0.3, 5) roundness=0.15
+        Material material=pc_epoxy_black
+            Translate translation=(0, 0.95, 0)
+                RoundBox size=(4.2, 0.35, 4.2) roundness=0.1
+        Material material=pc_aluminium
+            Union
+                Translate translation=(0, 1.65, 0)
+                    RoundBox size=(4.3, 0.35, 4.3) roundness=0.1
+                Translate translation=(0, 4.125, 0)
+                    LimitedRepetition spacing=1.4 limits=(2, 0, 0)
+                        Box size=(0.35, 2.125, 4)

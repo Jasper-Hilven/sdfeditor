@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Plain C# of the Unity project, tested here without a scene (ticket 30.5) -->
+    <Compile Include="..\Unity\Assets\Battle\Core\SpinRules.cs" Link="Unity\SpinRules.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SDFPipeline\SDFPipeline.csproj" />
   </ItemGroup>
 
