@@ -589,6 +589,9 @@ namespace SdfBattle
                 sidestepLeft -= dt;
                 want = sidestep;
             }
+            // A train near the track it is about to cross (ticket 27.10): it waits at the track's edge until the train has passed
+            if (BotNavigation.MustWait(feet, corners, corner, 14, SdfLevel.PathMover.Clock))
+                want = Vector3.zero;
             want.y = 0;
             if (want.sqrMagnitude > 1)
                 want.Normalize();

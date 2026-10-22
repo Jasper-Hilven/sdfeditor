@@ -23,6 +23,8 @@ namespace SdfBattle
         Turret,
         /// <summary>A machine that is none of the three, or its cannon by name.</summary>
         Cannon,
+        /// <summary>A hazard of the level, with no team and no player behind it (ticket 27.10's toy train).</summary>
+        Hazard,
         /// <summary>Off the island, or out of the world.</summary>
         Fall,
         /// <summary>The killer got back at the one who last killed them.</summary>
@@ -159,6 +161,9 @@ namespace SdfBattle
             if (death.Killer == null)
             {
                 var name = death.KillerName?.ToLowerInvariant() ?? "";
+                // A hazard has a name and no team ("Toy train"); a machine has both
+                if (death.KillerTeam == null && name.Length > 0)
+                    return DeathKind.Hazard;
                 return name.EndsWith("tank") ? DeathKind.Tank
                     : name.EndsWith("helicopter") ? DeathKind.Helicopter
                     : name.EndsWith("turret") ? DeathKind.Turret
@@ -591,6 +596,31 @@ namespace SdfBattle
                 L("the {killer}\nand its cannon"),
                 L("the {killer}\nwas not a friend"),
                 L("the {killer}\nfired first"),
+            },
+
+            // A hazard of the level (the toy train): no weapon, so the icon sits between the words without one
+            [(DeathKind.Hazard, DeathText.Feed)] = new[]
+            {
+                L("{killer} {icon} ran over {victim}"),
+                L("{killer} {icon} chugged over {victim}"),
+                L("{victim} {icon} lost to the {killer}"),
+                L("{killer} {icon} steamrolled {victim}"),
+                L("{killer} {icon} derailed {victim}"),
+                L("{killer} {icon} tooted at {victim}"),
+                L("{victim} {icon} missed the {killer}"),
+                L("{killer} {icon} flattened {victim}"),
+            },
+            [(DeathKind.Hazard, DeathText.Title)] = new[]
+            {
+                L("RAN OVER!"), L("ALL ABOARD!"), L("CHOO-CHOO!"), L("DERAILED!"), L("TRACKED!"), L("FLATTENED!"),
+            },
+            [(DeathKind.Hazard, DeathText.Detail)] = new[]
+            {
+                L("by {killer}"),
+                L("{killer}\nran you over"),
+                L("{killer}\nhad right of way"),
+                L("{killer}\ndid not brake"),
+                L("you stood on\nthe track"),
             },
 
             // A fall

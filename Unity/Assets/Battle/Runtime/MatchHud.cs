@@ -135,8 +135,11 @@ namespace SdfBattle
             }
             // Kills by players and by machines (ticket 24: their name in their team's colour, no player behind it), and falls.
             // A weapon without an icon (a machine's cannon) shows none; a headshot shows the popped cap (ticket 22)
-            var machine = death.Killer == null && death.KillerName != null && death.KillerTeam != null
-                ? $"<color=#{GuiPalette.HexOf(BattleSide.ColorOf(BattleSide.SideOf(death.KillerTeam.Value)))}>{death.KillerName}</color>"
+            // A hazard of the level (ticket 27.10's "Toy train") has a name and no team: its name plain
+            var machine = death.Killer == null && death.KillerName != null
+                ? death.KillerTeam != null
+                    ? $"<color=#{GuiPalette.HexOf(BattleSide.ColorOf(BattleSide.SideOf(death.KillerTeam.Value)))}>{death.KillerName}</color>"
+                    : death.KillerName
                 : null;
             // The death screen names a machine that killed you (ticket 24), not "the island"
             if (victim == 0)

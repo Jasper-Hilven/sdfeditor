@@ -134,8 +134,10 @@ neutral
 # about 25 s. Its path is the loop, a stadium: straights along z at x = +-20 (z -12 to 12, the bridges) and half-circle ends of radius
 # 20 round (0, +-12). Arc length 0 is the east straight's south end (20, -12), going north. The cars ride the track (0.3 m high) and
 # climb the bridges: the heights are the cars' wheel level, 0.3 m on the flat, 3.8 m on a deck, 8 m ramps either side. Each car is its
-# body length; the 0.8 m gap lets the couplers touch. Engine 4.8 m, a flat wagon (rideable) and an open wagon: 14.8 m
-mover train speed=7 gap=0.8
+# body length; the 0.8 m gap lets the couplers touch. Engine 4.8 m, a flat wagon (rideable) and an open wagon: 14.8 m.
+# A car knocks a scout or tank 3 m off its side for 20 damage (a kill reads "Toy train" in the feed, no credit, no spores); the engine's chimney
+# puffs every second from its top (puffAt), a whistle puff comes 2 s before each bridge; bots wait at the track's edge while the head is within 25 m of where they cross
+mover train speed=7 gap=0.8 pushes=3 damage=20 name="Toy train" puff=1 puffAt=(0, 2.7, 1.7) whistle=2 crossing=25
     Stadium center=(0, 0) halfLength=12 radius=20
     heights keys=[(0, 0.3), (8, 3.8), (16, 3.8), (24, 0.3), (86.83, 0.3), (94.83, 3.8), (102.83, 3.8), (110.83, 0.3)]
     car toy-train-engine length=4.8
