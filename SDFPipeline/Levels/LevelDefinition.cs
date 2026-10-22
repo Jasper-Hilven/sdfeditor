@@ -26,6 +26,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The ground's regions other than the base ground, in the file's order: where they overlap, the later one wins.</summary>
     public IReadOnlyList<GroundRegion> Regions { get; init; } = [];
 
+    /// <summary>The places the ground is left out (the file's <c>hole=1</c> regions, ticket 28.1), in the file's order; not regions.</summary>
+    public IReadOnlyList<GroundHole> Holes { get; init; } = [];
+
     /// <summary>The unique models placed in the level (castles, big rocks), in the file's order.</summary>
     public IReadOnlyList<Placement> Placements { get; init; } = [];
 

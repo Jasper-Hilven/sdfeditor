@@ -30,6 +30,8 @@ namespace SDFPipeline.Levels;
 ///         RoundedBox2D center=(-62, 0) size=(14, 10) radius=1
 ///     path
 ///         Polyline points=[(-45, 0), (-10, 6), (20, -4), (45, 0)] width=3 noise=0.6
+///     sink hole=1                            # no ground at all inside its shapes (the kitchen's sink): no triangles, no collider, no navmesh floor;
+///         RoundedBox2D center=(0, 31) size=(27, 22) radius=2   # not a region (no material, not one of the four, not to avoid=); a ruled edge is cut crisp
 ///
 /// place                                     # unique models from content/models/, by name
 ///     castle0 at=(-62, 0) yaw=90 ground=tiles flatten=22
@@ -220,6 +222,7 @@ public static class LevelFile
         var hills = HillRing.None;
         var edge = IslandEdge.None;
         IReadOnlyList<GroundRegion> regions = [];
+        IReadOnlyList<GroundHole> holes = [];
         var baseGround = LevelDefinition.DefaultBase;
         IReadOnlyList<Placement> placements = [];
         var scatters = new List<ScatterLayer>();
@@ -259,7 +262,7 @@ public static class LevelFile
                     edge = ReadEdge(line, cursor);
                     break;
                 case Regions:
-                    (regions, baseGround) = ReadRegions(line, cursor);
+                    (regions, holes, baseGround) = ReadRegions(line, cursor);
                     break;
                 case Place:
                     placements = ReadPlacements(line, cursor);
@@ -330,7 +333,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -764,13 +767,14 @@ public static class LevelFile
         return new IslandEdge(margin) { Rim = rim, Shoulder = shoulder, Underside = underside };
     }
 
-    private static (IReadOnlyList<GroundRegion> Regions, string Base) ReadRegions(SourceLine line, Cursor cursor)
+    private static (IReadOnlyList<GroundRegion> Regions, IReadOnlyList<GroundHole> Holes, string Base) ReadRegions(SourceLine line, Cursor cursor)
     {
         // The regions line's own parameters: base=moss, the ground outside the regions (materials/ground/ground_moss.sdfmat)
         var baseParameters = Parameters.Read(Regions, line with { Children = [] }, cursor);
         var baseGround = baseParameters.Name("base", LevelDefinition.DefaultBase, null)!;
         baseParameters.Done("base");
         var regions = new List<GroundRegion>();
+        var holes = new List<GroundHole>();
         var seen = new Dictionary<string, int>();
         foreach (var child in line.Children)
         {
@@ -779,23 +783,32 @@ public static class LevelFile
             if (seen.TryGetValue(name, out var first))
                 throw childCursor.Error($"Region '{name}' is given twice, first on line {first}; give it more shapes instead");
             seen[name] = child.Number;
-            if (regions.Count == GroundRegions.MaxRegions)
-                throw childCursor.Error($"A level has at most {GroundRegions.MaxRegions} regions besides grass");
 
             // The region's own parameters are on its line; its shapes are indented below it
             var parameters = Parameters.Read($"region {name}", child with { Children = [] }, childCursor);
+            if (parameters.Number("hole", 0, 0, 1, "1 to leave the ground out inside its shapes, 0 for a region") > 0)
+            {
+                // A hole has shapes only: no material, so none of the region's looks, and it does not use one of the four channels
+                parameters.Done("hole");
+                if (child.Children.Count == 0)
+                    throw childCursor.Error($"Hole '{name}' needs shapes indented below it, like 'RoundedBox2D center=(0, 31) size=(27, 22) radius=2'");
+                holes.Add(new GroundHole(name, child.Children.Select(ReadShape).ToArray(), child.Number));
+                continue;
+            }
+            if (regions.Count == GroundRegions.MaxRegions)
+                throw childCursor.Error($"A level has at most {GroundRegions.MaxRegions} regions besides grass");
             var pattern = parameters.Name("pattern", name == GroundRegion.Tiles ? "stones" : "plain", ["plain", "stones"]) == "stones"
                 ? GroundPattern.Stones
                 : GroundPattern.Plain;
             var stone = parameters.Number("stone", GroundRegion.DefaultStoneSize, 0.1f, 10, "the stones' length in metres, 0.1 to 10");
             var grout = parameters.Number("grout", GroundRegion.DefaultGroutWidth, 0, 0.5f, "the grout's width in metres, 0 to 0.5");
             var wobble = parameters.Number("wobble", GroundRegion.DefaultWobble, 0, 0.5f, "metres the shader wobbles the edge, 0 (straight) to 0.5");
-            parameters.Done("pattern", "stone", "grout", "wobble");
+            parameters.Done("hole", "pattern", "stone", "grout", "wobble");
             if (child.Children.Count == 0)
                 throw childCursor.Error($"Region '{name}' needs shapes indented below it, like 'Circle center=(0, 0) radius=10'");
             regions.Add(new GroundRegion(name, child.Children.Select(ReadShape).ToArray(), pattern, stone, grout, wobble));
         }
-        return regions.Count > 0 ? (regions, baseGround) : throw cursor.Error("The regions need a region indented below them, like 'dirt'");
+        return regions.Count + holes.Count > 0 ? (regions, holes, baseGround) : throw cursor.Error("The regions need a region indented below them, like 'dirt'");
     }
 
     private static RegionShape ReadShape(SourceLine line)

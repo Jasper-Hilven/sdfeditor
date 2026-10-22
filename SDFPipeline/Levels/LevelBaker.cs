@@ -105,6 +105,7 @@ public static class LevelBaker
         if (level.Edge.Underside is { } underside && !(modelExists ?? (name => models?.Invoke(name) is not null))(underside.Model))
             throw new ProgramFiles.SdfProgramFileException(underside.Line, $"There is no model '{underside.Model}' in content/models/");
         var regions = new GroundRegions(level, model => footprints[model]);
+        var holes = new GroundHoles(level.Holes, level.Seed);
         foreach (var region in regions.Regions)
             if (!materials.Contains(region.Material))
                 throw new InvalidOperationException($"There is no material file for {region.Material}; the ground needs materials/ground/{region.Material}.sdfmat");
@@ -145,14 +146,14 @@ public static class LevelBaker
         {
             var region = regions.At(p);
             return groundColors[region is null ? 0 : regions.Regions.ToList().IndexOf(region) + 1];
-        });
+        }, holes);
 
         // Each chunk on its own, in parallel; the results go in order, so the files do not depend on which finished first
         var chunks = new GroundMesh?[layout.CountX * layout.CountZ][];
         Parallel.For(0, chunks.Length, index =>
         {
             var (i, j) = (index % layout.CountX, index / layout.CountX);
-            chunks[index] = Details.Select(detail => GroundMesher.Mesh(terrain, layout, i, j, detail)).ToArray();
+            chunks[index] = Details.Select(detail => GroundMesher.Mesh(terrain, layout, i, j, detail, holes)).ToArray();
         });
 
         Directory.CreateDirectory(folder);
