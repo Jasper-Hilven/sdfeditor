@@ -58,10 +58,12 @@ namespace SdfBattle
             spores.combat = combat;
             var flags = CaptureTheFlag.Current != null ? CaptureTheFlag.Current.State : null;
             spores.State = new SporeState(match.State, combat.State, flags, spores.rules);
+            spores.State.Enabled = match.Setup == null || match.Setup.sporesOn;
             spores.State.Sporulated += spores.OnSporulated;
             spores.trailClock = new float[match.Players.Count];
             spores.swell = new float[match.Players.Count];
-            SporeHud.Create(spores);
+            if (spores.State.Enabled)
+                SporeHud.Create(spores);
             Current = spores;
             return spores;
         }

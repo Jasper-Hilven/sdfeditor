@@ -27,6 +27,18 @@ namespace SdfBattle
         [Tooltip("Draw each bot's path and goal in the Scene view")]
         public bool showPaths = true;
 
+        /// <summary>The skill a team's bots aim with: the match setup's (ticket 32.3), else the one <see cref="skill"/>.</summary>
+        public BotSkill SkillOf(Team team) => teamSkill[(int)team] ?? skill;
+
+        /// <summary>Gives a team's bots their own skill; null goes back to <see cref="skill"/>. Takes hold at once (RETRY EASIER).</summary>
+        public void SetSkill(Team team, BotSkill value)
+        {
+            teamSkill[(int)team] = value;
+            foreach (var bot in bots)
+                if (bot.Player.Team == team)
+                    bot.UseSkill(SkillOf(team));
+        }
+
         /// <summary>A pod a bot may walk to: a weapon or a health pod.</summary>
         public struct Pod
         {
@@ -38,6 +50,7 @@ namespace SdfBattle
 
         private static readonly RaycastHit[] Hits = new RaycastHit[16];
 
+        private readonly BotSkill[] teamSkill = new BotSkill[Teams.Count];
         private readonly List<Bot> bots = new List<Bot>();
         private readonly List<Pod> pods = new List<Pod>();
         private Vector3[] lastPositions = new Vector3[0];
@@ -76,6 +89,9 @@ namespace SdfBattle
         private void Attach(Match match)
         {
             Match = match;
+            if (match.Setup != null)
+                foreach (var team in Teams.All)
+                    teamSkill[(int)team] = new BotSkill(match.Setup.SkillOf(team));
             Combat = Combat.Current;
             Flags = CaptureTheFlag.Current;
             var arena = match.Arena;

@@ -34,6 +34,22 @@ namespace SdfCampaign
         /// <summary>Seconds a dead blue player waits before respawning (red uses the match rules' own).</summary>
         public float blueRespawnSeconds = 5;
 
+        /// <summary>The numbers the match plays by (SdfBattle.Core cannot see this assembly, so it has its own plain copy).</summary>
+        public SdfBattle.MatchSetup ToMatchSetup() => new SdfBattle.MatchSetup
+        {
+            redSize = redSize,
+            blueSize = blueSize,
+            redSkill = redSkill,
+            blueSkill = blueSkill,
+            redNames = (string[])redNames.Clone(),
+            blueNames = (string[])blueNames.Clone(),
+            capturesToWin = capturesToWin,
+            timeLimitSeconds = timeLimitSeconds,
+            singleRound = singleRound,
+            sporesOn = sporesOn,
+            blueRespawnSeconds = blueRespawnSeconds,
+        };
+
         public BattleSetup Clone()
         {
             var copy = (BattleSetup)MemberwiseClone();

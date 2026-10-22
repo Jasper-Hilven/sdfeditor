@@ -42,6 +42,9 @@ namespace SdfBattle
 
         public MatchState Match { get; }
 
+        /// <summary>Whether the spore powers exist (a campaign battle may switch them off, ticket 32.3); off, nothing is ever gained.</summary>
+        public bool Enabled { get; set; } = true;
+
         public CombatState Combat { get; }
 
         public CaptureTheFlagState Flags { get; }
@@ -75,7 +78,7 @@ namespace SdfBattle
         /// <summary>Adds spores to a player's meter, unless a power is on; up to full. Returns what was added.</summary>
         public float Gain(PlayerState player, float amount)
         {
-            if (player == null || amount <= 0)
+            if (!Enabled || player == null || amount <= 0)
                 return 0;
             var meter = MeterOf(player);
             if (meter.Active || meter.Amount >= Rules.full)
