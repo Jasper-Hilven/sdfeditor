@@ -96,8 +96,10 @@ namespace SdfLevel.Editor
         /// Version 19: the machines' prefabs on Battle (ticket 24.3, <see cref="SdfBattle.Machines"/>); the match without a countdown.
         /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
         /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
+        /// Version 22: the boss arena (ticket 33.3): the placed models tagged with phases under <see cref="PhaseGroup"/> objects, Boss Spots
+        /// (<see cref="BossSpots"/>), and the navmeshes per phase layout.
         /// </summary>
-        public const int BuilderVersion = 21;
+        public const int BuilderVersion = 22;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -518,12 +520,17 @@ namespace SdfLevel.Editor
             var placed = AddPlacements(levelRoot.transform, scene, data, parts, placements);
             AddUnderside(levelRoot.transform, scene, data);
             MarkStatic(levelRoot);
+            // What a phase hides must not be merged into a static batch with what stays
+            foreach (var group in levelRoot.GetComponentsInChildren<PhaseGroup>(true))
+                foreach (var transform in group.GetComponentsInChildren<Transform>(true))
+                    GameObjectUtility.SetStaticEditorFlags(transform.gameObject, StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic);
             var scattered = AddScatter(scene, level, meshFolder, data, parts);
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
             AssetDatabase.SaveAssets();
             var player = AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
             var battle = AddBattle(scene, data, player);
+            AddBossSpots(scene, data);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
             var movers = AddMovers(scene, data);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
@@ -682,6 +689,9 @@ namespace SdfLevel.Editor
             var root = new GameObject(PlacedName);
             root.transform.SetParent(levelRoot, false);
             var count = 0;
+            // Ticket 33.3: the models tagged with phases (level.json "phases": [first, last]) go under a group per range, which the boss's
+            // arena shows and hides; the scene is built in phase 1
+            var phaseGroups = new Dictionary<string, Transform>();
             foreach (var placement in placements)
             {
                 var model = placement.Value<string>("model");
@@ -694,7 +704,21 @@ namespace SdfLevel.Editor
                 }
                 var position = placement["position"].ToObject<float[]>();
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
-                instance.transform.SetParent(root.transform, false);
+                var parent = root.transform;
+                if (placement["phases"] is JArray phases && phases.Count == 2)
+                {
+                    var (first, last) = (phases[0].Value<int>(), phases[1].Value<int>());
+                    var groupName = PhaseGroup.NameOf(first, last);
+                    if (!phaseGroups.TryGetValue(groupName, out parent))
+                    {
+                        var group = new GameObject(groupName);
+                        group.transform.SetParent(root.transform, false);
+                        var phaseGroup = group.AddComponent<PhaseGroup>();
+                        (phaseGroup.first, phaseGroup.last) = (first, last);
+                        phaseGroups[groupName] = parent = group.transform;
+                    }
+                }
+                instance.transform.SetParent(parent, false);
                 instance.transform.SetLocalPositionAndRotation(new Vector3(-position[0], position[1], position[2]),
                     Quaternion.Euler(0, -placement.Value<float>("yaw"), 0));
                 var scale = placement.Value<float?>("scale") ?? 1;
@@ -710,6 +734,34 @@ namespace SdfLevel.Editor
                 count++;
             }
             return count;
+        }
+
+        /// <summary>
+        /// The final boss's places (level.json "boss", ticket 33.3) as <see cref="BossSpots"/> at the scene's root: an empty marker each for
+        /// Prime, the crash, the champion's plinth and the shield's dome, x mirrored and yaw turned round, as the placements. Nothing for a
+        /// level without a boss section.
+        /// </summary>
+        private static void AddBossSpots(Scene scene, JObject data)
+        {
+            if (!(data["boss"] is JObject boss))
+                return;
+            var root = new GameObject(BossSpots.ObjectName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            var spots = root.AddComponent<BossSpots>();
+            Transform Spot(string name, string spotName)
+            {
+                var entry = boss[name];
+                var position = entry["position"].ToObject<float[]>();
+                var marker = new GameObject(spotName).transform;
+                marker.SetParent(root.transform, false);
+                marker.SetLocalPositionAndRotation(new Vector3(-position[0], position[1], position[2]), Quaternion.Euler(0, -(entry.Value<float?>("yaw") ?? 0), 0));
+                return marker;
+            }
+            spots.prime = Spot("prime", "Prime");
+            spots.crash = Spot("crash", "Crash");
+            spots.plinth = Spot("plinth", "Plinth");
+            spots.shield = Spot("shield", "Shield");
+            spots.shieldRadius = boss["shield"].Value<float?>("radius") ?? spots.shieldRadius;
         }
 
         public const string MoversName = "Movers";

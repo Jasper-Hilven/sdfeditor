@@ -72,9 +72,28 @@ namespace SdfBattle.Editor
         };
 
         /// <summary>
+        /// The final boss's agent (ticket 33.3): Prime on foot, r 1.8 m, 6.5 m high, step 0.5 m, slope 25 degrees, ground only. Baked
+        /// on boss levels only (the ones with <see cref="SdfLevel.PhaseGroup"/>s), so Prime's path round the shelters (their caps are
+        /// under his height) and the wreck keeps off what a scout can pass.
+        /// </summary>
+        public static readonly Agent BossAgent = new Agent(BotNavigation.BossAgent, 1.8f, 6.5f, 0.5f, 25, 0);
+
+        /// <summary>What a surface's object and data are called: Navigation Scout, and on a boss level Navigation Scout Phase 2.</summary>
+        public static string SurfaceName(string agent, int phase) => phase == 0 ? ObjectPrefix + agent : $"{ObjectPrefix}{agent} Phase {phase}";
+
+        /// <summary>The asset a surface's data is saved as: NavMesh Scout.asset, on a boss level NavMesh Scout Phase 2.asset.</summary>
+        public static string AssetName(string agent, int phase) => phase == 0 ? $"NavMesh {agent}.asset" : $"NavMesh {agent} Phase {phase}.asset";
+
+        /// <summary>
         /// Bakes the battle scene's navmesh for every agent type; returns how many were baked (0 for a scene with no battle).
         /// <paramref name="levelRoot"/> holds the level's colliders, <paramref name="playMin"/> and <paramref name="playMax"/> are the play
         /// area's corners (x, z in Unity's coordinates), <paramref name="ignored"/> what is no ground (the player, the battle objects).
+        /// <para>
+        /// A boss level (ticket 33.3: its placed models are grouped under <see cref="SdfLevel.PhaseGroup"/>s) is baked once per phase
+        /// layout, with the phase's groups shown and the others hidden: three surfaces per agent, Navigation Scout Phase 1 to 3, and the
+        /// <see cref="BossAgent"/> as well. The surfaces of phases 2 and 3 are left inactive (the boss's arena switches them with the
+        /// phase), and the scene is left in phase 1.
+        /// </para>
         /// </summary>
         public static int Build(Transform levelRoot, Vector2 playMin, Vector2 playMax, BattleArena arena, string meshFolder, params GameObject[] ignored)
         {
@@ -99,39 +118,52 @@ namespace SdfBattle.Editor
             var low = Mathf.Min(arena.west.spawn.position.y, arena.east.spawn.position.y) - BelowSpawn;
             var high = Mathf.Max(arena.west.spawn.position.y, arena.east.spawn.position.y) + AboveSpawn;
             var baked = 0;
-            foreach (var agent in Agents)
+            var boss = levelRoot.GetComponentInChildren<SdfLevel.PhaseGroup>(true) != null;
+            var phases = boss ? new[] { 1, 2, 3 } : new[] { 0 };
+            var agents = boss ? Agents.Append(BossAgent).ToArray() : Agents;
+            foreach (var phase in phases)
             {
-                var id = EnsureAgentType(agent);
-                var surfaceObject = new GameObject(ObjectPrefix + agent.Name);
-                surfaceObject.transform.SetParent(levelRoot, false);
-                surfaceObject.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-                var surface = surfaceObject.AddComponent<NavMeshSurface>();
-                surface.agentTypeID = id;
-                surface.collectObjects = CollectObjects.Volume;
-                var middle = (playMin + playMax) / 2;
-                var size = playMax - playMin;
-                surface.center = new Vector3(middle.x, (low + high) / 2, middle.y);
-                surface.size = new Vector3(Mathf.Abs(size.x), high - low, Mathf.Abs(size.y));
-                surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
-                surface.layerMask = ~0;
-                surface.defaultArea = 0;
-                var serialized = new SerializedObject(surface);
-                serialized.FindProperty("m_GenerateLinks").boolValue = agent.Drop > 0;
-                serialized.ApplyModifiedPropertiesWithoutUndo();
-
-                surface.BuildNavMesh();
-                if (surface.navMeshData == null)
+                if (phase > 0)
+                    SdfLevel.PhaseGroup.ShowPhase(levelRoot, phase);
+                foreach (var agent in agents)
                 {
-                    Debug.LogWarning($"SDF level: the {agent.Name} navmesh did not bake");
-                    continue;
+                    var id = EnsureAgentType(agent);
+                    var surfaceObject = new GameObject(SurfaceName(agent.Name, phase));
+                    surfaceObject.transform.SetParent(levelRoot, false);
+                    surfaceObject.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    var surface = surfaceObject.AddComponent<NavMeshSurface>();
+                    surface.agentTypeID = id;
+                    surface.collectObjects = CollectObjects.Volume;
+                    var middle = (playMin + playMax) / 2;
+                    var size = playMax - playMin;
+                    surface.center = new Vector3(middle.x, (low + high) / 2, middle.y);
+                    surface.size = new Vector3(Mathf.Abs(size.x), high - low, Mathf.Abs(size.y));
+                    surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+                    surface.layerMask = ~0;
+                    surface.defaultArea = 0;
+                    var serialized = new SerializedObject(surface);
+                    serialized.FindProperty("m_GenerateLinks").boolValue = agent.Drop > 0;
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                    surface.BuildNavMesh();
+                    if (surface.navMeshData == null)
+                    {
+                        Debug.LogWarning($"SDF level: the {agent.Name} navmesh did not bake");
+                        continue;
+                    }
+                    var path = $"{meshFolder}/{AssetName(agent.Name, phase)}";
+                    if (AssetDatabase.LoadAssetAtPath<NavMeshData>(path) != null)
+                        AssetDatabase.DeleteAsset(path);
+                    surface.navMeshData.name = surfaceObject.name;
+                    AssetDatabase.CreateAsset(surface.navMeshData, path);
+                    baked++;
+                    // The phases after the first are switched on by the boss's arena
+                    if (phase > 1)
+                        surfaceObject.SetActive(false);
                 }
-                var path = $"{meshFolder}/NavMesh {agent.Name}.asset";
-                if (AssetDatabase.LoadAssetAtPath<NavMeshData>(path) != null)
-                    AssetDatabase.DeleteAsset(path);
-                surface.navMeshData.name = surfaceObject.name;
-                AssetDatabase.CreateAsset(surface.navMeshData, path);
-                baked++;
             }
+            if (boss)
+                SdfLevel.PhaseGroup.ShowPhase(levelRoot, 1);
             AssetDatabase.SaveAssets();
             return baked;
         }
@@ -278,6 +310,169 @@ namespace SdfBattle.Editor
             }
         }
 
+        /// <summary>
+        /// Ticket 33.3: a boss level's navmeshes, one set per phase layout (Navigation Scout Phase 1 to 3, and the Tank and Boss agents
+        /// the same). From the red spawn, on each phase's scout navmesh: the blue spawn, the blue flag stand (a phase 1 object: reported in
+        /// the later phases, where the fallen balcony's ramp is over it, but not a problem there), every pod, the dais where Prime stands
+        /// (up the stairs, and in phases 2 and 3 up the ramp), the crash site (phase 3: the wreck's top, where the crown is), and how much
+        /// of the open floor on a 3 m grid is reached; the turrets stand off the navmesh; the machine zone is on the tank navmesh. On the
+        /// Boss agent's phase 3 navmesh: Prime's way from the wreck to the red flag stand.
+        /// </summary>
+        private static string CheckBoss(JObject data, JObject battle, JObject boss, string name)
+        {
+            var report = new StringBuilder($"{name} (boss layout, one navmesh set per phase, from the red spawn):\n");
+            var problems = 0;
+            var folder = $"{SdfLevel.Editor.LevelBuilder.MeshFolder}/{name}";
+            var sides = ((JArray)battle["sides"]).ToList();
+            var spawns = sides.Select(s => Position(s["spawn"])).ToList();
+            var floor = spawns.Average(p => p.y);
+            var path = new NavMeshPath();
+
+            (bool Reached, float Length) Way(NavMeshQueryFilter filter, Vector3 from, Vector3 to, float snap)
+            {
+                if (!NavMesh.SamplePosition(from, out var start, snap, filter) || !NavMesh.SamplePosition(to, out var end, snap, filter))
+                    return (false, -1);
+                if (!NavMesh.CalculatePath(start.position, end.position, filter, path))
+                    return (false, -1);
+                var length = 0f;
+                for (var i = 1; i < path.corners.Length; i++)
+                    length += Vector3.Distance(path.corners[i - 1], path.corners[i]);
+                return (path.status == NavMeshPathStatus.PathComplete, length);
+            }
+
+            for (var phase = 1; phase <= 3; phase++)
+            {
+                report.Append($"  phase {phase}:\n");
+                var scout = AssetDatabase.LoadAssetAtPath<NavMeshData>($"{folder}/{BattleNavmesh.AssetName(BotNavigation.ScoutAgent, phase)}");
+                if (scout == null)
+                {
+                    report.Append("    no scout navmesh (rebuild the scene)\n");
+                    problems++;
+                    continue;
+                }
+                var filter = new NavMeshQueryFilter { agentTypeID = BotNavigation.AgentTypeOf(BotNavigation.ScoutAgent) ?? 0, areaMask = NavMesh.AllAreas };
+                var instance = NavMesh.AddNavMeshData(scout);
+                try
+                {
+                    var home = spawns[0];
+                    void Target(string what, Vector3 where, bool required = true, float snap = 3)
+                    {
+                        var (reached, length) = Way(filter, home, where, snap);
+                        if (!reached && required)
+                            problems++;
+                        report.Append($"    {what}: {(reached ? $"reached, {length:0} m" : length < 0 ? "NOT ON THE NAVMESH" : "NOT REACHED")}{(reached || required ? "" : " (not needed in this phase)")}\n");
+                    }
+                    Target("blue spawn", spawns[1]);
+                    foreach (var side in sides)
+                    {
+                        var sideName = side.Value<string>("side");
+                        // The blue flag stand is a phase 1 object; the crown's stand, the wreck's top, is the flag in phase 3
+                        Target($"{sideName} flag stand", Position(side["flag"]), required: phase == 1 || sideName == "west");
+                        foreach (var pod in (JArray)side["pods"])
+                            Target($"{sideName} {pod.Value<string>("pod")} pod", Position(pod));
+                    }
+                    foreach (var pod in (JArray)battle["neutral"])
+                        Target($"neutral {pod.Value<string>("pod")} pod", Position(pod));
+                    // The dais: up the box's stairs in every phase, and up the ramp in phases 2 and 3
+                    Target("the dais where Prime stands", Position(boss["prime"]), required: phase > 1, snap: 1.5f);
+                    // The wreck's top, where the crown is in phase 3: the highest walkable spot over the crash site
+                    if (phase == 3)
+                    {
+                        var crash = Position(boss["crash"]);
+                        var top = NavMesh.SamplePosition(crash + Vector3.up * 6, out var topHit, 4, filter) ? topHit.position : crash;
+                        Target($"the crown's place on the wreck at ({crash.x:0}, {crash.z:0}), {top.y - floor:0.0} m up", top, snap: 1);
+                    }
+
+                    // Open ground nobody reaches, on a 3 m grid of the play area, floor level only
+                    var play = data["play"];
+                    var min = play["min"].ToObject<float[]>();
+                    var max = play["max"].ToObject<float[]>();
+                    int ground = 0, unreached = 0;
+                    var far = new List<string>();
+                    for (var x = -max[0] + 1.5f; x < -min[0]; x += 3)
+                    for (var z = min[1] + 1.5f; z < max[1]; z += 3)
+                    {
+                        if (!NavMesh.SamplePosition(new Vector3(x, floor + 1, z), out var hit, 2, filter) || hit.position.y > floor + 3)
+                            continue;
+                        ground++;
+                        if (NavMesh.CalculatePath(home, hit.position, filter, path) && path.status == NavMeshPathStatus.PathComplete)
+                            continue;
+                        unreached++;
+                        if (far.Count < 12)
+                            far.Add($"({hit.position.x:0}, {hit.position.y:0.0}, {hit.position.z:0})");
+                    }
+                    report.Append($"    open ground: {ground - unreached} of {ground} grid spots reached{(far.Count > 0 ? "; not: " + string.Join(" ", far) : "")}\n");
+
+                    // The turrets stand off the scouts' navmesh
+                    foreach (var side in sides)
+                        foreach (var turret in (side["turrets"] as JArray) ?? new JArray())
+                        {
+                            var at = Position(turret);
+                            var clear = NavMesh.SamplePosition(at, out var nearest, 4, filter)
+                                ? Vector2.Distance(new Vector2(at.x, at.z), new Vector2(nearest.position.x, nearest.position.z))
+                                : float.PositiveInfinity;
+                            report.Append($"    {side.Value<string>("side")} turret at ({at.x:0}, {at.z:0}): the navmesh {clear:0.0} m from its axis\n");
+                            if (clear < 0.6f)
+                                problems++;
+                        }
+                }
+                finally
+                {
+                    instance.Remove();
+                }
+
+                // The tanks (phase 2 drops them): the machine zone is on the tank navmesh
+                var tank = AssetDatabase.LoadAssetAtPath<NavMeshData>($"{folder}/{BattleNavmesh.AssetName(BotNavigation.TankAgent, phase)}");
+                foreach (var side in sides.Where(s => s["machines"] is JObject))
+                {
+                    var zone = Position(side["machines"]);
+                    var onTanks = false;
+                    if (tank != null)
+                    {
+                        var tankInstance = NavMesh.AddNavMeshData(tank);
+                        try
+                        {
+                            onTanks = NavMesh.SamplePosition(zone, out _, side["machines"].Value<float?>("radius") ?? 3,
+                                new NavMeshQueryFilter { agentTypeID = BotNavigation.AgentTypeOf(BotNavigation.TankAgent) ?? 0, areaMask = NavMesh.AllAreas });
+                        }
+                        finally
+                        {
+                            tankInstance.Remove();
+                        }
+                    }
+                    if (!onTanks)
+                        problems++;
+                    report.Append($"    {side.Value<string>("side")} machine zone: {(onTanks ? "on the tank navmesh" : "NOT ON THE TANK NAVMESH")}\n");
+                }
+            }
+
+            // Prime on foot (phase 3): from the wreck to the red flag stand, on the Boss agent's navmesh
+            var bossMesh = AssetDatabase.LoadAssetAtPath<NavMeshData>($"{folder}/{BattleNavmesh.AssetName(BotNavigation.BossAgent, 3)}");
+            if (bossMesh == null)
+            {
+                report.Append("  no Boss navmesh for phase 3 (rebuild the scene)\n");
+                problems++;
+            }
+            else
+            {
+                var bossFilter = new NavMeshQueryFilter { agentTypeID = BotNavigation.AgentTypeOf(BotNavigation.BossAgent) ?? 0, areaMask = NavMesh.AllAreas };
+                var instance = NavMesh.AddNavMeshData(bossMesh);
+                try
+                {
+                    var (reached, length) = Way(bossFilter, Position(boss["crash"]), Position(sides[0]["flag"]), 4);
+                    if (!reached)
+                        problems++;
+                    report.Append($"  Boss agent, phase 3, from the wreck to the red flag stand: {(reached ? $"reached, {length:0} m" : length < 0 ? "NOT ON THE NAVMESH" : "NOT REACHED")}\n");
+                }
+                finally
+                {
+                    instance.Remove();
+                }
+            }
+            report.Append($"  {(problems == 0 ? "OK" : problems + " PROBLEMS")}\n");
+            return report.ToString();
+        }
+
         /// <summary>One level's report: a line per finding.</summary>
         public static string Check(string level)
         {
@@ -286,6 +481,9 @@ namespace SdfBattle.Editor
             var name = data.Value<string>("name") ?? Path.GetFileName(level);
             if (!(data["battle"] is JObject battle))
                 return $"{name}: no battle\n";
+            // Ticket 33.3: the boss's arena has a navmesh per phase layout
+            if (data["boss"] is JObject bossData)
+                return CheckBoss(data, battle, bossData, name);
             var asset = AssetDatabase.LoadAssetAtPath<NavMeshData>($"{SdfLevel.Editor.LevelBuilder.MeshFolder}/{name}/NavMesh {BotNavigation.ScoutAgent}.asset");
             if (asset == null)
                 return $"{name}: no scout navmesh (rebuild the scene)\n";

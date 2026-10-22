@@ -92,7 +92,7 @@ public sealed class LevelTerrain
         var hills = level.Hills;
 
         // Toward the crest the play area's bumps give way to the hills'; inside the rectangle they are all there is
-        var rise = hills.Width > 0 ? Smoothstep(d / hills.Width) : 0f;
+        var rise = hills.Width > 0 ? Rise(d) : 0f;
         var height = play.NoiseAmplitude * playNoise.Sample(x / play.NoiseScale, z / play.NoiseScale) * (1 - rise);
         if (hills.Width <= 0)
             return height;
@@ -101,6 +101,22 @@ public sealed class LevelTerrain
         height += hills.Height * (rise - BackSlopeDrop * back);
         height += hills.NoiseAmplitude * rise * hillNoise.Fractal(x / hills.NoiseScale, z / hills.NoiseScale);
         return Rimmed(height, d);
+    }
+
+    /// <summary>
+    /// How far up the hills the ground is at distance d from the playable rectangle, 0 to 1 (1 at the crest): a smooth S curve, or with
+    /// a terrace (<see cref="HillRing.Terrace"/>, ticket 33.3) steps of that depth up a straight slope, each a flat tread then a riser over
+    /// the last third (<see cref="HillRing.TreadShare"/>), so the stands of the arena climb in tiers that the crowd stands on.
+    /// </summary>
+    private float Rise(float d)
+    {
+        var hills = level.Hills;
+        if (hills.Terrace <= 0)
+            return Smoothstep(d / hills.Width);
+        var step = MathF.Floor(d / hills.Terrace);
+        var along = d / hills.Terrace - step;
+        var riser = Smoothstep((along - HillRing.TreadShare) / (1 - HillRing.TreadShare));
+        return MathF.Min(1, (step + riser) * hills.Terrace / hills.Width);
     }
 
     /// <summary>

@@ -156,6 +156,8 @@ public static class LevelScatter
             }
             if (!terrain.OnIsland(p.X, p.Y))
                 return false;
+            if (layer.Area is { } area && (p.X < area.Min.X || p.X > area.Max.X || p.Y < area.Min.Y || p.Y > area.Max.Y))
+                return false;
             foreach (var region in avoided)
                 if (regions.Distance(region, p) < layer.Margin)
                     return false;
@@ -220,6 +222,10 @@ public static class LevelScatter
                 pick -= candidate.Weight;
             }
             var yaw = random.NextFloat() * 360 - 180;
+            // Facing the middle of the play area (the arena's crowd looks at the floor), give or take the layer's facing; the random
+            // draw above is made all the same, so the rest of the scatter stays where it was
+            if (layer.Facing is { } jitter)
+                yaw = MathF.Atan2(-p.X, -p.Y) * 180 / MathF.PI + (yaw / 180) * jitter;
             var scale = layer.Scale.X + (layer.Scale.Y - layer.Scale.X) * random.NextFloat();
             var height = layer.Band is null ? terrain.Height(p.X, p.Y) : LowestAround(terrain, p, FootRadius);
             var hash = random.NextUInt();

@@ -50,6 +50,12 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The two battle sides and the neutral pods between them (ticket 17), or null for a level without them.</summary>
     public BattleLayout? Battle { get; init; }
 
+    /// <summary>How the two sides relate: mirrored across x = 0 (every level but the final boss's) or the boss's asymmetric layout (ticket 33.3).</summary>
+    public LevelLayout Layout { get; init; } = LevelLayout.Mirrored;
+
+    /// <summary>The final boss's spots: where Prime stands, the copter crashes, the champion's plinth is and the shield's dome (ticket 33.3); null unless <see cref="Layout"/> is <see cref="LevelLayout.Boss"/>.</summary>
+    public BossSpec? Boss { get; init; }
+
     /// <summary>The machine models the sides' turrets, tanks and helicopters use, and a room's flight ceiling (ticket 27.2); null for the default set.</summary>
     public MachineSet? Machines { get; init; }
 
@@ -58,6 +64,50 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 
     /// <summary>The machine set's name: <see cref="MachineSet.Default"/> without a <c>machines</c> line.</summary>
     public string MachineSetName => Machines?.Name ?? MachineSet.Default;
+}
+
+/// <summary>
+/// How a level's two battle sides relate. <see cref="Mirrored"/>: east is west mirrored across x = 0 (the same pods, the mirrored places).
+/// <see cref="Boss"/> (ticket 33.3): the final boss's arena, west 42's corner and east Prime's Royal Box, so the east side need not
+/// have weapon or health pods, and nothing is mirrored; phases may tag the placed models (<see cref="Placement.Phases"/>), and the
+/// level has a <c>boss</c> section (<see cref="BossSpec"/>).
+/// </summary>
+public enum LevelLayout
+{
+    Mirrored,
+    Boss,
+}
+
+/// <summary>
+/// The phases of the boss fight a placed model is there in, from <paramref name="First"/> to <paramref name="Last"/> (1 to
+/// <see cref="Count"/>): the level file's <c>phases=1-2</c> (or <c>phases=3</c>, the same phase twice).
+/// </summary>
+public readonly record struct PhaseRange(int First, int Last)
+{
+    /// <summary>The fight's phases: the Royal Box, the Prime-copter and the crown.</summary>
+    public const int Count = 3;
+
+    public bool Contains(int phase) => phase >= First && phase <= Last;
+
+    /// <summary>As the level file writes it: 1-2, or 3.</summary>
+    public override string ToString() => First == Last ? $"{First}" : $"{First}-{Last}";
+}
+
+/// <summary>A spot of the boss arena (the level file's <c>boss</c> section): on the ground at <paramref name="At"/>, <paramref name="Y"/> metres above it, turned <paramref name="Yaw"/> degrees.</summary>
+public sealed record BossSpot(Vector2 At, float Yaw, float Y, int Line);
+
+/// <summary>The spore shield's dome: <paramref name="Radius"/> metres round the point <paramref name="Y"/> metres above the ground at <paramref name="At"/>.</summary>
+public sealed record BossShield(Vector2 At, float Radius, float Y, int Line);
+
+/// <summary>
+/// The final boss's places (ticket 33.3), written in the level file's <c>boss</c> section and baked into level.json: where Prime
+/// stands in phase 1 (<see cref="Prime"/>), where the Prime-copter crashes and the crown's wreck stands (<see cref="Crash"/>), the
+/// champion's plinth where 42's golden minigun appears (<see cref="Plinth"/>) and the shield's dome over Prime (<see cref="Shield"/>).
+/// </summary>
+public sealed record BossSpec(BossSpot Prime, BossSpot Crash, BossSpot Plinth, BossShield Shield)
+{
+    public IEnumerable<(string Name, Vector2 At, int Line)> Spots =>
+        [("prime", Prime.At, Prime.Line), ("crash", Crash.At, Crash.Line), ("plinth", Plinth.At, Plinth.Line), ("shield", Shield.At, Shield.Line)];
 }
 
 /// <summary>
@@ -160,6 +210,15 @@ public sealed record HillRing(float Width, float Height, float NoiseAmplitude, f
 {
     public const float DefaultNoiseScale = 18;
 
+    /// <summary>
+    /// With a terrace (ticket 33.3), the hills rise in steps <see cref="Terrace"/> metres deep (the arena's stands): flat treads, each
+    /// one riser higher than the one before, up to the crest; 0 for the smooth slope.
+    /// </summary>
+    public float Terrace { get; init; }
+
+    /// <summary>Where, as a share of each step's depth, the riser starts: the first two thirds is the tread, the last third climbs.</summary>
+    public const float TreadShare = 2f / 3;
+
     /// <summary>No hills: the ground stays at the playable area's height up to the edge.</summary>
     public static readonly HillRing None = new(0, 0, 0, DefaultNoiseScale);
 }
@@ -245,6 +304,9 @@ public sealed record Placement(string Model, Vector2 At, float Yaw, float Scale,
     /// over its own base, which stands on the same level ground (its plateau).
     /// </summary>
     public float Y { get; init; }
+
+    /// <summary>The phases of the final boss's fight (ticket 33.3) it is there in; null for all of them. Only on a level with <see cref="LevelLayout.Boss"/>.</summary>
+    public PhaseRange? Phases { get; init; }
 }
 
 /// <summary>A model a scatter layer picks from, <see cref="Weight"/> times as often as one of weight 1.</summary>
@@ -279,6 +341,15 @@ public sealed record ScatterLayer(IReadOnlyList<ScatterEntry> Entries, string Gr
 
     /// <summary>For a trees section: the least and greatest distance from the playable rectangle's edge, negative inside it; null for a scatter.</summary>
     public Vector2? Band { get; init; }
+
+    /// <summary>For a trees section: the instances stand inside this rectangle only (x, z of its corners), as the arena's blue fans do behind the Royal Box; null for anywhere.</summary>
+    public (Vector2 Min, Vector2 Max)? Area { get; init; }
+
+    /// <summary>
+    /// For a trees section: each instance faces the middle of the playable area, give or take this many degrees, instead of any way (the
+    /// crowd in the stands faces the arena floor); null for random yaws.
+    /// </summary>
+    public float? Facing { get; init; }
 }
 
 /// <summary>

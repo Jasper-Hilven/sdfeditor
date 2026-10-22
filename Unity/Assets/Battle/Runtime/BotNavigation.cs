@@ -22,6 +22,9 @@ namespace SdfBattle
         /// <summary>The agent type ticket 24's tanks drive as: 0.8 m, ground only (no stairs, no wall-walks).</summary>
         public const string TankAgent = "Tank";
 
+        /// <summary>The agent type of the final boss (ticket 33.3), Chanterelle Prime on foot in phase 3: r 1.8 m, 6.5 m high, step 0.5 m, slope 25 degrees, ground only. Baked on boss levels only.</summary>
+        public const string BossAgent = "Boss";
+
         private static int agentType = int.MinValue;
         private static NavMeshPath scratch;
         private static Vector3? home;
