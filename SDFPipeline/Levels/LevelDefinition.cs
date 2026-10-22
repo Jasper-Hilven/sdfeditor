@@ -50,6 +50,12 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The closed room over the playable area (walls and ceiling), or null for a level open to the sky.</summary>
     public RoomSpec? Room { get; init; }
 
+    /// <summary>
+    /// A model standing in for the room beyond a play area with open edges (ticket 28.2), or null. A level has a <see cref="Room"/>
+    /// or a backdrop, not both.
+    /// </summary>
+    public BackdropSpec? Backdrop { get; init; }
+
     /// <summary>The two battle sides and the neutral pods between them (ticket 17), or null for a level without them.</summary>
     public BattleLayout? Battle { get; init; }
 
@@ -123,6 +129,22 @@ public sealed record RoomSpec(Vector3 Size, float Square)
 
     /// <summary>How many squares the room has along x, y and z (the checker's; a rounded count otherwise).</summary>
     public (int X, int Y, int Z) Squares => ((int)MathF.Round(Size.X / Square), (int)MathF.Round(Size.Y / Square), (int)MathF.Round(Size.Z / Square));
+}
+
+/// <summary>
+/// The room as a backdrop (ticket 28.2): one <paramref name="Model"/> placed at <paramref name="At"/> (x, y, z in metres, y absolute) and
+/// turned <paramref name="Yaw"/> degrees, drawn as an ordinary mesh with no collider, no shadows cast or taken and no outline. The play area
+/// has no walls: a scout walks off its edge and falls (<c>Match</c> kills it 3 m below the spawns outside it). <see cref="Light"/> is the
+/// lamp as a room's, <paramref name="FarPlane"/> the camera's far clip in metres and <paramref name="Clear"/> the colour the camera clears
+/// to (sRGB, 0 to 1), the backdrop's walls' own, as there is no sky.
+/// </summary>
+public sealed record BackdropSpec(string Model, Vector3 At, float Yaw, float FarPlane, Vector3 Clear, int Line)
+{
+    public const float DefaultFarPlane = 450;
+    public static readonly Vector3 DefaultClear = new(0, 0, 0);
+
+    /// <summary>The lamp and ambient where the level changes them from the indoor default, or null.</summary>
+    public RoomLighting? Light { get; init; }
 }
 
 /// <summary>

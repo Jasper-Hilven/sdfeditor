@@ -109,6 +109,9 @@ public static class LevelBaker
         foreach (var region in regions.Regions)
             if (!materials.Contains(region.Material))
                 throw new InvalidOperationException($"There is no material file for {region.Material}; the ground needs materials/ground/{region.Material}.sdfmat");
+        // The backdrop (ticket 28.2) is a model like the underside: it need only be there
+        if (level.Backdrop is { } backdropModel && !(modelExists ?? (name => models?.Invoke(name) is not null))(backdropModel.Model))
+            throw new ProgramFiles.SdfProgramFileException(backdropModel.Line, $"There is no model '{backdropModel.Model}' in content/models/");
         foreach (var face in new[] { level.Room?.Walls, level.Room?.Ceiling })
             if (face is not null && !materials.Contains(face))
                 throw new InvalidOperationException($"There is no material file for {face}; the room's walls and ceiling need materials/room/{face}.sdfmat");
@@ -344,7 +347,7 @@ public static class LevelBaker
             sky = sky is null ? null : SkyDocument.Of(sky.Definition, sky.Hash, SkyLayout.Of(sky.Definition, level.Seed, play.HalfSize, terrain.EdgeDistance)),
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
-            room = level.Room is { } room ? RoomDocument(room, materials) : null,
+            room = level.Room is { } room ? RoomDocument(room, materials) : level.Backdrop is { } backdrop ? BackdropDocument(backdrop) : null,
             // The battle sides (west at -x, east at +x), each with its spawn, flag stand, weapon pods and health pods (and on a
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
@@ -377,6 +380,7 @@ public static class LevelBaker
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
                 .Concat(level.Edge.Underside is { } under ? [under.Model] : [])
+                .Concat(level.Backdrop is { } backdropUsed ? [backdropUsed.Model] : [])
                 .Concat(level.Movers.SelectMany(m => m.Cars.Select(c => c.Model)))
                 .Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
         };
@@ -496,6 +500,24 @@ public static class LevelBaker
             },
         };
     }
+
+    /// <summary>
+    /// The room block of a level with a backdrop (ticket 28.2): <c>form</c> "backdrop" (a closed room's block has no form), the model, where
+    /// it stands (x, y, z; y absolute) and its yaw, the camera's far plane and clear colour (sRGB), and the lamp as a room's <c>light</c>.
+    /// There are no faces, no size and no walls: Unity builds no colliders for it, and the play area's edges are open.
+    /// </summary>
+    private static object BackdropDocument(BackdropSpec backdrop) => new
+    {
+        form = "backdrop",
+        model = backdrop.Model,
+        at = Array(backdrop.At),
+        yaw = backdrop.Yaw,
+        farPlane = backdrop.FarPlane,
+        clear = Array(backdrop.Clear),
+        light = backdrop.Light is { } light
+            ? new { direction = light.Direction is { } d ? Array(d) : null, color = light.Color is { } c ? Array(c) : null, ambient = light.Ambient is { } a ? Array(a) : null }
+            : null,
+    };
 
     private static string FaceName(RoomFace face) => face switch
     {

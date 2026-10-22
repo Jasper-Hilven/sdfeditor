@@ -97,8 +97,9 @@ namespace SdfLevel.Editor
         /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
         /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
         /// Version 22: the movers' behaviour (ticket 27.10): push, damage, kill feed name, puffs, crossing distance.
+        /// Version 23: a room as a backdrop model with open edges (ticket 28.2, <see cref="LevelBackdrop"/>), no edge walls.
         /// </summary>
-        public const int BuilderVersion = 22;
+        public const int BuilderVersion = 23;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -460,7 +461,9 @@ namespace SdfLevel.Editor
             }
 
             var hasRoom = LevelRoom.HasRoom(data);
-            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
+            // A backdrop (ticket 28.2) is a room with open edges: the room's lamp and no sky, but no walls and not "indoor"
+            var hasBackdrop = LevelBackdrop.IsBackdrop(data);
+            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), (hasRoom || hasBackdrop) && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -511,6 +514,8 @@ namespace SdfLevel.Editor
 
             if (hasRoom)
                 LevelRoom.Add(levelRoot.transform, name, meshFolder, data);
+            else if (hasBackdrop)
+                LevelBackdrop.Add(levelRoot.transform, scene, data);
             else
                 AddWalls(levelRoot.transform, data);
             var parts = new PartInstances(((data["drawGroups"] as JArray) ?? new JArray()).Any(g => g.Value<string>("name") == PartsGroup),
@@ -523,7 +528,7 @@ namespace SdfLevel.Editor
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
             AssetDatabase.SaveAssets();
-            var player = AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
+            var player = AddPlayer(scene, data, (hasRoom || hasBackdrop) && !(data["sky"] is JObject));
             var battle = AddBattle(scene, data, player);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
             var movers = AddMovers(scene, data);
@@ -1271,6 +1276,12 @@ namespace SdfLevel.Editor
                 camera.clearFlags = CameraClearFlags.SolidColor;
                 camera.backgroundColor = UnityEngine.Color.black;
                 camera.farClipPlane = RoomFarPlaneOf(data);
+                // A backdrop (ticket 28.2) clears to its walls' colour, which shows beyond it, and sets its own far plane
+                if (LevelBackdrop.IsBackdrop(data))
+                {
+                    camera.backgroundColor = LevelBackdrop.Clear(data);
+                    camera.farClipPlane = LevelBackdrop.FarPlane(data);
+                }
             }
             return player;
         }

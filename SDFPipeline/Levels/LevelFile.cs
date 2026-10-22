@@ -58,6 +58,9 @@ namespace SDFPipeline.Levels;
 /// room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid     # the same with the faces in the named materials, not the checker
 ///      glow=north height=3 color=(1, 0.82, 0.5) light=(0, 0.77, 0.64) lightColor=(1, 0.93, 0.7) ambient=(0.45, 0.4, 0.6)
 ///
+/// backdrop kitchen at=(0, -55, 0) yaw=0     # instead of a room (ticket 28.2): a model as the room beyond the play area's open edges, no walls, no collider, no shadows
+///     farPlane=600 clear=(0.95, 0.9, 0.78)  #   (see <see cref="BackdropSpec"/>); the camera's far clip and clear colour, and light, lightColor, ambient as the room's
+///
 /// sides                                     # the two battle sides, west (-x) and east (+x), see <see cref="BattleLayout"/>
 ///     west
 ///         spawn at=(-57, 0) yaw=90 radius=3
@@ -179,6 +182,7 @@ public static class LevelFile
     private const string Draw = "draw";
     private const string Sky = "sky";
     private const string Room = "room";
+    private const string Backdrop = "backdrop";
     private const string Ring = "ring";
     private const string Noise = "noise";
     private const string Underside = "underside";
@@ -191,7 +195,7 @@ public static class LevelFile
     private const string Pod = "pod";
     private const string Mover = "mover";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines, Mover];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Backdrop, Sides, Neutral, Machines, Mover];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
     private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover];
@@ -231,6 +235,7 @@ public static class LevelFile
         SkySection? sky = null;
         RoomSpec? room = null;
         var roomLine = 0;
+        BackdropSpec? backdrop = null;
         MachineSet? machineSet = null;
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
@@ -286,6 +291,9 @@ public static class LevelFile
                     room = ReadRoom(line, cursor);
                     roomLine = line.Number;
                     break;
+                case Backdrop:
+                    backdrop = ReadBackdrop(line, cursor);
+                    break;
                 case Sides:
                     sides = ReadSides(line, cursor);
                     break;
@@ -304,6 +312,8 @@ public static class LevelFile
                     break;
             }
         }
+        if (backdrop is not null && room is not null)
+            throw new SdfProgramFileException(seen[Backdrop], $"A level has a '{Room}' or a '{Backdrop}' (the room beyond open edges), not both; the '{Room}' is on line {roomLine}");
         if ((sides is null) != (neutral is null))
             throw new SdfProgramFileException(seen[sides is null ? Neutral : Sides],
                 $"A level with battle sides has neutral pods between them, and the other way round; add a '{(sides is null ? Sides : Neutral)}' section");
@@ -333,7 +343,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Backdrop = backdrop, Machines = machineSet, Movers = movers,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -653,6 +663,34 @@ public static class LevelFile
             Walls = walls,
             Ceiling = ceiling,
             Glow = glow,
+            Light = direction is null && lampColor is null && ambient is null ? null : new RoomLighting(direction, lampColor, ambient),
+        };
+    }
+
+    /// <summary>
+    /// backdrop kitchen at=(0, -55, 0) yaw=0 farPlane=600 clear=(0.95, 0.9, 0.78) light=... lightColor=... ambient=...: the model that is
+    /// the room beyond the play area's open edges (ticket 28.2).
+    /// </summary>
+    private static BackdropSpec ReadBackdrop(SourceLine line, Cursor cursor)
+    {
+        var model = cursor.ReadFileName("a model's name, like kitchen-room");
+        var parameters = Parameters.Read(Backdrop, line, cursor);
+        var at = parameters.Has("at") ? parameters.Vector3("at", "a point like (0, -55, 0), x, y and z in metres") : Vector3.Zero;
+        var yaw = parameters.Number("yaw", 0, -360, 360, "degrees, -360 to 360");
+        var farPlane = parameters.Number("farPlane", BackdropSpec.DefaultFarPlane, 50, 5000, "the camera's far clip in metres, 50 to 5000");
+        var clear = parameters.Has("clear") ? Colour(parameters, "clear") : BackdropSpec.DefaultClear;
+        Vector3? direction = null;
+        if (parameters.Has("light"))
+        {
+            direction = parameters.Vector3("light", "the direction towards the lamp, like (0, 0.77, 0.64)");
+            if (direction.Value.LengthSquared() < 1e-6f)
+                throw parameters.Error("light", "The lamp's direction needs a length, like (0, 0.77, 0.64)");
+        }
+        Vector3? lampColor = parameters.Has("lightColor") ? Colour(parameters, "lightColor") : null;
+        Vector3? ambient = parameters.Has("ambient") ? Colour(parameters, "ambient") : null;
+        parameters.Done("at", "yaw", "farPlane", "clear", "light", "lightColor", "ambient");
+        return new BackdropSpec(model, at, yaw, farPlane, clear, line.Number)
+        {
             Light = direction is null && lampColor is null && ambient is null ? null : new RoomLighting(direction, lampColor, ambient),
         };
     }
