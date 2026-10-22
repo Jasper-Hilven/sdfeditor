@@ -267,7 +267,7 @@ namespace SdfCampaign.Tests
             Assert.AreEqual("ending", p.NextStep().id, "toy box to boss have no scene yet");
             Assert.IsFalse(p.IsUnlocked("toybox"));
 
-            have.Add("ToyBox");
+            have.Add("Toybox");
             Assert.AreEqual("beat-toybox", p.NextStep().id);
             p.CompleteCutscene("beat-toybox");
             Assert.AreEqual("toybox", p.NextStep().id);
@@ -539,7 +539,7 @@ namespace SdfCampaign.Tests
             var again = Fresh(store, scene => scene == "Boot" || scene == "Meadow" || scene == "Fungal" || scene == "Chessboard");
             Assert.AreEqual("beat-fungal", again.NextStep().id, "a beat not yet seen plays first");
             again.CompleteCutscene("beat-fungal");
-            Assert.AreEqual("fungal", Fresh(store, scene => scene != "ToyBox").NextStep().id);
+            Assert.AreEqual("fungal", Fresh(store, scene => scene != "Toybox").NextStep().id);
         }
 
         // --- the remaining arenas by data (ticket 32.9) ---
@@ -598,7 +598,7 @@ namespace SdfCampaign.Tests
         [Test]
         public void EachMissingScene_IsSkippedWithItsBeat_AndTheRestOfTheOrderHolds()
         {
-            foreach (var missing in new[] { "ToyBox", "Kitchen", "Bathroom", "Computer", "Boss" })
+            foreach (var missing in new[] { "Toybox", "Kitchen", "Bathroom", "Computer", "Boss" })
             {
                 var p = Fresh(null, scene => scene != missing);
                 var seen = Walk(p);
