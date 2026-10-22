@@ -1,0 +1,20 @@
+# Shelf: a wall shelf 1 m long and 22 cm deep, a 3 cm board on two charcoal brackets. The board's top is at y = 0 and its back
+# against the wall at z = 0, so the shelf's things stand on y = 0 and the wall is at z = 0; the board runs along x, centred on the
+# origin, towards +z.
+format 1
+
+Union
+    Material material=home_wood
+        # The board, edges rounded
+        Translate translation=(0, -0.015, 0.11)
+            RoundBox size=(0.5, 0.015, 0.11) roundness=0.006
+    Material material=home_plastic
+        SymmetryX
+            Union
+                # The plate on the wall
+                Translate translation=(0.3, -0.1, 0.006)
+                    RoundBox size=(0.018, 0.07, 0.006) roundness=0.003
+                # The strut from the plate's foot up to the board's front
+                Capsule a=(0.3, -0.16, 0.012) b=(0.3, -0.03, 0.18) radius=0.011
+                # The arm under the board
+                Capsule a=(0.3, -0.032, 0.01) b=(0.3, -0.032, 0.19) radius=0.011

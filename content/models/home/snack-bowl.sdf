@@ -1,0 +1,42 @@
+# Snack bowl: a cream bowl 25 cm across and 10 cm high on a small foot, heaped with six potato crisps. The crisps are parts of their
+# own (crisp_1 to crisp_6 in content/parts/), so the story capture can tip the bowl and toss them one by one; here they lie in a
+# heap, some standing proud of the rim. The bowl's bottom is at y = 0, its middle on the origin.
+format 1
+
+Union
+    Material material=home_plastic_light
+        Union
+            Subtraction
+                # The outer shell: the lower half of an ellipsoid, cut at its equator, 10 cm up
+                Translate translation=(0, 0.1, 0)
+                    Ellipsoid radii=(0.125, 0.1, 0.125)
+                Union
+                    # The hollow, leaving a wall about 1.3 cm thick
+                    Translate translation=(0, 0.112, 0)
+                        Ellipsoid radii=(0.112, 0.1, 0.112)
+                    # Everything above the rim
+                    Translate translation=(0, 0.3, 0)
+                        Box size=(0.5, 0.2, 0.5)
+            # The foot
+            Translate translation=(0, 0.01, 0)
+                CappedCylinder radius=0.05 height=0.01
+    Union
+        # The heap: a crisp lying flat on the bottom, others leaning on it, the last two standing up out of the bowl
+        Translate translation=(0, 0.032, 0)
+            Rotate rotation=(0.2, 0, 0.15)
+                Part part=crisp_1
+        Translate translation=(-0.05, 0.05, 0.03)
+            Rotate rotation=(0.1, 0.8, -0.3)
+                Part part=crisp_2
+        Translate translation=(0.055, 0.055, -0.02)
+            Rotate rotation=(-0.2, 1.6, 0.35)
+                Part part=crisp_3
+        Translate translation=(0, 0.06, 0.055)
+            Rotate rotation=(0.3, 2.4, 0.1)
+                Part part=crisp_4
+        Translate translation=(-0.03, 0.075, -0.05)
+            Rotate rotation=(-0.15, 0.3, -0.4)
+                Part part=crisp_5
+        Translate translation=(0.065, 0.095, 0.045)
+            Rotate rotation=(0.4, 1.0, 0.5)
+                Part part=crisp_6

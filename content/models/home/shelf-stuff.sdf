@@ -1,0 +1,43 @@
+# Shelf stuff: four small things for the shelf, spread over 70 cm along x with their bottoms on y = 0: a row of three books (one
+# leaning), a game box lying flat with a die-sized cube on it, and a plush blob with two ears and two eyes. The middle is on the
+# origin; they fit the 1 m shelf with room beside them.
+format 1
+
+Union
+    # The books, 3 cm to 4 cm thick, 20 cm tall and 14 cm deep
+    Material material=home_book_blue
+        Translate translation=(-0.34, 0.1, 0)
+            RoundBox size=(0.018, 0.1, 0.07) roundness=0.004
+    Material material=home_book_green
+        Translate translation=(-0.3, 0.095, 0)
+            RoundBox size=(0.014, 0.095, 0.065) roundness=0.004
+    Material material=home_plastic_red
+        # Leaning on the green one
+        Translate translation=(-0.248, 0.088, 0)
+            Rotate rotation=(0, 0, -0.16)
+                RoundBox size=(0.016, 0.09, 0.062) roundness=0.004
+    # The game box, 22 x 4 x 16 cm, lying flat
+    Material material=home_paper
+        Translate translation=(-0.05, 0.02, 0)
+            RoundBox size=(0.11, 0.02, 0.08) roundness=0.004
+    Material material=home_plastic_light
+        # A cube on it
+        Translate translation=(-0.08, 0.055, 0)
+            Rotate rotation=(0, 0.5, 0)
+                RoundBox size=(0.015, 0.015, 0.015) roundness=0.003
+    # The plush blob: a pear-shaped body, ears and eyes
+    Material material=home_plush
+        Union
+            SmoothUnion smoothness=0.03
+                Translate translation=(0.3, 0.06, 0)
+                    Ellipsoid radii=(0.075, 0.06, 0.065)
+                Translate translation=(0.3, 0.13, 0)
+                    Sphere radius=0.05
+            Translate translation=(0.27, 0.19, 0)
+                Sphere radius=0.02
+            Translate translation=(0.33, 0.19, 0)
+                Sphere radius=0.02
+    Material material=home_plate
+        SymmetryX
+            Translate translation=(0.015, 0.14, 0.045)
+                Sphere radius=0.008

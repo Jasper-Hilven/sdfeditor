@@ -1,0 +1,29 @@
+# Lamp: a desk lamp 0.6 m tall: a round charcoal base, a bent arm of two bars, and a cap-shaped shade (a mushroom cap, open
+# underneath) that glows warm, with a bulb in it. The shade and bulb are the room's key light (home_lamp_shade). The base is on
+# y = 0 and its middle on the y axis; the shade leans forward, towards +z.
+format 1
+
+Union
+    Material material=home_plastic
+        Union
+            # The base
+            Translate translation=(0, 0.012, 0)
+                RoundedCylinder radius=0.09 roundness=0.006 height=0.01
+            # The lower and the upper bar of the arm, with a ball at the elbow
+            Capsule a=(0, 0.02, -0.01) b=(0, 0.33, -0.04) radius=0.011
+            Translate translation=(0, 0.33, -0.04)
+                Sphere radius=0.02
+            Capsule a=(0, 0.33, -0.04) b=(0, 0.55, 0.06) radius=0.011
+    Material material=home_lamp_shade
+        Union
+            # The shade: the top half of an ellipsoid 28 cm across, 10 cm high, hollow, with a bulb inside
+            Subtraction
+                Translate translation=(0, 0.5, 0.08)
+                    Ellipsoid radii=(0.14, 0.1, 0.14)
+                Union
+                    Translate translation=(0, 0.5, 0.08)
+                        Ellipsoid radii=(0.128, 0.088, 0.128)
+                    Translate translation=(0, 0.3, 0.08)
+                        Box size=(0.5, 0.2, 0.5)
+            Translate translation=(0, 0.48, 0.08)
+                Sphere radius=0.035

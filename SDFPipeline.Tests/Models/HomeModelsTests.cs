@@ -11,20 +11,25 @@ using Xunit.Abstractions;
 namespace SDFPipeline.Tests.Models;
 
 /// <summary>
-/// Ticket 31.1: 42's room (content/models/home/) is furniture for a mushroom about 1 m tall. The room shell, window, backdrop, desk,
-/// chair, monitor, keyboard, mouse and mousepad each parse, mesh and are the size their file header says; the chair's seat and the
-/// monitor's screen are parts of their own, and every material they use is in materials/.
+/// Tickets 31.1 and 31.2: 42's room (content/models/home/) is furniture and props for a mushroom about 1 m tall. The room shell,
+/// window, backdrop, desk, chair, monitor, keyboard, mouse and mousepad (31.1) and the snack bowl, crisp bag, soda can, shelf, trophy,
+/// shelf stuff, lamp, rug, poster and Prime's crown (31.2) each parse, mesh and are the size their file header says; the chair's seat,
+/// the monitor's screen, the bowl's six crisps and the poster's picture are parts of their own, and every material they use is in
+/// materials/.
 /// </summary>
 public class HomeModelsTests(ITestOutputHelper output)
 {
     public static readonly string[] Models =
-        ["room-shell", "window", "window-backdrop", "desk", "chair", "monitor", "keyboard", "mouse", "mousepad"];
+        ["room-shell", "window", "window-backdrop", "desk", "chair", "monitor", "keyboard", "mouse", "mousepad",
+            "snack-bowl", "crisp-bag", "soda-can", "shelf", "trophy", "shelf-stuff", "lamp", "rug", "poster", "prime-crown"];
 
     /// <summary>The parts a model has besides its body.</summary>
     private static readonly Dictionary<string, string[]> PartsOf = new()
     {
         ["chair"] = ["seat"],
         ["monitor"] = ["screen"],
+        ["snack-bowl"] = ["crisp_1", "crisp_2", "crisp_3", "crisp_4", "crisp_5", "crisp_6"],
+        ["poster"] = ["poster_picture"],
     };
 
     public static TheoryData<string> AllModels() => new(Models);
@@ -265,6 +270,159 @@ public class HomeModelsTests(ITestOutputHelper output)
         Assert.InRange(pmax.X - pmin.X, 0.29f, 0.31f);
         Assert.InRange(pmax.Z - pmin.Z, 0.24f, 0.26f);
         Assert.InRange(pmax.Y, 0.007f, 0.011f);
+    }
+
+    [Fact]
+    public void SnackBowl_IsAQuarterOfAMetreAcross_WithSixCrispsAsPartsOfTheirOwn()
+    {
+        var (min, max) = Measure("snack-bowl", new Vector3(-0.2f, -0.02f, -0.2f), new Vector3(0.2f, 0.2f, 0.2f), 0.004f);
+
+        Assert.InRange(max.X - min.X, 0.24f, 0.26f);
+        Assert.InRange(min.Y, -0.005f, 0.01f);
+        Assert.InRange(max.Y, 0.095f, 0.13f);
+        // Each crisp is a thin, wavy oval part about 10 cm long or less
+        foreach (var part in PartsOf["snack-bowl"])
+        {
+            var crisp = new SdfCalculatorCpu().Prepare(SdfProgramFile.LoadPart(ModelPath("snack-bowl"), part)).Distance;
+            var (cmin, cmax) = Extent(crisp, new Vector3(-0.07f, -0.02f, -0.07f), new Vector3(0.07f, 0.02f, 0.07f), 0.002f);
+            output.WriteLine($"{part}: {cmax.X - cmin.X:0.000} x {cmax.Y - cmin.Y:0.000} x {cmax.Z - cmin.Z:0.000} m");
+            Assert.InRange(cmax.X - cmin.X, 0.06f, 0.11f);
+            Assert.InRange(cmax.Y - cmin.Y, 0.008f, 0.02f);
+        }
+    }
+
+    [Fact]
+    public void CrispBag_IsTwentyCentimetresLong_AndSodaCan_TwelveHigh()
+    {
+        var (bmin, bmax) = Measure("crisp-bag", new Vector3(-0.15f, -0.02f, -0.15f), new Vector3(0.15f, 0.15f, 0.15f), 0.004f);
+        Assert.InRange(bmax.X - bmin.X, 0.19f, 0.22f);
+        Assert.InRange(bmin.Y, -0.005f, 0.01f);
+        Assert.InRange(bmax.Y, 0.06f, 0.1f);
+
+        var (cmin, cmax) = Measure("soda-can", new Vector3(-0.06f, -0.02f, -0.06f), new Vector3(0.06f, 0.2f, 0.06f), 0.002f);
+        Assert.InRange(cmax.Y - cmin.Y, 0.118f, 0.13f);
+        Assert.InRange(cmax.X - cmin.X, 0.06f, 0.07f);
+        Assert.InRange(cmin.Y, -0.003f, 0.003f);
+    }
+
+    [Fact]
+    public void Shelf_IsAMetreLong_WithTheTopOfItsBoardAtZero_AndTwoBrackets()
+    {
+        var sdf = Model("shelf");
+        var (min, max) = Measure("shelf", new Vector3(-0.7f, -0.3f, -0.05f), new Vector3(0.7f, 0.1f, 0.4f), 0.005f);
+
+        Assert.InRange(max.X - min.X, 0.99f, 1.02f);
+        Assert.InRange(max.Y, -0.006f, 0.001f);
+        Assert.InRange(min.Z, -0.006f, 0.01f);
+        Assert.InRange(max.Z, 0.21f, 0.23f);
+        // A bracket under the board at each end, none in the middle
+        Assert.True(sdf(new Vector3(0.3f, -0.1f, 0.006f)) < 0 && sdf(new Vector3(-0.3f, -0.1f, 0.006f)) < 0);
+        Assert.True(sdf(new Vector3(0, -0.1f, 0.006f)) > 0);
+    }
+
+    [Fact]
+    public void Trophy_IsFortyCentimetresTall_WithAGoldGunOnADomeBase_InTheBrightestGold()
+    {
+        var (min, max) = Measure("trophy", new Vector3(-0.25f, -0.02f, -0.25f), new Vector3(0.25f, 0.6f, 0.3f), 0.004f);
+
+        Assert.InRange(max.Y - min.Y, 0.36f, 0.44f);
+        Assert.InRange(min.Y, -0.003f, 0.003f);
+        Assert.InRange(max.X - min.X, 0.19f, 0.26f);
+        // The gold is the home gold, which is brighter than the flag brass
+        Assert.Contains("home_gold", File.ReadAllText(ModelPath("trophy")));
+        Assert.True(Luminance("home_gold") > Luminance("flag_brass"), "the trophy's gold is the brightest in the room");
+    }
+
+    private static float Luminance(string material)
+    {
+        var file = Directory.EnumerateFiles(Path.Combine(Content(), "..", ModelFiles.MaterialsFolderName), material + ".sdfmat", SearchOption.AllDirectories).Single();
+        var line = File.ReadAllLines(file).Single(l => l.StartsWith("baseColor"));
+        var c = Regex.Match(line, @"\(([^,]+),([^,]+),([^)]+)\)").Groups;
+        float F(int i) => float.Parse(c[i].Value.Trim(), System.Globalization.CultureInfo.InvariantCulture);
+        return 0.2126f * F(1) + 0.7152f * F(2) + 0.0722f * F(3);
+    }
+
+    [Fact]
+    public void ShelfStuff_IsAFewSmallThings_SpreadOverLessThanTheShelf()
+    {
+        var (min, max) = Measure("shelf-stuff", new Vector3(-0.5f, -0.02f, -0.15f), new Vector3(0.5f, 0.4f, 0.15f), 0.005f);
+
+        Assert.InRange(max.X - min.X, 0.55f, 0.9f);
+        Assert.InRange(min.Y, -0.005f, 0.01f);
+        Assert.InRange(max.Y, 0.15f, 0.25f);
+        Assert.InRange(max.Z - min.Z, 0.1f, 0.2f);
+    }
+
+    [Fact]
+    public void Lamp_IsSixtyCentimetresTall_WithACapShapedShadeThatGlows()
+    {
+        var sdf = Model("lamp");
+        var (min, max) = Measure("lamp", new Vector3(-0.3f, -0.02f, -0.3f), new Vector3(0.3f, 0.8f, 0.4f), 0.005f);
+
+        Assert.InRange(max.Y, 0.57f, 0.63f);
+        Assert.InRange(min.Y, -0.003f, 0.005f);
+        // The shade is open underneath and hollow: empty under its dome, solid in its wall
+        Assert.True(sdf(new Vector3(0.09f, 0.52f, 0.08f)) > 0, "hollow shade");
+        Assert.True(sdf(new Vector3(0.134f, 0.51f, 0.08f)) < 0, "the shade's wall");
+        Assert.Contains("home_lamp_shade", File.ReadAllText(ModelPath("lamp")));
+    }
+
+    [Fact]
+    public void Rug_IsAMetreAndAHalfRound_AndAboutThreeCentimetresThick()
+    {
+        var (min, max) = Measure("rug", new Vector3(-0.85f, -0.02f, -0.85f), new Vector3(0.85f, 0.1f, 0.85f), 0.01f);
+
+        Assert.InRange(max.X - min.X, 1.47f, 1.53f);
+        Assert.InRange(max.Z - min.Z, 1.47f, 1.53f);
+        Assert.InRange(max.Y, 0.02f, 0.035f);
+        Assert.InRange(min.Y, -0.005f, 0.011f); // sampled every centimetre
+    }
+
+    [Fact]
+    public void Poster_IsHalfAMetreBySeventyCentimetres_Flat_WithAPictureSlab()
+    {
+        var (min, max) = Measure("poster", new Vector3(-0.35f, -0.05f, -0.05f), new Vector3(0.35f, 0.8f, 0.05f), 0.004f);
+
+        Assert.InRange(max.X - min.X, 0.49f, 0.51f);
+        Assert.InRange(max.Y - min.Y, 0.69f, 0.71f);
+        Assert.InRange(max.Z - min.Z, 0.03f, 0.045f);
+        Assert.InRange(min.Z, -0.002f, 0.003f);
+        // The picture is in front of the sheet and inside its margin
+        var picture = new SdfCalculatorCpu().Prepare(SdfProgramFile.LoadPart(ModelPath("poster"), "poster_picture")).Distance;
+        var (pmin, pmax) = Extent(picture, new Vector3(-0.3f, 0, -0.05f), new Vector3(0.3f, 0.8f, 0.05f), 0.004f);
+        output.WriteLine($"poster_picture: {pmax.X - pmin.X:0.000} x {pmax.Y - pmin.Y:0.000} x {pmax.Z - pmin.Z:0.000} m, z to {pmax.Z:0.000}");
+        Assert.InRange(pmax.X - pmin.X, 0.44f, 0.46f);
+        Assert.InRange(pmax.Y - pmin.Y, 0.64f, 0.66f);
+        Assert.True(pmax.Z > 0.02f, "the picture stands proud of the 2 cm board");
+    }
+
+    [Fact]
+    public void PrimeCrown_IsGold_WithFivePointsAndBlueGems_SizedSlightlyTooSmallForTheChanterelleCap()
+    {
+        var sdf = Model("prime-crown");
+        var (min, max) = Measure("prime-crown", new Vector3(-0.2f, -0.02f, -0.2f), new Vector3(0.2f, 0.3f, 0.2f), 0.004f);
+
+        Assert.InRange(max.X - min.X, 0.26f, 0.32f);
+        Assert.InRange(max.Y, 0.15f, 0.2f);
+        Assert.InRange(min.Y, -0.003f, 0.003f);
+        // Five points 72 degrees apart, the first at the front: solid at a point's base, open at the same height between two points
+        for (var i = 0; i < 5; i++)
+        {
+            var angle = i * MathF.Tau / 5;
+            Assert.True(sdf(new Vector3(MathF.Sin(angle) * 0.14f, 0.07f, MathF.Cos(angle) * 0.14f)) < 0, $"point {i}");
+            var between = angle + MathF.Tau / 10;
+            Assert.True(sdf(new Vector3(MathF.Sin(between) * 0.14f, 0.07f, MathF.Cos(between) * 0.14f)) > 0, $"gap after point {i}");
+        }
+        // The band is hollow, for the cap
+        Assert.True(sdf(new Vector3(0, 0.025f, 0)) > 0);
+        var text = File.ReadAllText(ModelPath("prime-crown"));
+        Assert.Contains("home_gold", text);
+        Assert.Contains("home_gem_blue", text);
+
+        // Slightly too small: narrower than the chanterelle scout's cap
+        var scout = SdfBoundsFinder.Find(new SdfCalculatorCpu().Prepare(SdfProgramFile.Load(Path.Combine(Content(), "models", "characters", "chanterelle-scout.sdf"))).Distance)!;
+        output.WriteLine($"chanterelle-scout bounds: {scout.Max.X - scout.Min.X:0.00} x {scout.Max.Y - scout.Min.Y:0.00} m");
+        Assert.True(max.X - min.X < scout.Max.X - scout.Min.X);
     }
 
     [Fact]

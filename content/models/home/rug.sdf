@@ -1,0 +1,15 @@
+# Rug: a round rug 1.5 m across and about 3 cm thick, three rings stepping up towards the middle in the room's mustard and brown
+# fabrics. The floor side is at y = 0, the middle on the y axis.
+format 1
+
+Union
+    Material material=home_fabric
+        # The outer ring, 1.5 cm thick
+        Translate translation=(0, 0.0075, 0)
+            RoundedCylinder radius=0.75 roundness=0.004 height=0.0035
+    Material material=home_fabric_seat
+        Translate translation=(0, 0.0105, 0)
+            RoundedCylinder radius=0.53 roundness=0.004 height=0.0065
+    Material material=home_fabric
+        Translate translation=(0, 0.0135, 0)
+            RoundedCylinder radius=0.31 roundness=0.004 height=0.0095

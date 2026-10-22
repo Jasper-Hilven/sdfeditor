@@ -1,0 +1,39 @@
+# Prime crown: Chanterelle Prime's gold crown, about 28 cm across and 17 cm high, slightly too small for his cap: a band with five
+# points, a ball on each point and a blue gem on the band under each. It is shared with ticket 33 (which scales it with Prime) and
+# placed on the chanterelle scout's cap for the story panels. The band's bottom is at y = 0, the middle on the y axis; the first
+# point is at the front (+z).
+format 1
+
+# One point with its ball and its gem, at the front of the band; the others are this turned about the y axis
+spike =
+    Union
+        Material material=home_gold
+            Union
+                # The triangular point on the band's rim, 2 cm thick
+                Translate translation=(0, 0, 0.14)
+                    Extrusion height=0.01
+                        Triangle2D a=(-0.032, 0.04) b=(0.032, 0.04) c=(0, 0.15)
+                # The ball on its tip
+                Translate translation=(0, 0.155, 0.14)
+                    Sphere radius=0.012
+        Material material=home_gem_blue
+            Translate translation=(0, 0.025, 0.145)
+                Sphere radius=0.014
+
+Union
+    Material material=home_gold
+        # The band: a ring 5 cm high and 1 cm thick
+        Translate translation=(0, 0.025, 0)
+            Subtraction
+                CappedCylinder radius=0.14 height=0.025
+                CappedCylinder radius=0.13 height=0.03
+    Union
+        $spike
+        Rotate rotation=(0, 1.2566371, 0)
+            $spike
+        Rotate rotation=(0, 2.5132742, 0)
+            $spike
+        Rotate rotation=(0, 3.7699113, 0)
+            $spike
+        Rotate rotation=(0, 5.0265484, 0)
+            $spike
