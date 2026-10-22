@@ -1,0 +1,28 @@
+# Window frosted 0: the bathroom's frosted window with its sill (30 times life size), on the south wall: a pale glowing pane 24 m wide and 20 m tall (y 42 to 62), a white frame
+# 1.2 m wide round it, a cross of two bars and a sill under it. Nothing is seen through it. Origin on the wall plane (z = 0) at the middle of the pane's width, y = 0 the floor;
+# the room is at +z (the level places it at yaw 0 on the south wall). The pane is a pale glass that looks lit from behind (a strong subsurface glow; there is no emissive material).
+# Landmark; out of reach, no collider.
+format 1
+collider none
+
+Detail detail=0.05
+    Union
+        Material material=bath_window_glass
+            Translate translation=(0, 52, 0.35)
+                Box size=(12.05, 10.05, 0.35)
+        Material material=bath_window_frame
+            Union
+                # The frame
+                Subtraction
+                    Translate translation=(0, 52, 0.6)
+                        Box size=(13.2, 11.2, 0.6)
+                    Translate translation=(0, 52, 0.6)
+                        Box size=(12, 10, 1)
+                # The cross of bars
+                Translate translation=(0, 52, 0.45)
+                    Box size=(0.4, 10, 0.45)
+                Translate translation=(0, 52, 0.45)
+                    Box size=(12, 0.4, 0.45)
+                # The sill, with a rounded front edge
+                Translate translation=(0, 40.3, 1.5)
+                    RoundBox size=(14.4, 0.7, 1.5) roundness=0.3
