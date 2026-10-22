@@ -14,6 +14,7 @@ namespace SdfGui
         Death,
         RoundEnd,
         Gallery,
+        Loading,
     }
 
     /// <summary>
@@ -34,6 +35,15 @@ namespace SdfGui
         [Tooltip("Where Back from the settings goes")]
         public GuiScreen settingsReturn = GuiScreen.MainMenu;
         public bool testPanel = true;
+
+        /// <summary>The GUI that survives scene loads (the campaign's, ticket 32.4); null where a scene plays alone with its own.</summary>
+        public static GuiFlow Persistent { get; set; }
+
+        /// <summary>
+        /// The campaign's say in the buttons (the GUI holds no scene references): given a command first, returns true when it took it over.
+        /// Set by the campaign runner while it lives.
+        /// </summary>
+        public static System.Func<GuiCommandId, bool> Campaign;
 
         private MatchView match;
         private MatchPhase lastPhase;
@@ -211,6 +221,8 @@ namespace SdfGui
         /// <summary>What a <see cref="GuiCommand"/> button does.</summary>
         public void Execute(GuiCommandId command, GuiScreen argument)
         {
+            if (Campaign != null && Application.isPlaying && Campaign(command))
+                return;
             var m = Match;
             switch (command)
             {

@@ -40,6 +40,17 @@ namespace SdfBattle
         /// </summary>
         public static MatchHud Create(Match match, GameObject gui)
         {
+            // The campaign's GUI (ticket 32.4) survives the scene loads: it serves every battle, and the scene's own copy goes
+            var persistent = GuiFlow.Persistent;
+            if (persistent != null && gui != persistent.gameObject)
+            {
+                if (gui.scene.IsValid())
+                    Destroy(gui);
+                gui = persistent.gameObject;
+                Release(gui);
+            }
+            else
+                persistent = null;
             if (!gui.scene.IsValid())
             {
                 var prefab = gui;
@@ -53,12 +64,14 @@ namespace SdfBattle
                 Destroy(gui);
                 return null;
             }
-            ShowRoundStart(view, match.rules);
+            ShowRoundStart(view, match.rules, match.gameObject.scene.name);
             var flow = gui.GetComponent<GuiFlow>();
             if (flow != null)
             {
                 flow.testPanel = false;
-                flow.Show(GuiScreen.Hud);
+                // The campaign's loader shows the HUD itself, when the player has clicked to play
+                if (persistent == null)
+                    flow.Show(GuiScreen.Hud);
             }
             // The pause menu's buttons need an event system; the battle scenes have none of their own
             if (EventSystem.current == null)
@@ -77,10 +90,10 @@ namespace SdfBattle
         /// Sets <paramref name="view"/> to be driven by a match, and to what it shows as a round starts: the full clock, full health, no
         /// kills, pop-ups or hits yet. The level builder sets the scene's GUI so, so the scene shows the HUD as play opens.
         /// </summary>
-        public static void ShowRoundStart(MatchView view, MatchRules rules)
+        public static void ShowRoundStart(MatchView view, MatchRules rules, string arena = null)
         {
             view.driven = true;
-            view.arena = view.gameObject.scene.name;
+            view.arena = arena ?? view.gameObject.scene.name;
             view.goal = $"First to {rules.capturesToWin} captures";
             view.autoEvents = false;
             view.phase = MatchPhase.Playing;
@@ -95,6 +108,23 @@ namespace SdfBattle
             view.feed.Clear();
             view.spread = view.hitMarker = view.damage = view.eliminated = 0;
             view.hitMarkerKill = view.eliminatedHeadshot = false;
+        }
+
+        /// <summary>
+        /// Takes a GUI that outlives its matches off the last one: the HUD pieces added to it and its feed by that match go, and its view
+        /// is the showcase's again.
+        /// </summary>
+        public static void Release(GameObject gui)
+        {
+            foreach (var flagHud in gui.GetComponentsInChildren<FlagHud>(true))
+                Destroy(flagHud);
+            foreach (var hud in gui.GetComponents<MatchHud>())
+                Destroy(hud);
+            if (gui.TryGetComponent<MatchView>(out var view))
+            {
+                view.driven = false;
+                view.autoEvents = false;
+            }
         }
 
         private void OnDestroy()

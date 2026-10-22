@@ -87,7 +87,7 @@ namespace SdfGui.Editor
             flow.screen = GuiScreen.Hud;
 
             // Lowest first: the HUD under the screens that show over it
-            var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.RoundEnd, GuiScreen.MainMenu, GuiScreen.Settings, GuiScreen.Gallery };
+            var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.RoundEnd, GuiScreen.MainMenu, GuiScreen.Settings, GuiScreen.Gallery, GuiScreen.Loading };
             foreach (var screen in order)
             {
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(screens.Screens[screen], root.transform);
@@ -96,6 +96,14 @@ namespace SdfGui.Editor
             }
             var test = (GameObject)PrefabUtility.InstantiatePrefab(screens.TestPanel, root.transform);
             Stretch(test.transform);
+
+            // Last, over everything: the black scene changes fade through (ticket 32.4)
+            var fade = Object("Fade", root.transform);
+            Stretch(fade.transform);
+            var fadeImage = fade.AddComponent<Image>();
+            fadeImage.color = Color.clear;
+            fadeImage.enabled = false;
+            fade.AddComponent<GuiFade>();
             return Save(root, GuiPrefabPath);
         }
 

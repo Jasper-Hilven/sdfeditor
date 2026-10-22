@@ -38,6 +38,7 @@ namespace SdfGui.Editor
             Screens[GuiScreen.Death] = Death();
             Screens[GuiScreen.RoundEnd] = RoundEnd();
             Screens[GuiScreen.Gallery] = Gallery();
+            Screens[GuiScreen.Loading] = Loading();
             TestPanel = Test();
         }
 
@@ -518,6 +519,41 @@ namespace SdfGui.Editor
             f.Text(stats.transform, "Kills Label", "KILLS", TextStyle.BodyInk, 24, GuiPalette.Paper, Bottom, new Vector2(0, 12), new Vector2(200, 30));
 
             p.ButtonInstance(t, "MAIN MENU", GuiPalette.Dusk, GuiCommandId.LeaveMatch, Centre, new Vector2(0, -420), new Vector2(330, 90), 42, spots: 0);
+            return Save(root);
+        }
+
+        // ---------------------------------------------------------------- Loading: the briefing
+
+        private GameObject Loading()
+        {
+            var root = Root("Loading", GuiScreen.Loading);
+            var t = root.transform;
+            var loading = root.AddComponent<GuiLoading>();
+            var backdrop = f.Shape(t, "Backdrop", ToonShapeKind.Box, GuiPalette.Night, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.Outline = 0;
+                s.Shadow = 0;
+                s.Shading = 0;
+                s.CornerRadius = 0;
+                s.raycastTarget = true;
+            });
+            Stretch(backdrop);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.18f), Centre, new Vector2(0, 80), new Vector2(1500, 900));
+            var banner = p.BannerInstance(t, "Arena Banner", "ARENA", GuiPalette.Amanita, Top, new Vector2(0, -60), new Vector2(1000, 130), 76);
+            loading.arena = banner.GetComponentInChildren<TMP_Text>();
+            loading.goal = f.Text(t, "Goal", "CAPTURE THE FLAG", TextStyle.BodyInk, 46, GuiPalette.Gold, Top, new Vector2(0, -220), new Vector2(1400, 64));
+
+            var red = p.PanelInstance(t, "Red Roster", GuiPalette.Cream, Centre, new Vector2(-340, -10), new Vector2(520, 400));
+            loading.redNames = f.Text(red.transform, "Names", "RED TEAM", TextStyle.Body, 40, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 340), TextAlignmentOptions.Top);
+            var blue = p.PanelInstance(t, "Blue Roster", GuiPalette.Cream, Centre, new Vector2(340, -10), new Vector2(520, 400));
+            loading.blueNames = f.Text(blue.transform, "Names", "BLUE TEAM", TextStyle.Body, 40, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 340), TextAlignmentOptions.Top);
+            f.Text(t, "Versus", "VS", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(140, 90));
+
+            loading.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Bottom, new Vector2(0, 190), new Vector2(1500, 50));
+            loading.progress = p.BarInstance(t, "Progress", GuiPalette.Moss, 0, Bottom, new Vector2(0, 110), new Vector2(900, 56), 30);
+            loading.progress.format = "{0:0}%";
+            loading.clickToPlay = f.Text(t, "Click To Play", "CLICK TO PLAY", TextStyle.Title, 80, GuiPalette.Gold, Bottom, new Vector2(0, 90), new Vector2(1000, 110));
+            loading.clickToPlay.gameObject.SetActive(false);
             return Save(root);
         }
 
