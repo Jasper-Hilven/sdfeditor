@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using SDFPipeline.Story;
 using SdfLevel.Editor;
+using SdfStory.Layout;
 using SdfMushrooms;
 using SdfMushrooms.Editor;
 using UnityEditor;
@@ -23,8 +24,8 @@ namespace SdfStory.Editor
     /// each frame at twice the size, in two passes with the comic look switched on (SdfComic.hlsl: hard bands, a stronger rim, wider
     /// outlines, the room's lamp and monitor as lights): a colour pass and an aux pass that holds the normal, depth and toon band. The
     /// comic post pass (StoryComicPost.shader) draws the ink line, the halftone and the paper over the colour from the aux pass; the result
-    /// is downsampled to 1920 × 1080 and written to Assets/Story/Panels/panel-NN.png. The lettering and the comic devices are drawn over
-    /// it later (31.6); the border here is only a plain ink line round the inset frames. Nothing of it ships: the comic look is off in the
+    /// is downsampled to 1920 × 1080 and written to Assets/Story/Panels/panel-NN.png. <see cref="StoryLettering"/> draws the comic devices,
+    /// balloons, captions, SFX and the ink border over each frame's render (31.6). Nothing of it ships: the comic look is off in the
     /// game, and this, the post shader and the screen shader are in an Editor folder.
     /// <para>
     /// Tools > SDF Story > Render Panels, or without a window: <c>Unity -batchmode -quit -projectPath Unity -executeMethod
@@ -150,8 +151,6 @@ namespace SdfStory.Editor
                 foreach (var pose in panel.Actors.Where(a => a.Part != null))
                     stage.PosePart(pose);
                 stage.SetLights(panel.Lights);
-                if (panel.Stage == "home")
-                    stage.SetScreen(panel.Screen ?? new StoryScreen { Texture = "screen-meadow" });
                 stage.PublishLights();
 
                 var image = new Texture2D(Width, Height, TextureFormat.RGB24, false);
@@ -162,11 +161,13 @@ namespace SdfStory.Editor
                 foreach (var frame in panel.Frames)
                 {
                     var rect = FrameRect(frame, multiple);
-                    var pixels = RenderFrame(stage, panel.CameraOf(frame), rect.width, rect.height);
+                    var view = panel.CameraOf(frame);
+                    var pixels = RenderFrame(stage, view, rect.width, rect.height);
+                    // Devices, balloons, captions, SFX and the border (31.6), over the finished render
+                    StoryLettering.Letter(pixels, rect.width, rect.height, frame, panel.Number * 10 + panel.Frames.IndexOf(frame),
+                        name => stage.ProjectActor(name, view, rect.width, rect.height));
                     // The image has y up, the frame's rect from the top
                     image.SetPixels(rect.x, Height - rect.y - rect.height, rect.width, rect.height, pixels);
-                    if (multiple)
-                        Border(image, rect, 5, new Color32(25, 16, 22, 255));
                 }
                 File.WriteAllBytes(path, image.EncodeToPNG());
                 Object.DestroyImmediate(image);
@@ -190,24 +191,6 @@ namespace SdfStory.Editor
             right -= frame.X + frame.W < 0.999f ? gutter / 2 : gutter;
             bottom -= frame.Y + frame.H < 0.999f ? gutter / 2 : gutter;
             return new RectInt(left, top, right - left, bottom - top);
-        }
-
-        private static void Border(Texture2D image, RectInt rect, int thickness, Color32 ink)
-        {
-            var bottom = Height - rect.y - rect.height;
-            for (var t = 0; t < thickness; t++)
-            {
-                for (var x = rect.x; x < rect.x + rect.width; x++)
-                {
-                    image.SetPixel(x, bottom + t, ink);
-                    image.SetPixel(x, bottom + rect.height - 1 - t, ink);
-                }
-                for (var y = bottom; y < bottom + rect.height; y++)
-                {
-                    image.SetPixel(rect.x + t, y, ink);
-                    image.SetPixel(rect.x + rect.width - 1 - t, y, ink);
-                }
-            }
         }
 
         private static Scene OpenStage(string stage)
@@ -331,6 +314,7 @@ namespace SdfStory.Editor
             private readonly Dictionary<Transform, (Vector3 position, Quaternion rotation, Vector3 scale)> rest =
                 new Dictionary<Transform, (Vector3, Quaternion, Vector3)>();
             private readonly List<Object> made = new List<Object>();
+            private readonly Dictionary<string, Transform> madeActors = new Dictionary<string, Transform>();
             private readonly List<Light> storyLights = new List<Light>();
             private Transform actors;
 
@@ -404,7 +388,9 @@ namespace SdfStory.Editor
                     foreach (var transform in root.GetComponentsInChildren<Transform>(true))
                         if (transform.name == name && transform.parent != null && (transform.parent.name == HomeBuilder.ActorsName || transform.parent.name == HomeBuilder.RoomName))
                             return transform;
-                // Not in the stage: a scout comes with the panel that names it (meadow, warp)
+                // Not in the stage: a scout comes with the panel that names it (meadow, warp), made once
+                if (madeActors.TryGetValue(name, out var existing))
+                    return existing;
                 var prefabName = name.StartsWith("Chanterelle Hand", StringComparison.Ordinal)
                     ? (int.Parse(name.Substring(name.Length - 1)) % 2 == 1 ? "chanterelle-scout-hand0" : "chanterelle-scout-hand1")
                     : "amanita-scout";
@@ -414,6 +400,7 @@ namespace SdfStory.Editor
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
                 instance.name = name;
                 made.Add(instance);
+                madeActors[name] = instance.transform;
                 return instance.transform;
             }
 
@@ -475,6 +462,32 @@ namespace SdfStory.Editor
                     return match.Groups[2].Value == "left" ? pair.First() : pair.Last();
                 }
                 return children.FirstOrDefault(c => c.name == part);
+            }
+
+            /// <summary>An actor's tail spot in a frame's pixels (y down), or null when it is behind the camera.</summary>
+            public Pt? ProjectActor(string name, StoryCamera view, int width, int height)
+            {
+                var world = SpeakerPoint(name);
+                var cameraToWorld = Matrix4x4.TRS(ToUnity(view.Pos), EulerOf(view.Rot), Vector3.one);
+                var worldToCamera = Matrix4x4.Scale(new Vector3(1, 1, -1)) * cameraToWorld.inverse;
+                var clip = Matrix4x4.Perspective(view.Fov, width / (float)height, 0.05f, 2000f) * worldToCamera * new Vector4(world.x, world.y, world.z, 1);
+                if (clip.w <= 0.01f)
+                    return null;
+                return new Pt((clip.x / clip.w * 0.5f + 0.5f) * width, (1 - (clip.y / clip.w * 0.5f + 0.5f)) * height);
+            }
+
+            /// <summary>Where a balloon's tail points for an actor: a spot on the upper body (the cap), in world space.</summary>
+            public Vector3 SpeakerPoint(string name)
+            {
+                var actor = FindActor(name);
+                var body = FindPart(actor, "body") ?? actor;
+                var renderers = body.GetComponentsInChildren<Renderer>(true).Where(r => !(r is ParticleSystemRenderer)).ToList();
+                if (renderers.Count == 0)
+                    return actor.position;
+                var bounds = renderers[0].bounds;
+                foreach (var renderer in renderers)
+                    bounds.Encapsulate(renderer.bounds);
+                return new Vector3(bounds.center.x, bounds.min.y + bounds.size.y * 0.72f, bounds.center.z);
             }
 
             // Lights
