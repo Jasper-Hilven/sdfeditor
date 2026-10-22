@@ -43,6 +43,8 @@ namespace SdfBattle
         [Tooltip("Ticket 28.8, machines floor=<y>: the lowest height the helicopters take the ground to be, so over a hole in the floor (a sink) they hold 6 m over this, not over its depth; off: they follow the ground")]
         public bool hasHelicopterFloor;
         public float helicopterFloor;
+        [Tooltip("Footprints (x, z) the helicopters keep out of (ticket 30.7): a room's models over 6 m; the level builder sets them")]
+        public KeepOut[] helicopterKeepOuts = new KeepOut[0];
         [Tooltip("Seeds the machines' aim, roaming and zone spots")]
         public int seed = 24;
         [Tooltip("Draw each machine's target and way in the Scene view")]

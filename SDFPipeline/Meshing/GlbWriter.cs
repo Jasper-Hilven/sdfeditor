@@ -74,6 +74,9 @@ public static class GlbWriter
     /// <summary>The material mix's speckleDensity and speckleSize.</summary>
     public const string SpeckleShapeAttribute = "_SPECKLE_SHAPE";
 
+    /// <summary>The material mix's emission; only on meshes where some vertex glows, so other files stay as they were.</summary>
+    public const string EmissionAttribute = "_EMISSION";
+
     /// <summary>What a level of detail's mesh and node are called after the part's name, followed by the level: body_LOD1.</summary>
     public const string LodSuffix = "_LOD";
 
@@ -143,6 +146,8 @@ public static class GlbWriter
                 [SpeckleAttribute] = Accessor(mixes.SelectMany(m => new[] { m.speckleColor.x, m.speckleColor.y, m.speckleColor.z, m.speckleScale }).ToArray(), "VEC4", 4),
                 [SpeckleShapeAttribute] = Accessor(mixes.SelectMany(m => new[] { m.speckleDensity, m.speckleSize }).ToArray(), "VEC2", 2),
             };
+            if (mixes.Any(m => m.emission > 0))
+                attributes[EmissionAttribute] = Accessor(mixes.Select(m => m.emission).ToArray(), "SCALAR", 1);
 
             var primitives = new List<object>();
             foreach (var (material, triangles) in Regions(mesh))
@@ -254,6 +259,7 @@ public static class GlbWriter
                         [VariationAttribute] = "variationColor (linear) and variationScale of the material mix",
                         [SpeckleAttribute] = "speckleColor (linear) and speckleScale of the material mix",
                         [SpeckleShapeAttribute] = "speckleDensity and speckleSize of the material mix",
+                        [EmissionAttribute] = "emission of the material mix, 0 to 1, only on meshes that glow: the toon look adds that much of the base colour after its light bands",
                         ["COLOR_0"] = "albedo of the material mix, linear: variation, speckles (averaged over the vertex's share of the surface), edge colour and wet darkening baked in",
                     },
                     // Each mesh's primitives are its material regions; the number is the material's index in materials
@@ -523,7 +529,7 @@ public static class GlbWriter
 
     /// <summary>Each parameter by name: a number, or [r, g, b] / [x, y, z].</summary>
     private static Dictionary<string, object> Parameters(MaterialDefinition material) =>
-        MaterialDefinition.Parameters.ToDictionary(p => p.Name, p => p.Get(material) is [var single] ? (object)single : p.Get(material));
+        MaterialDefinition.Listed(material).ToDictionary(p => p.Name, p => p.Get(material) is [var single] ? (object)single : p.Get(material));
 
     private static float[] Flatten(Vector3[] vectors) => vectors.SelectMany(v => new[] { v.X, v.Y, v.Z }).ToArray();
 

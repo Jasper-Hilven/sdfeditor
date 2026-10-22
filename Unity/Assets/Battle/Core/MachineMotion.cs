@@ -127,6 +127,11 @@ namespace SdfBattle
         /// <summary>Over a raised surface (more than <see cref="RaisedAbove"/> over <see cref="Floor"/>, a base) it flies this high over the floor; none: as over the ground (6 to 12 m over what is under it). Set by <see cref="HelicopterLimits"/>.</summary>
         public float? OverBases { get; set; }
         public float Floor { get; set; }
+
+        /// <summary>Footprints it keeps out of (ticket 30.7: a room's tall models), <see cref="KeepOutMargin"/> metres clear: no flight point in or near one, no leg across one. None: free.</summary>
+        public IReadOnlyList<KeepOut> KeepOuts { get; set; }
+
+        public float KeepOutMargin = 1.5f;
         public float RaisedAbove = 2;
         public float Speed = 5;
         /// <summary>Its speed while it has a target: it slows to fire.</summary>
@@ -216,6 +221,12 @@ namespace SdfBattle
             position += velocity * dt;
             position.x = Mathf.Clamp(position.x, AreaMin.x + Margin - 1, AreaMax.x - Margin + 1);
             position.z = Mathf.Clamp(position.z, AreaMin.y + Margin - 1, AreaMax.y - Margin + 1);
+            if (KeepOuts != null)
+            {
+                var pushed = KeepOutRules.PushOut(KeepOuts, new Vector2(position.x, position.z));
+                position.x = pushed.x;
+                position.z = pushed.y;
+            }
             Position = position;
             Velocity = velocity;
 
@@ -282,6 +293,15 @@ namespace SdfBattle
                 // Not just round the corner: somewhere across the field
                 if (attempt < 6 && (new Vector2(x - from.x, z - from.z)).magnitude < 15)
                     continue;
+                // Not in a keep-out, nor across one on the way; with no such point found it hovers where it is
+                var point = new Vector2(x, z);
+                if (KeepOuts != null && (KeepOutRules.Near(KeepOuts, point, KeepOutMargin) || KeepOutRules.Blocks(KeepOuts, new Vector2(from.x, from.z), point, KeepOutMargin)))
+                {
+                    if (attempt < 60)
+                        continue;
+                    x = from.x;
+                    z = from.z;
+                }
                 Waypoint = new Vector3(x, Under(x, z) + cruise, z);
                 return;
             }

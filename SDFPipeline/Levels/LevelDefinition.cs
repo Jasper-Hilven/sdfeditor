@@ -65,6 +65,12 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The vehicles that run a closed path on a timetable (ticket 27.3), in the file's order.</summary>
     public IReadOnlyList<MoverSpec> Movers { get; init; } = [];
 
+    /// <summary>The data pulses that run along the region polylines flagged <c>pulse</c> (ticket 30.9), or null for a level without them.</summary>
+    public PulseSpec? Pulses { get; init; }
+
+    /// <summary>The polylines the pulses run along, in the file's order: the flagged polylines of the regions.</summary>
+    public IEnumerable<PolylineRegion> PulseLines => Regions.SelectMany(r => r.Shapes).OfType<PolylineRegion>().Where(p => p.Pulse);
+
     /// <summary>The machine set's name: <see cref="MachineSet.Default"/> without a <c>machines</c> line.</summary>
     public string MachineSetName => Machines?.Name ?? MachineSet.Default;
 }
@@ -150,10 +156,14 @@ public sealed record BackdropSpec(string Model, Vector3 At, float Yaw, float Far
 
 /// <summary>
 /// A band of emissive light on a wall's top <paramref name="Height"/> metres, over its whole length: the crack of light under a propped
-/// lid. <paramref name="Wall"/> is NegZ (south), PosZ (north), NegX (west) or PosX (east); <paramref name="Color"/> is sRGB, 0 to 1.
+/// lid. <paramref name="Wall"/> is NegZ (south), PosZ (north), NegX (west) or PosX (east), or null for a strip all round the four walls
+/// (<c>glow=all</c>); <paramref name="Color"/> is sRGB, 0 to 1. The strip is flush with the wall's top unless <see cref="Offset"/> lifts it.
 /// </summary>
-public sealed record RoomGlow(RoomFace Wall, float Height, Vector3 Color)
+public sealed record RoomGlow(RoomFace? Wall, float Height, Vector3 Color)
 {
+    /// <summary>The height in metres above the floor of the strip's lower edge, or null to put the strip's top edge on the wall's top.</summary>
+    public float? Offset { get; init; }
+
     public const float DefaultHeight = 3;
     public static readonly Vector3 DefaultColor = new(1, 0.82f, 0.5f);
 }

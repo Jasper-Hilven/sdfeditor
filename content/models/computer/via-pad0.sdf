@@ -1,0 +1,39 @@
+# Via pad 0: a cluster of four vias, 1.2 m across and 0.04 m tall (250 times life size): tin rings (pc_tin) each with a dark hole (pc_via_hole) in its middle,
+# flat on the board. Ground clutter: no collider.
+format 1
+
+# Four flat rings with holes
+Detail detail=0.07
+    Union
+        Material material=pc_tin
+            Union
+                Translate translation=(-0.32, 0.02, -0.3)
+                    Subtraction
+                        CappedCylinder radius=0.28 height=0.02
+                        Translate translation=(0, 0.015, 0)
+                            CappedCylinder radius=0.12 height=0.01
+                Translate translation=(0.3, 0.02, -0.32)
+                    Subtraction
+                        CappedCylinder radius=0.28 height=0.02
+                        Translate translation=(0, 0.015, 0)
+                            CappedCylinder radius=0.12 height=0.01
+                Translate translation=(0.32, 0.02, 0.3)
+                    Subtraction
+                        CappedCylinder radius=0.28 height=0.02
+                        Translate translation=(0, 0.015, 0)
+                            CappedCylinder radius=0.12 height=0.01
+                Translate translation=(-0.3, 0.02, 0.32)
+                    Subtraction
+                        CappedCylinder radius=0.28 height=0.02
+                        Translate translation=(0, 0.015, 0)
+                            CappedCylinder radius=0.12 height=0.01
+        Material material=pc_via_hole
+            Union
+                Translate translation=(-0.32, 0.0225, -0.3)
+                    CappedCylinder radius=0.12 height=0.0025
+                Translate translation=(0.3, 0.0225, -0.32)
+                    CappedCylinder radius=0.12 height=0.0025
+                Translate translation=(0.32, 0.0225, 0.3)
+                    CappedCylinder radius=0.12 height=0.0025
+                Translate translation=(-0.3, 0.0225, 0.32)
+                    CappedCylinder radius=0.12 height=0.0025

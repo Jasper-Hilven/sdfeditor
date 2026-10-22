@@ -42,6 +42,8 @@ namespace SdfBattle
                 Speed = State.Stats.speed,
                 TurnSpeed = State.Stats.turnSpeed,
             };
+            if (Owner.helicopterKeepOuts != null && Owner.helicopterKeepOuts.Length > 0)
+                pilot.KeepOuts = Owner.helicopterKeepOuts;
             // A room level with a machines line (ticket 27.2) gives it the room's limits: 16 m over bases, 3 m off the walls, under the level's
             // flight ceiling. A room without (the chessboard) keeps it under 10 m over its spawn; under a sky it is free
             var scene = IMMScene.Current;

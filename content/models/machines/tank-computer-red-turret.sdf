@@ -1,0 +1,21 @@
+# Tank turret, red (ticket 30.7): a small silver crystal can, a flat oval of metal on a low flange, turning on the chip; the scouts'
+# floating eyes hover over its front, looking where the barrel points.
+# Pivot: the origin is at the bottom of the flange on the turret's axis (it turns about y); in tank-computer-red-body it is at (0, 0.3, 0).
+# The barrel's (tank-computer-red-barrel) pivot is at (0, 0.05, 0.13) in this model, in the can's front.
+format 1
+collider convex
+
+Detail detail=0.32
+    Union
+        Material material=pc_aluminium
+            Union
+                Translate translation=(0, 0.02, 0)
+                    RoundBox size=(0.1, 0.02, 0.17) roundness=0.015
+                Translate translation=(0, 0.11, 0)
+                    RoundBox size=(0.09, 0.075, 0.155) roundness=0.06
+        # Eyes, mirrored: the scouts' eyeballs at a little over half size, floating over the can's front, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.075, 0.27, 0.07)
+                Scale scale=(0.55, 0.55, 0.55)
+                    Part part=eye_machine

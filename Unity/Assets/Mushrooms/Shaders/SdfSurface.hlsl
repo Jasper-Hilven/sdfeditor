@@ -9,7 +9,8 @@
 //   UV2     x = detailStrength, y = detailScale, z = detailStretch, w = colorVariation
 //   UV3     rgb = variationColor (linear), a = variationScale
 //   UV4     rgb = speckleColor (linear), a = speckleScale (m)
-//   UV5     x = speckleDensity, y = speckleSize
+//   UV5     x = speckleDensity, y = speckleSize, z = emission (0 to 1; only on meshes where something glows, else the stream is a float2
+//           and z reads 0)
 //
 // The mesh's own colour (glTF COLOR_0, with the variation and speckles baked and averaged per vertex for plain viewers) is not
 // used: everything is drawn here per pixel from the unvaried base colour, so nothing is applied twice.

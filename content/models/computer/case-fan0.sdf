@@ -1,0 +1,32 @@
+# Case fan 0: a 120 mm case fan, 30 m square and 6.25 m deep (250 times life size), the front towards +z, its middle at x = 0 and z = 0 and its
+# bottom on y = 0: a charcoal frame (pc_fan_frame) round a round opening with a warm-white glowing ring on its front (pc_led_ring) and a motor cap on
+# four spokes at the back, and the blades (pc_fan_white) as the part Blades, which a script spins. On the back walls over each base. No collider.
+format 1
+
+# The frame with its opening, the lit ring on its front face, the spokes and motor cap at the back, then the blades in the opening
+Detail detail=0.29
+    Union
+        Material material=pc_fan_frame
+            Union
+                Subtraction
+                    Translate translation=(0, 15, 0)
+                        RoundBox size=(15, 15, 3.125) roundness=1.5
+                    Translate translation=(0, 15, 0)
+                        Rotate rotation=(1.571, 0, 0)
+                            CappedCylinder radius=12.6 height=4
+                Translate translation=(0, 15, -2.6)
+                    Union
+                        Box size=(12.9, 0.8, 0.5)
+                        Box size=(0.8, 12.9, 0.5)
+                Translate translation=(0, 15, -1.9)
+                    Round radius=0.2
+                        Rotate rotation=(1.571, 0, 0)
+                            CappedCylinder radius=3.3 height=0.9
+        Material material=pc_led_ring
+            Translate translation=(0, 15, 2.9)
+                Rotate rotation=(1.571, 0, 0)
+                    Subtraction
+                        CappedCylinder radius=13.9 height=0.3
+                        CappedCylinder radius=12.7 height=0.5
+        Translate translation=(0, 15, 0)
+            Part part=Blades

@@ -1,0 +1,18 @@
+# SMD resistor 1: a worn 0805 chip resistor, 0.5 m long, 0.31 m wide and 0.13 m tall (250 times life size), lying along x like resistor 0, but its caps are
+# rounder and one has a dome of extra solder on top (pc_epoxy_black, pc_tin). Ground clutter: no collider.
+format 1
+
+# Big simple forms: a block and two caps
+Detail detail=0.07
+    Translate translation=(0, 0.065, 0)
+        Union
+            Material material=pc_epoxy_black
+                RoundBox size=(0.17, 0.058, 0.14) roundness=0.03
+            Material material=pc_tin
+                Union
+                    SymmetryX
+                        Translate translation=(0.2, 0, 0)
+                            RoundBox size=(0.05, 0.065, 0.155) roundness=0.035
+                    # The extra solder on the one cap
+                    Translate translation=(0.2, 0.04, 0)
+                        Ellipsoid radii=(0.045, 0.025, 0.1)

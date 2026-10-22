@@ -1,0 +1,26 @@
+# VRM heatsink 0: a long gunmetal heatsink block (pc_gunmetal) with a row of nine ribs on its top, standing on a row of five black chokes (pc_epoxy_black),
+# 15 m long (x), 5 m deep (z) and 7.5 m tall (250 times life size). Convex collider (mesh by size).
+format 1
+
+# The row of chokes, then the block with its ribs
+Detail detail=1.05
+    Union
+        Material material=pc_epoxy_black
+            Union
+                Translate translation=(-6, 1.5, 0)
+                    CappedCylinder radius=1.6 height=1.5
+                Translate translation=(-3, 1.5, 0)
+                    CappedCylinder radius=1.6 height=1.5
+                Translate translation=(0, 1.5, 0)
+                    CappedCylinder radius=1.6 height=1.5
+                Translate translation=(3, 1.5, 0)
+                    CappedCylinder radius=1.6 height=1.5
+                Translate translation=(6, 1.5, 0)
+                    CappedCylinder radius=1.6 height=1.5
+        Material material=pc_gunmetal
+            Union
+                Translate translation=(0, 4.75, 0)
+                    RoundBox size=(7.5, 1.75, 2.5) roundness=0.5
+                Translate translation=(0, 7, 0)
+                    LimitedRepetition spacing=1.5 limits=(4, 0, 0)
+                        Box size=(0.35, 0.5, 2)

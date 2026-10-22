@@ -297,6 +297,61 @@ public class RoomTests
     }
 
     [Fact]
+    public void Read_GlowAll_RunsRoundTheFourWalls_AtAnOffset()
+    {
+        var room = LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=case-wall ceiling=case-glass glow=all height=0.5 offset=3 color=(1, 0.95, 0.85)").Room!;
+
+        Assert.Equal(new RoomGlow(null, 0.5f, new Vector3(1, 0.95f, 0.85f)) { Offset = 3 }, room.Glow);
+        // Without an offset the strip sits on the wall's top, as ever
+        Assert.Null(LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=a ceiling=b glow=all").Room!.Glow!.Offset);
+        Assert.Null(LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=a ceiling=b glow=north").Room!.Glow!.Offset);
+        Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=a ceiling=b offset=3"));
+        var tooHigh = Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=a ceiling=b glow=all height=3 offset=62"));
+        Assert.Contains("'offset' of room is 62", tooHigh.Problem);
+    }
+
+    [Fact]
+    public void Bake_GlowAll_WritesAllAndTheOffset_AndOtherGlowsDoNot()
+    {
+        var root = Directory.CreateTempSubdirectory("sdf-level-room-");
+        try
+        {
+            var level = LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=case-wall ceiling=case-glass glow=all height=0.5 offset=3 color=(1, 0.95, 0.85)");
+            LevelBaker.Bake(level, "case", Library("case-wall", "case-glass"), root.FullName);
+            using var document = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root.FullName, LevelBaker.LevelJson)));
+            var glow = document.RootElement.GetProperty("room").GetProperty("glow");
+
+            Assert.Equal(("all", 0.5f, 3f), (glow.GetProperty("wall").GetString(), glow.GetProperty("height").GetSingle(), glow.GetProperty("offset").GetSingle()));
+
+            var north = LevelFile.Read(ToyBox + "room size=(150, 64, 100) walls=case-wall ceiling=case-glass glow=north");
+            LevelBaker.Bake(north, "case", Library("case-wall", "case-glass"), root.FullName);
+            using var other = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root.FullName, LevelBaker.LevelJson)));
+            Assert.False(other.RootElement.GetProperty("room").GetProperty("glow").TryGetProperty("offset", out _));
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ContentRoomMaterials_CaseWallAndGlass_AreThere_DarkAndNotTeamColoured()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+        var library = MaterialFiles.LoadLibrary(Path.Combine(Path.GetDirectoryName(content)!, "materials"));
+
+        foreach (var name in new[] { "case-wall", "case-glass" })
+        {
+            Assert.True(library.Contains(name), name);
+            var material = library.Resolve(name);
+            Assert.True(material.edgeThickness > 0, $"{name} has dark seams or a frame");
+            Assert.True(MathF.Max(material.baseColor.x, MathF.Max(material.baseColor.y, material.baseColor.z)) < 0.3f, $"{name} is dark");
+            Assert.True(material.baseColor.z < 0.4f && material.baseColor.z - material.baseColor.x < 0.1f, $"{name} is neutral steel or smoke, not blue");
+        }
+    }
+
+    [Fact]
     public void ContentRoomMaterials_ToyBoxWallAndLid_AreThere_WithSeams_AndNotTeamColoured()
     {
         // materials/ stands next to content/ in the repository root

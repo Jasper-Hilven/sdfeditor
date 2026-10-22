@@ -1,0 +1,18 @@
+# SMD crystal 0: an HC-49 SMD crystal, 2.85 m long, 1.2 m wide and 1.05 m tall (250 times life size), lying along x: a silver capsule can (pc_tin) on a
+# black base with a tin lead at each end (pc_epoxy_black). Knee cover: convex collider.
+format 1
+
+# A stretched ellipsoid for the can on a low block with two feet
+Detail detail=0.36
+    Union
+        Material material=pc_tin
+            Union
+                Translate translation=(0, 0.625, 0)
+                    Elongate amount=(1, 0, 0)
+                        Ellipsoid radii=(0.425, 0.425, 0.6)
+                SymmetryX
+                    Translate translation=(1.25, 0.1, 0)
+                        RoundBox size=(0.175, 0.1, 0.45) roundness=0.04
+        Material material=pc_epoxy_black
+            Translate translation=(0, 0.2, 0)
+                RoundBox size=(1.15, 0.2, 0.5) roundness=0.08

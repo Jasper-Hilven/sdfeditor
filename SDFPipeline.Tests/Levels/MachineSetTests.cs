@@ -163,4 +163,50 @@ public class MachineSetTests
             root.Delete(recursive: true);
         }
     }
+
+    [Fact]
+    public void Bake_WritesTheTallModelsFootprints_AsKeepOuts_OnlyInARoomWithMachines()
+    {
+        var root = Directory.CreateTempSubdirectory("sdf-level-keepouts-");
+        try
+        {
+            // A 10 m tower 4 x 2 m, placed twice (turned a quarter, and scaled to 0.5: 5 m, so no keep-out), and a 3 m rock
+            ModelFootprint? Models(string name) => name switch
+            {
+                "tower" => new ModelFootprint(new Vector2(-2, -1), new Vector2(2, 1)) { Height = 10 },
+                "rock" => new ModelFootprint(new Vector2(-1, -1), new Vector2(1, 1)) { Height = 3 },
+                _ => null,
+            };
+            Placement Place(string model, float x, float z, float yaw, float scale) => new(model, new Vector2(x, z), yaw, scale, 0, 6, null, 2, 1);
+            var level = new LevelDefinition(new PlayArea(new Vector2(40, 30), 0.2f, 14), 3, new HillRing(12, 6, 1.5f, 10), new IslandEdge(4))
+            {
+                Battle = BattleSidesTests.Battle(new Vector2(-12, 0), new Vector2(3, 8), new Vector2(3, -8), machines: true),
+                Placements = [Place("tower", 5, 3, 90, 1), Place("tower", -8, -8, 0, 0.5f), Place("rock", 0, 0, 0, 1)],
+            };
+            var materials = MaterialLibrary.Empty.With(LevelBaker.GrassMaterial, MaterialDefinition.Default);
+            var room = level with { Room = new RoomSpec(new Vector3(40, 64, 30), 8), Machines = new MachineSet("computer", null) };
+
+            JsonElement Battle(LevelDefinition l)
+            {
+                LevelBaker.Bake(l, "small", materials, root.FullName, Models);
+                using var json = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root.FullName, LevelBaker.LevelJson)));
+                return json.RootElement.GetProperty("battle").Clone();
+            }
+
+            var boxes = Battle(room).GetProperty("helicopterKeepOuts");
+            Assert.Equal(1, boxes.GetArrayLength());
+            // Turned 90 degrees (+z towards +x) the 4 x 2 footprint is 2 across and 4 along z
+            var box = boxes[0].EnumerateArray().Select(v => v.GetSingle()).ToArray();
+            Assert.Equal([4f, 1f, 6f, 5f], box.Select(v => MathF.Round(v, 3)).ToArray());
+            // No room, or no machines line: as baked before
+            Assert.False(Battle(level with { Machines = new MachineSet("computer", null) }).TryGetProperty("helicopterKeepOuts", out _));
+            Assert.False(Battle(room with { Machines = null }).TryGetProperty("helicopterKeepOuts", out _));
+            // Nothing tall: no field
+            Assert.False(Battle(room with { Placements = [Place("rock", 0, 0, 0, 1)] }).TryGetProperty("helicopterKeepOuts", out _));
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
 }

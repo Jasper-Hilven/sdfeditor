@@ -1,0 +1,11 @@
+# Solder blob 0: a flattened dome of silver solder (pc_solder), 0.4 m across and 0.14 m tall (250 times life size), stuck on the board. Ground clutter: no collider.
+format 1
+
+# A plain dome
+Detail detail=0.2
+    Material material=pc_solder
+        Intersection
+            Translate translation=(0, 0.03, 0)
+                Ellipsoid radii=(0.2, 0.11, 0.19)
+            Translate translation=(0, 0.2, 0)
+                Box size=(0.5, 0.2, 0.5)

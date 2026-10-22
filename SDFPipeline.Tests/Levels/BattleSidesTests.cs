@@ -31,7 +31,7 @@ public class BattleSidesTests
     /// <summary>The least room round a battle object's edge, in metres, to a model or to another battle object.</summary>
     private const float Gap = 0.2f;
 
-    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "kitchen"];
+    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "kitchen", "computer"];
 
     /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun, the kitchen's minigun and flamethrower.</summary>
     private static readonly Dictionary<string, string[]> SideWeapons = new()
@@ -41,10 +41,14 @@ public class BattleSidesTests
         ["chessboard"] = ["electro-gun", "poison-gun"],
         ["toybox"] = ["pistol", "blob-gun"],
         ["kitchen"] = ["minigun", "flamethrower"],
+        ["computer"] = ["minigun", "poison-gun"],
     };
 
-    /// <summary>The levels whose sides have machines (ticket 24): the fungal level and the toy box.</summary>
-    private static readonly string[] MachineLevels = ["fungal", "toybox", "kitchen"];
+    /// <summary>The levels whose sides have machines (ticket 24): the fungal level, the toy box, the kitchen and the computer.</summary>
+    private static readonly string[] MachineLevels = ["fungal", "toybox", "kitchen", "computer"];
+
+    /// <summary>The machine levels whose bases are castles; the kitchen's are bread boxes and the computer's RAM banks, which the castle check does not know.</summary>
+    private static readonly string[] CastleMachineLevels = ["fungal", "toybox"];
 
     public static TheoryData<string> Levels => new(LevelNames);
 
@@ -215,7 +219,7 @@ public class BattleSidesTests
         return local.X >= footprint.Min.X && local.X <= footprint.Max.X && local.Y >= footprint.Min.Y && local.Y <= footprint.Max.Y;
     }
 
-    public static TheoryData<string> WithMachines => new(MachineLevels);
+    public static TheoryData<string> WithMachines => new([.. CastleMachineLevels, "kitchen"]);
 
     [Fact]
     public void OverlapCheck_FindsAFlagStandMovedIntoACastleWall_AndAPodMovedOntoARock()

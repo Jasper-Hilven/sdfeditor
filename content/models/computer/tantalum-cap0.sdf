@@ -1,0 +1,20 @@
+# Tantalum capacitor 0: a 7343 tantalum chip capacitor, 1.8 m long, 1.1 m wide and 0.72 m tall (250 times life size), lying along x: a yellow moulded body
+# (pc_plastic_yellow) with a rounded top, tan end feet and a tan stripe near the plus end (pc_ceramic_tan). Knee cover: convex collider.
+format 1
+
+# A rounded body, two feet and a stripe cut from a slightly larger copy of the body
+Detail detail=0.3
+    Union
+        Material material=pc_plastic_yellow
+            Translate translation=(0, 0.36, 0)
+                RoundBox size=(0.72, 0.36, 0.55) roundness=0.22
+        Material material=pc_ceramic_tan
+            Union
+                SymmetryX
+                    Translate translation=(0.7, 0.2, 0)
+                        RoundBox size=(0.2, 0.2, 0.5) roundness=0.06
+                Intersection
+                    Translate translation=(0, 0.36, 0)
+                        RoundBox size=(0.745, 0.385, 0.575) roundness=0.24
+                    Translate translation=(0.42, 0.45, 0)
+                        Box size=(0.12, 0.45, 1)
