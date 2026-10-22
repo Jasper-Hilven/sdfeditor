@@ -244,8 +244,16 @@ namespace SdfBattle
             }
         }
 
+        /// <summary>Ticket 28.10: a burner ring warmed up or is hot under it: finds its way again now, at the new costs.</summary>
+        public void Replan()
+        {
+            repathIn = 0;
+            pickIn = 0;
+        }
+
         private bool PickDestination(Vector3 from)
         {
+            filter = NavAreaCosts.Filter(filter.agentTypeID);
             Machines.PlayArea(out var min, out var max);
             for (var attempt = 0; attempt < 6; attempt++)
             {
@@ -267,6 +275,7 @@ namespace SdfBattle
         private bool FindPath(Vector3 from, Vector3 to)
         {
             path ??= new NavMeshPath();
+            filter = NavAreaCosts.Filter(filter.agentTypeID);
             repathIn = 6 + (float)Random.NextDouble() * 4;
             if (!NavMesh.SamplePosition(from, out var start, 2, filter))
                 return false;

@@ -68,6 +68,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The data pulses that run along the region polylines flagged <c>pulse</c> (ticket 30.9), or null for a level without them.</summary>
     public PulseSpec? Pulses { get; init; }
 
+    /// <summary>The rings of floor that heat up in turns (ticket 28.10), or null for a level without them.</summary>
+    public HeatSpec? Heat { get; init; }
+
     /// <summary>The polylines the pulses run along, in the file's order: the flagged polylines of the regions.</summary>
     public IEnumerable<PolylineRegion> PulseLines => Regions.SelectMany(r => r.Shapes).OfType<PolylineRegion>().Where(p => p.Pulse);
 

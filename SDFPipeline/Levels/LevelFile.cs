@@ -163,6 +163,15 @@ namespace SDFPipeline.Levels;
 /// together: neither may be given alone. See <see cref="PulseSpec"/>.
 /// </para>
 /// <para>
+/// Heat (ticket 28.10, the kitchen's hob) is rings of floor that get hot in turns: <c>heat cycle=45 first=20 warm=3 hot=12 cool=3 damage=10
+/// cost=50 name="the hob"</c>, every parameter optional with the values shown, and below it one line per ring, <c>ring group=back
+/// at=(-10.5, 3) radius=5.4</c> (<c>at</c> is x and z, <c>radius</c> metres). The rings of a group heat together (a mirrored pair); the groups
+/// take turns in the order they first appear: a group warms for <c>warm</c> seconds (a glow, harmless), is hot for <c>hot</c> (<c>damage</c> a
+/// second to a scout or tank in it, a kill of no one's, named <c>name</c> in the kill feed; bots and tanks pay <c>cost</c> times the path cost
+/// of a warming or hot ring), cools for <c>cool</c>, and the next group follows; the turns run once through every <c>cycle</c> seconds
+/// (what is left over is cold glass), the first starting <c>first</c> seconds into a round. At most four groups. See <see cref="HeatSpec"/>.
+/// </para>
+/// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
 /// or more weapon <c>pod</c>s and one or more <c>pod health</c>, below it. A side's weapon pods are any of minigun, pistol, sniper,
 /// electro-gun, flamethrower, poison-gun and blob-gun, each at most once, and both sides have the same ones (most levels give each side a
@@ -174,7 +183,7 @@ namespace SDFPipeline.Levels;
 /// the zone where the side's helicopter and tanks start and respawn); both sides have them or neither.
 /// </para>
 /// </summary>
-public static class LevelFile
+public static partial class LevelFile
 {
     public const int FormatVersion = 1;
 
@@ -208,7 +217,7 @@ public static class LevelFile
     private const string Mover = "mover";
     private const string Pulses = "pulses";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Backdrop, Sides, Neutral, Machines, Mover, Pulses];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Backdrop, Sides, Neutral, Machines, Mover, Pulses, Heat];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
     private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover];
@@ -253,6 +262,7 @@ public static class LevelFile
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
         PulseSpec? pulses = null;
+        HeatSpec? heat = null;
         (BattleSide West, BattleSide East)? sides = null;
         IReadOnlyList<BattleObject>? neutral = null;
         var seen = new Dictionary<string, int>();
@@ -327,6 +337,9 @@ public static class LevelFile
                 case Pulses:
                     pulses = ReadPulses(line, cursor);
                     break;
+                case Heat:
+                    heat = ReadHeat(line, cursor);
+                    break;
             }
         }
         if (backdrop is not null && room is not null)
@@ -368,7 +381,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Backdrop = backdrop, Machines = machineSet, Movers = movers, Pulses = pulses,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Backdrop = backdrop, Machines = machineSet, Movers = movers, Pulses = pulses, Heat = heat,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 

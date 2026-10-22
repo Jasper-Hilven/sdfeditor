@@ -233,3 +233,13 @@ draw pantry
 # The bread boxes' repeated parts (the roll top's slats), instanced through the parts group, which the level builder names castle whatever the base
 draw castle
     rings=[25, 60, 400] outline=2 shadows=3 lowShadows=1 blend=2 lowDistance=0.4
+
+# The hob heats up (ticket 28.10): the four burners heat in turns, one mirrored pair at a time, so both sides face the same heat. A 45 s cycle from 20 s into a round: the back pair (the
+# large rings, z = 3) warms 3 s (a dull ember glow), is hot 12 s (orange to yellow; 10 damage a second to a scout or tank in the ring, a kill of no one's, "the hob" in the kill feed) and cools 3 s,
+# then the front pair (the small rings, z = -15) the same, and the 9 s that are left are cold glass. Bots and tanks pay 50 times the path cost of a warming or hot ring and step off it. The
+# rings are the burners' outer radii (5.4 and 4.2 m) at their placements; the kettle (0, 0) is clear of all four, a safe middle
+heat cycle=45 first=20 warm=3 hot=12 cool=3 damage=10 cost=50 name="the hob"
+    ring group=back at=(-10.5, 3) radius=5.4
+    ring group=back at=(10.5, 3) radius=5.4
+    ring group=front at=(-10.5, -15) radius=4.2
+    ring group=front at=(10.5, -15) radius=4.2

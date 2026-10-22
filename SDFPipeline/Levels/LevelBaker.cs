@@ -143,6 +143,7 @@ public static class LevelBaker
             foreach (var corner in pulseLine.Points)
                 if (!terrain.OnIsland(corner.X, corner.Y))
                     throw new ProgramFiles.SdfProgramFileException(level.Pulses!.Line, $"A pulse line goes beyond the island's edge, at ({corner.X}, {corner.Y})");
+        HeatBake.Check(level, terrain);
         var groundColors = regions.Regions.Select(r => r.Material).Prepend(level.BaseMaterial)
             .Select(m => AverageColor(materials.Resolve(m))).ToArray();
         // The trees sections' models need their footprints too where a later section keeps clear of them (LevelScatter.KeepsClearOf),
@@ -400,6 +401,8 @@ public static class LevelBaker
                     y = l.Points.Select(p => terrain.Height(p.X, p.Y)).ToArray(),
                 }).ToArray(),
             } : null,
+            // The rings of floor that heat in turns (ticket 28.10), or none: see HeatBake.Document
+            heat = HeatBake.Document(level, terrain),
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))

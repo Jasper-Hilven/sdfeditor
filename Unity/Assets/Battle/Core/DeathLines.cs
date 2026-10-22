@@ -25,6 +25,8 @@ namespace SdfBattle
         Cannon,
         /// <summary>A hazard of the level, with no team and no player behind it (ticket 27.10's toy train).</summary>
         Hazard,
+        /// <summary>Burnt by a hot patch of the level (ticket 28.10's hob): no weapon, team or player, named by the patch ("the hob").</summary>
+        Heat,
         /// <summary>Off the island, or out of the world.</summary>
         Fall,
         /// <summary>The killer got back at the one who last killed them.</summary>
@@ -85,6 +87,8 @@ namespace SdfBattle
         /// <summary>The feed's line when no other fits: the names around the weapon's icon.</summary>
         public const string PlainFeed = "{killer} {icon} {victim}";
         public const string PlainFallFeed = "{victim} fell";
+        /// <summary>The feed's line for a burn when no other fits ("Red 2 burned on the hob").</summary>
+        public const string PlainHeatFeed = "{victim} burned on {killer}";
 
         /// <summary>The placeholders a line may hold.</summary>
         public static readonly string[] Placeholders = { "{killer}", "{victim}", "{weapon}", "{streak}", "{icon}" };
@@ -120,7 +124,7 @@ namespace SdfBattle
                 if (lines[i].Gore <= gore && (text != DeathText.Feed || PhraseLength(lines[i].Text) <= room))
                     candidates.Add(i);
             if (candidates.Count == 0)
-                return text == DeathText.Feed ? kind == DeathKind.Fall ? PlainFallFeed : PlainFeed : lines.Count > 0 ? lines[0].Text : "";
+                return text == DeathText.Feed ? kind == DeathKind.Fall ? PlainFallFeed : kind == DeathKind.Heat ? PlainHeatFeed : PlainFeed : lines.Count > 0 ? lines[0].Text : "";
 
             if (!recent.TryGetValue((kind, text), out var last))
                 recent[(kind, text)] = last = new List<int>();
@@ -158,6 +162,8 @@ namespace SdfBattle
         {
             if (death.Cause == DeathCause.Fell)
                 return DeathKind.Fall;
+            if (death.Heat)
+                return DeathKind.Heat;
             if (death.Killer == null)
             {
                 var name = death.KillerName?.ToLowerInvariant() ?? "";
@@ -621,6 +627,33 @@ namespace SdfBattle
                 L("{killer}\nhad right of way"),
                 L("{killer}\ndid not brake"),
                 L("you stood on\nthe track"),
+            },
+
+            // A hot patch of the level (the kitchen's hob): the killer is its name, "the hob", so no line starts with it; the icon sits between the words without one
+            [(DeathKind.Heat, DeathText.Feed)] = new[]
+            {
+                L("{victim} {icon} sizzled on {killer}"),
+                L("{victim} {icon} fried on {killer}"),
+                L("{victim} {icon} stood on {killer}"),
+                L("{victim} {icon} got seared by {killer}"),
+                L("{victim} {icon} toasted on {killer}"),
+                L("{victim} {icon} cooked on {killer}"),
+                L("{victim} {icon} grilled on {killer}"),
+                L("{victim} {icon} sautéed on {killer}"),
+            },
+            [(DeathKind.Heat, DeathText.Title)] = new[]
+            {
+                L("SIZZLED!"), L("SEARED!"), L("TOASTED!"), L("GRILLED!"), L("COOKED!"), L("FRIED!"), L("HOT STUFF!"),
+            },
+            [(DeathKind.Heat, DeathText.Detail)] = new[]
+            {
+                L("by {killer}"),
+                L("you stood on\n{killer}"),
+                L("{killer}\nwas too hot"),
+                L("{killer}\nwarned you"),
+                L("too hot\nto handle"),
+                L("you cooked\non {killer}"),
+                L("should have\nwatched your feet"),
             },
 
             // A fall

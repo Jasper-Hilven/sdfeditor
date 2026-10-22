@@ -536,9 +536,12 @@ namespace SdfLevel.Editor
             var movers = AddMovers(scene, data);
             // The data pulses (ticket 30.9): the overlay mesh and the rule, outside the Level root too
             LevelPulses.Add(scene, data, name, meshFolder);
+            // The heat (ticket 28.10): the rule and the glow, and the rings marked as navmesh areas for the bake below
+            var heatMarkers = LevelHeat.Add(scene, data, placements);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
             var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
                 player, battle != null ? battle.gameObject : null);
+            LevelHeat.Finish(heatMarkers);
             LevelSky.Add(levelRoot.transform, name, data);
             AddStaticShadow(scene, sun);
             var sceneInfo = AddSceneInfo(scene, name, hasRoom, data, levelRoot.transform, player, placements, battle);
