@@ -47,6 +47,14 @@ namespace SdfBattle
             var scene = IMMScene.Current;
             if (Owner.flightCeiling > 0)
                 HelicopterLimits.Room(Owner.flightCeiling).Apply(pilot, Side.machineSpawn.position.y);
+            // The level's no-fly boxes (ticket 29.6): the tub and other things that stand up into its flight band
+            if (Owner.noFly != null && Owner.noFly.Length > 0)
+            {
+                var zones = new NoFlyZones();
+                foreach (var box in Owner.noFly)
+                    zones.Add(box.center, box.size, box.yaw);
+                pilot.NoFly = zones;
+            }
             else if (scene != null && scene.indoor)
                 pilot.Ceiling = Side.machineSpawn.position.y + 10;
         }

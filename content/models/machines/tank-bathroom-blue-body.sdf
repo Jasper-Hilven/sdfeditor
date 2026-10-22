@@ -1,0 +1,28 @@
+# Tank body, blue (ticket 29.6): the bathroom's duck tank, 0.76 m long: a rubber duck's plump body in team blue riding on two butter-yellow
+# sponge treads with a mint scrub layer underneath, a small curled tail up behind. The duck's head (tank-bathroom-blue-turret) turns on its
+# neck.
+# Pivot: the origin is on the ground under the middle, +z forward. The turret's pivot is at (0, 0.3, 0) in this model, the top of the back.
+format 1
+collider convex
+
+Detail detail=0.28
+    Union
+        # The sponge treads, mirrored either side: a pillowy block, its lower third the scrub layer
+        SymmetryX
+            Translate translation=(0.21, 0, 0)
+                Union
+                    Material material=bath_sponge_yellow
+                        Translate translation=(0, 0.1, 0)
+                            RoundBox size=(0.075, 0.085, 0.35) roundness=0.06
+                    Material material=bath_scrub_mint
+                        Intersection
+                            Translate translation=(0, 0.1, 0)
+                                RoundBox size=(0.08, 0.09, 0.355) roundness=0.06
+                            Translate translation=(0, 0.03, 0)
+                                Box size=(0.2, 0.03, 0.5)
+        # The duck's body with its tail
+        Material material=machine_blue_rubber
+            SmoothUnion smoothness=0.05
+                Translate translation=(0, 0.2, 0)
+                    Ellipsoid radii=(0.2, 0.145, 0.3)
+                ArbitraryRoundCone a=(0, 0.26, -0.2) b=(0, 0.37, -0.31) radiusA=0.07 radiusB=0.02

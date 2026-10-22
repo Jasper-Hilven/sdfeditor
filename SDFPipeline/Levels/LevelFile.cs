@@ -142,6 +142,15 @@ namespace SDFPipeline.Levels;
 /// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
 /// </para>
 /// <para>
+/// <c>nofly</c> lines (ticket 29.6, any number) are boxes the machine helicopters fly round, for the things in their flight band that stand
+/// up to the room's flight ceiling and past it (the bathroom's tub 16.5 m, giant duck and pyramids 9 m, tall bottles 6.6 m): <c>nofly
+/// at=(0, 38.75) size=(51, 22.5) yaw=180</c>, the box's centre (x, z), its full width (x) and depth (z) and its turn in degrees (as a
+/// <c>place</c> line's yaw), from the floor to the lid. They are written by hand next to the <c>place</c> lines they follow (derived boxes
+/// would need every model's measured height in the baker), and baked as <c>noFly</c> into the battle block of level.json. The pilot
+/// (<c>SdfBattle.NoFlyZones</c>) keeps 4 m off a box, never starts or ends a waypoint inside one and flies round it by the corners.
+/// Only helicopters keep to them; scouts, tanks and shots are unaffected.
+/// </para>
+/// <para>
 /// A <c>mover</c> (ticket 27.3; there may be several, each with its own name) is a vehicle on a fixed timetable: <c>mover train speed=7
 /// gap=0.5 phase=0</c>, with below it its closed path, <c>Stadium center=(0, 0) halfLength=12 radius=20</c> (straights along z at
 /// x = centre ± radius, half-circle ends; anticlockwise from above, arc length 0 at the east straight's south end) or <c>Polyline
@@ -200,14 +209,15 @@ public static class LevelFile
     private const string Spawn = "spawn";
     private const string Turret = "turret";
     private const string Machines = "machines";
+    private const string NoFly = "nofly";
     private const string Flag = "flag";
     private const string Pod = "pod";
     private const string Mover = "mover";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Fog, Steam, Drip, Sides, Neutral, Machines, Mover];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Fog, Steam, Drip, Sides, Neutral, Machines, NoFly, Mover];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
-    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover, Steam, Drip];
+    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover, Steam, Drip, NoFly];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -246,6 +256,7 @@ public static class LevelFile
         FogSpec? fog = null;
         var steam = new List<SteamSpec>();
         var drips = new List<DripSpec>();
+        var noFly = new List<NoFlySpec>();
         MachineSet? machineSet = null;
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
@@ -322,6 +333,9 @@ public static class LevelFile
                         throw new SdfProgramFileException(line.Number, $"Mover '{mover.Name}' is given twice, first on line {twin.Line}");
                     movers.Add(mover);
                     break;
+                case NoFly:
+                    noFly.Add(ReadNoFly(line, cursor));
+                    break;
                 case Machines:
                     machineSet = ReadMachineSet(line, cursor);
                     machineSetLine = line.Number;
@@ -357,7 +371,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, Movers = movers,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, NoFly = noFly, Movers = movers,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -518,6 +532,19 @@ public static class LevelFile
             : null;
         parameters.Done("set", "ceiling");
         return new MachineSet(name, ceiling);
+    }
+
+    /// <summary>nofly at=(0, 38.75) size=(51, 22.5) yaw=180: a box the helicopters fly round (ticket 29.6).</summary>
+    private static NoFlySpec ReadNoFly(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(NoFly, line, cursor);
+        var at = parameters.Vector2("at", "a point like (0, 38.75), x and z in metres");
+        var size = parameters.Vector2("size", "a size like (51, 22.5), the box's full width and depth in metres");
+        var yaw = parameters.Number("yaw", 0, -360, 360, "degrees, like a placed model's yaw");
+        parameters.Done("at", "size", "yaw");
+        if (size.X <= 0 || size.Y <= 0)
+            throw parameters.Error("size", "A no-fly box needs a size of more than 0 in both directions");
+        return new NoFlySpec(at, size, yaw, line.Number);
     }
 
     private static readonly string[] MoverShapes = ["Stadium", "Polyline"];

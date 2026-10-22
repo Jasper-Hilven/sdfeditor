@@ -62,6 +62,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The machine models the sides' turrets, tanks and helicopters use, and a room's flight ceiling (ticket 27.2); null for the default set.</summary>
     public MachineSet? Machines { get; init; }
 
+    /// <summary>The boxes the machine helicopters fly round (ticket 29.6), in the file's order.</summary>
+    public IReadOnlyList<NoFlySpec> NoFly { get; init; } = [];
+
     /// <summary>The vehicles that run a closed path on a timetable (ticket 27.3), in the file's order.</summary>
     public IReadOnlyList<MoverSpec> Movers { get; init; } = [];
 

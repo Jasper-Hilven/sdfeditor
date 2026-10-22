@@ -1388,7 +1388,7 @@ namespace SdfLevel.Editor
             AddMatch(root, player);
             // Ticket 24.3: the helicopters' and tanks' prefabs, which the match makes in the machine zones at its start
             if (SdfBattle.Machines.HasMachines(arena))
-                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0);
+                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0, battle["noFly"] as JArray);
             return arena;
         }
 
@@ -1432,11 +1432,18 @@ namespace SdfLevel.Editor
         /// The machines (ticket 24.3) on Battle: the red and blue tank and helicopter prefabs (Assets/Machines/Prefabs), which the match
         /// makes in each side's machine zone at its start; the turrets are the sides' own scene objects. A missing prefab logs a warning.
         /// </summary>
-        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling)
+        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling, JArray noFly = null)
         {
             var machines = battle.AddComponent<SdfBattle.Machines>();
             machines.machineSet = machineSet;
             machines.flightCeiling = flightCeiling;
+            // Ticket 29.6: the boxes the helicopters fly round (level.json battle.noFly: at, size, yaw)
+            machines.noFly = (noFly ?? new JArray()).Select(box => new SdfBattle.Machines.NoFlyEntry
+            {
+                center = new Vector2(box["at"].Value<float>(0), box["at"].Value<float>(1)),
+                size = new Vector2(box["size"].Value<float>(0), box["size"].Value<float>(1)),
+                yaw = box.Value<float>("yaw"),
+            }).ToArray();
             GameObject Load(SdfBattle.MachineKind kind, SdfBattle.Team team)
             {
                 var path = SdfBattle.Machines.PrefabPath(kind, team, machineSet);

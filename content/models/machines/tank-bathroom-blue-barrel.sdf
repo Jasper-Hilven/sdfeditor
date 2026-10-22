@@ -1,0 +1,15 @@
+# Tank barrel, blue (ticket 29.6): the duck's orange beak, a flat rounded bill that ends in a small white squirt nozzle with a dark mouth.
+# Pivot: the origin is the beak's root, the hinge it tilts about (local x); it points along +z. In tank-bathroom-blue-turret it is at
+# (0, 0.05, 0.13).
+format 1
+
+Detail detail=0.45
+    Union
+        Material material=bath_beak_orange
+            Translate translation=(0, 0, 0.06)
+                Scale scale=(1, 0.6, 1)
+                    Ellipsoid radii=(0.085, 0.07, 0.11)
+        Material material=bath_plastic_white
+            ArbitraryCappedCylinder a=(0, 0, 0.12) b=(0, 0, 0.22) radius=0.03
+        Material material=bath_eye_dark
+            ArbitraryCappedCylinder a=(0, 0, 0.215) b=(0, 0, 0.225) radius=0.015

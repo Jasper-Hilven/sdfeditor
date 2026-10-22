@@ -405,6 +405,8 @@ public static class LevelBaker
             // the set of machine models (turret-<set>-<team>) and, in a room, the helicopters' flight ceiling over the floor in metres
             machineSet = level.Machines is { } set && set.Name != MachineSet.Default ? set.Name : null,
             flightCeiling = level.Machines?.CeilingIn(level.Room),
+            // Ticket 29.6: the boxes the helicopters fly round (nofly lines), left out when there are none
+            noFly = LevelNoFly.Document(level),
             sides = battle.Sides.Select(side => new
             {
                 side = side.Name,
