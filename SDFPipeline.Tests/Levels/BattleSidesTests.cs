@@ -31,19 +31,20 @@ public class BattleSidesTests
     /// <summary>The least room round a battle object's edge, in metres, to a model or to another battle object.</summary>
     private const float Gap = 0.2f;
 
-    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox"];
+    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "kitchen"];
 
-    /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun.</summary>
+    /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun, the kitchen's minigun and flamethrower.</summary>
     private static readonly Dictionary<string, string[]> SideWeapons = new()
     {
         ["meadow"] = ["minigun", "pistol"],
         ["fungal"] = ["minigun", "pistol"],
         ["chessboard"] = ["electro-gun", "poison-gun"],
         ["toybox"] = ["pistol", "blob-gun"],
+        ["kitchen"] = ["minigun", "flamethrower"],
     };
 
     /// <summary>The levels whose sides have machines (ticket 24): the fungal level and the toy box.</summary>
-    private static readonly string[] MachineLevels = ["fungal", "toybox"];
+    private static readonly string[] MachineLevels = ["fungal", "toybox", "kitchen"];
 
     public static TheoryData<string> Levels => new(LevelNames);
 
@@ -167,7 +168,7 @@ public class BattleSidesTests
         var level = Load(name);
         var footprints = LevelModels.In(Path.Combine(Content, "models"));
         var regions = new GroundRegions(level, model => footprints(model)!);
-        var castles = level.Placements.Where(p => p.Model.StartsWith("castle", StringComparison.Ordinal) || p.Model.StartsWith("toy-castle", StringComparison.Ordinal)).ToList();
+        var castles = level.Placements.Where(p => p.Model.StartsWith("castle", StringComparison.Ordinal) || p.Model.StartsWith("toy-castle", StringComparison.Ordinal) || p.Model.StartsWith("bread-box", StringComparison.Ordinal)).ToList();
         var shapes = new Dictionary<string, Func<Vector3, float>>();
         var files = ModelFiles.All(Path.Combine(Content, "models")).ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => f);
 
@@ -182,7 +183,8 @@ public class BattleSidesTests
             foreach (var turret in side.Turrets)
             {
                 // From the castle's middle out to the turret, 3 m up: a wall or tower on the way
-                var walled = false;
+                // A bread box (the kitchen) has an open front, where its turrets stand: they need only be outside its footprint
+                var walled = castle.Model.StartsWith("bread-box", StringComparison.Ordinal) && !InFootprint(castle, turret.At, footprints);
                 for (var t = 0f; t <= 1 && !walled; t += 0.01f)
                 {
                     var local = Placement2D.ToLocal(Vector2.Lerp(castle.At, turret.At, t) - castle.At, castle.Yaw) / castle.Scale;
@@ -204,6 +206,13 @@ public class BattleSidesTests
         }
 
         Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    private static bool InFootprint(Placement placement, Vector2 at, Func<string, ModelFootprint?> footprints)
+    {
+        var footprint = footprints(placement.Model)!;
+        var local = Placement2D.ToLocal(at - placement.At, placement.Yaw) / placement.Scale;
+        return local.X >= footprint.Min.X && local.X <= footprint.Max.X && local.Y >= footprint.Min.Y && local.Y <= footprint.Max.Y;
     }
 
     public static TheoryData<string> WithMachines => new(MachineLevels);

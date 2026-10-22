@@ -95,7 +95,8 @@ namespace SDFPipeline.Levels;
 /// A placement names a model as its file is named, hyphens and all (amanita-scout), then <c>at</c> (x, z), and optionally <c>yaw</c>
 /// (degrees, counter-clockwise from above), <c>scale</c>, <c>flatten</c> (the radius of level ground round it), <c>falloff</c> (metres
 /// over which that ground blends back), <c>ground</c> (a region painted under its footprint), <c>groundMargin</c> (how far that
-/// reaches past the footprint) and <c>y</c> (metres above the ground there that its base stands, to put it on top of another model).
+/// reaches past the footprint), <c>y</c> (metres above the ground there that its base stands, to put it on top of another model) and
+/// <c>frame=1</c> (ticket 28.9: a model that frames the level, like the kitchen's worktop edge, which the scatter does not keep clear of).
 /// </para>
 /// <para>
 /// A scatter (<see cref="ScatterLayer"/>; there may be several) lists the models it picks from below it, each named as its file is, with
@@ -907,8 +908,9 @@ public static class LevelFile
             var ground = parameters.Name("ground", null, null);
             var margin = parameters.Number("groundMargin", Placement.DefaultGroundMargin, 0, 50, "metres, 0 to 50");
             var y = parameters.Number("y", 0, 0, 100, "metres above the ground, 0 to 100");
-            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin", "y");
-            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number) { Y = y });
+            var frame = parameters.Number("frame", 0, 0, 1, "1 for a model that frames the level and is no obstacle to the scatter, 0 otherwise") > 0;
+            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin", "y", "frame");
+            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number) { Y = y, Frame = frame });
         }
         return placements.Count > 0 ? placements : throw cursor.Error("Nothing is placed; indent placements below, like 'rock1 at=(10, 30)'");
     }

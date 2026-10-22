@@ -543,6 +543,159 @@ public class LevelFileTests
         }
     }
 
+    /// <summary>
+    /// Ticket 28.9: the kitchen is one theme, a kitchen. Every model it names (placed or scattered) is in models/kitchen/, and the
+    /// kitchen team's machines in models/machines/; no material, in them or in their parts, is from another theme's folder: only
+    /// kitchen/, machines/, the machines' eyes, the tea towels' team cloth in buildings/, and the ground materials.
+    /// </summary>
+    [Fact]
+    public void ContentKitchen_HasOnlyKitchen()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "kitchen" + LevelFile.Extension));
+        var models = Path.Combine(content, "models");
+        var partsFolder = Path.Combine(content, ModelFiles.PartsFolderName);
+        var files = Directory.GetFiles(models, "*.sdf", SearchOption.AllDirectories)
+            .GroupBy(Path.GetFileNameWithoutExtension)
+            .ToDictionary(g => g.Key!, g => g.ToArray());
+
+        var named = level.Placements.Select(p => p.Model)
+            .Concat(level.Scatters.SelectMany(s => s.Entries.Select(e => e.Model)))
+            .Concat(level.Trees.SelectMany(t => t.Entries.Select(e => e.Model)))
+            .Append(level.Backdrop!.Model)
+            .Distinct()
+            .ToArray();
+        Assert.NotEmpty(named);
+        Assert.Equal("kitchen", level.MachineSetName);
+        var machines = Directory.GetFiles(Path.Combine(models, "machines"), "*-kitchen-*.sdf").Select(Path.GetFileNameWithoutExtension).ToArray();
+        Assert.Equal(18, machines.Length);
+
+        var kitchen = Path.Combine(models, "kitchen");
+        var pending = new Stack<string>();
+        foreach (var model in named)
+        {
+            Assert.True(files.TryGetValue(model, out var paths), $"{model} is not in content/models");
+            Assert.Single(paths!);
+            Assert.True(Path.GetDirectoryName(paths![0]) == kitchen, $"{model} is not from models/kitchen/: {paths[0]}");
+            pending.Push(paths[0]);
+        }
+        foreach (var model in machines)
+            pending.Push(files[model!].Single());
+
+        var materials = new SortedSet<string>();
+        var parts = new HashSet<string>();
+        while (pending.Count > 0)
+        {
+            var text = File.ReadAllText(pending.Pop());
+            foreach (Match m in Regex.Matches(text, @"^\s*Material\s+material=(\S+)", RegexOptions.Multiline))
+                materials.Add(m.Groups[1].Value);
+            foreach (Match m in Regex.Matches(text, @"^\s*Part\s+part=(\S+)", RegexOptions.Multiline))
+                if (parts.Add(m.Groups[1].Value))
+                    foreach (var file in Directory.EnumerateFiles(partsFolder, m.Groups[1].Value + ".sdf", SearchOption.AllDirectories))
+                    {
+                        Assert.Contains(Path.GetRelativePath(partsFolder, file).Replace('\\', '/').Split('/')[0], new[] { "kitchen", "machines" });
+                        pending.Push(file);
+                    }
+        }
+        Assert.NotEmpty(materials);
+        var materialFolders = Directory.GetFiles(Path.Combine(content, "..", "materials"), "*.sdfmat", SearchOption.AllDirectories)
+            .ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => Path.GetFileName(Path.GetDirectoryName(f))!);
+        foreach (var material in materials)
+        {
+            Assert.True(materialFolders.TryGetValue(material, out var folder), $"{material} has no material file");
+            Assert.True(folder is "kitchen" or "machines" or "eye" || (folder == "buildings" && material is "team_red_cloth" or "team_blue_cloth"),
+                $"{material} is in materials/{folder}/, not a kitchen material");
+        }
+        // The floor: its own ground materials, a sink hole, and no room, sky or hills (the backdrop is the room)
+        Assert.Equal("oak", level.Base);
+        Assert.Equal(["steel", "hob", "flour"], level.Regions.Select(r => r.Name));
+        Assert.Single(level.Holes);
+        Assert.Equal("kitchen-room", level.Backdrop.Model);
+        Assert.Null(level.Room);
+        Assert.Null(level.Sky);
+        Assert.Equal(0, level.Hills.Height);
+        // The weapons: no other level's mix
+        Assert.Equal(["minigun", "flamethrower"], level.Battle!.West.Objects.Where(o => o.Pod is "minigun" or "flamethrower").Select(o => o.Pod));
+        Assert.Equal(["electro-gun", "blob-gun"], level.Battle.Neutral.Select(p => p.Pod));
+    }
+
+    /// <summary>
+    /// Ticket 28.9: the hand-placed kitchen. A group of the file (the comments in the place block start groups) may touch itself, never
+    /// another group (their turned footprints, the frame models left out); nothing outside the sink's group stands over the sink's
+    /// hole; every placed model is wholly on the worktop; the scatter keeps off the hole and the sink's rim, the knee cover and blockers
+    /// off the hob.
+    /// </summary>
+    [Fact]
+    public void ContentKitchen_PlacedGroupsDoNotOverlap_NothingIsOverTheSink_AndTheScatterKeepsOff()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+        var path = Path.Combine(content, LevelFile.FolderName, "kitchen" + LevelFile.Extension);
+        var level = LevelFile.Load(path);
+        var lines = File.ReadAllLines(path);
+        var footprints = LevelModels.In(Path.Combine(content, "models"));
+
+        int GroupOf(int line)
+        {
+            for (var i = Math.Min(line, lines.Length) - 1; i >= 0; i--)
+                if (lines[i].TrimStart().StartsWith('#'))
+                    return i;
+            return -1;
+        }
+
+        var solid = level.Placements.Where(p => !p.Frame).ToList();
+        Assert.Equal(2, level.Placements.Count(p => p.Frame));
+        var problems = new List<string>();
+        for (var i = 0; i < solid.Count; i++)
+        for (var j = i + 1; j < solid.Count; j++)
+            if (GroupOf(solid[i].Line) != GroupOf(solid[j].Line) && BoxOverlap(solid[i], solid[j], footprints) > 0.01f)
+                problems.Add($"{solid[i].Model} (line {solid[i].Line}) and {solid[j].Model} (line {solid[j].Line}) overlap");
+
+        var hole = level.Holes.Single();
+        var holes = new GroundHoles([hole], level.Seed);
+        string[] sink = ["sink0", "tap0", "rolling-pin0"];
+        foreach (var p in solid)
+        {
+            var f = footprints(p.Model)!;
+            foreach (var corner in new[] { f.Min, f.Max, new Vector2(f.Min.X, f.Max.Y), new Vector2(f.Max.X, f.Min.Y) })
+            {
+                var at = p.At + Placement2D.ToLevel(corner * p.Scale, p.Yaw);
+                if (MathF.Abs(at.X) > 75 || MathF.Abs(at.Y) > 50)
+                    problems.Add($"{p.Model} on line {p.Line} is off the worktop at {at}");
+                if (!sink.Contains(p.Model) && holes.Distance(at) < 0)
+                    problems.Add($"{p.Model} on line {p.Line} has a corner over the sink at {at}");
+            }
+        }
+
+        // The scatter: crumbs keep off the hole and the rim, the pantry (trees) off the hob as well
+        var terrain = new LevelTerrain(level);
+        var regions = new GroundRegions(level, m => footprints(m)!);
+        var scattered = LevelScatter.Scatter(level, terrain, regions, m => footprints(m)!, _ => Vector3.One, holes);
+        var steel = level.Regions.ToList().FindIndex(r => r.Name == "steel");
+        var hob = level.Regions.ToList().FindIndex(r => r.Name == "hob");
+        Assert.NotEmpty(scattered.Instances);
+        var crumbs = level.Scatters.Count;
+        var first = 0;
+        for (var layer = 0; layer < scattered.LayerCounts.Count; layer++)
+        {
+            foreach (var instance in scattered.Instances.Skip(first).Take(scattered.LayerCounts[layer]))
+            {
+                var at = new Vector2(instance.Position.X, instance.Position.Z);
+                if (holes.Distance(at) < 0.5f)
+                    problems.Add($"layer {layer} has an instance at {at}, in or by the sink's hole");
+                if (regions.Distance(steel, at) < 0)
+                    problems.Add($"layer {layer} has an instance at {at} on the sink's rim");
+                if (layer >= crumbs && regions.Distance(hob, at) < 0)
+                    problems.Add($"layer {layer} has an instance at {at} on the hob");
+            }
+            first += scattered.LayerCounts[layer];
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
     [Fact]
     public void ContentFungal_IsAValidLevel()
     {

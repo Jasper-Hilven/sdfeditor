@@ -271,6 +271,12 @@ public sealed record Placement(string Model, Vector2 At, float Yaw, float Scale,
     /// over its own base, which stands on the same level ground (its plateau).
     /// </summary>
     public float Y { get; init; }
+
+    /// <summary>
+    /// A model that frames the level (the kitchen's worktop edge and cabinet base, ticket 28.9) rather than stands in it: its footprint
+    /// is the whole play area or more, so the scatter does not treat it as an obstacle. False by default.
+    /// </summary>
+    public bool Frame { get; init; }
 }
 
 /// <summary>A model a scatter layer picks from, <see cref="Weight"/> times as often as one of weight 1.</summary>

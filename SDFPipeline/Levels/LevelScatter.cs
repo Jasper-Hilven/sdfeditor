@@ -140,7 +140,7 @@ public static class LevelScatter
                 : throw new SdfProgramFileException(layer.Line,
                     $"The scatter avoids '{name}', which is not a region of the level; its regions are {string.Join(", ", regions.Regions.Select(r => r.Name))}");
         }).ToArray();
-        var placements = level.Placements.Select(p => new Obstacle(p.At, p.Yaw, p.Scale, footprintOf(p.Model))).ToArray();
+        var placements = level.Placements.Where(p => !p.Frame).Select(p => new Obstacle(p.At, p.Yaw, p.Scale, footprintOf(p.Model))).ToArray();
         var cosMaxSlope = MathF.Cos(layer.MaxSlope * MathF.PI / 180);
         var battle = level.Battle?.Objects.ToArray() ?? [];
 
