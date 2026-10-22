@@ -1,0 +1,24 @@
+# Hairpin 1: a hair pin in dark bronze, 1.5 m long (30 times life size), two prongs that open out from a round bend toward the tips.
+# Lying flat on the floor, the bend at +z. Ground clutter: no collider.
+format 1
+
+# Wire of capsules, 10 cm thick so it holds together at coarse cells
+Detail detail=0.14
+    Material material=bath_bronze
+        Union
+                Capsule a=(-0.07, 0.05, 0.6) b=(-0.09, 0.05, 0.3) radius=0.05
+                Capsule a=(-0.09, 0.05, 0.3) b=(-0.14, 0.05, -0.1) radius=0.05
+                Capsule a=(-0.14, 0.05, -0.1) b=(-0.21, 0.05, -0.45) radius=0.05
+                Capsule a=(-0.21, 0.05, -0.45) b=(-0.27, 0.05, -0.75) radius=0.05
+                Capsule a=(-0.07, 0.05, 0.6) b=(-0.065, 0.05, 0.627) radius=0.05
+                Capsule a=(-0.065, 0.05, 0.627) b=(-0.049, 0.05, 0.649) radius=0.05
+                Capsule a=(-0.049, 0.05, 0.649) b=(-0.027, 0.05, 0.665) radius=0.05
+                Capsule a=(-0.027, 0.05, 0.665) b=(0, 0.05, 0.67) radius=0.05
+                Capsule a=(0, 0.05, 0.67) b=(0.027, 0.05, 0.665) radius=0.05
+                Capsule a=(0.027, 0.05, 0.665) b=(0.049, 0.05, 0.649) radius=0.05
+                Capsule a=(0.049, 0.05, 0.649) b=(0.065, 0.05, 0.627) radius=0.05
+                Capsule a=(0.065, 0.05, 0.627) b=(0.07, 0.05, 0.6) radius=0.05
+                Capsule a=(0.07, 0.05, 0.6) b=(0.09, 0.05, 0.3) radius=0.05
+                Capsule a=(0.09, 0.05, 0.3) b=(0.14, 0.05, -0.1) radius=0.05
+                Capsule a=(0.14, 0.05, -0.1) b=(0.21, 0.05, -0.45) radius=0.05
+                Capsule a=(0.21, 0.05, -0.45) b=(0.27, 0.05, -0.75) radius=0.05

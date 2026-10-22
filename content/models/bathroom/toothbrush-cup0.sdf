@@ -1,0 +1,17 @@
+# Toothbrush cup 0: the base's keep, a tumbler of frosted glass drawn opaque in lilac-white (30 times life size): 2.25 m across at the rim, 1.9 m at the foot and 3.3 m tall, hollow
+# with a thin wall and a thick floor, a rounded lip. The two team toothbrushes lean out of it. Origin at the middle of the foot on y = 0. Convex collider (the hull is solid).
+format 1
+collider convex
+
+Detail detail=0.5
+    Material material=bath_glass_frosted
+        Union
+            Subtraction
+                Translate translation=(0, 1.65, 0)
+                    CappedCone height=1.65 bottomRadius=0.95 topRadius=1.125
+                # The hollow, from the floor 0.35 m up to above the rim
+                Translate translation=(0, 2.35, 0)
+                    CappedCone height=2.0 bottomRadius=0.8 topRadius=1.0
+            # A rounded lip round the rim
+            Translate translation=(0, 3.25, 0)
+                Torus innerRadius=0.95 outerRadius=1.15

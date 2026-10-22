@@ -1,0 +1,16 @@
+# Bottle cap 1: a mint screw cap, 0.9 m round and 0.6 m tall (30 times life size), standing upright with a softly domed top.
+# Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+Detail detail=0.3
+    Material material=bath_plastic_mint
+        Intersection
+            SmoothUnion smoothness=0.1
+                # The side, a round-edged drum
+                Translate translation=(0, 0.25, 0)
+                    RoundedCylinder radius=0.4 roundness=0.08 height=0.22
+                # The domed top
+                Translate translation=(0, 0.3, 0)
+                    Ellipsoid radii=(0.39, 0.3, 0.39)
+            Plane normal=(0, -1, 0) height=0

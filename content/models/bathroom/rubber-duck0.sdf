@@ -1,0 +1,38 @@
+# Rubber duck 0: the giant novelty duck, a 30 cm duck at 30 times life size: 10.5 m long (z), 7.5 m wide and 9 m tall, yellow (#F7D24A) with an orange beak
+# (#F29A3A) and painted eyes (dark discs sunk in the head), looking along +z, tail up behind. Origin at the base's centre on y = 0. Central blocker: convex collider.
+format 1
+collider convex
+
+Detail detail=0.5
+    Intersection
+        Union
+            Material material=bath_rubber_yellow
+                SmoothUnion smoothness=0.35
+                    # The body, a plump egg
+                    Translate translation=(0, 2.9, -0.7)
+                        Ellipsoid radii=(3.6, 2.9, 4.1)
+                    # The head
+                    Translate translation=(0, 6.6, 2.2)
+                        Sphere radius=2.4
+                    # The tail, curling up behind
+                    ArbitraryRoundCone a=(0, 3.3, -3.2) b=(0, 5.0, -4.9) radiusA=1.5 radiusB=0.4
+            # The wings, flat leaves on the sides, merged only softly into the body
+            Material material=bath_rubber_yellow
+                SymmetryX
+                    Translate translation=(3.2, 3.5, -0.9)
+                        Rotate rotation=(0.25, 0, 0)
+                            Ellipsoid radii=(0.55, 1.6, 2.6)
+            Material material=bath_beak_orange
+                Translate translation=(0, 5.9, 4.4)
+                    Scale scale=(1, 0.55, 1)
+                        Ellipsoid radii=(1.25, 1.0, 1.25)
+            # The painted eyes: dark discs sunk in the head, with a small white glint
+            Material material=bath_eye_dark
+                SymmetryX
+                    Translate translation=(1.6, 7.35, 3.5)
+                        Ellipsoid radii=(0.4, 0.5, 0.35)
+            Material material=bath_plastic_white
+                SymmetryX
+                    Translate translation=(1.82, 7.62, 3.7)
+                        Sphere radius=0.14
+        Plane normal=(0, -1, 0) height=0

@@ -208,6 +208,21 @@ public static class LevelBaker
         var png = map.ToPng();
         GlbWriter.SaveAtomically(Path.Combine(folder, RegionMap.FileName), png);
 
+        // The zone mask (ticket 29.7), before level.json too; no zones, no file (an earlier bake's is deleted)
+        var zonesPath = Path.Combine(folder, ZoneMap.FileName);
+        ZoneMap? zoneMap = null;
+        string? zoneHash = null;
+        if (level.Zones.Count > 0)
+        {
+            zoneMap = ZoneMap.Bake(level, regions);
+            GlbWriter.SaveAtomically(zonesPath, zoneMap.Cells);
+            zoneHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(zoneMap.Cells))[..16].ToLowerInvariant();
+        }
+        else if (File.Exists(zonesPath))
+        {
+            File.Delete(zonesPath);
+        }
+
         // The scattered instances, the same way: in a grid of cells over the island
         var cellsX = (int)MathF.Ceiling(2 * terrain.HalfExtent.X / InstanceFile.CellSize - 1e-4f);
         var cellsZ = (int)MathF.Ceiling(2 * terrain.HalfExtent.Y / InstanceFile.CellSize - 1e-4f);
@@ -359,10 +374,15 @@ public static class LevelBaker
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
             room = level.Room is { } room ? RoomDocument(room, materials) : null,
+            // The haze, plumes of steam and drips (ticket 29.1), each left out of a level without them
+            fog = LevelFx.FogDocument(level),
+            steam = LevelFx.SteamDocument(level),
+            drips = LevelFx.DripDocument(level),
             // The battle sides (west at -x, east at +x), each with its spawn, flag stand, weapon pods and health pods (and on a
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
             // flags/flag-stand-<side>.prefab) and Assets/Machines/Prefabs (turret-<team>.prefab). Null for a level without sides
+            zones = ZoneMap.Document(level, zoneMap, zoneHash),
             battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level, HelicopterKeepOuts.Of(level, placed, FootprintOf)) : null,
             // The final boss's spots (ticket 33.3), on the boss level only: each on the ground, plus its y; the shield's dome with its radius
             boss = level.Boss is { } boss ? BossDocument(boss, terrain) : null,

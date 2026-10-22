@@ -1,0 +1,12 @@
+# Helicopter rotor, blue (ticket 29.6): a flat white plastic hub and a long flat rotor bar across it, spun by script so it blurs into a disc.
+# Pivot: the origin is the hub's bottom on the rotor's axis (it spins about y); in helicopter-bathroom-blue-body it is at (0, 0.56, 0).
+format 1
+
+Detail detail=0.6
+    Union
+        Material material=bath_plastic_white
+            Translate translation=(0, 0.02, 0)
+                CappedCylinder radius=0.045 height=0.025
+        Material material=bath_plastic_mint
+            Translate translation=(0, 0.045, 0)
+                RoundBox size=(0.37, 0.012, 0.045) roundness=0.01

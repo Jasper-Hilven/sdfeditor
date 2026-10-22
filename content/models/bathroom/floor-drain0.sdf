@@ -1,0 +1,41 @@
+# Floor drain 0: a round chrome grate set flush in the floor (30 times life size), 4.5 m across and 0.05 m high: a rim, a hub, two rings and eight spokes over the dark pipe.
+# Origin at the middle on y = 0. No collider (the level's suds orbit it as particles).
+format 1
+collider none
+
+spoke =
+    Translate translation=(0, 0.025, 0)
+        Box size=(1.95, 0.025, 0.09)
+
+Detail detail=0.1
+    Union
+        # The dark pipe seen between the bars
+        Material material=bath_drain_dark
+            CappedCylinder radius=2.1 height=0.015
+        Material material=bath_chrome
+            Union
+                # The outer rim
+                Translate translation=(0, 0.025, 0)
+                    Subtraction
+                        CappedCylinder radius=2.25 height=0.025
+                        CappedCylinder radius=1.95 height=0.1
+                # The hub
+                Translate translation=(0, 0.025, 0)
+                    CappedCylinder radius=0.4 height=0.025
+                # Two rings
+                Translate translation=(0, 0.025, 0)
+                    Subtraction
+                        CappedCylinder radius=0.95 height=0.025
+                        CappedCylinder radius=0.8 height=0.1
+                Translate translation=(0, 0.025, 0)
+                    Subtraction
+                        CappedCylinder radius=1.5 height=0.025
+                        CappedCylinder radius=1.35 height=0.1
+                # Eight spokes: four bars crossing
+                $spoke
+                Rotate rotation=(0, 0.785, 0)
+                    $spoke
+                Rotate rotation=(0, 1.571, 0)
+                    $spoke
+                Rotate rotation=(0, 2.356, 0)
+                    $spoke

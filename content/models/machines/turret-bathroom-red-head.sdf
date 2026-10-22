@@ -1,0 +1,29 @@
+# Turret head, red (ticket 29.6): the hairdryer, turning on the cord: a team-red body lying along z with a white grille at the back, a handle
+# hanging down from its middle (the cord goes into it) and a power switch; the scouts' floating eyes hover over the front. Its nozzle is the
+# barrel (turret-bathroom-red-barrel).
+# Pivot: the origin is the dryer's axis over the handle (it turns about y); in turret-bathroom-red-foot it is at (0, 1.5, 0). The barrel's
+# pivot is at (0, 0, 0.3) in this model, the dryer's front end on its axis.
+format 1
+collider convex
+
+Detail detail=0.18
+    Union
+        Material material=machine_red_paint
+            Union
+                # The dryer's body: a fat tube from the back to the front, rounded at the back
+                Round radius=0.04
+                    ArbitraryCappedCylinder a=(0, 0, -0.32) b=(0, 0, 0.3) radius=0.2
+                # The handle: hangs down and back a little from under the body, thick at the top, over the cord's end
+                ArbitraryRoundCone a=(0, -0.05, -0.04) b=(0, -0.55, -0.12) radiusA=0.1 radiusB=0.075
+        Material material=bath_plastic_white
+            Union
+                # The back grille: a cap with the air slots as a ring pattern left to the material
+                ArbitraryCappedCylinder a=(0, 0, -0.38) b=(0, 0, -0.32) radius=0.185
+                # The power switch, on top of the handle's root
+                Translate translation=(0, -0.05, 0.1)
+                    RoundBox size=(0.03, 0.04, 0.05) roundness=0.01
+        # Eyes, mirrored: the scouts' eyeballs at their own size, floating over the dryer's front, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.14, 0.31, 0.16)
+                Part part=eye_machine

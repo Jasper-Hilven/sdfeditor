@@ -1,0 +1,15 @@
+# Soap bar 1: a lilac soap bar, 3 m long, 1.8 m wide and 0.9 m tall (30 times life size), an oval cake, a half ellipsoid with the bottom edge
+# softened, lying on the floor with its long side along x. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+# A dome with a rounded foot, the part under the floor cut away
+Detail detail=0.4
+    Material material=bath_soap_lilac
+        Intersection
+            SmoothUnion smoothness=0.15
+                Translate translation=(0, 0.25, 0)
+                    RoundBox size=(1.25, 0.25, 0.75) roundness=0.25
+                Translate translation=(0, 0, 0)
+                    Ellipsoid radii=(1.4, 0.9, 0.85)
+            Plane normal=(0, -1, 0) height=0

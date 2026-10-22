@@ -1,0 +1,22 @@
+# Bottle cap 0: a white flip cap, 1.2 m round and 0.75 m tall (30 times life size), standing upright: a wide base ring, a domed lid hinged at the back, a
+# thumb tab at the front. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+Detail detail=0.3
+    Material material=bath_plastic_white
+        Union
+            # The base ring
+            Translate translation=(0, 0.2, 0)
+                RoundedCylinder radius=0.55 roundness=0.08 height=0.2
+            # The lid, domed
+            SmoothUnion smoothness=0.1
+                Translate translation=(0, 0.4, 0)
+                    RoundedCylinder radius=0.51 roundness=0.1 height=0.1
+                Translate translation=(0, 0.4, 0)
+                    Ellipsoid radii=(0.51, 0.35, 0.51)
+            # The hinge at the back and the thumb tab at the front
+            Translate translation=(0, 0.4, -0.53)
+                RoundBox size=(0.2, 0.14, 0.08) roundness=0.05
+            Translate translation=(0, 0.4, 0.55)
+                RoundBox size=(0.2, 0.07, 0.1) roundness=0.05

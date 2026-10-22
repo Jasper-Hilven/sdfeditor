@@ -56,6 +56,10 @@ namespace SDFPipeline.Levels;
 /// room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid     # the same with the faces in the named materials, not the checker
 ///      glow=north height=3 color=(1, 0.82, 0.5) light=(0, 0.77, 0.64) lightColor=(1, 0.93, 0.7) ambient=(0.45, 0.4, 0.6)
 ///
+/// fog density=0.0075 color=(0.9, 0.93, 0.92)  # a haze (Unity's exponential squared fog; the camera of a room clears to its colour)
+/// steam at=(-15, 16.5, 0) size=8 rise=40 count=22    # a plume of soft puffs 8 m wide that rise 40 m, 22 alive at a time (80 in all)
+/// drip at=(0, 57, 49.5) water=16.5 every=2 size=0.15 # a drop falls from the point into water at that height every 2 s
+///
 /// sides                                     # the two battle sides, west (-x) and east (+x), see <see cref="BattleLayout"/>
 ///     west
 ///         spawn at=(-57, 0) yaw=90 radius=3
@@ -124,11 +128,27 @@ namespace SDFPipeline.Levels;
 /// the indoor default of the chessboard (overhead, warm white) when given.
 /// </para>
 /// <para>
+/// The <c>fog</c> line (ticket 29.1; a level has at most one) gives the level a haze: a surface <c>d</c> metres from the camera keeps
+/// <c>exp(-(density * d)^2)</c> of its colour and the rest is the fog's <c>color</c> (sRGB, each part 0 to 1; write a hex colour as
+/// its parts, as '#' starts a comment). Unity draws it with its built-in fog in the toon shaders. <c>steam</c> (any number of lines) is a
+/// plume of puffs <c>size</c> metres wide born at <c>at</c> that rise <c>rise</c> metres and fade, <c>count</c> of them alive at a time
+/// (20 by default; the level's plumes hold 80 in all, half as many on the low preset). <c>drip</c> is one drop of <c>size</c> metres
+/// (0.15) that falls from <c>at</c> to the height <c>water</c> every <c>every</c> seconds (2) and lands in a ring.
+/// </para>
+/// <para>
 /// A <c>machines</c> line of its own (ticket 27.2; not the sides' <c>machines</c> zone line) names the set of machine models the level's
 /// turrets, tanks and helicopters use: <c>machines set=toys ceiling=20</c>. Without it, or with <c>set=mushroom</c>, they are the
 /// fungal machines of ticket 24 (turret-red, ...); another set has <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c> models (turret-toys-red). With it,
 /// a level with a room also gives its helicopters the room's limits (6-12 m, 16 m over bases, 3 m off the walls) under the flight
 /// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
+/// </para>
+/// <para>
+/// <c>zone</c> lines (ticket 29.7, any number) give a ground region a rule: <c>zone suds slick</c> (players slide: ground acceleration x0.25,
+/// braking x0.1, top speed x1.3; bots only get x1.2 top speed) or <c>zone puddle wet</c> (a scout in it, or out of it less than 2 s ago,
+/// takes x1.5 damage from the electro gun). The region is one of the <c>regions</c> (or painted by a placement's <c>ground=</c>); a region
+/// may have both rules, one line each, and a rule is given once per region. They are baked as a byte mask over the playable area, 1 m
+/// cells (zones.bin, described under <c>zones</c> in level.json), read at runtime by position: no colliders, no navmesh change. Where
+/// regions overlap the later region wins, as it is drawn. A level without <c>zone</c> lines bakes no mask.
 /// </para>
 /// <para>
 /// A <c>mover</c> (ticket 27.3; there may be several, each with its own name) is a vehicle on a fixed timetable: <c>mover train speed=7
@@ -199,6 +219,9 @@ public static class LevelFile
     private const string Draw = "draw";
     private const string Sky = "sky";
     private const string Room = "room";
+    private const string Fog = "fog";
+    private const string Steam = "steam";
+    private const string Drip = "drip";
     private const string Ring = "ring";
     private const string Noise = "noise";
     private const string Underside = "underside";
@@ -207,6 +230,7 @@ public static class LevelFile
     private const string Spawn = "spawn";
     private const string Turret = "turret";
     private const string Machines = "machines";
+    private const string Zone = "zone";
     private const string Flag = "flag";
     private const string Pod = "pod";
     private const string Mover = "mover";
@@ -214,7 +238,7 @@ public static class LevelFile
     private const string Boss = "boss";
     private const string Pulses = "pulses";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines, Mover, Pulses, Layout, Boss];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Fog, Steam, Drip, Sides, Neutral, Machines, Zone, Mover, Pulses, Layout, Boss];
 
     /// <summary>The layouts a <c>layout</c> line names: mirrored is the default and need not be written.</summary>
     private static readonly string[] Layouts = ["mirrored", "boss"];
@@ -223,7 +247,7 @@ public static class LevelFile
     private static readonly string[] BossSpots = ["prime", "crash", "plinth", "shield"];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
-    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover];
+    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover, Steam, Drip, Zone];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -259,6 +283,10 @@ public static class LevelFile
         SkySection? sky = null;
         RoomSpec? room = null;
         var roomLine = 0;
+        FogSpec? fog = null;
+        var steam = new List<SteamSpec>();
+        var drips = new List<DripSpec>();
+        var zones = new List<ZoneSpec>();
         MachineSet? machineSet = null;
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
@@ -326,6 +354,15 @@ public static class LevelFile
                     room = ReadRoom(line, cursor);
                     roomLine = line.Number;
                     break;
+                case Fog:
+                    fog = ReadFog(line, cursor);
+                    break;
+                case Steam:
+                    steam.Add(ReadSteam(line, cursor, steam.Sum(s => s.Count)));
+                    break;
+                case Drip:
+                    drips.Add(ReadDrip(line, cursor));
+                    break;
                 case Sides:
                     sides = ReadSides(line, cursor, layout == LevelLayout.Boss);
                     break;
@@ -337,6 +374,12 @@ public static class LevelFile
                     if (movers.FirstOrDefault(m => m.Name == mover.Name) is { } twin)
                         throw new SdfProgramFileException(line.Number, $"Mover '{mover.Name}' is given twice, first on line {twin.Line}");
                     movers.Add(mover);
+                    break;
+                case Zone:
+                    var zone = ReadZone(line, cursor);
+                    if (zones.FirstOrDefault(z => z.Region == zone.Region && z.Rule == zone.Rule) is { } sameZone)
+                        throw new SdfProgramFileException(line.Number, $"The region '{zone.Region}' is given the rule {ZoneRuleName(zone.Rule)} twice, first on line {sameZone.Line}");
+                    zones.Add(zone);
                     break;
                 case Machines:
                     machineSet = ReadMachineSet(line, cursor);
@@ -395,6 +438,12 @@ public static class LevelFile
                     $"The helicopters' flight ceiling ({FileSyntax.Number(least)} m) is under {FileSyntax.Number(MachineSet.LeastCeiling)} m, too low to clear a base; the room is too low, or give a higher 'ceiling'");
         }
 
+        // A zone names a region of the level: a listed one, or one a placement paints
+        foreach (var zone in zones)
+            if (regions.All(r => r.Name != zone.Region) && placements.All(p => p.Ground != zone.Region))
+                throw new SdfProgramFileException(zone.Line,
+                    $"The zone names the region '{zone.Region}', which the level does not have; its regions are {string.Join(", ", regions.Select(r => r.Name))}");
+
         foreach (var scatter in scatters.Concat(trees))
             if (drawGroups.All(g => g.Name != scatter.Group))
                 throw new SdfProgramFileException(scatter.Line,
@@ -405,7 +454,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet, Movers = movers, Pulses = pulses, Layout = layout, Boss = boss,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, Zones = zones, Movers = movers, Pulses = pulses, Layout = layout, Boss = boss,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -620,6 +669,21 @@ public static class LevelFile
         return new MachineSet(name, ceiling);
     }
 
+    private static readonly string[] ZoneRules = ["slick", "wet"];
+
+    private static string ZoneRuleName(ZoneRule rule) => rule == ZoneRule.Slick ? "slick" : "wet";
+
+    /// <summary>zone suds slick: a ground region and its rule (ticket 29.7).</summary>
+    private static ZoneSpec ReadZone(SourceLine line, Cursor cursor)
+    {
+        var region = cursor.ReadName("a region's name, like suds");
+        var rule = cursor.ReadName($"the zone's rule: {string.Join(" or ", ZoneRules)}");
+        if (!ZoneRules.Contains(rule))
+            throw cursor.Error($"A zone has no rule '{rule}'; its rules are {string.Join(" and ", ZoneRules)}");
+        cursor.ExpectEnd();
+        return new ZoneSpec(region, rule == "slick" ? ZoneRule.Slick : ZoneRule.Wet, line.Number);
+    }
+
     /// <summary>
     /// pulses every=4 speed=18 length=3 boost=1.35 for=2.5 (ticket 30.9): how the data pulses run along the polylines flagged
     /// <c>pulse</c>. Every parameter has the default shown.
@@ -803,6 +867,47 @@ public static class LevelFile
             Glow = glow,
             Light = direction is null && lampColor is null && ambient is null ? null : new RoomLighting(direction, lampColor, ambient),
         };
+    }
+
+    /// <summary>fog density=0.0075 color=(0.9, 0.93, 0.92): the haze (ticket 29.1).</summary>
+    private static FogSpec ReadFog(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Fog, line, cursor);
+        var density = parameters.Number("density", null, FogSpec.MinDensity, FogSpec.MaxDensity,
+            $"a density from {FileSyntax.Number(FogSpec.MinDensity)} to {FileSyntax.Number(FogSpec.MaxDensity)} (0.0075 is 57% clear at 100 m)");
+        var color = Colour(parameters, "color");
+        parameters.Done("density", "color");
+        return new FogSpec(density, color);
+    }
+
+    /// <summary>steam at=(-15, 16.5, 0) size=8 rise=40 count=22: a plume of steam (ticket 29.1); <paramref name="before"/> puffs are already spoken for.</summary>
+    private static SteamSpec ReadSteam(SourceLine line, Cursor cursor, int before)
+    {
+        var parameters = Parameters.Read(Steam, line, cursor);
+        var at = parameters.Vector3("at", "a point like (-15, 16.5, 0), x, height and z in metres");
+        var size = parameters.Number("size", null, 0.1f, 50, "the puffs' width in metres, 0.1 to 50");
+        var rise = parameters.Number("rise", null, 0.1f, 200, "how far the puffs rise in metres, 0.1 to 200");
+        var count = parameters.Count("count", SteamSpec.DefaultCount, LevelFx.MaxSteamParticles, $"a whole number of puffs alive at a time, 1 to {LevelFx.MaxSteamParticles}");
+        parameters.Done("at", "size", "rise", "count");
+        if (count < 1)
+            throw parameters.Error("count", "A plume needs at least one puff");
+        if (before + count > LevelFx.MaxSteamParticles)
+            throw parameters.Error("count", $"The level's steam holds at most {LevelFx.MaxSteamParticles} puffs in all; this plume would make it {before + count}");
+        return new SteamSpec(at, size, rise, count, line.Number);
+    }
+
+    /// <summary>drip at=(0, 57, 49.5) water=16.5 every=2 size=0.15: a drop falling into water (ticket 29.1).</summary>
+    private static DripSpec ReadDrip(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Drip, line, cursor);
+        var at = parameters.Vector3("at", "a point like (0, 57, 49.5), x, height and z in metres");
+        var water = parameters.Number("water", null, -1000, 1000, "the height the drop lands at in metres");
+        var every = parameters.Number("every", DripSpec.DefaultEvery, 0.2f, 60, "seconds between drops, 0.2 to 60");
+        var size = parameters.Number("size", DripSpec.DefaultSize, 0.01f, 5, "the drop's width in metres, 0.01 to 5");
+        parameters.Done("at", "water", "every", "size");
+        if (water >= at.Y)
+            throw parameters.Error("water", $"The drop falls from {FileSyntax.Number(at.Y)} m, so 'water' must be lower than that");
+        return new DripSpec(at, water, every, size, line.Number);
     }
 
     /// <summary>A colour like (1, 0.82, 0.5), sRGB with each part 0 to 1.</summary>
