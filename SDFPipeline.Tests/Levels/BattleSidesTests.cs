@@ -315,7 +315,7 @@ public class BattleSidesTests
     /// A layout with the west side round <paramref name="west"/> (its mirror the east), and the neutral pods at the two points; with
     /// <paramref name="machines"/>, each side's four turrets and its machine zone (ticket 24) too.
     /// </summary>
-    private static BattleLayout Battle(Vector2 west, Vector2 sniper, Vector2 flamethrower, bool machines = false)
+    internal static BattleLayout Battle(Vector2 west, Vector2 sniper, Vector2 flamethrower, bool machines = false)
     {
         BattleSide Side(string name, float sign)
         {

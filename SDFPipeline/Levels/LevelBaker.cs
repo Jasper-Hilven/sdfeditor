@@ -338,7 +338,7 @@ public static class LevelBaker
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
             // flags/flag-stand-<side>.prefab) and Assets/Machines/Prefabs (turret-<team>.prefab). Null for a level without sides
-            battle = level.Battle is { } battle ? BattleDocument(battle, terrain) : null,
+            battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level) : null,
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
@@ -350,7 +350,7 @@ public static class LevelBaker
         return new BakedLevel(folder, layout, files, triangles, skirts, maxErrors) { Regions = regions.Regions, Placements = placed, Scattered = scattered };
     }
 
-    private static object BattleDocument(BattleLayout battle, LevelTerrain terrain)
+    private static object BattleDocument(BattleLayout battle, LevelTerrain terrain, LevelDefinition level)
     {
         object Item(BattleObject item) => new
         {
@@ -363,6 +363,10 @@ public static class LevelBaker
         };
         return new
         {
+            // Ticket 27.2, on a level with machines and a machines line (else left out, the fungal machines and the old room flight):
+            // the set of machine models (turret-<set>-<team>) and, in a room, the helicopters' flight ceiling over the floor in metres
+            machineSet = level.Machines is { } set && set.Name != MachineSet.Default ? set.Name : null,
+            flightCeiling = level.Machines?.CeilingIn(level.Room),
             sides = battle.Sides.Select(side => new
             {
                 side = side.Name,

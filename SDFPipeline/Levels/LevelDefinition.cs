@@ -49,6 +49,43 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 
     /// <summary>The two battle sides and the neutral pods between them (ticket 17), or null for a level without them.</summary>
     public BattleLayout? Battle { get; init; }
+
+    /// <summary>The machine models the sides' turrets, tanks and helicopters use, and a room's flight ceiling (ticket 27.2); null for the default set.</summary>
+    public MachineSet? Machines { get; init; }
+
+    /// <summary>The machine set's name: <see cref="MachineSet.Default"/> without a <c>machines</c> line.</summary>
+    public string MachineSetName => Machines?.Name ?? MachineSet.Default;
+}
+
+/// <summary>
+/// Which models the level's machines (ticket 24) are, and how high its helicopters may fly (ticket 27.2): the level file's
+/// <c>machines set=toys ceiling=20</c> line. A set other than <see cref="Default"/> has its models <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c>
+/// (turret-toys-red, parts turret-toys-red-foot, ...), the default's are <c>&lt;kind&gt;-&lt;team&gt;</c> (turret-red) as ever.
+/// <paramref name="Ceiling"/> is the highest a helicopter flies over the floor, in metres, in a room level only.
+/// </summary>
+public sealed record MachineSet(string Name, float? Ceiling)
+{
+    /// <summary>The set of the meadow, fungal level and chessboard: the mushroom machines of ticket 24.</summary>
+    public const string Default = "mushroom";
+
+    public static readonly string[] Kinds = ["turret", "tank", "helicopter"];
+
+    /// <summary>The least ceiling that clears a helicopter's 16 m over the bases, and the room's height less 2 m is the most.</summary>
+    public const float LeastCeiling = 17;
+
+    /// <summary>A room's flight ceiling when the level gives none: 20 m, or 8 m under the room's lid if that is lower.</summary>
+    public static float DefaultCeiling(float roomHeight) => MathF.Min(20, roomHeight - 8);
+
+    /// <summary>Whether a name is a legal set name: lower case letters and digits, not a team's colour.</summary>
+    public static bool IsName(string name) =>
+        name.Length > 0 && name.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9') && name is not ("red" or "blue");
+
+    /// <summary>The model of a kind of machine of a team in a set: turret-red in the default set, turret-toys-red in toys.</summary>
+    public static string ModelName(string kind, string set, string team) =>
+        set == Default ? $"{kind}-{team}" : $"{kind}-{set}-{team}";
+
+    /// <summary>The ceiling a room level's helicopters fly under: the given one, else <see cref="DefaultCeiling"/>; null in a level without a room.</summary>
+    public float? CeilingIn(RoomSpec? room) => room is null ? null : Ceiling ?? DefaultCeiling(room.Size.Y);
 }
 
 /// <summary>

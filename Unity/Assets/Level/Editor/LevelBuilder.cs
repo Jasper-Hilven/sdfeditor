@@ -94,8 +94,9 @@ namespace SdfLevel.Editor
         /// Version 17: the scouts' agent 5 cm wider than the capsule.
         /// Version 18: the sides' turrets and machine zones (ticket 24.2), the turrets obstacles in the navmesh.
         /// Version 19: the machines' prefabs on Battle (ticket 24.3, <see cref="SdfBattle.Machines"/>); the match without a countdown.
+        /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
         /// </summary>
-        public const int BuilderVersion = 19;
+        public const int BuilderVersion = 20;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -1202,6 +1203,10 @@ namespace SdfLevel.Editor
             var root = new GameObject(BattleArena.ObjectName);
             SceneManager.MoveGameObjectToScene(root, scene);
             var arena = root.AddComponent<BattleArena>();
+            // Ticket 27.2: the set of machine models (turret-toys-red, ...; mushroom when level.json names none)
+            var machineSet = MachineSets.Of(battle.Value<string>("machineSet"));
+            if (!MachineSets.IsDefault(machineSet) && !SdfMachines.Editor.MachineBuilder.Sets().Contains(machineSet))
+                Debug.Log($"SDF level: the machine set {machineSet} has no prefabs yet (mesh content/models/machines, models like {MachineSets.PieceName("turret", machineSet, "red", "foot")}); its machines are left out until it has");
 
             void Place(Transform item, JToken entry)
             {
@@ -1265,7 +1270,7 @@ namespace SdfLevel.Editor
                 {
                     var team = id == BattleSideId.West ? "red" : "blue";
                     side.turrets = turrets.Select((turret, index) => Instance<SdfMachines.MachineRig>(sideObject.transform,
-                            SdfMachines.Editor.MachineBuilder.MachinePrefabOf("turret", team), $"Turret {index + 1}", turret))
+                            SdfMachines.Editor.MachineBuilder.MachinePrefabOf("turret", team, machineSet), $"Turret {index + 1}", turret))
                         .Where(t => t != null).ToArray();
                 }
                 if (entry["machines"] is JObject machines)
@@ -1288,7 +1293,7 @@ namespace SdfLevel.Editor
             AddMatch(root, player);
             // Ticket 24.3: the helicopters' and tanks' prefabs, which the match makes in the machine zones at its start
             if (SdfBattle.Machines.HasMachines(arena))
-                AddMachines(root);
+                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0);
             return arena;
         }
 
@@ -1332,12 +1337,14 @@ namespace SdfLevel.Editor
         /// The machines (ticket 24.3) on Battle: the red and blue tank and helicopter prefabs (Assets/Machines/Prefabs), which the match
         /// makes in each side's machine zone at its start; the turrets are the sides' own scene objects. A missing prefab logs a warning.
         /// </summary>
-        private static void AddMachines(GameObject battle)
+        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling)
         {
             var machines = battle.AddComponent<SdfBattle.Machines>();
+            machines.machineSet = machineSet;
+            machines.flightCeiling = flightCeiling;
             GameObject Load(SdfBattle.MachineKind kind, SdfBattle.Team team)
             {
-                var path = SdfBattle.Machines.PrefabPath(kind, team);
+                var path = SdfBattle.Machines.PrefabPath(kind, team, machineSet);
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (prefab == null)
                     Debug.LogWarning($"SDF level: there is no {path} for the match's machines; build it (Tools > SDF Machines > Rebuild Machines) and rebuild the level");

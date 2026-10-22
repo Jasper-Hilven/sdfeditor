@@ -123,6 +123,13 @@ namespace SDFPipeline.Levels;
 /// the indoor default of the chessboard (overhead, warm white) when given.
 /// </para>
 /// <para>
+/// A <c>machines</c> line of its own (ticket 27.2; not the sides' <c>machines</c> zone line) names the set of machine models the level's
+/// turrets, tanks and helicopters use: <c>machines set=toys ceiling=20</c>. Without it, or with <c>set=mushroom</c>, they are the
+/// fungal machines of ticket 24 (turret-red, ...); another set has <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c> models (turret-toys-red). With it,
+/// a level with a room also gives its helicopters the room's limits (6-12 m, 16 m over bases, 3 m off the walls) under the flight
+/// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
+/// </para>
+/// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
 /// or more weapon <c>pod</c>s and one or more <c>pod health</c>, below it. A side's weapon pods are any of minigun, pistol, sniper,
 /// electro-gun, flamethrower, poison-gun and blob-gun, each at most once, and both sides have the same ones (most levels give each side a
@@ -165,7 +172,7 @@ public static class LevelFile
     private const string Flag = "flag";
     private const string Pod = "pod";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Sides, Neutral, Machines];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
     private static readonly string[] Repeatable = [Scatter, Trees, Draw];
@@ -204,6 +211,8 @@ public static class LevelFile
         SkySection? sky = null;
         RoomSpec? room = null;
         var roomLine = 0;
+        MachineSet? machineSet = null;
+        var machineSetLine = 0;
         (BattleSide West, BattleSide East)? sides = null;
         IReadOnlyList<BattleObject>? neutral = null;
         var seen = new Dictionary<string, int>();
@@ -262,11 +271,30 @@ public static class LevelFile
                 case Neutral:
                     neutral = ReadNeutral(line, cursor);
                     break;
+                case Machines:
+                    machineSet = ReadMachineSet(line, cursor);
+                    machineSetLine = line.Number;
+                    break;
             }
         }
         if ((sides is null) != (neutral is null))
             throw new SdfProgramFileException(seen[sides is null ? Neutral : Sides],
                 $"A level with battle sides has neutral pods between them, and the other way round; add a '{(sides is null ? Sides : Neutral)}' section");
+
+        if (machineSet is not null)
+        {
+            if (sides is null || sides.Value.West.MachineSpawn is null)
+                throw new SdfProgramFileException(machineSetLine,
+                    $"The '{Machines}' line names the models of the sides' machines, but the level's sides have no turrets and machine zone; add them to the sides, or leave the line out");
+            if (machineSet.Ceiling is not null && room is null)
+                throw new SdfProgramFileException(machineSetLine, $"'ceiling' of {Machines} is a closed room's flight ceiling; the level has no '{Room}' line");
+            if (machineSet.Ceiling is { } ceiling && room is not null && ceiling > room.Size.Y - 2)
+                throw new SdfProgramFileException(machineSetLine,
+                    $"'ceiling' of {Machines} ({FileSyntax.Number(ceiling)}) must be 2 m or more under the room's lid ({FileSyntax.Number(room.Size.Y)} m high)");
+            if (room is not null && machineSet.CeilingIn(room) is { } least && least < MachineSet.LeastCeiling)
+                throw new SdfProgramFileException(machineSetLine,
+                    $"The helicopters' flight ceiling ({FileSyntax.Number(least)} m) is under {FileSyntax.Number(MachineSet.LeastCeiling)} m, too low to clear a base; the room is too low, or give a higher 'ceiling'");
+        }
 
         foreach (var scatter in scatters.Concat(trees))
             if (drawGroups.All(g => g.Name != scatter.Group))
@@ -278,7 +306,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Machines = machineSet,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -425,6 +453,20 @@ public static class LevelFile
         var radius = parameters.Number("radius", fallback, least, greatest, $"metres, {FileSyntax.Number(least)} to {FileSyntax.Number(greatest)}");
         parameters.Done("at", "yaw", "radius");
         return new BattleObject(kind == Spawn ? BattleKind.Spawn : BattleKind.Machines, null, at, yaw, line.Number) { ZoneRadius = radius };
+    }
+
+    /// <summary>machines set=toys ceiling=20: the machine models and a room's helicopter ceiling (ticket 27.2).</summary>
+    private static MachineSet ReadMachineSet(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Machines, line, cursor);
+        var name = parameters.Name("set", MachineSet.Default, null)!;
+        if (!MachineSet.IsName(name))
+            throw parameters.Error("set", $"A machine set is named in lower case letters and digits, not red or blue, like set=toys; '{name}' is not");
+        float? ceiling = parameters.Has("ceiling")
+            ? parameters.Number("ceiling", null, MachineSet.LeastCeiling, 1000, $"metres over the floor, {FileSyntax.Number(MachineSet.LeastCeiling)} or more")
+            : null;
+        parameters.Done("set", "ceiling");
+        return new MachineSet(name, ceiling);
     }
 
     private static readonly string[] GlowWalls = ["north", "south", "east", "west"];

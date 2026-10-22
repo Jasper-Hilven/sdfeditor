@@ -118,6 +118,10 @@ namespace SdfBattle
         public float Margin = 6;
         public float MinHeight = 6;
         public float MaxHeight = 12;
+        /// <summary>Over a raised surface (more than <see cref="RaisedAbove"/> over <see cref="Floor"/>, a base) it flies this high over the floor; none: as over the ground (6 to 12 m over what is under it). Set by <see cref="HelicopterLimits"/>.</summary>
+        public float? OverBases { get; set; }
+        public float Floor { get; set; }
+        public float RaisedAbove = 2;
         public float Speed = 5;
         /// <summary>Its speed while it has a target: it slows to fire.</summary>
         public float EngagedSpeed = 1.5f;
@@ -180,7 +184,7 @@ namespace SdfBattle
             }
 
             // Up or down to the cruise height over what is under it (6-12 m), never below what it needs to clear ahead
-            var wantY = Mathf.Max(needed, here + cruise);
+            var wantY = Mathf.Max(needed, OverBase(here) ?? here + cruise);
             if (Ceiling != null)
                 wantY = Mathf.Min(wantY, Ceiling.Value);
             var dy = wantY - position.y;
@@ -249,8 +253,13 @@ namespace SdfBattle
                 var point = position + ahead * (i / 3f);
                 highest = Mathf.Max(highest, Surface(Mathf.Clamp(point.x, AreaMin.x, AreaMax.x), Mathf.Clamp(point.z, AreaMin.y, AreaMax.y)));
             }
-            return highest + MinHeight;
+            var needs = highest + MinHeight;
+            return OverBase(highest) is { } over ? Mathf.Max(needs, over) : needs;
         }
+
+        /// <summary>The height (y) it flies at over a surface at <paramref name="surface"/> if that is a base in a room (<see cref="OverBases"/>), else null.</summary>
+        private float? OverBase(float surface) =>
+            OverBases.HasValue && surface > Floor + RaisedAbove ? Floor + OverBases.Value : (float?)null;
 
         /// <summary>A new random point over the play area, <see cref="Margin"/> inside its edge, and a new cruise height.</summary>
         public void PickWaypoint(Vector3 from)

@@ -36,6 +36,10 @@ namespace SdfBattle
         public GameObject blueTank;
         public GameObject redHelicopter;
         public GameObject blueHelicopter;
+        [Tooltip("The set of machine models (ticket 27.2): mushroom is turret-red, ...; toys is turret-toys-red, ...; the level builder sets it")]
+        public string machineSet = MachineSets.Default;
+        [Tooltip("A room level's helicopter ceiling over the floor in metres (ticket 27.2), with the room's other limits; 0: none, the old flight")]
+        public float flightCeiling;
         [Tooltip("Seeds the machines' aim, roaming and zone spots")]
         public int seed = 24;
         [Tooltip("Draw each machine's target and way in the Scene view")]
@@ -61,8 +65,8 @@ namespace SdfBattle
         public System.Random Random => random;
 
         /// <summary>The prefab of a machine of a team: Assets/Machines/Prefabs/tank-red.prefab, ...</summary>
-        public static string PrefabPath(MachineKind kind, Team team) =>
-            $"{PrefabFolder}/{kind.ToString().ToLowerInvariant()}-{team.Name().ToLowerInvariant()}.prefab";
+        public static string PrefabPath(MachineKind kind, Team team, string set = null) =>
+            MachineSets.PrefabPath(kind.ToString().ToLowerInvariant(), set, team.Name().ToLowerInvariant());
 
         /// <summary>Whether a battle layout has machines: turrets or a machine zone on a side.</summary>
         public static bool HasMachines(BattleArena arena)
@@ -97,10 +101,10 @@ namespace SdfBattle
             surfaceTop = Mathf.Max(arena.west.spawn.position.y, arena.east.spawn.position.y) + 80;
 #if UNITY_EDITOR
             // A scene built before ticket 24.3 has no prefab references: the editor finds them by path
-            redTank = redTank != null ? redTank : Load(MachineKind.Tank, Team.Red);
-            blueTank = blueTank != null ? blueTank : Load(MachineKind.Tank, Team.Blue);
-            redHelicopter = redHelicopter != null ? redHelicopter : Load(MachineKind.Helicopter, Team.Red);
-            blueHelicopter = blueHelicopter != null ? blueHelicopter : Load(MachineKind.Helicopter, Team.Blue);
+            redTank = redTank != null ? redTank : Load(MachineKind.Tank, Team.Red, machineSet);
+            blueTank = blueTank != null ? blueTank : Load(MachineKind.Tank, Team.Blue, machineSet);
+            redHelicopter = redHelicopter != null ? redHelicopter : Load(MachineKind.Helicopter, Team.Red, machineSet);
+            blueHelicopter = blueHelicopter != null ? blueHelicopter : Load(MachineKind.Helicopter, Team.Blue, machineSet);
 #endif
             var root = new GameObject(ObjectName).transform;
             root.SetParent(transform, false);
@@ -127,14 +131,14 @@ namespace SdfBattle
         }
 
 #if UNITY_EDITOR
-        private static GameObject Load(MachineKind kind, Team team) => UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(kind, team));
+        private static GameObject Load(MachineKind kind, Team team, string set) => UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(kind, team, set));
 #endif
 
         private void Make<T>(GameObject prefab, MachineKind kind, Team team, BattleSide side, Transform root, int number) where T : Machine
         {
             if (prefab == null)
             {
-                Debug.LogWarning($"Machines: no {kind.ToString().ToLowerInvariant()} prefab for {team.Name()} ({PrefabPath(kind, team)}); build it (Tools > SDF Machines > Rebuild Machines) and rebuild the level");
+                Debug.LogWarning($"Machines: no {kind.ToString().ToLowerInvariant()} prefab for {team.Name()} ({PrefabPath(kind, team, machineSet)}); build it (Tools > SDF Machines > Rebuild Machines) and rebuild the level");
                 return;
             }
             var instance = Instantiate(prefab, side.machineSpawn.position, side.machineSpawn.rotation, root);
