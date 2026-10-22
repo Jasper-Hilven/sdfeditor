@@ -133,6 +133,8 @@ namespace SDFPipeline.Levels;
 /// fungal machines of ticket 24 (turret-red, ...); another set has <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c> models (turret-toys-red). With it,
 /// a level with a room also gives its helicopters the room's limits (6-12 m, 16 m over bases, 3 m off the walls) under the flight
 /// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
+/// <c>floor=0</c> (ticket 28.8, any level) is the lowest height the helicopters take the ground to be: over a hole in it (a sink) they fly
+/// 6-12 m over that height, not over the hole's bottom.
 /// </para>
 /// <para>
 /// A <c>mover</c> (ticket 27.3; there may be several, each with its own name) is a vehicle on a fixed timetable: <c>mover train speed=7
@@ -502,8 +504,9 @@ public static class LevelFile
         float? ceiling = parameters.Has("ceiling")
             ? parameters.Number("ceiling", null, MachineSet.LeastCeiling, 1000, $"metres over the floor, {FileSyntax.Number(MachineSet.LeastCeiling)} or more")
             : null;
-        parameters.Done("set", "ceiling");
-        return new MachineSet(name, ceiling);
+        float? floor = parameters.Has("floor") ? parameters.Number("floor", null, -1000, 1000, "the height (y) the helicopters never fly lower over, in metres") : null;
+        parameters.Done("set", "ceiling", "floor");
+        return new MachineSet(name, ceiling, floor);
     }
 
     private static readonly string[] MoverShapes = ["Stadium", "Polyline"];

@@ -49,6 +49,9 @@ namespace SdfBattle
                 HelicopterLimits.Room(Owner.flightCeiling).Apply(pilot, Side.machineSpawn.position.y);
             else if (scene != null && scene.indoor)
                 pilot.Ceiling = Side.machineSpawn.position.y + 10;
+            // A level with a hole in its floor (ticket 28.8, machines floor=): never lower than 6 m over that height
+            if (Owner.hasHelicopterFloor)
+                pilot.GroundFloor = Owner.helicopterFloor;
         }
 
         protected override void Place()

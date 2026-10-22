@@ -1,0 +1,40 @@
+# Tank body, red (ticket 28.8): a sardine tin 0.6 m long on four bottle-cap wheels (mustard crown caps with fluted edges): a red enamelled tin with
+# a steel lid rim, a steel ring-pull on the back deck and the ring the turret turns on. The turret (tank-kitchen-red-turret) sits on the tin's top.
+# Pivot: the origin is on the ground under the middle, +z forward. The turret's pivot is at (0, 0.3, 0) in this model.
+format 1
+collider convex
+
+Detail detail=0.28
+    Union
+        # The four caps, a pair a side, standing on their edges with the fluted skirt outwards
+        Material material=kitchen_cap_mustard
+            SymmetryXZ
+                Translate translation=(0.235, 0.09, 0.2)
+                    Rotate rotation=(0, 0, 1.5707964)
+                        RadialWave amount=0.012 count=17
+                            CappedCylinder radius=0.09 height=0.03
+        # The hubs, a steel boss in each cap's face
+        Material material=kitchen_steel
+            SymmetryXZ
+                Translate translation=(0.27, 0.09, 0.2)
+                    Rotate rotation=(0, 0, 1.5707964)
+                        CappedCylinder radius=0.035 height=0.012
+        Material material=machine_red_paint
+            Union
+                # The tin, a rounded block between the wheels, and the ring the turret turns on
+                Translate translation=(0, 0.16, 0)
+                    RoundBox size=(0.2, 0.065, 0.3) roundness=0.04
+                Translate translation=(0, 0.26, 0)
+                    CappedCylinder radius=0.13 height=0.04
+        Material material=kitchen_steel
+            Union
+                # The lid's rim, a thin steel band round the top edge of the tin
+                Translate translation=(0, 0.225, 0)
+                    Subtraction
+                        Box size=(0.205, 0.008, 0.305)
+                        Box size=(0.185, 0.02, 0.285)
+                # The ring-pull on the back deck: a flat ring and its tab
+                Translate translation=(0, 0.243, -0.23)
+                    Torus innerRadius=0.012 outerRadius=0.05
+                Translate translation=(0, 0.243, -0.17)
+                    RoundBox size=(0.012, 0.008, 0.04) roundness=0.004

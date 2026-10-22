@@ -73,9 +73,10 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 /// Which models the level's machines (ticket 24) are, and how high its helicopters may fly (ticket 27.2): the level file's
 /// <c>machines set=toys ceiling=20</c> line. A set other than <see cref="Default"/> has its models <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c>
 /// (turret-toys-red, parts turret-toys-red-foot, ...), the default's are <c>&lt;kind&gt;-&lt;team&gt;</c> (turret-red) as ever.
-/// <paramref name="Ceiling"/> is the highest a helicopter flies over the floor, in metres, in a room level only.
+/// <paramref name="Ceiling"/> is the highest a helicopter flies over the floor, in metres, in a room level only. <paramref name="Floor"/> (ticket 28.8,
+/// <c>floor=0</c>) is the lowest height the helicopters take the ground to be, in y: over a hole in the floor (the kitchen's sink) they keep to it.
 /// </summary>
-public sealed record MachineSet(string Name, float? Ceiling)
+public sealed record MachineSet(string Name, float? Ceiling, float? Floor = null)
 {
     /// <summary>The set of the meadow, fungal level and chessboard: the mushroom machines of ticket 24.</summary>
     public const string Default = "mushroom";

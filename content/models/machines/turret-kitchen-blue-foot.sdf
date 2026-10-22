@@ -1,0 +1,37 @@
+# Turret foot, blue (ticket 28.8): the lower half of a wind-up kitchen timer about 2 m high: a round cream glazed body that bulges a little,
+# standing on a broad blue enamelled stand with a black rubber seam above it, a blue collar under the dial head and a steel button
+# on its front. The head (turret-kitchen-blue-head) turns on top.
+# Pivot: the origin is on the ground at the stand's axis, +z forward. The head's pivot is at (0, 1.5, 0) in this model, the body's flat top.
+format 1
+collider convex
+
+Detail detail=0.15
+    Union
+        # The stand, a broad low drum with a rounded edge
+        Material material=machine_blue_paint
+            Union
+                Translate translation=(0, 0.14, 0)
+                    Round radius=0.05
+                        CappedCylinder radius=0.73 height=0.09
+                # The collar the dial head turns on, flush with the body's flat top
+                Translate translation=(0, 1.46, 0)
+                    CappedCylinder radius=0.6 height=0.04
+        Material material=kitchen_black
+            Translate translation=(0, 0.3, 0)
+                CappedCylinder radius=0.72 height=0.03
+        # The cream body, an egg cut flat at the top
+        Material material=kitchen_glaze_cream
+            Intersection
+                Translate translation=(0, 0.95, 0)
+                    Ellipsoid radii=(0.85, 0.9, 0.85)
+                Translate translation=(0, 0.9, 0)
+                    Box size=(1, 0.6, 1)
+        # A steel button on the front, a ring with a black cap
+        Material material=kitchen_steel
+            Translate translation=(0, 0.75, 0.84)
+                Rotate rotation=(1.5707964, 0, 0)
+                    CappedCylinder radius=0.15 height=0.05
+        Material material=kitchen_black
+            Translate translation=(0, 0.75, 0.9)
+                Rotate rotation=(1.5707964, 0, 0)
+                    CappedCylinder radius=0.09 height=0.03

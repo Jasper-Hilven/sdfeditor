@@ -112,6 +112,12 @@ namespace SdfBattle
         /// <summary>The height of the highest solid surface at (x, z): the ground, or a castle's top.</summary>
         public Func<float, float, float> Surface { get; set; }
 
+        /// <summary>
+        /// The lowest surface it flies over (y): a hole in the floor (a sink) reads as this height, not as its depth, so it never sinks into the hole;
+        /// none: it follows whatever is under it (ticket 28.8, <c>machines floor=</c>).
+        /// </summary>
+        public float? GroundFloor { get; set; }
+
         /// <summary>The highest it may fly (a closed room's ceiling less its size); none under a sky.</summary>
         public float? Ceiling { get; set; }
 
@@ -179,7 +185,7 @@ namespace SdfBattle
             {
                 // A few rays a second, not every frame
                 needed = HeightNeeded(position, Velocity);
-                here = Surface(position.x, position.z);
+                here = Under(position.x, position.z);
                 needIn = 0.2f;
             }
 
@@ -251,11 +257,14 @@ namespace SdfBattle
             for (var i = 0; i <= 3; i++)
             {
                 var point = position + ahead * (i / 3f);
-                highest = Mathf.Max(highest, Surface(Mathf.Clamp(point.x, AreaMin.x, AreaMax.x), Mathf.Clamp(point.z, AreaMin.y, AreaMax.y)));
+                highest = Mathf.Max(highest, Under(Mathf.Clamp(point.x, AreaMin.x, AreaMax.x), Mathf.Clamp(point.z, AreaMin.y, AreaMax.y)));
             }
             var needs = highest + MinHeight;
             return OverBase(highest) is { } over ? Mathf.Max(needs, over) : needs;
         }
+
+        /// <summary>The surface at (x, z) as it flies over it: <see cref="Surface"/>, but never under <see cref="GroundFloor"/>.</summary>
+        private float Under(float x, float z) => GroundFloor.HasValue ? Mathf.Max(Surface(x, z), GroundFloor.Value) : Surface(x, z);
 
         /// <summary>The height (y) it flies at over a surface at <paramref name="surface"/> if that is a base in a room (<see cref="OverBases"/>), else null.</summary>
         private float? OverBase(float surface) =>
@@ -273,7 +282,7 @@ namespace SdfBattle
                 // Not just round the corner: somewhere across the field
                 if (attempt < 6 && (new Vector2(x - from.x, z - from.z)).magnitude < 15)
                     continue;
-                Waypoint = new Vector3(x, Surface(x, z) + cruise, z);
+                Waypoint = new Vector3(x, Under(x, z) + cruise, z);
                 return;
             }
         }

@@ -1,0 +1,56 @@
+# Helicopter body, blue (ticket 28.8): a balloon whisk as a helicopter: the steel wire bulb is the body, hanging nose first, its blue enamelled
+# handle the tail boom behind with the tail rotor's hub at its end; a steel mast up to the rotor, and two steel wire skids; the scouts'
+# floating eyes hover inside the wires, looking out of the front.
+# Pivot: the origin is on the ground under the middle (the skids stand on it), +z forward. The rotor's (helicopter-kitchen-blue-rotor)
+# pivot is at (0, 0.56, 0) and the tail rotor's (helicopter-kitchen-blue-tail-rotor) at (0.025, 0.4, -0.35) in this model.
+format 1
+collider convex
+
+Detail detail=0.3
+    Union
+        Material material=kitchen_steel
+            Union
+                # The wire bulb: a thin ellipsoid shell cut to six slabs through its long axis, so what is left is twelve loops, each in a plane
+                # through the axis, all meeting at the nose and at the ferrule behind, as a balloon whisk's wires do
+                Intersection
+                    Translate translation=(0, 0.3, 0.02)
+                        Subtraction
+                            Ellipsoid radii=(0.145, 0.145, 0.25)
+                            Ellipsoid radii=(0.12, 0.12, 0.225)
+                    Union
+                        Translate translation=(0, 0.3, 0)
+                            Box size=(0.013, 0.2, 0.4)
+                        Translate translation=(0, 0.3, 0)
+                            Rotate rotation=(0, 0, 0.5235988)
+                                Box size=(0.013, 0.2, 0.4)
+                        Translate translation=(0, 0.3, 0)
+                            Rotate rotation=(0, 0, 1.0471976)
+                                Box size=(0.013, 0.2, 0.4)
+                        Translate translation=(0, 0.3, 0)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                Box size=(0.013, 0.2, 0.4)
+                        Translate translation=(0, 0.3, 0)
+                            Rotate rotation=(0, 0, 2.0943952)
+                                Box size=(0.013, 0.2, 0.4)
+                        Translate translation=(0, 0.3, 0)
+                            Rotate rotation=(0, 0, 2.6179939)
+                                Box size=(0.013, 0.2, 0.4)
+                # The ferrule where the wires gather behind the bulb
+                ArbitraryCappedCone a=(0, 0.3, -0.19) b=(0, 0.32, -0.28) radiusA=0.04 radiusB=0.034
+                # The mast up to the rotor's hub
+                Capsule a=(0, 0.42, 0) b=(0, 0.55, 0) radius=0.025
+                # The skids, mirrored: two legs down to a runner along z each side
+                SymmetryX
+                    Union
+                        Capsule a=(0.09, 0.2, 0.1) b=(0.11, 0.015, 0.1) radius=0.014
+                        Capsule a=(0.09, 0.2, -0.08) b=(0.11, 0.015, -0.08) radius=0.014
+                        Capsule a=(0.11, 0.015, -0.14) b=(0.11, 0.015, 0.2) radius=0.014
+        # The handle, the whisk's blue enamelled grip, from the ferrule up to the tail rotor's hub
+        Material material=machine_blue_paint
+            ArbitraryRoundCone a=(0, 0.32, -0.27) b=(0, 0.4, -0.35) radiusA=0.04 radiusB=0.03
+        # Eyes, mirrored: the scouts' eyeballs at a little over half size, inside the wires at the bulb's front, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.06, 0.3, 0.1)
+                Scale scale=(0.5, 0.5, 0.5)
+                    Part part=eye_machine
