@@ -1,0 +1,125 @@
+# Fruit bowl 0: a lilac glazed bowl (kitchen_crockery_lilac) 15 m across with its rim 6 m up on a low foot, heaped with fruit to 9 m (60 times life size): oranges
+# (kitchen_orange), lemons (kitchen_lemon), limes (kitchen_lime), a green pear (kitchen_pear) and a banana laid across the top (kitchen_banana); stems and tips in
+# kitchen_stem. No red or blue. Shelters the north flank. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.3
+    Union
+        Material material=kitchen_crockery_lilac
+            Union
+                Subtraction
+                    Intersection
+                        Translate translation=(0, 7.69, 0)
+                            Sphere radius=7.69
+                        Translate translation=(0, 3, 0)
+                            Box size=(9, 3, 9)
+                    Translate translation=(0, 8.19, 0)
+                        Sphere radius=7.19
+                Translate translation=(0, 0.45, 0)
+                    CappedCone height=0.45 bottomRadius=3 topRadius=2.6
+        Union
+            Material material=kitchen_orange
+                Translate translation=(0.31, 3.1, 0.12)
+                    Sphere radius=2.2
+            Material material=kitchen_lemon
+                Union
+                    Translate translation=(3.4, 3.6, 0.5)
+                        Rotate rotation=(0, 0.3, 0)
+                            Ellipsoid radii=(2.1, 1.5, 1.5)
+                    Translate translation=(3.4, 3.6, 0.5)
+                        Rotate rotation=(0, 0.3, 0)
+                            Translate translation=(2.15, 0, 0)
+                                Sphere radius=0.4
+                    Translate translation=(3.4, 3.6, 0.5)
+                        Rotate rotation=(0, 0.3, 0)
+                            Translate translation=(-2.15, 0, 0)
+                                Sphere radius=0.4
+            Material material=kitchen_lime
+                Translate translation=(-3.2, 3.3, 1)
+                    Sphere radius=1.6
+            Material material=kitchen_lemon
+                Union
+                    Translate translation=(0.6, 3.5, -3.7)
+                        Rotate rotation=(0, 1.2, 0)
+                            Ellipsoid radii=(2.1, 1.5, 1.5)
+                    Translate translation=(0.6, 3.5, -3.7)
+                        Rotate rotation=(0, 1.2, 0)
+                            Translate translation=(2.15, 0, 0)
+                                Sphere radius=0.4
+                    Translate translation=(0.6, 3.5, -3.7)
+                        Rotate rotation=(0, 1.2, 0)
+                            Translate translation=(-2.15, 0, 0)
+                                Sphere radius=0.4
+            Material material=kitchen_orange
+                Translate translation=(-2.4, 3.7, -3)
+                    Sphere radius=2.2
+            Material material=kitchen_orange
+                Translate translation=(0, 7.1, -0.4)
+                    Sphere radius=2.2
+            Union
+                Material material=kitchen_pear
+                    Translate translation=(-0.7, 3.9, 3.95)
+                        Rotate rotation=(0, 0.5, 0)
+                            Union
+                                Translate translation=(0, 0, 0)
+                                    Sphere radius=1.8
+                                Translate translation=(2, 0.2, 0)
+                                    Sphere radius=1.15
+                                Translate translation=(1.2, 0.1, 0)
+                                    Sphere radius=1.45
+                Material material=kitchen_stem
+                    Translate translation=(-0.7, 3.9, 3.95)
+                        Rotate rotation=(0, 0.5, 0)
+                            Capsule a=(3, 0.4, 0) b=(3.7, 0.9, 0) radius=0.18
+            Material material=kitchen_orange
+                Translate translation=(1.3, 5.9, 1.6)
+                    Sphere radius=2.2
+            Material material=kitchen_lime
+                Translate translation=(-1.4, 6, -0.3)
+                    Sphere radius=1.6
+            Material material=kitchen_lemon
+                Union
+                    Translate translation=(1.2, 5.7, -2)
+                        Rotate rotation=(0, 0.6, 0)
+                            Ellipsoid radii=(2.1, 1.5, 1.5)
+                    Translate translation=(1.2, 5.7, -2)
+                        Rotate rotation=(0, 0.6, 0)
+                            Translate translation=(2.15, 0, 0)
+                                Sphere radius=0.4
+                    Translate translation=(1.2, 5.7, -2)
+                        Rotate rotation=(0, 0.6, 0)
+                            Translate translation=(-2.15, 0, 0)
+                                Sphere radius=0.4
+            Material material=kitchen_lime
+                Translate translation=(-0.7, 6.5, 2.3)
+                    Sphere radius=1.6
+            Material material=kitchen_lemon
+                Union
+                    Translate translation=(-3.9, 4.6, -0.9)
+                        Rotate rotation=(0, 2, 0)
+                            Ellipsoid radii=(2.1, 1.5, 1.5)
+                    Translate translation=(-3.9, 4.6, -0.9)
+                        Rotate rotation=(0, 2, 0)
+                            Translate translation=(2.15, 0, 0)
+                                Sphere radius=0.4
+                    Translate translation=(-3.9, 4.6, -0.9)
+                        Rotate rotation=(0, 2, 0)
+                            Translate translation=(-2.15, 0, 0)
+                                Sphere radius=0.4
+            Material material=kitchen_orange
+                Translate translation=(3.6, 4.8, -2.2)
+                    Sphere radius=2.2
+            Union
+                Material material=kitchen_banana
+                    Union
+                        Capsule a=(-4.6, 6.6, 2) b=(-2.6, 7.7, 2.6) radius=0.62
+                        Capsule a=(-2.6, 7.7, 2.6) b=(0, 8.3, 2.8) radius=0.62
+                        Capsule a=(0, 8.3, 2.8) b=(2.6, 7.8, 2.4) radius=0.62
+                        Capsule a=(2.6, 7.8, 2.4) b=(4.5, 6.6, 1.6) radius=0.62
+                Material material=kitchen_stem
+                    Union
+                        Translate translation=(-4.6, 6.6, 2)
+                            Sphere radius=0.64
+                        Translate translation=(4.5, 6.6, 1.6)
+                            Sphere radius=0.64

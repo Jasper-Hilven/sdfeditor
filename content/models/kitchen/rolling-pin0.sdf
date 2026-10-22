@@ -1,0 +1,13 @@
+# Rolling pin 0: an oak French rolling pin (kitchen_oak), 30 m long with its axis along z (placed with yaw 90 it spans the sink, tips on the rims at x = +-15),
+# 3 m thick in the middle tapering to 1.1 m at the tips (60 times life size). The axis is 0.55 m up, so each tip rests on y = 0 and the top is 1.1 m high there rising
+# to 2.05 m in the middle; the thick middle hangs 0.95 m below the rims over the bowl. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.4
+    Material material=kitchen_oak
+        Intersection
+            Translate translation=(0, 0.55, 0)
+                Ellipsoid radii=(1.5, 1.5, 16.12)
+            Translate translation=(0, 0.55, 0)
+                RoundBox size=(2, 2, 15) roundness=0.45

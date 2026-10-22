@@ -1,0 +1,45 @@
+# Kettle 0: a steel stovetop kettle (60 times life size) standing on the hob: a body 8.6 m across at the foot and 7.5 m tall, a domed lid with a knob, a spout on +x
+# reaching 5.3 m out and a black bail handle arching over the lid to 13 m, from the sides at z. Steel (kitchen_steel), the lid knob and handle black (kitchen_black). Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.6
+    Union
+        Material material=kitchen_steel
+            Union
+                SmoothUnion smoothness=0.3
+                    Revolution offset=0
+                        Translate2D offset=(0, 3.75)
+                            Round2D radius=0.5
+                                Trapezoid2D bottomRadius=3.8 topRadius=2.7 height=3.25
+                    Translate translation=(0, 7.2, 0)
+                        CappedCylinder radius=3.25 height=0.25
+                    Intersection
+                        Translate translation=(0, 7.4, 0)
+                            Ellipsoid radii=(3.2, 2.2, 3.2)
+                        Translate translation=(0, 11.4, 0)
+                            Box size=(5, 4, 5)
+                    Translate translation=(0, 0.15, 0)
+                        CappedCylinder radius=4.3 height=0.15
+                ArbitraryRoundCone a=(3.2, 2.4, 0) b=(4.7, 7, 0) radiusA=1.5 radiusB=0.6
+        Material material=kitchen_black
+            Union
+                Union
+                    Translate translation=(0, 9.7, 0)
+                        CappedCylinder radius=0.35 height=0.3
+                    Translate translation=(0, 10.2, 0)
+                        Sphere radius=0.7
+                Rotate rotation=(0, 1.5708, 0)
+                    SymmetryX
+                        Union
+                            Capsule a=(3.5, 5.5, 0) b=(4.3, 6.8, 0) radius=0.35
+                            Capsule a=(4.3, 6.8, 0) b=(4.3, 7, 0) radius=0.35
+                            Capsule a=(4.3, 7, 0) b=(4.2347, 7.9724, 0) radius=0.35
+                            Capsule a=(4.2347, 7.9724, 0) b=(4.0407, 8.9153, 0) radius=0.35
+                            Capsule a=(4.0407, 8.9153, 0) b=(3.7239, 9.8, 0) radius=0.35
+                            Capsule a=(3.7239, 9.8, 0) b=(3.294, 10.5996, 0) radius=0.35
+                            Capsule a=(3.294, 10.5996, 0) b=(2.764, 11.2898, 0) radius=0.35
+                            Capsule a=(2.764, 11.2898, 0) b=(2.15, 11.8497, 0) radius=0.35
+                            Capsule a=(2.15, 11.8497, 0) b=(1.4707, 12.2623, 0) radius=0.35
+                            Capsule a=(1.4707, 12.2623, 0) b=(0.7467, 12.5149, 0) radius=0.35
+                            Capsule a=(0.7467, 12.5149, 0) b=(0, 12.6, 0) radius=0.35

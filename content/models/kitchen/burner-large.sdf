@@ -1,0 +1,24 @@
+# Burner large: a flat electric burner on the glass hob, 10.8 m across and 0.16 m thick (60 times life size: a 2.7 mm coil; 28 says 0.02 m, which does not mesh at 256 cells
+# without 50k triangles), origin at its middle, resting on y = 0. Cold it is dark cast steel (kitchen_burner): concentric coils round a plate, the glass showing between them.
+# The heat (0 cold to 1 hot) is not part of the model: 28.10 writes it per vertex to the vertices of the kitchen_burner material for the ember glow (the materials have no
+# emission yet, 30.1). No collider; the burner is a navmesh area, a scout walks over the coil.
+format 1
+collider none
+
+Detail detail=0.15
+    Material material=kitchen_burner
+        Translate translation=(0, 0.08, 0)
+            Union
+                Subtraction
+                    CappedCylinder radius=5.4 height=0.08
+                    CappedCylinder radius=4.8 height=0.2
+                Subtraction
+                    CappedCylinder radius=4.3 height=0.08
+                    CappedCylinder radius=3.8 height=0.2
+                Subtraction
+                    CappedCylinder radius=3.2 height=0.08
+                    CappedCylinder radius=2.7 height=0.2
+                Subtraction
+                    CappedCylinder radius=2.1 height=0.08
+                    CappedCylinder radius=1.6 height=0.2
+                CappedCylinder radius=1.1 height=0.08

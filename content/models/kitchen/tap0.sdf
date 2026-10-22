@@ -1,0 +1,39 @@
+# Tap 0: a steel gooseneck tap (60 times life size), 18 m tall with a 3 m round foot at the origin; the neck rises 11 m, arches over and ends in a nozzle 14 m
+# towards -z (the sink), 13 m off the worktop at its mouth. A black lever sticks out over the foot on the sink side. Mesh collider (foot and column and all).
+format 1
+collider mesh
+
+Detail detail=0.6
+    Union
+        Material material=kitchen_steel
+            Union
+                Translate translation=(0, 0.75, 0)
+                    RoundedCylinder radius=1.5 roundness=0.4 height=0.75
+                Translate translation=(0, 1.5, 0)
+                    CappedCone height=0.5 bottomRadius=1.15 topRadius=0.7
+                Union
+                    Capsule a=(0, 1, 0) b=(0, 11, 0) radius=0.65
+                    Capsule a=(0, 11, 0) b=(0, 12.3306, -0.142) radius=0.65
+                    Capsule a=(0, 12.3306, -0.142) b=(0, 13.6031, -0.562) radius=0.65
+                    Capsule a=(0, 13.6031, -0.562) b=(0, 14.7618, -1.2414) radius=0.65
+                    Capsule a=(0, 14.7618, -1.2414) b=(0, 15.7561, -2.1507) radius=0.65
+                    Capsule a=(0, 15.7561, -2.1507) b=(0, 16.5426, -3.25) radius=0.65
+                    Capsule a=(0, 16.5426, -3.25) b=(0, 17.0868, -4.4914) radius=0.65
+                    Capsule a=(0, 17.0868, -4.4914) b=(0, 17.3649, -5.8206) radius=0.65
+                    Capsule a=(0, 17.3649, -5.8206) b=(0, 17.3649, -7.1794) radius=0.65
+                    Capsule a=(0, 17.3649, -7.1794) b=(0, 17.0868, -8.5086) radius=0.65
+                    Capsule a=(0, 17.0868, -8.5086) b=(0, 16.5426, -9.75) radius=0.65
+                    Capsule a=(0, 16.5426, -9.75) b=(0, 15.7561, -10.8493) radius=0.65
+                    Capsule a=(0, 15.7561, -10.8493) b=(0, 14.7618, -11.7586) radius=0.65
+                    Capsule a=(0, 14.7618, -11.7586) b=(0, 13.6031, -12.438) radius=0.65
+                    Capsule a=(0, 13.6031, -12.438) b=(0, 13.5, -13) radius=0.65
+                Union
+                    Translate translation=(0, 13, -13)
+                        CappedCylinder radius=1 height=0.6
+                    Translate translation=(0, 12.2, -13)
+                        CappedCylinder radius=0.85 height=0.2
+        Material material=kitchen_black
+            Union
+                Capsule a=(0, 3.4, 0) b=(0, 3.9, -2.3) radius=0.3
+                Translate translation=(0, 3.9, -2.4)
+                    Sphere radius=0.5
