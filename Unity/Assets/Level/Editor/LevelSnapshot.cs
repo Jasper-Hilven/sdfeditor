@@ -158,10 +158,14 @@ namespace SdfLevel.Editor
                     ShootRoom(scene, eye, Shot, EyeShot);
                     if (scene.name == "Toybox")
                         ShootToyBox(scene, eye, scatter, Shot, EyeShot);
+                    if (scene.name == "Computer")
+                        ShootComputer(scene, scatter, Shot);
                     QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                     EyeShot("room_eye_web", eye, Quaternion.Euler(0, 90, 0));
                     if (scene.name == "Toybox")
                         ShootToyBox(scene, eye, scatter, Shot, EyeShot, "_web");
+                    if (scene.name == "Computer")
+                        ShootComputer(scene, scatter, Shot, "_web");
                     Debug.Log($"SDF level: snapshots written to {directory}");
                     return;
                 }
@@ -311,6 +315,35 @@ namespace SdfLevel.Editor
                 var front = car.position + car.forward * 12 + Vector3.up * 2.5f;
                 View("toy_train_front", front, Quaternion.LookRotation(car.position + Vector3.up - front));
             }
+        }
+
+        /// <summary>
+        /// The computer's budget views (ticket 30.10), each logged as the toy box's are: from the west spawn in four directions, from the
+        /// south-west corner, above, at the CPU cooler and at the GPU. Unity's x is the pipeline's mirrored, so the west spawn (pipeline
+        /// (-62, 21)) stands at Unity x = +62 and faces -x towards the middle.
+        /// </summary>
+        private static void ShootComputer(Scene scene, InstancedScatterRenderer scatter, Action<string, Vector3, Quaternion, int, int> shot, string suffix = "")
+        {
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            void View(string name, Vector3 position, Quaternion rotation)
+            {
+                shot(name + suffix, position, rotation, 1920, 1080);
+                Debug.Log($"SDF level: {name + suffix} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): {ToyCost(scene, camera, position, rotation, scatter)}");
+            }
+            var spawn = OnGround(new Vector3(62, 0, 21)) + up;
+            View("pc_spawn_middle", spawn, Quaternion.Euler(0, -90, 0));
+            View("pc_spawn_flag", spawn, Quaternion.LookRotation(new Vector3(10, 0, -21)));
+            View("pc_spawn_back", spawn, Quaternion.Euler(0, 90, 0));
+            View("pc_spawn_north", spawn, Quaternion.Euler(0, 0, 0));
+            View("pc_corner", OnGround(new Vector3(74, 0, -54)) + up, Quaternion.LookRotation(new Vector3(-1, 0.02f, 0.8f)));
+            View("pc_above", new Vector3(0, 80, -85), Quaternion.Euler(45, 0, 0));
+            View("pc_top", new Vector3(0, 120, 0), Quaternion.Euler(90, 0, 0));
+            View("pc_cooler", OnGround(new Vector3(26, 0, 0)) + up, Quaternion.Euler(-6, -90, 0));
+            View("pc_cooler_close", OnGround(new Vector3(14, 0, -6)) + up, Quaternion.LookRotation(new Vector3(-1, 0.25f, 0.4f)));
+            View("pc_gpu", OnGround(new Vector3(0, 0, 18)) + up, Quaternion.Euler(-8, 0, 0));
+            View("pc_bridge", OnGround(new Vector3(30, 0, 8)) + up, Quaternion.LookRotation(new Vector3(-1, 0, 0.5f)));
+            View("pc_ram", OnGround(new Vector3(48, 0, 0)) + up, Quaternion.Euler(-3, 90, 0));
         }
 
         /// <summary>What the toy box draws in a view: the instanced groups (bits, toys, castle parts), the placed models and the movers' cars.</summary>
