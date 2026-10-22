@@ -5,7 +5,7 @@ red bots fight the blue bots between building blocks, marbles, crayons and toy c
 jack-in-the-box at its centre. A toy train runs the loop all match long: moving cover that knocks scouts aside and can be ridden.
 Bases are two wooden block castles; the machines are wind-up tin soldiers, tin tanks and RC helicopters.
 
-Follows the ruleset in [26 — Level ruleset](done/26-level-ruleset.md) and fills in its template. Files: `content/levels/toybox.level`,
+Follows the ruleset in [26 — Level ruleset](26-level-ruleset.md) and fills in its template. Files: `content/levels/toybox.level`,
 models in `content/models/toys/`, parts in `content/parts/toys/`, materials in `materials/toys/` (ground in `materials/ground/`),
 scene `Assets/Scenes/ToyBox.unity`.
 
@@ -370,4 +370,19 @@ jester have painted toy faces.
 
 ## Status
 
-Not started.
+Done in code, pipeline and Unity batch (subtickets 27.1-27.11, each with its own Status): the generic pieces (per-level room looks 27.1, machine sets
+27.2, path movers 27.3), the toy models, the block castle and pennants, 18 toy machine pieces, `toybox.level` with its tests, the train's behaviour, and a
+Unity batch build of `Toybox.unity` (the scene file is named `Toybox.unity`) with Check Navmesh reaching all spawns, stands and pods. The level is far
+under budget in every snapshot view (worst: 249k triangles / 148 draws High, 173k / 130 Web). Answers used for the open questions: the train pushes and
+does 20 damage, riding in, the machines keep the floating eyes, the teddy and jester have painted faces; the machine set is named `toy` and the toy marbles
+`toy-marble0..2`.
+
+Left (by eye / in Unity): a Play-mode match with 7 bots (bots on the bridge decks and waiting at the track), the train's push, damage, "Toy train" kill
+line and riding, carving cost, web frame time and a WebGL2 build of the room shader; the stairs, the castle block shading at 128 cells and the glow strip
+by eye; the chessboard room rebuilt and compared after 27.1; seams at the rug's edge in two centre shots.
+
+Main checkout after merging (generated files are not in git): `sdf unity --resolution 256 --lods 3` (all models: `content/models/toys` and the `*-toy-*`
+files in `content/models/machines`), then `toy-castle0` alone at 128 (`sdf mesh content/models/toys/toy-castle0.sdf
+Unity/Assets/Mushrooms/Generated/toys/toy-castle0.glb --resolution 128 --lods 3`); `sdf level --into Unity/Assets/Level/Generated` (all four levels);
+Unity `LevelBuilder.BuildAllInBatch` twice (the first builds the new prefabs, the second places them); Tools > SDF Battle > Check Navmesh. The toy prefabs,
+`Toybox.unity` and toybox materials made in the worktree were not committed (their guids belong to the worktree).
