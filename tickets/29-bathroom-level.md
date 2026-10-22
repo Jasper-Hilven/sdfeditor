@@ -380,4 +380,7 @@ Order: 29.1 to 29.9, one agent at a time (the models need no code; 29.8 needs al
 
 ## Status
 
-Not started.
+Built and checked in Unity (29.9; details and the full performance table in `29.9-unity-check.md`): `Bathroom.unity` builds (24 placed models, 4,229 scattered, 2 navmeshes), Check Navmesh reports 0
+problems (every spawn, flag stand and pod reached), the other scenes build with unchanged counts, all tests pass. Performance (batch snapshots, 22 views per preset): worst High 205k triangles / 130 draws
+(budget 2M); worst Integrated GPU / Web 162k triangles / 104 draws (budget 500k / 200), so no density change was needed. Fixed in 29.9: the window pane's shadow (a dark rectangle over the middle), the wall's
+toon highlight ellipse and the window's grey look. Not done: the orbiting suds over the drain and the puddle ripple rings. Left for a human: a Play-mode match, the slick feel, a web build.

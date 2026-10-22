@@ -1,12 +1,12 @@
 # Bathroom wall: glazed ceramic tiles 5 m square (17 cm real at 30 times) laid in a checker of white and pale mint, the base colour
 # being the white (#F6F4EE) and the mint (#CFE6D8) the second tile, set by the room shader's look (LevelRoom.Looks: SdfRoomTiles.shader,
-# picked by this name). The grout between the tiles is the edge colour, a pale grey-mint (#C8D6CF), edgeThickness metres wide. Glossy
-# for a matte toon: a soft highlight only. Colours are linear. Lengths are in metres over the room.
+# picked by this name). The grout between the tiles is the edge colour, a pale grey-mint (#C8D6CF), edgeThickness metres wide. Matte
+# (specular 0): the lamp's hard toon highlight lay as a big pale ellipse on the far wall. Colours are linear. Lengths are in metres over the room.
 format 1
 
 baseColor = (0.922, 0.905, 0.855)
 roughness = 0.45
-specular = 0.4
+specular = 0
 subsurfaceColor = (0, 0, 0)
 subsurfaceRadius = 0
 detailStrength = 0
