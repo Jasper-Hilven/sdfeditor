@@ -521,6 +521,28 @@ public class LevelFileTests
         Assert.Equal(0, level.Hills.Height);
     }
 
+    /// <summary>
+    /// Every solid toy has a `collider` line (a comment about one does not make a collider: the prefab has none without the line, and a
+    /// scene built from it has nothing to bump into); the ground clutter, the track's curves and the pennants have none.
+    /// </summary>
+    [Fact]
+    public void ContentToyBox_SolidToysHaveColliders()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        string[] flat = ["puzzle-piece", "confetti", "brick-plate", "bead", "crayon-stub", "track-curve", "pennant"];
+        foreach (var file in Directory.GetFiles(Path.Combine(content, "models", "toys"), "*.sdf"))
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            var line = Regex.Match(File.ReadAllText(file), @"^collider (\w+)", RegexOptions.Multiline);
+            if (flat.Any(name.StartsWith))
+                Assert.True(!line.Success || line.Groups[1].Value == "none", $"{name} is flat and should have no collider");
+            else
+                Assert.True(line.Success && line.Groups[1].Value is "convex" or "mesh", $"{name} is solid and has no `collider convex|mesh` line");
+        }
+    }
+
     [Fact]
     public void ContentFungal_IsAValidLevel()
     {

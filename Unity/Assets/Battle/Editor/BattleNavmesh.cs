@@ -216,6 +216,9 @@ namespace SdfBattle.Editor
         [MenuItem("Tools/SDF Battle/Check Navmesh")]
         public static void CheckAll() => Debug.Log(Report());
 
+        /// <summary>For batch mode (<c>-executeMethod SdfBattle.Editor.NavmeshCheck.CheckAllInBatch</c>): the report goes to the log.</summary>
+        public static void CheckAllInBatch() => Debug.Log(Report());
+
         public static string Report()
         {
             var report = new StringBuilder("Navmesh check (ticket 23)\n");

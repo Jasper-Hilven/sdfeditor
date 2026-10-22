@@ -1,44 +1,47 @@
-# Toy castle stair (ticket 27.7): sixteen step blocks of 0.3 m rise and 0.6 m tread, 1.4 m wide, climbing towards +z from the origin (the low end, on y = 0, at the
-# middle of the stair's width) to 4.8 m at z = 9.6. The layout stands it against the inside of a side wall, turned to climb along it and mirrored for the other side;
+# Toy castle stair (ticket 27.7): sixteen step blocks of 0.3 m rise and 0.6 m tread, 2.4 m wide, its outer edge into the wall, climbing towards +z from the origin (the low end, on y = 0, at the
+# middle of the stair's width) to 4.8 m at z = 9.6, then a landing to z = 10.8 level with the walk (5 m). The layout stands it against the inside of a side wall, turned to climb along it and mirrored for the other side;
 # its top step is 20 cm under the wall-walk (5 m) and meets the wall's inner face, so the walk is stepped onto from the side. Each step is a solid block to the ground,
 # beech and cream in turn.
 format 1
-collider mesh
+collider mesh lod=0
 Detail detail=0.25
     Union
         Material material=toy_beech
             Union
                 Translate translation=(0, 0.15, 0.3)
-                    RoundBox size=(0.7, 0.15, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 0.15, 0.3) roundness=0.04
                 Translate translation=(0, 0.45, 1.5)
-                    RoundBox size=(0.7, 0.45, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 0.45, 0.3) roundness=0.04
                 Translate translation=(0, 0.75, 2.7)
-                    RoundBox size=(0.7, 0.75, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 0.75, 0.3) roundness=0.04
                 Translate translation=(0, 1.05, 3.9)
-                    RoundBox size=(0.7, 1.05, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 1.05, 0.3) roundness=0.04
                 Translate translation=(0, 1.35, 5.1)
-                    RoundBox size=(0.7, 1.35, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 1.35, 0.3) roundness=0.04
                 Translate translation=(0, 1.65, 6.3)
-                    RoundBox size=(0.7, 1.65, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 1.65, 0.3) roundness=0.04
                 Translate translation=(0, 1.95, 7.5)
-                    RoundBox size=(0.7, 1.95, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 1.95, 0.3) roundness=0.04
                 Translate translation=(0, 2.25, 8.7)
-                    RoundBox size=(0.7, 2.25, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 2.25, 0.3) roundness=0.04
         Material material=toy_paint_cream
             Union
                 Translate translation=(0, 0.3, 0.9)
-                    RoundBox size=(0.7, 0.3, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 0.3, 0.3) roundness=0.04
                 Translate translation=(0, 0.6, 2.1)
-                    RoundBox size=(0.7, 0.6, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 0.6, 0.3) roundness=0.04
                 Translate translation=(0, 0.9, 3.3)
-                    RoundBox size=(0.7, 0.9, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 0.9, 0.3) roundness=0.04
                 Translate translation=(0, 1.2, 4.5)
-                    RoundBox size=(0.7, 1.2, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 1.2, 0.3) roundness=0.04
                 Translate translation=(0, 1.5, 5.7)
-                    RoundBox size=(0.7, 1.5, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 1.5, 0.3) roundness=0.04
                 Translate translation=(0, 1.8, 6.9)
-                    RoundBox size=(0.7, 1.8, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 1.8, 0.3) roundness=0.04
                 Translate translation=(0, 2.1, 8.1)
-                    RoundBox size=(0.7, 2.1, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 2.1, 0.3) roundness=0.04
                 Translate translation=(0, 2.4, 9.3)
-                    RoundBox size=(0.7, 2.4, 0.3) roundness=0.04
+                    RoundBox size=(1.2, 2.4, 0.3) roundness=0.04
+                # The landing: level with the wall-walk (5 m), so the walk is joined to the top step along the wall (a 20 cm rise, under the 40 cm step)
+                Translate translation=(0, 2.5, 10.2)
+                    RoundBox size=(1.2, 2.5, 0.6) roundness=0.04
