@@ -16,8 +16,8 @@ namespace SdfBattle
 
     /// <summary>
     /// The spores' numbers (ticket 25): what fills the meter (a kill 25, an enemy machine 15, returning your flag 15, taking the enemy's
-    /// 20, a capture 50, of 100), and each power's effect and length (Rush 1.6 × speed for 12 s, Regrowth 8 health a second for 10 s up
-    /// to the overheal limit, Armour half the damage for 12 s). Serialized on the scene's <c>Spores</c> component.
+    /// 20, a capture 50, of 100), and each power's effect and length (Rush 1.6 × speed for 24 s, Regrowth 8 health a second for 20 s up
+    /// to the overheal limit, Armour half the damage for 24 s; doubled from 12 / 10 / 12 s on 2026-10-23). Serialized on the scene's <c>Spores</c> component.
     /// </summary>
     [Serializable]
     public sealed class SporeRules
@@ -50,17 +50,17 @@ namespace SdfBattle
         [Header("Mycelium Rush")]
         [Tooltip("What the walking speed is multiplied by (on top of the flag carrier's 0.9)")]
         public float rushSpeed = 1.6f;
-        public float rushSeconds = 12;
+        public float rushSeconds = 24;
 
         [Header("Regrowth")]
         [Tooltip("Points of healing a second, as a health pod's: one health a point up to 100, half above, up to the overheal limit")]
         public float regrowthPerSecond = 8;
-        public float regrowthSeconds = 10;
+        public float regrowthSeconds = 20;
 
         [Header("Puffball Armour")]
         [Tooltip("What the damage taken is multiplied by")]
         public float armourDamage = 0.5f;
-        public float armourSeconds = 12;
+        public float armourSeconds = 24;
 
         [Header("Bots")]
         [Tooltip("A bot takes Regrowth below this share of its most health")]

@@ -63,9 +63,9 @@ namespace SdfBattle.Tests
             var rules = new SporeRules();
             Assert.AreEqual(100, rules.full);
             Assert.AreEqual((25f, 15f, 15f, 20f, 50f), (rules.kill, rules.machine, rules.flagReturn, rules.flagTake, rules.capture));
-            Assert.AreEqual((1.6f, 12f), (rules.rushSpeed, rules.rushSeconds));
-            Assert.AreEqual((8f, 10f), (rules.regrowthPerSecond, rules.regrowthSeconds));
-            Assert.AreEqual((0.5f, 12f), (rules.armourDamage, rules.armourSeconds));
+            Assert.AreEqual((1.6f, 24f), (rules.rushSpeed, rules.rushSeconds));
+            Assert.AreEqual((8f, 20f), (rules.regrowthPerSecond, rules.regrowthSeconds));
+            Assert.AreEqual((0.5f, 24f), (rules.armourDamage, rules.armourSeconds));
         }
 
         [Test]
@@ -125,7 +125,7 @@ namespace SdfBattle.Tests
             Assert.IsTrue(spores.Sporulate(Red, SporePower.Rush));
             Assert.AreEqual(0, spores.MeterOf(Red).Amount);
             Assert.AreEqual(SporePower.Rush, spores.MeterOf(Red).Power);
-            Assert.AreEqual(12, spores.MeterOf(Red).TimeLeft, 1e-4f);
+            Assert.AreEqual(spores.Rules.rushSeconds, spores.MeterOf(Red).TimeLeft, 1e-4f);
             Assert.IsFalse(spores.Sporulate(Red, SporePower.Armour), "one power at a time");
         }
 
@@ -136,14 +136,14 @@ namespace SdfBattle.Tests
             spores.Sporulate(Red, SporePower.Armour);
             Kill(Blue, Red);
             Assert.AreEqual(0, spores.MeterOf(Red).Amount);
-            Run(12.1f);
+            Run(spores.Rules.armourSeconds + 0.1f);
             Assert.IsFalse(spores.MeterOf(Red).Active);
             Kill(match.Players[5], Red);
             Assert.AreEqual(25, spores.MeterOf(Red).Amount, 1e-4f, "it fills again once the power ends");
         }
 
         [Test]
-        public void Rush_MakesThePlayerFaster_For12Seconds()
+        public void Rush_MakesThePlayerFaster_For24Seconds()
         {
             Fill(Red);
             Assert.AreEqual(1, combat.SpeedFactor(Red));
@@ -151,7 +151,7 @@ namespace SdfBattle.Tests
             Assert.AreEqual(1.6f, combat.SpeedFactor(Red), 1e-4f);
             combat.Slow(Red, Team.Blue, 0.5f, 3);
             Assert.AreEqual(0.8f, combat.SpeedFactor(Red), 1e-4f, "on top of a slow");
-            Run(11.9f);
+            Run(spores.Rules.rushSeconds - 0.1f);
             Assert.AreEqual(1.6f, combat.SpeedFactor(Red), 1e-4f);
             Run(0.2f);
             Assert.AreEqual(1, combat.SpeedFactor(Red));
@@ -165,12 +165,12 @@ namespace SdfBattle.Tests
             spores.Sporulate(Red, SporePower.Armour);
             Assert.AreEqual(10, combat.Hurt(Red, Damage.By(Blue, WeaponIds.Pistol, 20)), 1e-4f);
             Assert.AreEqual(90, Red.Health, 1e-4f);
-            Run(12.1f);
+            Run(spores.Rules.armourSeconds + 0.1f);
             Assert.AreEqual(20, combat.Hurt(Red, Damage.By(Blue, WeaponIds.Pistol, 20)), 1e-4f);
         }
 
         [Test]
-        public void Regrowth_Heals8ASecond_For10Seconds_UpToTheOverheal()
+        public void Regrowth_Heals8ASecond_For20Seconds_UpToTheOverheal()
         {
             combat.Hurt(Red, Damage.By(Blue, WeaponIds.Pistol, 60));
             Assert.AreEqual(40, Red.Health, 1e-4f);
@@ -179,10 +179,10 @@ namespace SdfBattle.Tests
             Run(5);
             // 40 points in 5 s, and 4 of the slow heal (1 a second under 80)
             Assert.AreEqual(84, Red.Health, 2.5f);
-            Run(5.2f);
+            Run(15.2f);
             Assert.IsFalse(spores.MeterOf(Red).Active);
-            // 40 points more: 16 to 100, then 12 for the other 24 at half above it
-            Assert.AreEqual(112, Red.Health, 2.5f);
+            // 120 points more: 16 to 100, then 52 for the other 104 at half above it
+            Assert.AreEqual(152, Red.Health, 2.5f);
             var after = Red.Health;
             Run(2);
             Assert.AreEqual(after, Red.Health, 1e-4f, "no more once it ended");

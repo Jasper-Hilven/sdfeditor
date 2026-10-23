@@ -44,9 +44,9 @@ component so they are one place to tune.
 
   | Power | Effect | Lasts |
   |---|---|---|
-  | Mycelium Rush | +60% move speed (on top of the flag carrier's 10% slower: 1.6 × 0.9) | 12 s |
-  | Regrowth | +8 health a second, up to the health pods' overheal limit (200) | 10 s |
-  | Puffball Armour | half the damage taken (after spawn protection; burn and poison too) | 12 s |
+  | Mycelium Rush | +60% move speed (on top of the flag carrier's 10% slower: 1.6 × 0.9) | 24 s |
+  | Regrowth | +8 health a second, up to the health pods' overheal limit (200) | 20 s |
+  | Puffball Armour | half the damage taken (after spawn protection; burn and poison too) | 24 s |
 
 - **Death**: the meter is kept (as in UT); a power on ends at death. A new round empties every meter.
 - **The flag**: a carrier may sporulate (Rush with the flag is the point of putting it on Q).
@@ -109,6 +109,9 @@ keys work on an AZERTY layout (A, F, C, shown as such on the cards), as does mov
 rules pass. Works in a web build.
 
 ## Status
+
+2026-10-23: durations doubled at the user's request (Rush 12 → 24 s, Regrowth 10 → 20 s, Armour 12 → 24 s). Regrowth keeps its 8 health a second,
+so it heals twice the total; meter fill, costs and strengths are unchanged. `SporeStateTests` follow.
 
 **Done in code**; left: the Unity side checked in the open editor (below). The new EditMode tests and the rest of the battle's (183)
 pass when compiled and run outside Unity against its assemblies; not yet in Unity's Test Runner.
