@@ -5,7 +5,8 @@
 format 1
 collider none
 
-Detail detail=0.15
+# Detail 0.3, not 0.15: at 0.15 the default 128 cells gave cells of 0.2-0.25 m, thicker than the 0.16 m burner, so no sample was inside it
+Detail detail=0.3
     Material material=kitchen_burner
         Translate translation=(0, 0.08, 0)
             Union

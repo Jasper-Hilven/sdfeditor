@@ -90,11 +90,11 @@ namespace SdfBattle.Tests
         [Test]
         public void AtMidSkill_ASteadyAimHitsABodyAtMidRangeMostOfTheTime_NotAtLongRange()
         {
-            // A body is 0.3 m round: the steady error's miss at 15 m is within it, at 60 m it is not
+            // A body is 0.3 m round: the steady error's miss at 12 m is within it, at 60 m it is not (15 m was mid range before the aim error went up 20%)
             var skill = new BotSkill(0.5f);
-            var missAt15 = Mathf.Tan(skill.SteadyError * Mathf.Deg2Rad) * 15;
+            var missAt12 = Mathf.Tan(skill.SteadyError * Mathf.Deg2Rad) * 12;
             var missAt60 = Mathf.Tan(skill.SteadyError * Mathf.Deg2Rad) * 60;
-            Assert.Less(missAt15, 0.6f);
+            Assert.Less(missAt12, 0.6f);
             Assert.Greater(missAt60, 0.6f);
         }
     }
