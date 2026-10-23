@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using SdfBattle;
+using SdfMushrooms;
 using SdfMushrooms.Editor;
 using SdfPickups;
 using SdfPickups.Editor;
@@ -1147,54 +1148,67 @@ namespace SdfLevel.Editor
                     copy = new Mesh();
                     AssetDatabase.CreateAsset(copy, path);
                 }
-                // Every attribute as it is, in the same layout, but x and the normals' x negated and each triangle turned round
-                var vertices = mesh.vertices;
-                var normals = mesh.normals;
-                for (var v = 0; v < vertices.Length; v++)
+                // Every attribute as it is, in the same layout and bytes (the meshes' vertices are packed, see SdfPackedMesh, and the
+                // API would hand them back as fractions), but x and the normals' x negated and each triangle turned round
+                var data = SdfPackedMesh.VertexBytes(mesh);
+                var stride = mesh.GetVertexBufferStride(0);
+                var positionAt = mesh.GetVertexAttributeOffset(VertexAttribute.Position);
+                var positionFormat = mesh.GetVertexAttributeFormat(VertexAttribute.Position);
+                var normalAt = mesh.GetVertexAttributeOffset(VertexAttribute.Normal);
+                var normalFormat = mesh.GetVertexAttributeFormat(VertexAttribute.Normal);
+                for (var v = 0; v < mesh.vertexCount; v++)
                 {
-                    vertices[v].x = -vertices[v].x;
-                    normals[v].x = -normals[v].x;
+                    NegateFirst(data, v * stride + positionAt, positionFormat);
+                    NegateFirst(data, v * stride + normalAt, normalFormat);
                 }
                 var triangles = mesh.triangles;
                 for (var t = 0; t < triangles.Length; t += 3)
                     (triangles[t + 1], triangles[t + 2]) = (triangles[t + 2], triangles[t + 1]);
                 copy.Clear();
                 copy.name = mesh.name;
-                copy.indexFormat = mesh.indexFormat;
                 copy.SetVertexBufferParams(mesh.vertexCount, mesh.GetVertexAttributes());
-                copy.SetVertices(vertices);
-                copy.SetNormals(normals);
-                if (mesh.HasVertexAttribute(VertexAttribute.Color))
-                    copy.SetColors(mesh.colors);
-                for (var channel = 0; channel < 8; channel++)
-                {
-                    var attribute = VertexAttribute.TexCoord0 + channel;
-                    if (!mesh.HasVertexAttribute(attribute))
-                        continue;
-                    switch (mesh.GetVertexAttributeDimension(attribute))
-                    {
-                        case 2:
-                            var uv2 = new List<Vector2>();
-                            mesh.GetUVs(channel, uv2);
-                            copy.SetUVs(channel, uv2);
-                            break;
-                        case 3:
-                            var uv3 = new List<Vector3>();
-                            mesh.GetUVs(channel, uv3);
-                            copy.SetUVs(channel, uv3);
-                            break;
-                        default:
-                            var uv4 = new List<Vector4>();
-                            mesh.GetUVs(channel, uv4);
-                            copy.SetUVs(channel, uv4);
-                            break;
-                    }
-                }
+                copy.SetVertexBufferData(data, 0, 0, data.Length);
+                copy.SetIndexBufferParams(triangles.Length, mesh.indexFormat);
+                if (mesh.indexFormat == IndexFormat.UInt16)
+                    copy.SetIndexBufferData(triangles.Select(i => (ushort)i).ToArray(), 0, 0, triangles.Length);
+                else
+                    copy.SetIndexBufferData(triangles, 0, 0, triangles.Length);
                 copy.subMeshCount = 1;
-                copy.SetTriangles(triangles, 0, calculateBounds: true);
-                copy.RecalculateBounds();
+                var bounds = mesh.bounds;
+                bounds.center = new Vector3(-bounds.center.x, bounds.center.y, bounds.center.z);
+                copy.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length) { bounds = bounds },
+                    MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices);
+                copy.bounds = bounds;
+                copy.UploadMeshData(false);
                 EditorUtility.SetDirty(copy);
                 return mirroredMeshes[mesh] = copy;
+            }
+
+            /// <summary>Negates the first component of the attribute at <paramref name="at"/>, in whatever format it is stored.</summary>
+            private static void NegateFirst(byte[] data, int at, VertexAttributeFormat format)
+            {
+                switch (format)
+                {
+                    case VertexAttributeFormat.Float32:
+                        data[at + 3] ^= 0x80;
+                        break;
+                    case VertexAttributeFormat.Float16:
+                        data[at + 1] ^= 0x80;
+                        break;
+                    case VertexAttributeFormat.SNorm16:
+                    {
+                        var value = (short)(data[at] | (data[at + 1] << 8));
+                        value = (short)-Mathf.Max(value, (short)-short.MaxValue);
+                        data[at] = (byte)value;
+                        data[at + 1] = (byte)(value >> 8);
+                        break;
+                    }
+                    case VertexAttributeFormat.SNorm8:
+                        data[at] = unchecked((byte)(sbyte)-Mathf.Max((sbyte)data[at], -127));
+                        break;
+                    default:
+                        throw new System.NotSupportedException($"Cannot mirror a {format} attribute");
+                }
             }
 
             /// <summary>Deletes the mirrored copies this build made no use of.</summary>
@@ -1337,7 +1351,12 @@ namespace SdfLevel.Editor
         {
             const StaticEditorFlags flags = StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic;
             foreach (var transform in root.GetComponentsInChildren<Transform>(true))
-                GameObjectUtility.SetStaticEditorFlags(transform.gameObject, flags);
+            {
+                // Static batching would merge a packed mesh's vertices as the fractions Unity reads them as (see SdfPackedMesh): such
+                // meshes are drawn one by one, by the SRP batcher
+                var packed = transform.TryGetComponent<MeshFilter>(out var filter) && filter.sharedMesh != null && SdfPackedMesh.IsPacked(filter.sharedMesh);
+                GameObjectUtility.SetStaticEditorFlags(transform.gameObject, packed ? flags & ~StaticEditorFlags.BatchingStatic : flags);
+            }
         }
 
         /// <summary>The player at the level's spawn point, looking along +x (across the long side), with the camera at eye height.</summary>

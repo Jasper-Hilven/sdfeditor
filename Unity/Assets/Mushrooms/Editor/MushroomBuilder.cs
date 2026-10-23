@@ -237,7 +237,23 @@ namespace SdfMushrooms.Editor
                     if (!meshes.TryGetValue(data, out var mesh))
                     {
                         meshes[data] = mesh = MeshAsset($"{MeshFolder}/{name}_{data.Name}.asset");
-                        Fill(mesh, data, model.Materials, name);
+                        if (FloatMeshes)
+                            FillFloats(mesh, data, model.Materials, name);
+                        else
+                            Fill(mesh, data, model.Materials, name);
+                        EditorUtility.SetDirty(mesh);
+                    }
+                    return mesh;
+                }
+
+                // The colliders' meshes: positions as floats and triangles only, in assets of their own
+                var colliderMeshes = new Dictionary<SdfGlb.MeshData, Mesh>();
+                Mesh ColliderMeshOf(SdfGlb.MeshData data)
+                {
+                    if (!colliderMeshes.TryGetValue(data, out var mesh))
+                    {
+                        colliderMeshes[data] = mesh = MeshAsset($"{MeshFolder}/{name}_{data.Name}_collider.asset");
+                        FillCollider(mesh, data, name);
                         EditorUtility.SetDirty(mesh);
                     }
                     return mesh;
@@ -274,7 +290,7 @@ namespace SdfMushrooms.Editor
                     var share = size / Mathf.Max(modelSize, 1e-4f);
                     AddLodGroup(use, new[] { part }, partLods, CullHeight(cull, size, LodCullHeight * share), modelHeights.Select(h => h * share).ToArray());
                 }
-                AddCollider(root, model, MeshOf, uses.Select(u => (u.Use, u.Part)));
+                AddCollider(root, model, ColliderMeshOf, uses.Select(u => (u.Use, u.Part)));
 
                 var prefabPath = PrefabPathOf(glbPath);
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath, out var saved);
@@ -572,6 +588,181 @@ namespace SdfMushrooms.Editor
             var materialBlend = data.Get("_MATERIAL_BLEND", 1);
             var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
 
+            var uv7 = Patterns(materials, materialIds, materialBlend, indices, n);
+
+            // Positions in Unity's space (x mirrored), and the shape's own coordinates for the procedural detail
+            var positions = new Vector3[n];
+            var bounds = new Bounds(new Vector3(-position[0], position[1], position[2]), Vector3.zero);
+            float largestPosition = 0, largestLocal = 0;
+            for (var v = 0; v < n; v++)
+            {
+                positions[v] = new Vector3(-position[3 * v], position[3 * v + 1], position[3 * v + 2]);
+                bounds.Encapsulate(positions[v]);
+                largestPosition = Mathf.Max(largestPosition, Mathf.Max(Mathf.Abs(positions[v].x), Mathf.Max(Mathf.Abs(positions[v].y), Mathf.Abs(positions[v].z))));
+                largestLocal = Mathf.Max(largestLocal, Mathf.Max(Mathf.Abs(local[3 * v]), Mathf.Max(Mathf.Abs(local[3 * v + 1]), Mathf.Abs(local[3 * v + 2]))));
+            }
+            // Packed (see SdfPackedMesh) unless a coordinate is too large for the 16-bit scale; then positions and UV1 stay floats
+            short positionCode = 0, localCode = 0;
+            float positionScale = 1, localScale = 1;
+            var packed = SdfPackedMesh.TryScale(largestPosition, out positionCode, out positionScale)
+                         && SdfPackedMesh.TryScale(largestLocal, out localCode, out localScale);
+
+            const VertexAttributeFormat F32 = VertexAttributeFormat.Float32, F16 = VertexAttributeFormat.Float16,
+                U8 = VertexAttributeFormat.UNorm8, S8 = VertexAttributeFormat.SNorm8, S16 = VertexAttributeFormat.SNorm16;
+            var layout = new List<(VertexAttributeDescriptor Descriptor, int Size, VertexWriter Write)>();
+            void Add(VertexAttribute attribute, VertexAttributeFormat format, int dimension, int size, VertexWriter write) =>
+                layout.Add((new VertexAttributeDescriptor(attribute, format, dimension), size, write));
+
+            if (packed)
+                Add(VertexAttribute.Position, S16, 4, 8, (v, at) =>
+                {
+                    SdfPackedMesh.WriteInt16(at, SdfPackedMesh.Quantise(positions[v].x, positionScale));
+                    SdfPackedMesh.WriteInt16(at[2..], SdfPackedMesh.Quantise(positions[v].y, positionScale));
+                    SdfPackedMesh.WriteInt16(at[4..], SdfPackedMesh.Quantise(positions[v].z, positionScale));
+                    SdfPackedMesh.WriteInt16(at[6..], positionCode);
+                });
+            else
+                Add(VertexAttribute.Position, F32, 3, 12, (v, at) =>
+                {
+                    SdfPackedMesh.WriteFloat(at, positions[v].x);
+                    SdfPackedMesh.WriteFloat(at[4..], positions[v].y);
+                    SdfPackedMesh.WriteFloat(at[8..], positions[v].z);
+                });
+            Add(VertexAttribute.Normal, S8, 4, 4, (v, at) =>
+            {
+                SdfPackedMesh.WriteSNorm8(at, -normal[3 * v]);
+                SdfPackedMesh.WriteSNorm8(at[1..], normal[3 * v + 1]);
+                SdfPackedMesh.WriteSNorm8(at[2..], normal[3 * v + 2]);
+                SdfPackedMesh.WriteSNorm8(at[3..], 0);
+            });
+            Add(VertexAttribute.Color, U8, 4, 4, (v, at) =>
+            {
+                SdfPackedMesh.WriteUNorm8(at, baseColor[3 * v]);
+                SdfPackedMesh.WriteUNorm8(at[1..], baseColor[3 * v + 1]);
+                SdfPackedMesh.WriteUNorm8(at[2..], baseColor[3 * v + 2]);
+                SdfPackedMesh.WriteUNorm8(at[3..], surface[4 * v + 2]);
+            });
+            Add(VertexAttribute.TexCoord0, U8, 4, 4, (v, at) =>
+            {
+                SdfPackedMesh.WriteUNorm8(at, surface[4 * v]);
+                SdfPackedMesh.WriteUNorm8(at[1..], surface[4 * v + 1]);
+                SdfPackedMesh.WriteUNorm8(at[2..], surface[4 * v + 3]);
+                SdfPackedMesh.WriteUNorm8(at[3..], occlusion[v]);
+            });
+            if (packed)
+                Add(VertexAttribute.TexCoord1, S16, 4, 8, (v, at) =>
+                {
+                    SdfPackedMesh.WriteInt16(at, SdfPackedMesh.Quantise(local[3 * v], localScale));
+                    SdfPackedMesh.WriteInt16(at[2..], SdfPackedMesh.Quantise(local[3 * v + 1], localScale));
+                    SdfPackedMesh.WriteInt16(at[4..], SdfPackedMesh.Quantise(local[3 * v + 2], localScale));
+                    SdfPackedMesh.WriteInt16(at[6..], localCode);
+                });
+            else
+                Add(VertexAttribute.TexCoord1, F32, 4, 16, (v, at) =>
+                {
+                    SdfPackedMesh.WriteFloat(at, local[3 * v]);
+                    SdfPackedMesh.WriteFloat(at[4..], local[3 * v + 1]);
+                    SdfPackedMesh.WriteFloat(at[8..], local[3 * v + 2]);
+                    SdfPackedMesh.WriteFloat(at[12..], thickness[v]);
+                });
+            Add(VertexAttribute.TexCoord2, F16, 4, 8, (v, at) => WriteHalves(at, detail, 4 * v, 4));
+            Add(VertexAttribute.TexCoord3, F16, 4, 8, (v, at) => WriteHalves(at, variation, 4 * v, 4));
+            Add(VertexAttribute.TexCoord4, F16, 4, 8, (v, at) => WriteHalves(at, speckle, 4 * v, 4));
+            // Density, size and (only where something glows) emission
+            Add(VertexAttribute.TexCoord5, U8, 4, 4, (v, at) =>
+            {
+                SdfPackedMesh.WriteUNorm8(at, speckleShape[2 * v]);
+                SdfPackedMesh.WriteUNorm8(at[1..], speckleShape[2 * v + 1]);
+                SdfPackedMesh.WriteUNorm8(at[2..], emission == null ? 0 : emission[v]);
+                SdfPackedMesh.WriteUNorm8(at[3..], 0);
+            });
+            Add(VertexAttribute.TexCoord6, U8, 4, 4, (v, at) =>
+            {
+                var edge = materialIds == null || materialBlend == null
+                    ? Vector4.zero
+                    : EdgeColor(materials, (int)materialIds[2 * v], (int)materialIds[2 * v + 1], materialBlend[v], thickness[v]);
+                SdfPackedMesh.WriteUNorm8(at, edge.x);
+                SdfPackedMesh.WriteUNorm8(at[1..], edge.y);
+                SdfPackedMesh.WriteUNorm8(at[2..], edge.z);
+                SdfPackedMesh.WriteUNorm8(at[3..], edge.w);
+            });
+            if (uv7 != null)
+                Add(VertexAttribute.TexCoord7, F16, 4, 8, (v, at) =>
+                {
+                    SdfPackedMesh.WriteHalf(at, uv7[v].x);
+                    SdfPackedMesh.WriteHalf(at[2..], uv7[v].y);
+                    SdfPackedMesh.WriteHalf(at[4..], uv7[v].z);
+                    SdfPackedMesh.WriteHalf(at[6..], uv7[v].w);
+                });
+            var stride = layout.Sum(a => a.Size);
+            // The triangles turned round for the mirrored x, then put in the order the vertex cache likes, the vertices renumbered in the
+            // order they are first used (lossless, and it compresses better)
+            var turned = new int[indices.Length];
+            for (var t = 0; t < indices.Length; t += 3)
+                (turned[t], turned[t + 1], turned[t + 2]) = (indices[t], indices[t + 2], indices[t + 1]);
+            var (cached, order) = VertexCacheOptimizer.Optimize(turned, n);
+            var vertexData = new byte[order.Length * stride];
+            for (var v = 0; v < order.Length; v++)
+            {
+                var at = v * stride;
+                foreach (var attribute in layout)
+                {
+                    attribute.Write(order[v], vertexData.AsSpan(at, attribute.Size));
+                    at += attribute.Size;
+                }
+            }
+
+            mesh.Clear();
+            mesh.name = $"{modelName}_{data.Name}";
+            mesh.SetVertexBufferParams(order.Length, layout.Select(a => a.Descriptor).ToArray());
+            mesh.SetVertexBufferData(vertexData, 0, 0, vertexData.Length);
+            // 16-bit indices where the vertices allow
+            if (order.Length > 65535)
+            {
+                mesh.SetIndexBufferParams(cached.Length, IndexFormat.UInt32);
+                mesh.SetIndexBufferData(cached, 0, 0, cached.Length);
+            }
+            else
+            {
+                var narrow = cached.Select(i => (ushort)i).ToArray();
+                mesh.SetIndexBufferParams(narrow.Length, IndexFormat.UInt16);
+                mesh.SetIndexBufferData(narrow, 0, 0, narrow.Length);
+            }
+            mesh.subMeshCount = 1;
+            // The bounds from the true positions: Unity would work them out from the packed ones, which are fractions
+            const MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices;
+            mesh.SetSubMesh(0, new SubMeshDescriptor(0, cached.Length) { bounds = bounds }, flags);
+            mesh.bounds = bounds;
+            mesh.UploadMeshData(false);
+        }
+
+        /// <summary>
+        /// Build the meshes with every attribute as floats, as before ticket 37 (the full 144 to 160 bytes a vertex), to compare the compact
+        /// layout against it: <c>-floatMeshes</c> on the command line of <see cref="PackedMeshTool"/>. Not for shipping.
+        /// </summary>
+        public static bool FloatMeshes;
+
+        private static void FillFloats(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName)
+        {
+            var n = data.VertexCount;
+            var position = data.Get("POSITION", 3);
+            var normal = data.Get("NORMAL", 3);
+            var baseColor = data.Get("_BASE_COLOR", 3) ?? data.Get("COLOR_0", 3);
+            var surface = Require(data.Get("_SURFACE", 4), "_SURFACE", modelName);
+            var detail = Require(data.Get("_DETAIL", 4), "_DETAIL", modelName);
+            var variation = Require(data.Get("_VARIATION", 4), "_VARIATION", modelName);
+            var local = Require(data.Get("_LOCAL_POSITION", 3), "_LOCAL_POSITION", modelName);
+            var thickness = Require(data.Get("_THICKNESS", 1), "_THICKNESS", modelName);
+            var occlusion = Require(data.Get("_OCCLUSION", 1), "_OCCLUSION", modelName);
+            // Files from before speckles existed have none
+            var speckle = data.Get("_SPECKLE", 4) ?? new float[4 * n];
+            var speckleShape = data.Get("_SPECKLE_SHAPE", 2) ?? new float[2 * n];
+            // Only meshes where something glows have it (UV5.z); the others keep UV5 as a float2
+            var emission = data.Get("_EMISSION", 1);
+            var materialIds = data.Get("_MATERIAL_IDS", 2);
+            var materialBlend = data.Get("_MATERIAL_BLEND", 1);
+            var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
+
             var positions = new Vector3[n];
             var normals = new Vector3[n];
             var colors = new Color[n];
@@ -644,6 +835,37 @@ namespace SdfMushrooms.Editor
             mesh.subMeshCount = 1;
             mesh.SetTriangles(turned, 0, calculateBounds: false);
             mesh.RecalculateBounds();
+            mesh.UploadMeshData(false);
+        }
+
+        private delegate void VertexWriter(int vertex, Span<byte> at);
+
+        private static void WriteHalves(Span<byte> at, float[] values, int from, int count)
+        {
+            for (var i = 0; i < count; i++)
+                SdfPackedMesh.WriteHalf(at[(2 * i)..], values[from + i]);
+        }
+
+        /// <summary>
+        /// The part's mesh for a <see cref="MeshCollider"/>: positions as floats and the triangles, nothing else. A render mesh stores
+        /// its positions as fractions of its scale (see <see cref="SdfPackedMesh"/>), which a collider cannot read.
+        /// </summary>
+        private static void FillCollider(Mesh mesh, SdfGlb.MeshData data, string modelName)
+        {
+            var n = data.VertexCount;
+            var position = data.Get("POSITION", 3);
+            var positions = new Vector3[n];
+            for (var v = 0; v < n; v++)
+                positions[v] = new Vector3(-position[3 * v], position[3 * v + 1], position[3 * v + 2]);
+            var indices = data.Primitives.SelectMany(p => p.Indices).ToArray();
+            var turned = new int[indices.Length];
+            for (var t = 0; t < indices.Length; t += 3)
+                (turned[t], turned[t + 1], turned[t + 2]) = (indices[t], indices[t + 2], indices[t + 1]);
+            mesh.Clear();
+            mesh.name = $"{modelName}_{data.Name}_collider";
+            mesh.indexFormat = n > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+            mesh.SetVertices(positions);
+            mesh.SetTriangles(turned, 0, calculateBounds: true);
             mesh.UploadMeshData(false);
         }
 

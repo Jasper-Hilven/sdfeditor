@@ -65,10 +65,11 @@ Shader "SdfMushrooms/Toon Far"
 
             #include "SdfSurface.hlsl"
             #include "SdfToon.hlsl"
+            #include "SdfPacked.hlsl"
 
             struct Attributes
             {
-                float3 positionOS : POSITION;
+                float4 positionPacked : POSITION;
                 float3 normalOS : NORMAL;
                 float4 color : COLOR;
                 float4 uv0 : TEXCOORD0;
@@ -97,9 +98,10 @@ Shader "SdfMushrooms/Toon Far"
 
             Varyings Vert(Attributes input)
             {
+                float3 positionOS = SdfUnpackPosition(input.positionPacked);
                 Varyings output;
                 // Laid out round the origin: the camera carries it along
-                output.positionWS = TransformObjectToWorld(input.positionOS) + _WorldSpaceCameraPos;
+                output.positionWS = TransformObjectToWorld(positionOS) + _WorldSpaceCameraPos;
                 float4 positionCS = TransformWorldToHClip(output.positionWS);
                 // Into the slab just inside the far plane, nearer in front, whichever way the platform's depth runs. Reversed (float)
                 // depth puts the level's last few metres before 400 m very close to 0, so the slab is far thinner there than with
@@ -114,7 +116,7 @@ Shader "SdfMushrooms/Toon Far"
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.color = input.color;
                 output.uv0 = input.uv0;
-                output.uv1 = input.uv1;
+                output.uv1 = SdfUnpackLocal(input.uv1, input.positionPacked);
                 output.uv2 = input.uv2;
                 output.uv3 = input.uv3;
                 output.uv4 = input.uv4;

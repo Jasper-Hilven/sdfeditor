@@ -3,6 +3,19 @@ using SDFProject.ProgramDefinition;
 
 namespace SDFPipeline.Meshing;
 
+/// <summary>How a mesh is simplified after contouring.</summary>
+public enum Simplifier
+{
+    /// <summary>Edge collapses one at a time, cheapest first, the merged vertex placed where its planes meet best.</summary>
+    Greedy,
+
+    /// <summary>
+    /// Rounds of half-edge folds over independent sets of vertices (see <see cref="QuadricSimplifier"/>): vertices land on existing ones,
+    /// material borders are only folded along, and the error limit holds on every face.
+    /// </summary>
+    Batched,
+}
+
 public sealed record MeshingOptions
 {
     public const int DefaultResolution = 128;
@@ -12,6 +25,12 @@ public sealed record MeshingOptions
     public const float DefaultSizeExponent = 0.5f;
     public const float DefaultCreaseAngleDegrees = 30;
     public const float DefaultMaxErrorInCells = 0.08f;
+
+    /// <summary>
+    /// The default for batched simplification, whose limit holds on every vertex it folds away, where the greedy simplifier's 0.08 is an
+    /// average that its worst faces overshoot by about two and a half times (measured against the SDF in BatchedSimplificationTests).
+    /// </summary>
+    public const float DefaultBatchedMaxErrorInCells = 0.3f;
     public const float DefaultMaxThickness = 0.25f;
     public const int DefaultLodCount = 1;
     public const int MaxLodCount = 4;
@@ -71,7 +90,16 @@ public sealed record MeshingOptions
     /// How far simplification may move the surface, as a fraction of a grid cell: the average distance of a merged vertex from the
     /// planes of the faces it replaces. 0 turns simplification off.
     /// </summary>
-    public float MaxErrorInCells { get; init; } = DefaultMaxErrorInCells;
+    public float MaxErrorInCells
+    {
+        get => maxErrorInCells ?? (Simplifier == Simplifier.Batched ? DefaultBatchedMaxErrorInCells : DefaultMaxErrorInCells);
+        init => maxErrorInCells = value;
+    }
+
+    private readonly float? maxErrorInCells;
+
+    /// <summary>The way simplification works, see <see cref="Simplifier"/>.</summary>
+    public Simplifier Simplifier { get; init; } = Simplifier.Batched;
 
     /// <summary>
     /// How many levels of detail each mesh gets, LOD0 included: 1 makes only LOD0, the mesh as simplified by <see cref="MaxErrorInCells"/>.
@@ -83,7 +111,15 @@ public sealed record MeshingOptions
 
     /// <summary>The error limit of a level of detail, in cells of its mesh's grid: <see cref="MaxErrorInCells"/> for LOD0, then growing.</summary>
     public float LodErrorInCells(int level) =>
-        level == 0 ? MaxErrorInCells : FirstLodErrorInCells * MathF.Pow(LodErrorGrowth, level - 1);
+        level == 0 ? MaxErrorInCells
+        : (Simplifier == Simplifier.Batched ? FirstBatchedLodErrorInCells : FirstLodErrorInCells) * MathF.Pow(LodErrorGrowth, level - 1);
+
+    /// <summary>
+    /// The error limit of LOD1 for batched simplification, in cells. Its limit holds on every vertex folded away, where the greedy one's
+    /// is nominal (its worst faces are about twice as far off); at 1 cell it has the triangles the greedy LOD1 has at about the same
+    /// worst distance from the SDF (BatchedSimplificationTests.Calibration_CoarseLevels_GreedyAgainstBatched).
+    /// </summary>
+    public const float FirstBatchedLodErrorInCells = 2;
 
     /// <summary>Thickness is measured up to this many metres; thicker material lets no light through anyway.</summary>
     public float MaxThickness { get; init; } = DefaultMaxThickness;

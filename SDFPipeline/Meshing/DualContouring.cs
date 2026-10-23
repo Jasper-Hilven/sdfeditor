@@ -16,6 +16,17 @@ public sealed record TriangleMesh(Vector3[] Positions, int[] Triangles)
     /// keeps that vertex's region; null for any other mesh.
     /// </summary>
     public int[]? Sources { get; init; }
+
+    /// <summary>
+    /// For a mesh simplified in batched rounds: the furthest any vertex folded away is from the surface that replaced it, in metres
+    /// (every one is tracked), and how many point-to-triangle tests the tracking took.
+    /// </summary>
+    public float TrackedError { get; init; }
+
+    public long TrackedTests { get; init; }
+
+    /// <summary>For a mesh simplified in batched rounds: where the time went, summed over the levels made so far.</summary>
+    public SimplifyTimings? Timings { get; init; }
 }
 
 /// <summary>A point on the surface and the outward normal there, from the SDF: the tangent plane the mesh should keep close to.</summary>
@@ -735,4 +746,45 @@ public static class DualContouring
         }
         return waves.Select(w => w.ToArray()).ToList();
     }
+}
+
+
+/// <summary>Where batched simplification spent its time, in wall clock seconds per phase of its rounds.</summary>
+public sealed class SimplifyTimings
+{
+    public int Rounds, Scored, Prechecked, Rechecked, Folds;
+
+    /// <summary>Scoring the vertices whose surroundings changed (in parallel).</summary>
+    public TimeSpan Score;
+
+    /// <summary>Picking the winners (in parallel sweeps).</summary>
+    public TimeSpan Winners;
+
+    /// <summary>Checking the chosen folds ahead against the surface (in parallel): the SDF's sign bracket and the tracked points.</summary>
+    public TimeSpan Precheck;
+
+    /// <summary>The whole of the folding phase after that, one fold at a time (checks again, the folds, the rebinding).</summary>
+    public TimeSpan Apply;
+
+    /// <summary>Within Apply: merging the vertices.</summary>
+    public TimeSpan Fold;
+
+    /// <summary>Within Apply: binding the tracked points to their new triangles.</summary>
+    public TimeSpan Rebind;
+
+    /// <summary>CPU time over all threads in the SDF's sign bracket, and in projecting tracked points.</summary>
+    public TimeSpan BracketCpu, TrackingCpu;
+
+    public SimplifyTimings With(long bracketTicks, long trackingTicks) => new()
+    {
+        Rounds = Rounds, Scored = Scored, Prechecked = Prechecked, Rechecked = Rechecked, Folds = Folds,
+        Score = Score, Winners = Winners, Precheck = Precheck, Apply = Apply, Fold = Fold, Rebind = Rebind,
+        BracketCpu = TimeSpan.FromSeconds(bracketTicks / (double)System.Diagnostics.Stopwatch.Frequency),
+        TrackingCpu = TimeSpan.FromSeconds(trackingTicks / (double)System.Diagnostics.Stopwatch.Frequency),
+    };
+
+    public override string ToString() =>
+        $"{Rounds} rounds, {Folds:N0} folds ({Prechecked:N0} checked ahead, {Rechecked:N0} of them refused on the second look); score {Score.TotalSeconds:0.00} s ({Scored:N0} scored), " +
+        $"winners {Winners.TotalSeconds:0.00} s, check ahead {Precheck.TotalSeconds:0.00} s, folds one by one {Apply.TotalSeconds:0.00} s (merge {Fold.TotalSeconds:0.00} s, rebind {Rebind.TotalSeconds:0.00} s); " +
+        $"CPU: sign bracket {BracketCpu.TotalSeconds:0.00} s, tracked points {TrackingCpu.TotalSeconds:0.00} s";
 }

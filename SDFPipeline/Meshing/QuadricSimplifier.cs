@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 
 namespace SDFPipeline.Meshing;
@@ -44,6 +45,11 @@ public static class QuadricSimplifier
     /// <summary>A refused collapse can become possible once the faces around it change, so the queue is filled again, up to this often.</summary>
     private const int MaxPasses = 8;
 
+    /// <summary>How many threads batched simplification may use (-1: as many as the machine has); the result is the same for any.</summary>
+    public static int MaxDegreeOfParallelism { get; set; } = -1;
+
+    private static ParallelOptions Threads => new() { MaxDegreeOfParallelism = MaxDegreeOfParallelism };
+
     /// <param name="sdf">The surface: no collapse may leave a face facing against its gradient, so simplification cannot fold the mesh.</param>
     /// <param name="maxError">
     /// How far, in metres, a merged vertex may be from the tangent planes it stands for, on average; and from those of creases and
@@ -56,9 +62,14 @@ public static class QuadricSimplifier
     /// Optional: the vertices that must stay exactly where they are, such as the border of a terrain chunk, which has to keep meeting its
     /// neighbours. A free vertex may merge into a locked one, which keeps its place; two locked vertices never merge.
     /// </param>
+    /// <param name="batched">Simplify in rounds of independent folds (see <see cref="Simplification.CollapseBatched"/>) instead of one collapse at a time.</param>
+    /// <param name="attributes">
+    /// Optional per-vertex attribute (0 to 1, such as how far a vertex has blended into a second material) that a fold must not change
+    /// much, in the batched mode: a fold costs, on top of its geometric error, the difference of the two vertices' attributes times the cell size.
+    /// </param>
     public static TriangleMesh Simplify(ContouredMesh mesh, Func<Vector3, float> sdf, float maxError, float cellSize, float creaseAngleDegrees,
-        int[]? regions = null, bool[]? locked = null) =>
-        new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked).Run(maxError, coarse: false);
+        int[]? regions = null, bool[]? locked = null, bool batched = false, float[]? attributes = null) =>
+        new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked, batched, attributes).Run(maxError, coarse: false);
 
     /// <summary>
     /// The mesh at each error limit in turn, for levels of detail: the first exactly as <see cref="Simplify"/> gives it, each further one
@@ -75,9 +86,9 @@ public static class QuadricSimplifier
     /// </summary>
     /// <param name="maxErrors">The error limit of each level, in metres, growing.</param>
     public static IEnumerable<TriangleMesh> SimplifyInSteps(ContouredMesh mesh, Func<Vector3, float> sdf, IReadOnlyList<float> maxErrors,
-        float cellSize, float creaseAngleDegrees, int[]? regions = null)
+        float cellSize, float creaseAngleDegrees, int[]? regions = null, bool batched = false, float[]? attributes = null)
     {
-        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked: null);
+        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked: null, batched, attributes);
         for (var level = 0; level < maxErrors.Count; level++)
             yield return simplification.Run(maxErrors[level], coarse: level > 0);
     }
@@ -157,14 +168,44 @@ public static class QuadricSimplifier
         private float maxVertexDistance;
         private float maxFaceDistance;
 
+        private readonly bool batched;
+        /// <summary>The vertices' positions as contouring left them, which tracked points keep.</summary>
+        private readonly Vector3[] originalPositions;
+        // Tracked points (batched mode): every vertex folded away stays as a point at its original position, bound to the triangle of the
+        // current mesh it now lies on. A fold is allowed only if every point it touches stays within the error limit of the surface.
+        private readonly List<Vector3> trackedPosition = new();
+        private readonly List<int> trackedRegion = new();
+        private readonly List<float> trackedError = new();
+        private List<int>?[] trackedOnTriangle = [];
+        /// <summary>
+        /// For an edge of a material border's chain (by its two vertices, the smaller first), the positions of the border vertices folded
+        /// into it: the border may not bend further than the error limit from any of them. The tracked points only prove they are near
+        /// the surface, not that the border still runs near them.
+        /// </summary>
+        private readonly Dictionary<(int, int), List<Vector3>> chainStandsFor = new();
+
+        // Where the time goes (reported with the mesh): wall clock of each phase of the rounds, and the CPU time over all threads of the two
+        // costly kinds of work inside them
+        private readonly SimplifyTimings timings = new();
+        private long bracketTicks, trackingTicks;
+        /// <summary>The distance tests the tracked points took, for the report of what tracking costs.</summary>
+        private long trackedTests;
+
+        private readonly float[]? attributes;
+        private readonly double attributeScale;
+
         public Simplification(ContouredMesh contoured, Func<Vector3, float> sdf, float cellSize, float creaseAngleDegrees, int[]? regions,
-            bool[]? locked)
+            bool[]? locked, bool batched = false, float[]? attributes = null)
         {
             this.sdf = sdf;
+            this.batched = batched;
+            this.attributes = attributes;
+            attributeScale = cellSize;
             gradientStep = cellSize * 1e-3f;
             cellVertexDistance = cellSize * MaxVertexDistanceInCells;
             var mesh = contoured.Mesh;
             positions = (Vector3[])mesh.Positions.Clone();
+            originalPositions = (Vector3[])mesh.Positions.Clone();
             this.regions = regions;
             var vertexCount = positions.Length;
 
@@ -317,7 +358,12 @@ public static class QuadricSimplifier
             maxVertexDistance = coarse ? MathF.Max(cellVertexDistance, maxError) : cellVertexDistance;
             maxFaceDistance = maxError;
             if (maxError > 0)
-                Collapse((double)maxError * maxError);
+            {
+                if (batched)
+                    CollapseBatched((double)maxError * maxError);
+                else
+                    Collapse((double)maxError * maxError);
+            }
             return Compact();
         }
 
@@ -355,6 +401,500 @@ public static class QuadricSimplifier
                 if (collapsed == 0)
                     return;
             }
+        }
+
+
+        // ---------------------------------------------------------------- Batched folds
+
+        /// <summary>The most rounds of folds a run makes; a round that folds nothing ends it sooner.</summary>
+        private const int MaxRounds = 2000;
+
+        /// <summary>A round folds at most this share of the winners, so the quadrics of what is left stay accurate for the next round.</summary>
+        private const float FoldShare = 1f / 3;
+
+        /// <summary>
+        /// Simplifies in rounds (after Wu and Kobbelt's multiple-choice decimation, 2002), each of four steps.
+        /// <list type="number">
+        /// <item>Score every vertex whose surroundings changed: the cost of folding it into its best neighbour, a half-edge collapse, so
+        /// the vertex lands on one that exists and none is moved. The cost is the quadric error of the pair at the neighbour, or for a
+        /// crease or material border the larger of that and the border's own quadric; with <c>attributes</c>, plus the change in the
+        /// attribute.</item>
+        /// <item>Pick winners without an order: a vertex wins if its score beats every neighbour still in play, and its neighbours then sit
+        /// the round out. Repeating until every vertex has won or sat out gives a set of vertices no two of which touch, found the same
+        /// whichever order they are looked at, so the sweeps run in parallel.</item>
+        /// <item>Fold the winners under the error limit, cheapest first, no more than a third of them: each fold is checked again against
+        /// the surface as it now is, and refused if it would flip a face, make a sliver, pinch the surface or leave a face further
+        /// than the limit from the SDF.</item>
+        /// <item>Rescore what the folds touched, and go on until no winner is under the limit.</item>
+        /// </list>
+        /// Materials: a vertex whose neighbours all have its region folds freely, into any of them; one on the border between two regions
+        /// folds only into a vertex of the same region that is on that border too, so the border keeps its pair of regions and its
+        /// shape (the border's own quadric prices bending it); one where three or more regions meet stays. Locked vertices stay.
+        /// </summary>
+        private void CollapseBatched(double maxSquaredError)
+        {
+            var count = positions.Length;
+            var best = new int[count];
+            var score = new double[count];
+            var dirty = new bool[count];
+            Array.Fill(dirty, true);
+            var status = new byte[count];
+            var rejected = new HashSet<(int, int, int, int)>();
+            for (var round = 0; round < MaxRounds; round++)
+            {
+                // 1. Score what changed
+                var phase = Stopwatch.StartNew();
+                timings.Rounds++;
+                var stale = Enumerable.Range(0, count).Where(v => dirty[v] && !removedVertex[v]).ToArray();
+                Parallel.ForEach(stale, Threads, v => (best[v], score[v]) = BestFold(v, maxSquaredError, rejected));
+                timings.Scored += stale.Length;
+                timings.Score += phase.Elapsed;
+                phase.Restart();
+                foreach (var v in stale)
+                    dirty[v] = false;
+
+                // 2. Winners: local minima among the vertices in play, sweep by sweep
+                var candidates = new List<int>();
+                for (var v = 0; v < count; v++)
+                {
+                    status[v] = removedVertex[v] || best[v] < 0 || score[v] > maxSquaredError ? Out : InPlay;
+                    if (status[v] == InPlay)
+                        candidates.Add(v);
+                }
+                if (candidates.Count == 0)
+                {
+                    timings.Winners += phase.Elapsed;
+                    return;
+                }
+                var winners = new List<int>();
+                var undecided = candidates;
+                while (undecided.Count > 0)
+                {
+                    var sweep = new bool[undecided.Count];
+                    Parallel.For(0, undecided.Count, Threads, i =>
+                    {
+                        var u = undecided[i];
+                        var wins = true;
+                        foreach (var w in RingOf(u))
+                            if (status[w] == InPlay && Beats(w, u, score))
+                            {
+                                wins = false;
+                                break;
+                            }
+                        sweep[i] = wins;
+                    });
+                    for (var i = 0; i < undecided.Count; i++)
+                        if (sweep[i])
+                            status[undecided[i]] = Won;
+                    foreach (var u in undecided.Where((_, i) => sweep[i]))
+                    {
+                        winners.Add(u);
+                        foreach (var w in RingOf(u))
+                            if (status[w] == InPlay)
+                                status[w] = SatOut;
+                    }
+                    undecided = undecided.Where(u => status[u] == InPlay).ToList();
+                }
+
+                timings.Winners += phase.Elapsed;
+                phase.Restart();
+
+                // 3. Fold the cheapest third of them. The costly checks (the SDF's sign bracket, the tracked points) are made in parallel
+                // first: they read only the faces around the vertex, which no other winner's fold changes (winners do not touch, so a
+                // winner's fold only rewrites faces that have it as a corner), nor the tracked points on them. The folds are then made one
+                // at a time in order, each after a cheap check of the faces as they are by then (no pinching, no flipped face). The
+                // outcome does not depend on the threads.
+                var order = winners.OrderBy(u => score[u]).ThenBy(u => Vector3.DistanceSquared(positions[u], positions[best[u]])).ThenBy(u => u).ToList();
+                var allowed = order.Count <= 3 ? order.Count : (int)Math.Ceiling(order.Count * FoldShare);
+                var window = Math.Min(order.Count, allowed + allowed / 4 + 4);
+                var checkedAhead = new Prechecked?[window];
+                Parallel.For(0, window, Threads, i =>
+                {
+                    var u = order[i];
+                    var into = best[u];
+                    var started = Stopwatch.GetTimestamp();
+                    var ok = FacesStayOnTheSurface(u, into, positions[into]);
+                    Interlocked.Add(ref bracketTicks, Stopwatch.GetTimestamp() - started);
+                    started = Stopwatch.GetTimestamp();
+                    var tracking = ok ? EvaluateFold(u, into, double.PositiveInfinity) : null;
+                    Interlocked.Add(ref trackingTicks, Stopwatch.GetTimestamp() - started);
+                    checkedAhead[i] = new Prechecked(into, ok, tracking);
+                });
+                timings.Prechecked += window;
+                timings.Precheck += phase.Elapsed;
+                phase.Restart();
+                var folded = 0;
+                var refused = 0;
+                var position = -1;
+                foreach (var u in order)
+                {
+                    position++;
+                    if (folded >= allowed)
+                        break;
+                    if (removedVertex[u])
+                        continue;
+                    int into;
+                    bool bracketOk;
+                    FoldTracking? tracking;
+                    if (position < window)
+                    {
+                        (into, bracketOk, tracking) = (checkedAhead[position]!.Into, checkedAhead[position]!.BracketOk, checkedAhead[position]!.Tracking);
+                        // What an earlier fold of the round may have changed at the target: the surface must still be a sheet, facing out
+                        if (!StaysManifold(into, u) || !KeepsFacing(u, into, positions[into], !coarse))
+                        {
+                            timings.Rechecked++;
+                            dirty[u] = true;
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        timings.Rechecked++;
+                        (into, _) = BestFold(u, maxSquaredError, rejected);
+                        if (into < 0)
+                            continue;
+                        var started = Stopwatch.GetTimestamp();
+                        bracketOk = FacesStayOnTheSurface(u, into, positions[into]);
+                        var between = Stopwatch.GetTimestamp();
+                        bracketTicks += between - started;
+                        tracking = bracketOk ? EvaluateFold(u, into, double.PositiveInfinity) : null;
+                        trackingTicks += Stopwatch.GetTimestamp() - between;
+                    }
+                    var target = positions[into];
+                    if (!bracketOk)
+                    {
+                        rejected.Add((u, into, version[u], version[into]));
+                        dirty[u] = true;
+                        refused++;
+                        continue;
+                    }
+                    var touched = RingOf(u).Concat(RingOf(into)).Distinct().ToList();
+                    var fan = trianglesOf[u].ToList();
+                    tracking ??= EvaluateFold(u, into, double.PositiveInfinity)!;
+                    if (regions is not null)
+                    {
+                        // A border vertex folded along its chain: the chord from the next link to the one after stands for what it did
+                        var ringOfU = RingOf(u);
+                        var otherRegion = ringOfU.Select(w => regions[w]).FirstOrDefault(r => r != regions[u], -1);
+                        if (otherRegion >= 0 && ChainOf(u, ringOfU, otherRegion) is { } links)
+                        {
+                            var b = into == links.First ? links.Second : links.First;
+                            var standing = StandingFor(u, into, b);
+                            chainStandsFor.Remove(EdgeKey(u, into));
+                            chainStandsFor.Remove(EdgeKey(u, b));
+                            if (chainStandsFor.TryGetValue(EdgeKey(into, b), out var existing)) existing.AddRange(standing);
+                            else chainStandsFor[EdgeKey(into, b)] = standing;
+                        }
+                    }
+                    var folding = Stopwatch.GetTimestamp();
+                    CollapseInto(into, u, target);
+                    timings.Fold += TimeSpan.FromSeconds((Stopwatch.GetTimestamp() - folding) / (double)Stopwatch.Frequency);
+                    folding = Stopwatch.GetTimestamp();
+                    Rebind(u, fan, tracking);
+                    timings.Rebind += TimeSpan.FromSeconds((Stopwatch.GetTimestamp() - folding) / (double)Stopwatch.Frequency);
+                    folded++;
+                    timings.Folds++;
+                    foreach (var w in touched)
+                    {
+                        dirty[w] = true;
+                        version[w]++;
+                    }
+                }
+                timings.Apply += phase.Elapsed;
+                // 4. Another round, unless nothing could be folded and no refusal changed what the next scores will be
+                if (folded == 0 && refused == 0)
+                    return;
+            }
+        }
+
+        private const byte Out = 0, InPlay = 1, Won = 2, SatOut = 3;
+
+        /// <summary>A fold checked ahead against the surface.</summary>
+        private sealed record Prechecked(int Into, bool BracketOk, FoldTracking? Tracking);
+
+        /// <summary>Whether <paramref name="a"/> scores better than <paramref name="b"/>: cheaper, and on a tie the one a fixed hash puts first.</summary>
+        private static bool Beats(int a, int b, double[] score) =>
+            score[a] != score[b] ? score[a] < score[b] : Hash(a) < Hash(b) || Hash(a) == Hash(b) && a < b;
+
+        private static uint Hash(int v)
+        {
+            var x = (uint)v * 2654435761u;
+            x ^= x >> 15;
+            x *= 2246822519u;
+            x ^= x >> 13;
+            return x;
+        }
+
+        /// <summary>The vertices that share a face with <paramref name="vertex"/>.</summary>
+        private List<int> RingOf(int vertex)
+        {
+            var ring = new List<int>(8);
+            foreach (var t in trianglesOf[vertex])
+            {
+                var (a, b, c) = Corners(t);
+                foreach (var corner in (ReadOnlySpan<int>)[a, b, c])
+                    if (corner != vertex && !ring.Contains(corner))
+                        ring.Add(corner);
+            }
+            return ring;
+        }
+
+        private static (int, int) EdgeKey(int a, int b) => a < b ? (a, b) : (b, a);
+
+        /// <summary>
+        /// The two neighbours of a vertex on a material border that are on the same border, in its own region: the chain it is a link of.
+        /// Null where it is not a plain chain (more or fewer links, as at a spot where the border forks).
+        /// </summary>
+        private (int First, int Second)? ChainOf(int u, List<int> ring, int otherRegion)
+        {
+            // A link of the chain is a neighbour in u's region that shares a face with u whose third corner is in the other region
+            var links = new List<int>(2);
+            foreach (var t in trianglesOf[u])
+            {
+                var (a, b, c) = Corners(t);
+                var (first, second) = a == u ? (b, c) : b == u ? (c, a) : (a, b);
+                if (regions![first] == regions[u] && regions[second] == otherRegion && !links.Contains(first))
+                    links.Add(first);
+                if (regions[second] == regions[u] && regions[first] == otherRegion && !links.Contains(second))
+                    links.Add(second);
+            }
+            return links.Count == 2 ? (links[0], links[1]) : null;
+        }
+
+        /// <summary>The border vertices that would stand for the chain's new edge when <paramref name="u"/> is folded away.</summary>
+        private List<Vector3> StandingFor(int u, int a, int b)
+        {
+            var points = new List<Vector3> { positions[u] };
+            if (chainStandsFor.TryGetValue(EdgeKey(u, a), out var first)) points.AddRange(first);
+            if (chainStandsFor.TryGetValue(EdgeKey(u, b), out var second)) points.AddRange(second);
+            return points;
+        }
+
+        private static float DistanceToSegment(Vector3 p, Vector3 a, Vector3 b)
+        {
+            var ab = b - a;
+            var t = ab.LengthSquared() > 0 ? Math.Clamp(Vector3.Dot(p - a, ab) / ab.LengthSquared(), 0, 1) : 0;
+            return Vector3.Distance(p, a + ab * t);
+        }
+
+        /// <summary>QEM is only a prefilter for the tracked cost: a fold dearer than this many times the limit is not looked at.</summary>
+        private const double PrefilterFactor = 16;
+
+        /// <summary>How many folds of a vertex (cheapest by QEM first) are priced with the tracked points.</summary>
+        private const int TrackedTries = 3;
+
+        /// <summary>
+        /// The neighbour to fold <paramref name="u"/> into and what it costs, or -1 if no fold is allowed or within the limit. The cost is
+        /// the worst distance, squared, of any tracked point the fold touches (every vertex folded away so far that lies on the faces
+        /// around <paramref name="u"/>, and <paramref name="u"/> itself) from the faces that would replace the fan: so error cannot add up
+        /// unseen from fold to fold. QEM only picks which neighbours to try, cheapest first.
+        /// </summary>
+        private (int Into, double Cost) BestFold(int u, double maxSquaredError, HashSet<(int, int, int, int)> rejected)
+        {
+            if (removedVertex[u] || locked is not null && locked[u] || trianglesOf[u].Count == 0)
+                return (-1, double.PositiveInfinity);
+            var ring = RingOf(u);
+
+            // Materials: which regions meet here
+            int otherRegion = -1;
+            if (regions is not null)
+            {
+                foreach (var w in ring)
+                {
+                    if (regions[w] == regions[u] || regions[w] == otherRegion)
+                        continue;
+                    if (otherRegion >= 0)
+                        return (-1, double.PositiveInfinity); // three regions meet: a corner stays
+                    otherRegion = regions[w];
+                }
+            }
+
+            var chain = regions is not null && otherRegion >= 0 ? ChainOf(u, ring, otherRegion) : null;
+            if (regions is not null && otherRegion >= 0 && chain is null)
+                return (-1, double.PositiveInfinity);
+            var options = new List<(int V, double Cost, float Length)>();
+            foreach (var v in ring)
+            {
+                if (regions is not null)
+                {
+                    if (regions[v] != regions[u])
+                        continue;
+                    // On a border, only along it, into the next link of its chain
+                    if (otherRegion >= 0)
+                    {
+                        if (v != chain!.Value.First && v != chain.Value.Second)
+                            continue;
+                        // ... and only while every border vertex folded into the chain stays within the limit of the new chord
+                        var b = v == chain.Value.First ? chain.Value.Second : chain.Value.First;
+                        var reach = (float)Math.Sqrt(maxSquaredError);
+                        if (StandingFor(u, v, b).Any(point => DistanceToSegment(point, positions[v], positions[b]) > reach))
+                            continue;
+                    }
+                }
+                if (rejected.Contains((u, v, version[u], version[v])))
+                    continue;
+                var merged = quadrics[u] + quadrics[v];
+                var mergedCrease = creaseQuadrics[u] + creaseQuadrics[v];
+                var cost = Math.Max(merged.Error(positions[v]), mergedCrease.Error(positions[v]));
+                if (cost <= maxSquaredError * PrefilterFactor)
+                    options.Add((v, cost, Vector3.DistanceSquared(positions[u], positions[v])));
+            }
+            var best = (Into: -1, Cost: double.PositiveInfinity, Length: float.PositiveInfinity);
+            var tried = 0;
+            foreach (var (v, _, length) in options.OrderBy(o => o.Cost).ThenBy(o => o.Length).ThenBy(o => o.V))
+            {
+                if (tried >= TrackedTries)
+                    break;
+                var guardQuality = !coarse;
+                if (!StaysManifold(v, u) || !KeepsFacing(u, v, positions[v], guardQuality))
+                    continue;
+                tried++;
+                var tracking = EvaluateFold(u, v, maxSquaredError);
+                if (tracking is null)
+                    continue;
+                var cost = tracking.WorstSquared;
+                if (attributes is not null)
+                {
+                    var change = (attributes[u] - attributes[v]) * attributeScale;
+                    cost += change * change;
+                }
+                if (cost <= maxSquaredError && (cost < best.Cost || cost == best.Cost && length < best.Length))
+                    best = (v, cost, length);
+            }
+            return (best.Into, best.Into < 0 ? double.PositiveInfinity : best.Cost);
+        }
+
+        // ---------------------------------------------------------------- Tracked points
+
+        /// <summary>Where the tracked points a fold touches would land: a triangle of the new fan for each, and its distance.</summary>
+        private sealed class FoldTracking
+        {
+            public readonly List<(int Point, int Triangle, float Distance)> Placed = new();
+            public double WorstSquared;
+        }
+
+        /// <summary>
+        /// Prices folding <paramref name="u"/> into <paramref name="s"/>: every tracked point on the faces around <paramref name="u"/>, and
+        /// <paramref name="u"/> itself, is projected on the faces the fan becomes. Null if one would be further than the limit from them
+        /// (<paramref name="maxSquaredError"/>), or would land on a face of another material than its own (a face of two materials takes
+        /// it only from the side of its own material, a point's weight on its vertices of that material being at least half).
+        /// </summary>
+        private FoldTracking? EvaluateFold(int u, int s, double maxSquaredError)
+        {
+            var fan = new List<(int Triangle, Vector3 A, Vector3 B, Vector3 C, int Ia, int Ib, int Ic)>();
+            foreach (var t in trianglesOf[u])
+            {
+                var (a, b, c) = Corners(t);
+                if (a == s || b == s || c == s)
+                    continue;
+                var (ia, ib, ic) = (a == u ? s : a, b == u ? s : b, c == u ? s : c);
+                fan.Add((t, positions[ia], positions[ib], positions[ic], ia, ib, ic));
+            }
+            var result = new FoldTracking();
+            var points = new List<(int Index, Vector3 Position, int Region)>();
+            foreach (var t in trianglesOf[u])
+                if (trackedOnTriangle.Length > t && trackedOnTriangle[t] is { } bucket)
+                    foreach (var point in bucket)
+                        points.Add((point, trackedPosition[point], regions is null ? 0 : trackedRegion[point]));
+            points.Add((-1, positions[u], regions is null ? 0 : regions[u]));
+            if (fan.Count == 0)
+                return points.Count == 1 ? result : null;
+
+            var limit = double.IsPositiveInfinity(maxSquaredError) ? double.PositiveInfinity : maxSquaredError;
+            foreach (var (index, position, region) in points)
+            {
+                var bestDistance = double.PositiveInfinity;
+                var bestTriangle = -1;
+                foreach (var (triangle, a, b, c, ia, ib, ic) in fan)
+                {
+                    trackedTests++;
+                    var (closest, weights) = ClosestOnTriangle(position, a, b, c);
+                    var distanceSquared = (double)Vector3.DistanceSquared(position, closest);
+                    if (distanceSquared >= bestDistance)
+                        continue;
+                    if (regions is not null)
+                    {
+                        float own = 0;
+                        var any = false;
+                        if (regions[ia] == region) { own += weights.X; any = true; }
+                        if (regions[ib] == region) { own += weights.Y; any = true; }
+                        if (regions[ic] == region) { own += weights.Z; any = true; }
+                        var pure = regions[ia] == region && regions[ib] == region && regions[ic] == region;
+                        if (!pure && (!any || own < 0.5f))
+                            continue;
+                    }
+                    bestDistance = distanceSquared;
+                    bestTriangle = triangle;
+                }
+                if (bestTriangle < 0 || bestDistance > limit)
+                    return null;
+                result.WorstSquared = Math.Max(result.WorstSquared, bestDistance);
+                result.Placed.Add((index, bestTriangle, (float)Math.Sqrt(bestDistance)));
+            }
+            return result;
+        }
+
+        /// <summary>After <paramref name="removed"/> was folded away: its triangles' points, and itself, bound to the triangles they landed on.</summary>
+        private void Rebind(int removed, List<int> oldFan, FoldTracking tracking)
+        {
+            if (trackedOnTriangle.Length < triangles.Length / 3)
+                Array.Resize(ref trackedOnTriangle, triangles.Length / 3);
+            foreach (var t in oldFan)
+                trackedOnTriangle[t]?.Clear();
+            foreach (var (point, triangle, distance) in tracking.Placed)
+            {
+                var index = point;
+                if (index < 0)
+                {
+                    index = trackedPosition.Count;
+                    trackedPosition.Add(originalPositions[removed]);
+                    trackedRegion.Add(regions is null ? 0 : regions[removed]);
+                    trackedError.Add(0);
+                }
+                trackedError[index] = distance;
+                (trackedOnTriangle[triangle] ??= new List<int>()).Add(index);
+            }
+        }
+
+        /// <summary>The nearest point of a triangle to <paramref name="p"/> and the barycentric weights of the corners there (Ericson).</summary>
+        private static (Vector3 Point, Vector3 Weights) ClosestOnTriangle(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
+        {
+            var ab = b - a;
+            var ac = c - a;
+            var ap = p - a;
+            var d1 = Vector3.Dot(ab, ap);
+            var d2 = Vector3.Dot(ac, ap);
+            if (d1 <= 0 && d2 <= 0) return (a, new Vector3(1, 0, 0));
+            var bp = p - b;
+            var d3 = Vector3.Dot(ab, bp);
+            var d4 = Vector3.Dot(ac, bp);
+            if (d3 >= 0 && d4 <= d3) return (b, new Vector3(0, 1, 0));
+            var vc = d1 * d4 - d3 * d2;
+            if (vc <= 0 && d1 >= 0 && d3 <= 0)
+            {
+                var v = d1 / (d1 - d3);
+                return (a + ab * v, new Vector3(1 - v, v, 0));
+            }
+            var cp = p - c;
+            var d5 = Vector3.Dot(ab, cp);
+            var d6 = Vector3.Dot(ac, cp);
+            if (d6 >= 0 && d5 <= d6) return (c, new Vector3(0, 0, 1));
+            var vb = d5 * d2 - d1 * d6;
+            if (vb <= 0 && d2 >= 0 && d6 <= 0)
+            {
+                var w = d2 / (d2 - d6);
+                return (a + ac * w, new Vector3(1 - w, 0, w));
+            }
+            var va = d3 * d6 - d5 * d4;
+            if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0)
+            {
+                var w = (d4 - d3) / (d4 - d3 + (d5 - d6));
+                return (b + (c - b) * w, new Vector3(0, 1 - w, w));
+            }
+            var denominator = 1 / (va + vb + vc);
+            var vv = vb * denominator;
+            var ww = vc * denominator;
+            return (a + ab * vv + ac * ww, new Vector3(1 - vv - ww, vv, ww));
         }
 
         private void Push(PriorityQueue<Candidate, Priority> queue, int u, int v)
@@ -513,6 +1053,49 @@ public static class QuadricSimplifier
             return true;
         }
 
+        /// <summary>
+        /// Whether the faces around <paramref name="moved"/> that stay lie on the SDF's surface within the error limit, by the sign of the
+        /// SDF, which is right where its size is not (a union is not exact inside, an intersection not outside): at the face's centre and
+        /// the middles of its edges the SDF must change sign, or be zero, somewhere along the face's normal within the limit either way. The
+        /// segment is sampled at five points rather than two at its ends, so a wall thinner than the limit, which has the same sign at
+        /// both ends, still counts as a surface found.
+        /// </summary>
+        private bool FacesStayOnTheSurface(int moved, int other, Vector3 target)
+        {
+            foreach (var t in trianglesOf[moved])
+            {
+                var (a, b, c) = Corners(t);
+                if (a == other || b == other || c == other)
+                    continue;
+                var (pa, pb, pc) = (a == moved ? target : positions[a], b == moved ? target : positions[b], c == moved ? target : positions[c]);
+                var cross = Vector3.Cross(pb - pa, pc - pa);
+                if (cross.LengthSquared() <= 0)
+                    return false;
+                var normal = Vector3.Normalize(cross);
+                foreach (var p in (ReadOnlySpan<Vector3>)[(pa + pb + pc) / 3, (pa + pb) * 0.5f, (pb + pc) * 0.5f, (pc + pa) * 0.5f])
+                    if (!SurfaceWithin(p, normal, maxFaceDistance))
+                        return false;
+            }
+            return true;
+        }
+
+        /// <summary>Whether the SDF changes sign (or is zero) along the segment of the given length either way from <paramref name="p"/> along <paramref name="normal"/>.</summary>
+        private bool SurfaceWithin(Vector3 p, Vector3 normal, float distance)
+        {
+            var eps = gradientStep * 0.1f;
+            var previous = sdf(p - normal * distance);
+            if (previous >= -eps && previous <= eps)
+                return true;
+            for (var i = 1; i <= 4; i++)
+            {
+                var value = sdf(p + normal * (distance * (i - 2) / 2));
+                if (value >= -eps && value <= eps || (value > 0) != (previous > 0))
+                    return true;
+                previous = value;
+            }
+            return false;
+        }
+
         /// <summary>The SDF's gradient from four samples on a tetrahedron, which is enough to tell which way a face should face.</summary>
         private Vector3 Gradient(Vector3 p)
         {
@@ -576,7 +1159,13 @@ public static class QuadricSimplifier
                     keptTriangles.Add(newIndex[vertex]);
                 }
             }
-            return new TriangleMesh(kept.ToArray(), keptTriangles.ToArray()) { Sources = keptSources.ToArray() };
+            return new TriangleMesh(kept.ToArray(), keptTriangles.ToArray())
+            {
+                Sources = keptSources.ToArray(),
+                TrackedError = trackedError.Count > 0 ? trackedError.Max() : 0,
+                TrackedTests = trackedTests,
+                Timings = batched ? timings.With(bracketTicks, trackingTicks) : null,
+            };
         }
     }
 }

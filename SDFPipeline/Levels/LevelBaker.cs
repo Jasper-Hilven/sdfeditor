@@ -64,7 +64,7 @@ public static class LevelBaker
     /// LOD0 from a 0.5 m grid, LOD1 from 1 m, LOD2 from about 2 m, each simplified further: open grass flattens to a few large triangles
     /// at every level, while the hills keep the triangles their shape needs.
     /// </summary>
-    public static readonly IReadOnlyList<GroundDetail> Details = [new(50, 0.008f), new(25, 0.03f), new(12, 0.1f)];
+    public static readonly IReadOnlyList<GroundDetail> Details = [new(50, 0.032f, true), new(25, 0.12f, true), new(12, 0.4f, true)];
 
     /// <summary>The level of detail Unity makes the colliders from: 1 m is fine enough to walk on and cheap to collide with.</summary>
     public const int ColliderLevel = 1;

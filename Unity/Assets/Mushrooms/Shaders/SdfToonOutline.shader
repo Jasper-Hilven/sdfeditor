@@ -34,7 +34,7 @@ Shader "SdfMushrooms/Toon Outline"
 
     struct Attributes
     {
-        float3 positionOS : POSITION;
+        float4 positionPacked : POSITION;
         float3 normalOS : NORMAL;
         float4 color : COLOR;
         UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -57,9 +57,10 @@ Shader "SdfMushrooms/Toon Outline"
         Varyings output;
         UNITY_SETUP_INSTANCE_ID(input);
         UNITY_TRANSFER_INSTANCE_ID(input, output);
-        SdfScatterTintColor(input.positionOS, input.color);
-        input.positionOS = SdfScatterWind(input.positionOS);
-        float3 positionWS = TransformObjectToWorld(input.positionOS);
+        float3 positionOS = SdfUnpackPosition(input.positionPacked);
+        SdfScatterTintColor(positionOS, input.color);
+        positionOS = SdfScatterWind(positionOS);
+        float3 positionWS = TransformObjectToWorld(positionOS);
         float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
         float4 positionCS = TransformWorldToHClip(positionWS);
         float2 normalCS = mul((float3x3)UNITY_MATRIX_VP, normalWS).xy;

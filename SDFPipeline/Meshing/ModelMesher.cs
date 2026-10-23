@@ -8,7 +8,9 @@ using SDFProject.ProgramDefinition;
 namespace SDFPipeline.Meshing;
 
 /// <param name="Time">How long the mesh took; for a level of detail, how long it took on top of the level before.</param>
-public sealed record MeshStatistics(int ContouredTriangles, int SimplifiedTriangles, int Vertices, TimeSpan Time);
+/// <param name="TrackedError">With batched simplification, the furthest any vertex folded away is from the surface that replaced it, in metres.</param>
+public sealed record MeshStatistics(int ContouredTriangles, int SimplifiedTriangles, int Vertices, TimeSpan Time, float TrackedError = 0, SimplifyTimings? Timings = null);
+
 
 /// <summary>
 /// One mesh of a model, in metres with +Y up and the front towards +Z. Every per-vertex array has one entry per position; triangle i is
@@ -152,7 +154,10 @@ public static class ModelMesher
         }, shape.Distance, cellSize);
         var maxErrors = Enumerable.Range(0, Math.Max(options.LodCount, 1)).Select(level => options.LodErrorInCells(level) * cellSize).ToArray();
         var levels = new List<PartMesh>();
-        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees, regions))
+        // How far each vertex has blended into a second material: a fold that changes it much is dearer (batched simplification)
+        var batched = options.Simplifier == Simplifier.Batched;
+        var blends = batched ? Evaluate(contoured.Mesh.Positions, p => Blend(shape.Surface(p))) : null;
+        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees, regions, batched, blends))
         {
             var level = levels.Count;
             var shaded = CreaseNormals.Split(simplified, shape.Distance, cellSize, options.CreaseAngleDegrees);
@@ -190,7 +195,7 @@ public static class ModelMesher
                 occlusion[v] = SurfaceAttributes.Occlusion(measured.Distance, position, normal);
             });
 
-            var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, simplified.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed);
+            var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, simplified.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed, simplified.TrackedError, simplified.Timings);
             levels.Add(new PartMesh(source.Name, shaded.Positions, shaded.Normals, materials, thickness, occlusion, shaded.Triangles, maxErrors[level], statistics)
             {
                 Detail = source.Detail,
@@ -241,6 +246,13 @@ public static class ModelMesher
     }
 
     private const int RegionBisectionSteps = 10;
+
+    /// <summary>0 where one material has the surface to itself, towards 1 as another takes a share.</summary>
+    private static float Blend(SurfaceSample sample)
+    {
+        var total = sample.Materials.Sum(s => s.Weight);
+        return total > 0 ? 1 - sample.Materials.Max(s => s.Weight) / total : 0;
+    }
 
     private static MaterialSource Dominant(SurfaceSample sample) => sample.Materials.MaxBy(s => s.Weight).Source;
 

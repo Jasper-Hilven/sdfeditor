@@ -104,7 +104,7 @@ Shader "SdfMushrooms/Toon"
 
             struct Attributes
             {
-                float3 positionOS : POSITION;
+                float4 positionPacked : POSITION;
                 float3 normalOS : NORMAL;
                 float4 color : COLOR;
                 float4 uv0 : TEXCOORD0;
@@ -144,22 +144,23 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
-                SdfScatterTint(input.positionOS, input.color, input.uv3, input.uv4, input.uv6);
-                input.positionOS = SdfScatterWind(input.positionOS);
-                output.positionWS = TransformObjectToWorld(input.positionOS);
+                float3 positionOS = SdfUnpackPosition(input.positionPacked);
+                SdfScatterTint(positionOS, input.color, input.uv3, input.uv4, input.uv6);
+                positionOS = SdfScatterWind(positionOS);
+                output.positionWS = TransformObjectToWorld(positionOS);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.color = input.color;
                 output.uv0 = input.uv0;
-                output.uv1 = input.uv1;
+                output.uv1 = SdfUnpackLocal(input.uv1, input.positionPacked);
                 output.uv2 = input.uv2;
                 output.uv3 = input.uv3;
                 output.uv4 = input.uv4;
                 output.uv5 = input.uv5;
                 output.uv6 = input.uv6;
                 output.uv7 = input.uv7;
-                output.positionOS = input.positionOS;
+                output.positionOS = positionOS;
                 output.normalOS = input.normalOS;
                 return output;
             }
@@ -234,7 +235,7 @@ Shader "SdfMushrooms/Toon"
 
             struct Attributes
             {
-                float3 positionOS : POSITION;
+                float4 positionPacked : POSITION;
                 float3 normalOS : NORMAL;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -250,8 +251,9 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
-                input.positionOS = SdfScatterWind(input.positionOS);
-                float3 positionWS = TransformObjectToWorld(input.positionOS);
+                float3 positionOS = SdfUnpackPosition(input.positionPacked);
+                positionOS = SdfScatterWind(positionOS);
+                float3 positionWS = TransformObjectToWorld(positionOS);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
             #if defined(_CASTING_PUNCTUAL_LIGHT_SHADOW)
                 float3 lightDirection = normalize(_LightPosition - positionWS);
@@ -288,7 +290,7 @@ Shader "SdfMushrooms/Toon"
 
             struct Attributes
             {
-                float3 positionOS : POSITION;
+                float4 positionPacked : POSITION;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -303,8 +305,9 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
-                input.positionOS = SdfScatterWind(input.positionOS);
-                output.positionCS = TransformObjectToHClip(input.positionOS);
+                float3 positionOS = SdfUnpackPosition(input.positionPacked);
+                positionOS = SdfScatterWind(positionOS);
+                output.positionCS = TransformObjectToHClip(positionOS);
                 return output;
             }
 
@@ -335,7 +338,7 @@ Shader "SdfMushrooms/Toon"
 
             struct Attributes
             {
-                float3 positionOS : POSITION;
+                float4 positionPacked : POSITION;
                 float3 normalOS : NORMAL;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -352,8 +355,9 @@ Shader "SdfMushrooms/Toon"
                 Varyings output;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
-                input.positionOS = SdfScatterWind(input.positionOS);
-                output.positionCS = TransformObjectToHClip(input.positionOS);
+                float3 positionOS = SdfUnpackPosition(input.positionPacked);
+                positionOS = SdfScatterWind(positionOS);
+                output.positionCS = TransformObjectToHClip(positionOS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;
             }

@@ -324,7 +324,7 @@ namespace SdfLevel.Editor
             {
                 if (!mesh.isReadable)
                     continue;
-                var vertices = mesh.vertices;
+                var vertices = SdfMushrooms.SdfPackedMesh.Positions(mesh);
                 var triangles = mesh.triangles;
                 for (var t = 0; t < triangles.Length; t += 3)
                 {

@@ -18,6 +18,8 @@
 #ifndef SDF_SCATTER_INCLUDED
 #define SDF_SCATTER_INCLUDED
 
+#include "SdfPacked.hlsl"
+
 #if defined(SDF_SCATTER)
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"

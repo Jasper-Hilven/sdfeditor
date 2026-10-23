@@ -8,6 +8,9 @@ using SDFProject.ProgramDefinition;
 using SDFPipeline.Rendering;
 using SDFPipeline.Skies;
 
+// Set by --timings: print where simplification spent its time
+var showTimings = false;
+
 const string usage = """
     Usage:
       sdf render [--size <pixels>]                            Renders every .sdf in the content folder, each next to its file
@@ -33,12 +36,18 @@ const string usage = """
                --suffix <text>        add this to each .glb's name, e.g. --suffix _512 for chanterelle-scout_512.glb
                --lods <n>             levels of detail per mesh, LOD0 included, 1 to 4 (default 1); each further level
                                       has about a third of the triangles of the one before
+               --timings              print where batched simplification spent its time, per mesh
+               --simplifier <kind>    batched (default: rounds of folds over independent vertices, vertices stay where they are) or
+                                      greedy (the earlier one-collapse-at-a-time)
+               --max-error <cells>    how far simplification may move the surface, in grid cells (default 0.3 batched, 0.08 greedy); more cells,
+                                      fewer triangles; 0 turns simplification off
       sdf level <level.level> --into <folder>                 Bakes the level's ground into <folder>: a .glb per 25 m chunk with
                                                               its levels of detail, the scattered models (instances.bin) and
                                                               level.json for Unity's level builder
       sdf level <directory> --into <folder>                   Bakes every .level in the directory into <folder>/<level name>/
       sdf level --into <folder>                               The same for content/levels
-      sdf unity [--resolution <cells>] [--lods <n>]           Updates Unity: meshes content/models into
+      sdf unity [--resolution <cells>] [--lods <n>] [--max-error <cells>]
+                                                              Updates Unity: meshes content/models into
                                                               Unity/Assets/Mushrooms/Generated (as sdf mesh, with these options),
                                                               then bakes content/levels into Unity/Assets/Level/Generated
       sdf examples <directory>                                Writes the IDE's examples as .sdf files
@@ -117,6 +126,9 @@ int Mesh(string[] arguments)
     string? into = null;
     var suffix = "";
     var lods = MeshingOptions.DefaultLodCount;
+    float? maxError = null;
+    var simplifier = Simplifier.Batched;
+    var timings = false;
     var paths = new List<string>();
     for (var i = 0; i < arguments.Length; i++)
     {
@@ -142,6 +154,25 @@ int Mesh(string[] arguments)
                 return Usage($"--lods takes 1 to {MeshingOptions.MaxLodCount} levels, not {arguments[i]}");
             continue;
         }
+        if (arguments[i] == "--timings")
+        {
+            timings = true;
+            showTimings = true;
+            continue;
+        }
+        if (arguments[i] == "--simplifier" && i + 1 < arguments.Length)
+        {
+            if (!Enum.TryParse(arguments[++i], ignoreCase: true, out simplifier) || !Enum.IsDefined(simplifier))
+                return Usage($"--simplifier takes batched or greedy, not {arguments[i]}");
+            continue;
+        }
+        if (arguments[i] == "--max-error" && i + 1 < arguments.Length)
+        {
+            if (!float.TryParse(arguments[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || parsed < 0)
+                return Usage($"--max-error takes a distance in grid cells, 0 or more, not {arguments[i]}");
+            maxError = parsed;
+            continue;
+        }
         if (arguments[i] == "--reference-size" && i + 1 < arguments.Length)
         {
             if (!float.TryParse(arguments[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out referenceSize) || referenceSize <= 0)
@@ -157,7 +188,9 @@ int Mesh(string[] arguments)
         return 1;
     if (LoadPatterns() is not { } patterns)
         return 1;
-    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Materials = materials, Patterns = patterns };
+    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Simplifier = simplifier, Materials = materials, Patterns = patterns };
+    if (maxError is { } given)
+        options = options with { MaxErrorInCells = given };
     // Where each model's mesh goes: next to it, or into the --into folder under the same subfolder it has below the meshed directory
     // (content/models/weapons/pistol.sdf meshed from content/models goes to <into>/weapons/), with the --suffix after its name
     Func<string, string> OutputsUnder(string? directory) => model =>
@@ -274,13 +307,15 @@ bool MeshOne(string input, string output, MeshingOptions options, TextWriter? lo
             // A part meshed once for several uses says how often it is drawn
             var instances = mesh.Instances.Count > 0 ? $", {mesh.Instances.Count} instances" : "";
             log.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}{instances}"));
+                $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}{instances}{(statistics.TrackedError > 0 ? $", tracked {statistics.TrackedError * 1000:0.##} mm" : "")}"));
             // Each level of detail is simplified on from the one before, so its time is on top of that level's
+            if (showTimings && (mesh.Lods.Count > 0 ? mesh.Lods[^1].Statistics.Timings : statistics.Timings) is { } phases)
+                log.WriteLine($"    simplification of {mesh.Name} over all its levels: {phases}");
             for (var level = 1; level <= mesh.Lods.Count; level++)
             {
                 var lod = mesh.Lods[level - 1];
                 log.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                    $"  {GlbWriter.LodName(mesh.Name, level).PadRight(nameWidth)}  {"",8} → {lod.TriangleCount,7:N0} triangles, {lod.Statistics.Vertices,7:N0} vertices, +{lod.Statistics.Time.TotalSeconds:0.00} s, within {lod.MaxError * 1000:0.#} mm"));
+                    $"  {GlbWriter.LodName(mesh.Name, level).PadRight(nameWidth)}  {"",8} → {lod.TriangleCount,7:N0} triangles, {lod.Statistics.Vertices,7:N0} vertices, +{lod.Statistics.Time.TotalSeconds:0.00} s, within {lod.MaxError * 1000:0.#} mm{(lod.Statistics.TrackedError > 0 ? $", tracked {lod.Statistics.TrackedError * 1000:0.##} mm" : "")}"));
             }
         }
         return true;
@@ -428,8 +463,8 @@ int Unity(string[] arguments)
     if (content is null)
         return Usage($"No '{ModelFiles.ContentFolderName}' folder was found here or in a folder above");
     var root = Path.GetDirectoryName(content)!;
-    if (arguments.FirstOrDefault(a => a.StartsWith("--") && a is not ("--resolution" or "--lods")) is { } unknown)
-        return Usage($"sdf unity takes --resolution and --lods, not {unknown}");
+    if (arguments.FirstOrDefault(a => a.StartsWith("--") && a is not ("--resolution" or "--lods" or "--max-error" or "--simplifier" or "--timings")) is { } unknown)
+        return Usage($"sdf unity takes --resolution, --lods, --max-error and --simplifier, not {unknown}");
 
     // Models first: the levels place model prefabs, which Unity builds from the meshes before it builds the level scenes
     var models = Mesh([Path.Combine(content, "models"), "--into", Path.Combine(root, unityModelsFolder), .. arguments]);

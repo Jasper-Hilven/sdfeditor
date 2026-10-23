@@ -33,7 +33,8 @@ public sealed record GroundLayout(Vector2 Origin, float ChunkSize, int CountX, i
 
 /// <summary>One level of detail of the ground: a regular grid of this many cells along a chunk's side, simplified to this error.</summary>
 /// <param name="MaxError">How far, in metres, simplification may move the surface off the grid's.</param>
-public sealed record GroundDetail(int Cells, float MaxError);
+/// <param name="Batched">Simplify in rounds of independent folds with every folded vertex tracked (see <see cref="QuadricSimplifier"/>).</param>
+public sealed record GroundDetail(int Cells, float MaxError, bool Batched = false);
 
 /// <summary>
 /// One chunk of ground at one level of detail, in metres with +Y up: triangles counter-clockwise seen from above, a normal per vertex
@@ -135,7 +136,7 @@ public static class GroundMesher
         var planes = mesh.Positions.Select(p => new[] { new SurfacePlane(p, terrain.Normal(p.X, p.Z)) }).ToArray();
         float Distance(Vector3 p) => p.Y - terrain.Height(p.X, p.Z);
         var simplified = QuadricSimplifier.Simplify(new ContouredMesh(mesh, planes), Distance, detail.MaxError, cellSize,
-            MeshingOptions.DefaultCreaseAngleDegrees, locked: locked);
+            MeshingOptions.DefaultCreaseAngleDegrees, locked: locked, batched: detail.Batched);
 
         // A merged vertex goes where its planes meet best, which on curved ground is a little above or below it: put it back on the ground
         simplified = simplified with { Positions = simplified.Positions.Select(p => p with { Y = terrain.Height(p.X, p.Z) }).ToArray() };
