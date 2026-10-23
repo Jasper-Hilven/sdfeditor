@@ -78,7 +78,7 @@ namespace SdfGui.Editor
             var root = Root("Title", GuiScreen.Title);
             var t = root.transform;
             var title = root.AddComponent<GuiTitle>();
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), -0.2f);
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.55f), -0.2f);
 
             // Logo: a big spotted cap with the name on it, the 2 on a gold burst
             var logo = Object("Logo", t);
@@ -153,9 +153,10 @@ namespace SdfGui.Editor
 
         // ---------------------------------------------------------------- Level select, difficulty, confirm and story
 
-        private ToonShape Backdrop(Transform parent)
+        // Over Boot's desk and wall (ticket 35) the screens that were a flat purple let the world show through, as dim as the text needs
+        private ToonShape Backdrop(Transform parent, float alpha = 1)
         {
-            var backdrop = f.Shape(parent, "Backdrop", ToonShapeKind.Box, GuiPalette.Night, Centre, Vector2.zero, Vector2.zero, s =>
+            var backdrop = f.Shape(parent, "Backdrop", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, alpha), Centre, Vector2.zero, Vector2.zero, s =>
             {
                 s.Outline = 0;
                 s.Shadow = 0;
@@ -172,7 +173,7 @@ namespace SdfGui.Editor
             var root = Root("Level Select", GuiScreen.LevelSelect);
             var t = root.transform;
             var view = root.AddComponent<GuiLevelSelect>();
-            Backdrop(t);
+            Backdrop(t, 0.6f);
             p.BannerInstance(t, "Header", "LEVEL SELECT", GuiPalette.Violet, Top, new Vector2(0, -24), new Vector2(640, 100), 56);
             p.ButtonInstance(t, "BACK", GuiPalette.Dusk, GuiCommandId.Back, TopRight, new Vector2(-5, -5), new Vector2(200, 76), 36, spots: 0);
 
@@ -193,7 +194,7 @@ namespace SdfGui.Editor
         {
             var root = Root("Difficulty", GuiScreen.Difficulty);
             var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.3f);
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.7f), -0.3f);
             var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(820, 740)).transform;
             p.BannerInstance(panel, "Header", "NEW CAMPAIGN", GuiPalette.Moss, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
             f.Text(panel, "Question", "How sharp are the blue mushrooms?", TextStyle.Label, 36, GuiPalette.Ink, Top, new Vector2(0, -80), new Vector2(740, 50));
@@ -234,7 +235,7 @@ namespace SdfGui.Editor
             var root = Root("Story", GuiScreen.Story);
             var t = root.transform;
             var view = root.AddComponent<GuiStory>();
-            Backdrop(t);
+            Backdrop(t, 0.62f);
             p.BannerInstance(t, "Header", "THE STORY SO FAR", GuiPalette.SporeDeep, Top, new Vector2(0, -24), new Vector2(760, 100), 56);
             p.ButtonInstance(t, "BACK", GuiPalette.Dusk, GuiCommandId.Back, TopRight, new Vector2(-5, -5), new Vector2(200, 76), 36, spots: 0);
 
@@ -601,19 +602,19 @@ namespace SdfGui.Editor
         {
             var root = Root("Settings", GuiScreen.Settings);
             var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), -0.3f);
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
             var menu = root.AddComponent<GuiSettingsMenu>();
             var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(980, 930)).transform;
             p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
 
-            var y = -110f;
+            var y = -104f;
             Transform Row(string label)
             {
                 var row = Object(label, panel);
-                // Eight rows close together, so the last stays clear of the back button
-                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 84));
+                // Nine rows close together, so the last stays clear of the back button
+                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 74));
                 f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 60), TextAlignmentOptions.Left);
-                y -= 86;
+                y -= 76;
                 return row.transform;
             }
             menu.quality = Instance<GuiSelector>(p.Selector, Row("Quality"), "Quality", Right, Vector2.zero);
@@ -625,6 +626,10 @@ namespace SdfGui.Editor
             menu.difficulty.options = new[] { "Easy", "Normal", "Hard" };
             menu.difficulty.index = 1;
             menu.difficulty.label.text = "Normal";
+            menu.backdrop = Instance<GuiSelector>(p.Selector, Row("Menu backdrop"), "Backdrop", Right, Vector2.zero);
+            menu.backdrop.options = BackdropChoice.Names;
+            menu.backdrop.index = 0;
+            menu.backdrop.label.text = BackdropChoice.Names[0];
             menu.sensitivity = Instance<Slider>(p.Slider, Row("Mouse sensitivity"), "Sensitivity", Right, new Vector2(-10, 0));
             menu.volume = Instance<Slider>(p.Slider, Row("Volume"), "Volume", Right, new Vector2(-10, 0));
             menu.volume.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
@@ -904,7 +909,7 @@ namespace SdfGui.Editor
             var root = Root("Credits", GuiScreen.Credits);
             var t = root.transform;
             var credits = root.AddComponent<GuiCredits>();
-            Backdrop(t);
+            Backdrop(t, 0.72f);
             f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.12f), Centre, new Vector2(0, 0), new Vector2(1500, 1000));
 
             var viewport = Object("Viewport", t);

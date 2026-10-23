@@ -15,6 +15,8 @@ namespace SdfGui
         public GuiSelector quality;
         public GuiSelector gore;
         public GuiSelector difficulty;
+        [Tooltip("The menus' backdrop: Auto, the 3D desk or the flat wall of panels (ticket 35)")]
+        public GuiSelector backdrop;
         public Slider sensitivity;
         public Slider volume;
         public Toggle screenShake;
@@ -29,6 +31,8 @@ namespace SdfGui
                 quality.Changed += i => QualitySettings.SetQualityLevel(i, true);
             if (gore != null)
                 gore.Changed += i => GuiSettings.Gore = i;
+            if (backdrop != null)
+                backdrop.Changed += i => GuiSettings.MenuBackdrop = i;
             if (difficulty != null)
                 difficulty.Changed += i => GuiCampaign.Progress.SetDifficulty((Difficulty)i);
             sensitivity?.onValueChanged.AddListener(v => GuiSettings.Sensitivity = v);
@@ -55,6 +59,11 @@ namespace SdfGui
             {
                 gore.options = GuiSettings.GoreLevels;
                 gore.Set(GuiSettings.Gore);
+            }
+            if (backdrop != null)
+            {
+                backdrop.options = BackdropChoice.Names;
+                backdrop.Set(GuiSettings.MenuBackdrop);
             }
             if (difficulty != null)
             {
