@@ -58,7 +58,7 @@ public class BossLevelTests
     [Fact]
     public void Read_ASideWithMachinesAlone_IsAllowedOnTheBossLayoutOnly()
     {
-        const string east = "        turret at=(32, 9) yaw=-60\n        turret at=(32, -9)\n        turret at=(48, 20)\n        turret at=(48, -20)\n        machines at=(50, -26) radius=4\n";
+        const string east = "        turret at=(32, 9) yaw=-60\n        machines at=(50, -26) radius=4\n";
         var sides = Sides.Replace("        flag at=(36, 0)\n", "        flag at=(36, 0)\n" + east);
 
         var level = LevelFile.Read(Level(sides: sides));

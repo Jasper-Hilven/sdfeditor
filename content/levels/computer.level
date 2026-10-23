@@ -151,7 +151,7 @@ place
 # courtyard; the spawn outside the north bank, facing the middle. The minigun pod north of the gate, looking over the north lane; the
 # poison-gun pod south of it, for holding the courtyard; a health pod behind the south bank by the back wall and two on the flanks (the north
 # one at z = 38, not 42, and 32 m out, to keep 10 m from the GPU and the chipset towers). The level's own mix, minigun, poison-gun, electro-gun and flamethrower, which no other
-# level has. The machines (ticket 24): four turrets a side, two either side of the courtyard's mouth, two off the flanks, and the zone for the
+# level has. The machines (ticket 24): one turret a side, on the north side of the courtyard's mouth (one, so a point can still be scored), and the zone for the
 # helicopter and tanks in the open south-west corner behind the base line
 sides
     west
@@ -163,9 +163,6 @@ sides
         pod health at=(-32, 38)
         pod health at=(-32, -42)
         turret at=(-38, 5) yaw=60
-        turret at=(-38, -5) yaw=120
-        turret at=(-62, 32) yaw=30
-        turret at=(-62, -32) yaw=150
         machines at=(-72, -34) yaw=90 radius=3
     east
         spawn at=(62, 21) yaw=-90 radius=3
@@ -176,9 +173,6 @@ sides
         pod health at=(32, 38)
         pod health at=(32, -42)
         turret at=(38, 5) yaw=-60
-        turret at=(38, -5) yaw=-120
-        turret at=(62, 32) yaw=-30
-        turret at=(62, -32) yaw=-150
         machines at=(72, -34) yaw=-90 radius=3
 # The neutral pods where the two north and the two south buses meet, 56 m apart on x = 0: the electro-gun north, where the north lane is the
 # open one, the flamethrower south, where the close cover is

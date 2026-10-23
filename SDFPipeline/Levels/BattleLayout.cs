@@ -120,8 +120,8 @@ public sealed record BattleLayout(BattleSide West, BattleSide East, IReadOnlyLis
     /// <summary>The health pod's pickup; a side has one or more.</summary>
     public const string Health = "health";
 
-    /// <summary>How many turrets each side has on a level with machines (ticket 24).</summary>
-    public const int TurretsPerSide = 4;
+    /// <summary>How many turrets each side has on a level with machines (ticket 24): one, as four made a point too hard to score.</summary>
+    public const int TurretsPerSide = 1;
 
     /// <summary>The neutral long-range pods; a level has one of them.</summary>
     public static readonly IReadOnlyList<string> LongRange = ["sniper", "electro-gun"];

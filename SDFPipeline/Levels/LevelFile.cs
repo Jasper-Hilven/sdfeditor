@@ -513,7 +513,7 @@ public static partial class LevelFile
         {
             var (with, without) = west.MachineSpawn is null ? (east, west) : (west, east);
             throw new SdfProgramFileException(lines[without.Name],
-                $"Side {with.Name} has machines (turrets and a machine zone), so side {without.Name} needs them too: {BattleLayout.TurretsPerSide} '{Turret}' lines and a '{Machines}' line");
+                $"Side {with.Name} has machines (turrets and a machine zone), so side {without.Name} needs them too: {TurretLines(BattleLayout.TurretsPerSide)} and a '{Machines}' line");
         }
         // The sides mirror each other, so they have the same weapon pods (the boss's sides do not: ticket 33.3)
         var (westWeapons, eastWeapons) = (west.Weapons.Select(p => p.Pod!).ToArray(), east.Weapons.Select(p => p.Pod!).ToArray());
@@ -530,6 +530,11 @@ public static partial class LevelFile
     /// machines (ticket 24), exactly <see cref="BattleLayout.TurretsPerSide"/> turrets and one machine zone. On the boss layout
     /// (<paramref name="boss"/>, ticket 33.3) weapon pods and health pods are optional.
     /// </summary>
+    // "1 turret", "0 turrets"; "1 'turret' line", "2 'turret' lines"
+    private static string Turrets(int count) => count == 1 ? "1 turret" : $"{count} turrets";
+
+    private static string TurretLines(int count) => $"{count} '{Turret}' line{(count == 1 ? "" : "s")}";
+
     private static BattleSide ReadSide(string name, SourceLine line, Cursor cursor, bool boss)
     {
         var objects = new Dictionary<string, BattleObject>();
@@ -546,7 +551,7 @@ public static partial class LevelFile
             {
                 if (turrets.Count == BattleLayout.TurretsPerSide)
                     throw new SdfProgramFileException(child.Number,
-                        $"Side {name} has {BattleLayout.TurretsPerSide} turrets already (lines {string.Join(", ", turrets.Select(t => t.Line))}); a side has exactly {BattleLayout.TurretsPerSide}");
+                        $"Side {name} has {Turrets(BattleLayout.TurretsPerSide)} already (line{(turrets.Count == 1 ? "" : "s")} {string.Join(", ", turrets.Select(t => t.Line))}); a side has exactly {BattleLayout.TurretsPerSide}");
                 turrets.Add(item);
                 continue;
             }
@@ -567,7 +572,7 @@ public static partial class LevelFile
         if (machines is null && turrets.Count > 0)
             throw cursor.Error($"Side {name} has turrets but no machine zone; a side with machines has a '{Machines}' line, like '{Machines} at=(-70, 22) radius=3'");
         if (machines is not null && turrets.Count < BattleLayout.TurretsPerSide)
-            throw cursor.Error($"Side {name} has {turrets.Count} turrets; a side with machines has exactly {BattleLayout.TurretsPerSide} '{Turret}' lines");
+            throw cursor.Error($"Side {name} has {Turrets(turrets.Count)}; a side with machines has exactly {TurretLines(BattleLayout.TurretsPerSide)}");
         var spawn = Get(Spawn);
         var flag = Get(Flag);
         if (weapons.Count == 0 && !boss)

@@ -78,7 +78,7 @@ public class BattleSidesTests
         Assert.Equal([BattleSide.West, BattleSide.East], battle.Sides.Select(s => s.Name));
         Assert.Equal([BattleKind.Spawn, BattleKind.Flag, BattleKind.Pod, BattleKind.Pod, BattleKind.Pod], battle.West.Objects.Take(5).Select(o => o.Kind));
         Assert.Equal([null, null, .. SideWeapons[name], "health"], battle.West.Objects.Take(5).Select(o => o.Pod));
-        // The machines (ticket 24) on the levels that have them: four turrets and a machine zone a side; none elsewhere
+        // The machines (ticket 24) on the levels that have them: one turret and a machine zone a side; none elsewhere
         Assert.Equal(MachineLevels.Contains(name), battle.HasMachines);
         foreach (var side in battle.Sides)
         {
@@ -358,9 +358,9 @@ public class BattleSidesTests
             Assert.Equal(2f, spawn.GetProperty("radius").GetSingle());
             Assert.False(east.GetProperty("flag").TryGetProperty("radius", out _));
             Assert.Equal(["sniper", "flamethrower"], battle.GetProperty("neutral").EnumerateArray().Select(p => p.GetProperty("pod").GetString()));
-            // Ticket 24: each side's four turrets (no radius) and its machine zone (with its radius), on the ground
+            // Ticket 24: each side's turret (no radius) and its machine zone (with its radius), on the ground
             var turrets = east.GetProperty("turrets").EnumerateArray().ToArray();
-            Assert.Equal(4, turrets.Length);
+            Assert.Equal(BattleLayout.TurretsPerSide, turrets.Length);
             Assert.Equal(new[] { 9f, terrain.Height(9, 8), 8f }, turrets[0].GetProperty("position").EnumerateArray().Select(v => v.GetSingle()));
             Assert.Equal(-60f, turrets[0].GetProperty("yaw").GetSingle());
             Assert.False(turrets[0].TryGetProperty("radius", out _));
@@ -388,7 +388,7 @@ public class BattleSidesTests
 
     /// <summary>
     /// A layout with the west side round <paramref name="west"/> (its mirror the east), and the neutral pods at the two points; with
-    /// <paramref name="machines"/>, each side's four turrets and its machine zone (ticket 24) too.
+    /// <paramref name="machines"/>, each side's turret and its machine zone (ticket 24) too.
     /// </summary>
     internal static BattleLayout Battle(Vector2 west, Vector2 sniper, Vector2 flamethrower, bool machines = false)
     {
@@ -398,7 +398,7 @@ public class BattleSidesTests
             return new BattleSide(name, At(BattleKind.Spawn, null, 0, 0) with { Yaw = sign * -90, ZoneRadius = 2 }, At(BattleKind.Flag, null, 3, 0),
                 [At(BattleKind.Pod, "minigun", -4, 4), At(BattleKind.Pod, "pistol", -4, -4)], At(BattleKind.Pod, "health", 3, 5))
             {
-                Turrets = machines ? [.. new[] { (-3f, 8f), (-3f, -8f), (2f, 9f), (2f, -9f) }.Select(p => At(BattleKind.Turret, null, p.Item1, p.Item2) with { Yaw = sign * -60 })] : [],
+                Turrets = machines ? [.. new[] { (-3f, 8f) }.Select(p => At(BattleKind.Turret, null, p.Item1, p.Item2) with { Yaw = sign * -60 })] : [],
                 MachineSpawn = machines ? At(BattleKind.Machines, null, 6, 8) with { Yaw = sign * -90, ZoneRadius = 1.5f } : null,
             };
         }

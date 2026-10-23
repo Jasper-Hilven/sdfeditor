@@ -125,8 +125,8 @@ place
 # The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its bread box. The flag stand inside, 4 m in front of the back wall; the spawn beside the box
 # outside its south wall, facing the field. The minigun pod and the flamethrower pod before the box's open front, the minigun to the north where the hob is open, the
 # flamethrower to the south where the attackers come close; a health pod inside the box by the south wall and two out on the north and south flanks, near where the
-# lanes begin. The level's own mix, minigun, flamethrower, electro-gun and blob-gun, which no other level has. The machines (ticket 24): four turrets per side, two before the
-# box's front, two off its flanks, and the zone for the helicopter and tanks off the box's back north corner, open to the field
+# lanes begin. The level's own mix, minigun, flamethrower, electro-gun and blob-gun, which no other level has. The machines (ticket 24): one turret per side (one, so a point can still be
+# scored), before the box's front on its north side, and the zone for the helicopter and tanks off the box's back north corner, open to the field
 sides
     west
         spawn at=(-54, -22) yaw=90 radius=3
@@ -137,9 +137,6 @@ sides
         pod health at=(-26, 38)
         pod health at=(-26, -38)
         turret at=(-48, 15) yaw=60
-        turret at=(-48, -15) yaw=120
-        turret at=(-64, 18) yaw=30
-        turret at=(-64, -18) yaw=150
         machines at=(-68, 26) yaw=90 radius=3
     east
         spawn at=(54, -22) yaw=-90 radius=3
@@ -150,9 +147,6 @@ sides
         pod health at=(26, 38)
         pod health at=(26, -38)
         turret at=(48, 15) yaw=-60
-        turret at=(48, -15) yaw=-120
-        turret at=(64, 18) yaw=-30
-        turret at=(64, -18) yaw=-150
         machines at=(68, 26) yaw=-90 radius=3
 # The neutral pods on the middle line, 49 m apart: the electro-gun in front of the sink, where the long sight lines over it and across the hob are, between the sink's front rim
 # and the kettle; the blob-gun south of the hob in the close cover of the pantry lane

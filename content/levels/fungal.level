@@ -158,9 +158,8 @@ place
 # clear of the small tower and the clumps at the wall's foot) and the play area's edge. Everything stands on the ground, which is the courtyard's floor (the castles have none of
 # their own there). The neutral pods stand in two of the fairy rings nearer the middle, one north and one south of the trail; the
 # scatter keeps clear of every pod, stand and spawn.
-# The machines (ticket 24): four turrets per side outside the castle's walls, two before its front either side of the gate (5 m out,
-# 10 m to either side of the trail, past the gate's clumps) facing out over the field, and two off the large towers' outer sides
-# covering the north and south flanks; each turret's place is where it respawns. The machine zone, where the side's helicopter and
+# The machines (ticket 24): one turret per side outside the castle's walls (one, so a point can still be scored), before its front north of
+# the gate (5 m out, 10 m from the trail, past the gate's clumps) facing out over the field; each turret's place is where it respawns. The machine zone, where the side's helicopter and
 # tanks start and respawn: the castle's back reaches x = -72.3 at the keep, which leaves a strip only 2.7 m deep to the play area's
 # edge (x = -75), cut by two of the team clumps, so the zone lies on the open, level plateau off the castle's back north corner,
 # behind its back line, 6 m from the large tower and clear of the plateau clump; tanks drive out to the field round the tower
@@ -174,9 +173,6 @@ sides
         pod health at=(-28, 43)
         pod health at=(-73.5, -9)
         turret at=(-47, 10) yaw=60
-        turret at=(-47, -10) yaw=120
-        turret at=(-62, 20) yaw=30
-        turret at=(-62, -20) yaw=150
         machines at=(-70, 22.5) yaw=90 radius=3
     east
         spawn at=(52, 20) yaw=-90 radius=2.5
@@ -187,9 +183,6 @@ sides
         pod health at=(28, 43)
         pod health at=(73.5, -9)
         turret at=(47, 10) yaw=-60
-        turret at=(47, -10) yaw=-120
-        turret at=(62, 20) yaw=-30
-        turret at=(62, -20) yaw=-150
         machines at=(70, 22.5) yaw=-90 radius=3
 neutral
     pod electro-gun at=(-8, 24)

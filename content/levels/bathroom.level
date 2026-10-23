@@ -157,8 +157,8 @@ place
 # The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its soap-dish fort. The flag stand inside the dish before
 # the cup; the spawn on the open floor off the dish's south-east corner, facing the middle. The pistol pod north of the main gate and the
 # blob-gun pod south of it, by the spawn; a health pod behind the dish's south end and two out on the flanks, one in the tub-end alcove
-# and one in the south lane. The level's own mix, pistol, blob-gun, electro-gun and flamethrower. The machines (ticket 24): four turrets a
-# side, two before the dish's main gate, two off its ends, and the zone for the helicopter and tanks in the north-west (north-east) alcove
+# and one in the south lane. The level's own mix, pistol, blob-gun, electro-gun and flamethrower. The machines (ticket 24): one turret a
+# side, before the dish's main gate on its north side (one, so a point can still be scored), and the zone for the helicopter and tanks in the north-west (north-east) alcove
 sides
     west
         spawn at=(-47, -17) yaw=90 radius=2.5
@@ -169,9 +169,6 @@ sides
         pod health at=(-34, 40)
         pod health at=(-28, -38)
         turret at=(-48, 11) yaw=60
-        turret at=(-48, -11) yaw=120
-        turret at=(-62, 20) yaw=30
-        turret at=(-62, -20) yaw=150
         machines at=(-67, 32) yaw=90 radius=3
     east
         spawn at=(47, -17) yaw=-90 radius=2.5
@@ -182,9 +179,6 @@ sides
         pod health at=(34, 40)
         pod health at=(28, -38)
         turret at=(48, 11) yaw=-60
-        turret at=(48, -11) yaw=-120
-        turret at=(62, 20) yaw=-30
-        turret at=(62, -20) yaw=-150
         machines at=(67, 32) yaw=-90 radius=3
 # The neutral pods on the middle line, 32 m apart with the giant duck between them: the electro-gun south on the open floor by the drain's
 # puddle, where the sight lines are long and water strengthens it, the flamethrower north under the tub at the trickle, among the close cover

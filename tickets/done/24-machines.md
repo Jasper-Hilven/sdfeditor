@@ -1,6 +1,7 @@
 # 24 — Machines: helicopters, tanks and turrets
 
-Each side gets fungal-looking machines that fight for it on their own: **1 helicopter**, **2 tanks** and **4 turrets** per side,
+Each side gets fungal-looking machines that fight for it on their own: **1 helicopter**, **2 tanks** and **4 turrets** per side
+(**later 1 turret**, 2026-10-23: with four a point was too hard to score; `BattleLayout.TurretsPerSide`),
 14 in all. They only shoot, die and come back; they do not play the flag. First on the fungal level.
 
 Depends on: 22 (health, damage, hit detection, kill feed), 23 (the navmesh, sight and aim from the bots), 18 (red vs blue).

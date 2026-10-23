@@ -59,7 +59,7 @@ namespace SdfBattle
     }
 
     /// <summary>
-    /// The machines' rules (ticket 24): per side one helicopter, two tanks and four turrets (the turrets are the level's, the others made
+    /// The machines' rules (ticket 24): per side one helicopter, two tanks and one turret (the turret is are the level's, the others made
     /// at the start of the match); each kind's <see cref="MachineStats"/>; how well they aim (the bots' <see cref="BotSkill"/>, ticket 23:
     /// reaction time and aim error, so they are a nuisance, not a wall). Serialized on the scene's <c>Machines</c> component.
     /// </summary>

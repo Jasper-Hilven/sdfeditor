@@ -305,7 +305,7 @@ public class LevelFileTests
 
     /// <summary>Ticket 24's machine lines of a side at x mirrored by <paramref name="sign"/>: <paramref name="turrets"/> turrets, and the
     /// machine zone when <paramref name="zone"/>.</summary>
-    private static string MachineLines(float sign, int turrets = 4, bool zone = true, string zoneExtra = " radius=2.5")
+    private static string MachineLines(float sign, int turrets = BattleLayout.TurretsPerSide, bool zone = true, string zoneExtra = " radius=2.5")
     {
         string X(float x) => (sign * x).ToString(System.Globalization.CultureInfo.InvariantCulture);
         var lines = string.Concat(Enumerable.Range(0, turrets).Select(i => $"        turret at=({X(45)}, {i * 5 - 8}) yaw={X(90)}\n"));
@@ -322,16 +322,16 @@ public class LevelFileTests
 
         var battle = level.Battle!;
         Assert.True(battle.HasMachines);
-        // Lines 4-9 the west side's first six, then its four turrets and the zone
-        Assert.Equal(Enumerable.Range(0, 4).Select(i => new BattleObject(BattleKind.Turret, null, new Vector2(-45, i * 5 - 8), -90, 10 + i)),
+        // Lines 4-9 the west side's first six, then its turret and the zone
+        Assert.Equal(Enumerable.Range(0, 1).Select(i => new BattleObject(BattleKind.Turret, null, new Vector2(-45, i * 5 - 8), -90, 10 + i)),
             battle.West.Turrets);
-        Assert.Equal(new BattleObject(BattleKind.Machines, null, new Vector2(-70, 20), -90, 14) { ZoneRadius = 2.5f }, battle.West.MachineSpawn);
+        Assert.Equal(new BattleObject(BattleKind.Machines, null, new Vector2(-70, 20), -90, 11) { ZoneRadius = 2.5f }, battle.West.MachineSpawn);
         Assert.Equal(2.5f, battle.West.MachineSpawn!.Radius);
         Assert.Equal(BattleObject.DefaultMachineZone, battle.East.MachineSpawn!.ZoneRadius);
         Assert.Equal(BattleObject.TurretRadius, battle.East.Turrets[0].Radius);
-        Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health", "turret", "turret", "turret", "turret", "machines"],
+        Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health", "turret", "machines"],
             battle.East.Objects.Select(o => o.Name));
-        Assert.Equal(22, battle.Objects.Count());
+        Assert.Equal(16, battle.Objects.Count());
 
         // A level without machines is a level as before
         var plain = LevelFile.Read(BattleLevel(SideLines("west", -1), SideLines("east", 1))).Battle!;
@@ -343,26 +343,24 @@ public class LevelFileTests
 
     public static TheoryData<string, int, string> MachineErrors => new()
     {
-        // Three turrets, five turrets
-        { BattleLevel(SideLines("west", -1, MachineLines(-1, turrets: 3)), SideLines("east", 1, MachineLines(1))), 4,
-            "Side west has 3 turrets; a side with machines has exactly 4 'turret' lines" },
-        { BattleLevel(SideLines("west", -1, MachineLines(-1, turrets: 5)), SideLines("east", 1, MachineLines(1))), 14,
-            "Side west has 4 turrets already (lines 10, 11, 12, 13); a side has exactly 4" },
+        // Two turrets
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, turrets: 2)), SideLines("east", 1, MachineLines(1))), 11,
+            "Side west has 1 turret already (line 10); a side has exactly 1" },
         // Turrets without a zone, a zone without turrets, a zone twice
         { BattleLevel(SideLines("west", -1, MachineLines(-1, zone: false)), SideLines("east", 1, MachineLines(1))), 4,
             "Side west has turrets but no machine zone" },
         { BattleLevel(SideLines("west", -1, MachineLines(-1, turrets: 0)), SideLines("east", 1, MachineLines(1))), 4,
-            "Side west has 0 turrets; a side with machines has exactly 4 'turret' lines" },
-        { BattleLevel(SideLines("west", -1, MachineLines(-1) + "        machines at=(-70, -20)\n"), SideLines("east", 1, MachineLines(1))), 15,
-            "Side west has its machines twice, first on line 14" },
+            "Side west has 0 turrets; a side with machines has exactly 1 'turret' line" },
+        { BattleLevel(SideLines("west", -1, MachineLines(-1) + "        machines at=(-70, -20)\n"), SideLines("east", 1, MachineLines(1))), 12,
+            "Side west has its machines twice, first on line 11" },
         // Machines on one side only
-        { BattleLevel(SideLines("west", -1, MachineLines(-1)), SideLines("east", 1)), 15,
-            "Side west has machines (turrets and a machine zone), so side east needs them too: 4 'turret' lines and a 'machines' line" },
+        { BattleLevel(SideLines("west", -1, MachineLines(-1)), SideLines("east", 1)), 12,
+            "Side west has machines (turrets and a machine zone), so side east needs them too: 1 'turret' line and a 'machines' line" },
         { BattleLevel(SideLines("west", -1), SideLines("east", 1, MachineLines(1))), 4, "so side west needs them too" },
         // The parameters: a zone's radius in range, a turret with no radius
-        { BattleLevel(SideLines("west", -1, MachineLines(-1, zoneExtra: " radius=9")), SideLines("east", 1, MachineLines(1))), 14,
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, zoneExtra: " radius=9")), SideLines("east", 1, MachineLines(1))), 11,
             "'radius' of machines is 9, but needs metres, 1.5 to 8" },
-        { BattleLevel(SideLines("west", -1, MachineLines(-1, zoneExtra: " scale=2")), SideLines("east", 1, MachineLines(1))), 14,
+        { BattleLevel(SideLines("west", -1, MachineLines(-1, zoneExtra: " scale=2")), SideLines("east", 1, MachineLines(1))), 11,
             "Machines has no parameter 'scale'; its parameters are at, yaw, radius" },
         { BattleLevel(SideLines("west", -1, "        turret at=(-45, 0) radius=2\n"), SideLines("east", 1, MachineLines(1))), 10,
             "Turret has no parameter 'radius'; its parameters are at, yaw" },
