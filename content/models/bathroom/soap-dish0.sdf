@@ -1,0 +1,41 @@
+# Soap dish 0: a 10 x 7 cm cream ceramic soap dish at 30 times life size, only its RIM (the floor inside is the room's floor): 30 m long (x) and 21 m wide (z), the rim 1.2 m tall
+# and 1.5 m thick, rounded on top, the outside steep (vertical at the foot) with corners of 6 m radius. Three gaps cut through the rim are the gates:
+#   - the MAIN gate, 4 m wide, in the middle of the +z long side (local x 0, z +10.5). It faces local +z, so the level places it at yaw 90 on the west side (+z becomes +x, towards
+#     the middle) and at yaw -90 on the east side.
+#   - two end gates, 2.5 m wide, in the middle of the two short sides (local x -15 and +15, z 0); at yaw 90 these are world z +15 and -15 (north and south).
+# Origin at the middle on y = 0 (no floor, so the stand and pods sit on the room's floor). Mesh collider.
+format 1
+collider mesh
+
+# The rim's outer solid: a rounded plan 30 x 21, the top edge rounded, the foot cut flat at the floor
+outer =
+    Intersection
+        Translate translation=(0, 0.3, 0)
+            Elongate amount=(9, 0, 4.5)
+                RoundedCylinder radius=6 roundness=0.6 height=0.93
+        Translate translation=(0, 1.2, 0)
+            Box size=(20, 1.2, 15)
+
+# The inside of the dish, 1.5 m in from the outside, going through the floor
+inner =
+    Translate translation=(0, 0.5, 0)
+        Elongate amount=(9, 0, 4.5)
+            RoundedCylinder radius=4.5 roundness=0.2 height=2
+
+# One end gate, mirrored to the other end
+endGate =
+    Translate translation=(15, 0.6, 0)
+        Box size=(2, 1.5, 1.25)
+
+Detail detail=0.5
+    Material material=bath_ceramic
+        Subtraction
+            Subtraction
+                SmoothSubtraction smoothness=0.25
+                    $outer
+                    $inner
+                # The main gate
+                Translate translation=(0, 0.6, 10.5)
+                    Box size=(2, 1.5, 2)
+            SymmetryX
+                $endGate

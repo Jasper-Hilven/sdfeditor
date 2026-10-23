@@ -7,6 +7,8 @@ namespace SdfBattle
         Fell,
         /// <summary>Killed by a player or a machine (tickets 22, 24).</summary>
         Killed,
+        /// <summary>Taken out of the match by the rules, not killed (the boss fight's crew leaves with the phase, ticket 33.6): no kill message, no gore.</summary>
+        Removed,
     }
 
     /// <summary>

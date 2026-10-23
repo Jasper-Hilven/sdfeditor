@@ -294,6 +294,70 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(Medal.Bronze, Medals.Of(1, 0, 10, limit, Difficulty.Normal, true), "a one-capture win stays bronze");
         }
 
+        [Test]
+        public void BossMedals_AtTheirEdges()
+        {
+            Assert.AreEqual(Medal.Bronze, Medals.OfBoss(4, 2, 100, Difficulty.Normal, false), "a win with many lives lost");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(3, 3, 900, Difficulty.Normal, false), "3 lives lost is silver, however slow");
+            Assert.AreEqual(Medal.Bronze, Medals.OfBoss(4, 0, 100, Difficulty.Normal, false), "4 lives lost is bronze");
+            Assert.AreEqual(Medal.Gold, Medals.OfBoss(0, 0, 100, Difficulty.Normal, false));
+            Assert.AreEqual(Medal.Gold, Medals.OfBoss(1, 0, 600, Difficulty.Hard, false), "1 life lost, exactly 10 minutes");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(1, 0, 600.1f, Difficulty.Normal, false), "just over 10 minutes");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(1, 1, 300, Difficulty.Normal, false), "a life lost in phase 3");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(2, 0, 300, Difficulty.Normal, false), "2 lives lost in all");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(0, 0, 300, Difficulty.Easy, false), "not on Easy");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(0, 0, 300, Difficulty.Normal, true), "not after RETRY EASIER");
+        }
+
+        [Test]
+        public void RecordBossWin_KeepsTheBestMedal_AndMovesOn()
+        {
+            var p = Fresh();
+            WinThrough(p, "computer");
+            p.CompleteCutscene("beat-boss");
+            var first = p.RecordBossWin("boss", 3, 1, 700, Difficulty.Normal);
+            Assert.AreEqual(Medal.Silver, first.medal);
+            Assert.IsTrue(first.newBest);
+            Assert.AreEqual("ending", p.NextStep().id);
+            var worse = p.RecordBossWin("boss", 5, 2, 400, Difficulty.Normal);
+            Assert.AreEqual(Medal.Bronze, worse.medal);
+            Assert.IsFalse(worse.newBest, "a worse medal is not a best");
+            Assert.AreEqual(Medal.Silver, p.BestMedal("boss"));
+            var gold = p.RecordBossWin("boss", 0, 0, 500, Difficulty.Hard);
+            Assert.IsTrue(gold.newBest);
+            Assert.AreEqual(Medal.Gold, p.BestMedal("boss"));
+            Assert.Throws<System.ArgumentException>(() => p.RecordBossWin("beat-boss", 0, 0, 1, Difficulty.Normal), "not a battle");
+        }
+
+        [Test]
+        public void BossTaunts_ArePrimesFive()
+        {
+            var lines = Taunts.Of(CampaignDefinition.Boss);
+            Assert.AreEqual(5, lines.Count);
+            Assert.AreEqual("Silver suits you.", lines[0]);
+            Assert.AreEqual("Best of one, final answer.", lines[4]);
+            Assert.AreEqual(lines[2], Taunts.Pick(CampaignDefinition.Boss, 3));
+            Assert.AreEqual(lines[0], Taunts.Pick(CampaignDefinition.Boss, 6), "they go round");
+        }
+
+        [Test]
+        public void BossTips_AreForEveryPhase_AndGoRound()
+        {
+            for (var phase = 1; phase <= 3; phase++)
+            {
+                var tips = BossTips.Of(phase);
+                Assert.GreaterOrEqual(tips.Count, 2, "phase " + phase);
+                Assert.AreEqual(tips.Count, tips.Distinct().Count());
+                Assert.AreEqual(tips[0], BossTips.Pick(phase, 1));
+                Assert.AreEqual(tips[1], BossTips.Pick(phase, 2));
+                Assert.AreEqual(tips[0], BossTips.Pick(phase, 1 + tips.Count), "round again");
+            }
+            Assert.AreEqual(BossTips.Of(1)[0], BossTips.Of(0)[0], "clamped");
+            Assert.AreEqual(BossTips.Of(3)[0], BossTips.Of(9)[0], "clamped");
+            StringAssert.Contains("shockwave", string.Join(" ", BossTips.Of(3)));
+            StringAssert.Contains("electro-gun", string.Join(" ", BossTips.Of(2)));
+        }
+
         // --- difficulty ---
 
         [Test]
@@ -384,6 +448,62 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(Medal.Silver, p.BestMedal("meadow"));
         }
 
+        // --- the final boss's setup (ticket 33.4) ---
+
+        [Test]
+        public void BossStep_IsABossObjective_WithPrimesCrewAndSkill()
+        {
+            var setup = Def.Find("boss").setup;
+            Assert.IsTrue(setup.IsBoss);
+            Assert.AreEqual(SdfBattle.MatchObjective.Boss, setup.ToMatchSetup().objective);
+            Assert.AreEqual(4, setup.redSize);
+            Assert.AreEqual(5, setup.blueSize, "Prime's crew: four, and the Participation Award for Sore Loser");
+            Assert.AreEqual(0.70f, setup.blueSkill, 1e-4f);
+            Assert.AreEqual(0.60f, setup.redSkill, 1e-4f);
+            Assert.AreEqual(8, setup.blueRespawnSeconds);
+            Assert.IsTrue(setup.sporesOn);
+            Assert.AreEqual(1, setup.bossStartPhase);
+            Assert.IsFalse(Def.Find("computer").setup.IsBoss);
+        }
+
+        [Test]
+        public void TheBoss_SlotsInByData_AsTheLastBattle_OnTheArenaScene()
+        {
+            var boss = Def.Find("boss");
+            Assert.AreEqual("Arena", boss.scene, "33.9: the Champion's Arena is Assets/Scenes/Arena.unity");
+            Assert.AreEqual("Arena", Def.Find("beat-boss").scene, "B7 plays in the same scene");
+            Assert.AreSame(boss, Def.Battles().Last(), "the last arena of Level Select");
+            Assert.IsTrue(boss.setup.IsBoss);
+            Assert.AreEqual(MatchObjective.Boss, boss.setup.objective);
+            // Until the scene is in the build the step is skipped with its beat, the ending follows the computer
+            var p = Fresh(null, scene => scene != "Arena");
+            Assert.IsFalse(Walk(p).Contains("boss"));
+        }
+
+        [Test]
+        public void BossSetup_FollowsTheDifficulty_AndRetryEasier()
+        {
+            var setup = Def.Find("boss").setup;
+            var easy = DifficultyRules.Apply(setup, Difficulty.Easy);
+            var normal = DifficultyRules.Apply(setup, Difficulty.Normal);
+            var hard = DifficultyRules.Apply(setup, Difficulty.Hard);
+            Assert.AreEqual(5, easy.BossRules().lives);
+            Assert.AreEqual(3, normal.BossRules().lives);
+            Assert.AreEqual(2, hard.BossRules().lives);
+            Assert.AreEqual(20300, easy.BossRules().TotalHealth);
+            Assert.AreEqual(20300, normal.BossRules().TotalHealth);
+            Assert.AreEqual(25400, hard.BossRules().TotalHealth);
+            Assert.AreEqual(0.55f, easy.blueSkill, 1e-4f, "the crew's skill is the campaign's, 0.55 / 0.7 / 0.85");
+            Assert.AreEqual(0.70f, normal.blueSkill, 1e-4f);
+            Assert.AreEqual(0.85f, hard.blueSkill, 1e-4f);
+            Assert.AreEqual(SdfBattle.MatchObjective.Boss, hard.objective, "the objective survives the copy");
+
+            var retry = DifficultyRules.Apply(setup, Difficulty.Hard, 1);
+            Assert.AreEqual(0.6f, retry.BossRules().damageScale, "Easy's damage row");
+            Assert.AreEqual(1.3f, retry.BossRules().windUpScale, "Easy's wind-up row");
+            Assert.AreEqual(25400, retry.BossRules().TotalHealth, "on the chosen difficulty's health");
+        }
+
         // --- beats, the sequencer and the warm-up (ticket 32.7) ---
 
         [Test]
@@ -405,7 +525,9 @@ namespace SdfCampaign.Tests
                     Assert.IsNotNull(shot.move);
                     if (!string.IsNullOrEmpty(shot.move.actor))
                         Assert.IsNotNull(beat.Actor(shot.move.actor), $"{id}: no actor {shot.move.actor}");
-                    if (!string.IsNullOrEmpty(shot.speaker) && shot.speaker != Beats.Ref)
+                    // In the boss's arena Prime is the real, giant Prime (Anchor.Prime), not a puppet of the beat
+                    var nativePrime = shot.speaker == Beats.Prime && beat.shots.Any(s => s.move.anchor == Anchor.Prime && string.IsNullOrEmpty(s.move.actor));
+                    if (!string.IsNullOrEmpty(shot.speaker) && shot.speaker != Beats.Ref && !nativePrime)
                         Assert.IsNotNull(beat.Actor(shot.speaker), $"{id}: the speaker {shot.speaker} is on the stage");
                 }
             }
@@ -483,6 +605,125 @@ namespace SdfCampaign.Tests
             var last = new BeatSequencer(new[] { beat.shots.Last() });
             last.Tick(1f, false);
             Assert.AreEqual(0, last.CaptionAlpha, "a shot with no line has no caption");
+        }
+
+        // --- the boss fight's transitions and victory (ticket 33.8) ---
+
+        static readonly string[] BossBeatIds = { BossBeats.Transition12, BossBeats.Transition23, BossBeats.Victory };
+
+        static readonly HashSet<string> KnownCues = new HashSet<string>
+        {
+            BossBeats.CopterRises, BossBeats.BalconyFalls, BossBeats.CopterDown, BossBeats.CrownFlies, BossBeats.PrimeClimbs,
+            BossBeats.Shrink, BossBeats.CrownRolls, BossBeats.Cheer, BossBeats.PixelBreak,
+        };
+
+        static IEnumerable<string> CuesOf(Beat beat) =>
+            beat.shots.SelectMany(s => s.cue.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries));
+
+        [Test]
+        public void BossBeats_AreWellFormed_TransitionsAtMostSixSeconds_VictoryAboutTwenty()
+        {
+            foreach (var id in BossBeatIds)
+            {
+                var beat = Beats.Find(id);
+                Assert.IsNotNull(beat, id);
+                Assert.IsFalse(Def.Steps.Any(s => s.id == id), "not a campaign step: the fight plays them");
+                foreach (var shot in beat.shots)
+                {
+                    Assert.IsNotNull(shot.move, id);
+                    Assert.Greater(shot.seconds, 0.5f, id);
+                    // A line is spoken by the boss's cast: Prime, the Ref, 42 (no puppet: their view)
+                    if (!string.IsNullOrEmpty(shot.line))
+                        Assert.Contains(shot.speaker, new[] { Beats.Prime, Beats.Ref, Cast.You }, $"{id}: {shot.line}");
+                    else
+                        Assert.AreEqual("", shot.speaker, "no line, no speaker");
+                    Assert.IsEmpty(shot.move.actor ?? "", "Prime and 42 are anchors in the arena, not actors");
+                    foreach (var cue in shot.cue.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries))
+                        Assert.IsTrue(KnownCues.Contains(cue), $"{id}: unknown cue '{cue}'");
+                }
+            }
+            Assert.LessOrEqual(Beats.Find(BossBeats.Transition12).Seconds, 6.001f);
+            Assert.LessOrEqual(Beats.Find(BossBeats.Transition23).Seconds, 6.001f);
+            Assert.That(Beats.Find(BossBeats.Victory).Seconds, Is.InRange(18f, 26f), "about 20 s");
+        }
+
+        [Test]
+        public void BossBeats_SayWhatTicket33Says_InOrder()
+        {
+            var t12 = Beats.Find(BossBeats.Transition12);
+            Assert.AreEqual(new[] { Beats.Prime, Beats.Ref, Beats.Prime }, t12.shots.Select(s => s.speaker).ToArray());
+            StringAssert.Contains("timeout", t12.shots[0].line);
+            StringAssert.Contains("helicopter", t12.shots[2].line);
+            CollectionAssert.AreEqual(new[] { BossBeats.CopterRises, BossBeats.BalconyFalls }, CuesOf(t12), "the copter rises as Prime asks for it");
+
+            var t23 = Beats.Find(BossBeats.Transition23);
+            Assert.AreEqual(new[] { "", Beats.Prime, Beats.Ref, Cast.You }, t23.shots.Select(s => s.speaker).ToArray(), "the pfft, Prime, the Ref, 42");
+            StringAssert.Contains("rule four", t23.shots[3].line);
+            CollectionAssert.AreEqual(new[] { BossBeats.CopterDown, BossBeats.CrownFlies, BossBeats.PrimeClimbs }, CuesOf(t23));
+
+            var victory = Beats.Find(BossBeats.Victory);
+            CollectionAssert.AreEqual(
+                new[] { BossBeats.Shrink, BossBeats.CrownRolls, BossBeats.Cheer, BossBeats.PixelBreak }, CuesOf(victory),
+                "the shrink, the crown to 42 and on, the crowd, the break-up");
+            StringAssert.Contains("recount", victory.shots[1].line);
+            StringAssert.Contains("Still second", victory.shots[2].line);
+            Assert.AreEqual(Beats.Ref, victory.shots[4].speaker);
+            Assert.AreEqual(Cast.You, victory.shots[5].speaker, "42 hands the crown on");
+            var seven = victory.Actor(Cast.Red[1]);
+            Assert.IsNotNull(seven, "Mushroom 7 is on the stage to wear the crown");
+            Assert.AreEqual(Anchor.You, seven.anchor, "beside 42");
+            Assert.AreEqual(Beats.SevenRight, seven.right);
+            Assert.AreEqual(Beats.SevenForward, seven.forward);
+        }
+
+        [Test]
+        public void BossBeats_B7_PrimeIsTheRealOneInTheArena()
+        {
+            var b7 = Beats.Find("beat-boss");
+            Assert.IsNull(b7.Actor(Beats.Prime), "he is the giant Prime of the arena, not a puppet");
+            Assert.IsTrue(b7.shots.Where(s => s.speaker == Beats.Prime).All(s => s.move.anchor == Anchor.Prime), "his shots are on him");
+            Assert.IsEmpty(CuesOf(b7), "B7 changes nothing in the arena");
+        }
+
+        [Test]
+        public void BossBeats_ThePronounsHold_AndTheOtherBeatsHaveNoCues()
+        {
+            foreach (var id in BossBeatIds)
+                foreach (var shot in Beats.Find(id).shots)
+                {
+                    var line = " " + shot.line.ToLower() + " ";
+                    if (shot.speaker == Cast.You)
+                        Assert.IsFalse(line.Contains(" she ") || line.Contains(" he "), "42 is they/them");
+                }
+            foreach (var id in new[] { "beat-fungal", "beat-chessboard", "beat-toybox", "beat-kitchen", "beat-bathroom", "beat-computer", "ending" })
+                Assert.IsEmpty(CuesOf(Beats.Find(id)), id);
+        }
+
+        [Test]
+        public void BossBeats_Skipping_HoldingTheKeysEndsAtOnce_AndAClickMovesOn()
+        {
+            foreach (var id in BossBeatIds)
+            {
+                var seq = new BeatSequencer(Beats.Find(id));
+                seq.Tick(0.4f, true);
+                seq.Tick(0.4f, true);
+                Assert.IsTrue(seq.Skipped, id + ": held for 0.7 s");
+                Assert.AreNotEqual(BeatStage.Shots, seq.Stage);
+            }
+            var clicked = new BeatSequencer(Beats.Find(BossBeats.Transition12));
+            clicked.Tick(0.5f, false);
+            clicked.Advance();
+            Assert.AreEqual(1, clicked.ShotIndex);
+        }
+
+        [Test]
+        public void BossBeats_ForTransition_NamesOnlyTheTwoTransitions()
+        {
+            Assert.AreEqual(BossBeats.Transition12, BossBeats.ForTransition(BossPhase.Transition12));
+            Assert.AreEqual(BossBeats.Transition23, BossBeats.ForTransition(BossPhase.Transition23));
+            foreach (var phase in new[] { BossPhase.Intro, BossPhase.Phase1, BossPhase.Phase2, BossPhase.Phase3, BossPhase.Victory, BossPhase.Defeat })
+                Assert.IsNull(BossBeats.ForTransition(phase), phase.ToString());
+            Assert.LessOrEqual(BossBeats.QuickTransitionSeconds, 2f, "a retry's transition is short");
         }
 
         [Test]
@@ -598,7 +839,7 @@ namespace SdfCampaign.Tests
         [Test]
         public void EachMissingScene_IsSkippedWithItsBeat_AndTheRestOfTheOrderHolds()
         {
-            foreach (var missing in new[] { "Toybox", "Kitchen", "Bathroom", "Computer", "Boss" })
+            foreach (var missing in new[] { "Toybox", "Kitchen", "Bathroom", "Computer", "Arena" })
             {
                 var p = Fresh(null, scene => scene != missing);
                 var seen = Walk(p);

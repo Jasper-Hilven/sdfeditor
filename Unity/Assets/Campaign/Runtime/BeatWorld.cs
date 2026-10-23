@@ -30,7 +30,7 @@ namespace SdfCampaign
         public static BeatWorld Backdrop() => new BeatWorld { frame = _ => (Vector3.zero, 0) };
 
         /// <summary>The world of a battle scene: red is the west side, blue the east, and the camera is yours.</summary>
-        public static BeatWorld Of(Match match)
+        public static BeatWorld Of(Match match, bool hidePlayers = true)
         {
             var arena = match.Arena;
             var world = new BeatWorld
@@ -46,6 +46,11 @@ namespace SdfCampaign
                 var blueYaw = blue.spawn.eulerAngles.y;
                 switch (anchor)
                 {
+                    // The boss fight's (ticket 33.8): where Prime's body is now, where you are
+                    case Anchor.Prime when match.TryGetComponent<Boss>(out var boss) && boss.Body != null:
+                        return (boss.Body.transform.position, boss.Body.transform.eulerAngles.y);
+                    case Anchor.You when match.You != null:
+                        return (match.You.transform.position, match.You.transform.eulerAngles.y);
                     case Anchor.BlueSpawn:
                         return (blue.spawn.position, blueYaw);
                     case Anchor.Centre:
@@ -58,8 +63,9 @@ namespace SdfCampaign
                         return (red.spawn.position, redYaw);
                 }
             };
+            // The boss transitions leave the others in sight: the crew and your bots stand where they are, held
             foreach (var player in match.Players)
-                if (player.body != null)
+                if (player.body != null && (hidePlayers || player == match.You))
                     world.hide.Add(player.body.gameObject);
             // Your weapon sits in the camera's corner
             if (world.camera != null)

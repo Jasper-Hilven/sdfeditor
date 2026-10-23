@@ -1,0 +1,31 @@
+# Prime's medal (ticket 33.1): the silver "2nd" medal on a blue ribbon, 0.17 m across (0.8 m at 4.6 times), hanging on the front of
+# his stem at chest height and swinging with his moves. The ribbon runs down and forward from the stem so that the medal hangs
+# 7 cm clear of it and does not cut into the stem's bulb when it swings; the disc faces +z with a raised "2" on it.
+# Pivot: the origin is the ribbon's top, on the stem's front; in prime-stem it is at (0, 0.662, 0.112). It swings about x and z.
+format 1
+
+Union
+    # The ribbon, 5 cm wide, from the pivot down and forward to the disc's top edge
+    Material material=prime_ribbon
+        Translate translation=(0, -0.06, 0.035)
+            Rotate rotation=(-0.529, 0, 0)
+                Box size=(0.025, 0.07, 0.004)
+    Material material=prime_silver
+        Union
+            # The disc: 0.17 m across, 2 cm thick, with a raised rim
+            Translate translation=(0, -0.2, 0.07)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Union
+                        CappedCylinder radius=0.085 height=0.008
+                        Translate translation=(0, 0.008, 0)
+                            Subtraction
+                                CappedCylinder radius=0.085 height=0.006
+                                CappedCylinder radius=0.072 height=0.008
+            # The raised "2" on its face, strokes of 1.2 cm
+            Translate translation=(0, -0.2, 0.084)
+                Union
+                    Capsule a=(-0.03, 0.03, 0) b=(-0.005, 0.05, 0) radius=0.006
+                    Capsule a=(-0.005, 0.05, 0) b=(0.025, 0.035, 0) radius=0.006
+                    Capsule a=(0.025, 0.035, 0) b=(0.025, 0.01, 0) radius=0.006
+                    Capsule a=(0.025, 0.01, 0) b=(-0.03, -0.04, 0) radius=0.006
+                    Capsule a=(-0.03, -0.04, 0) b=(0.035, -0.04, 0) radius=0.006

@@ -116,6 +116,7 @@ Shader "SdfMushrooms/RoomPlanks"
             ZTest LEqual
 
             HLSLPROGRAM
+            #pragma multi_compile_fog
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -129,6 +130,7 @@ Shader "SdfMushrooms/RoomPlanks"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
+                half fogFactor : TEXCOORD2;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -139,6 +141,7 @@ Shader "SdfMushrooms/RoomPlanks"
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
                 output.positionWS = TransformObjectToWorld(input.positionOS);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
+                output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 return output;
             }
@@ -295,7 +298,7 @@ Shader "SdfMushrooms/RoomPlanks"
                 albedo = lerp(albedo, ink, seamMask);
 
                 float3 color = SdfToonShade(albedo, n, v, l, 1.0, tint, _WoodSurface.x, _WoodSurface.y, 0.0, 1.0, 0.0);
-                return float4(SkyFade(color, input.positionWS), 1.0);
+                return float4(MixFog(SkyFade(color, input.positionWS), input.fogFactor), 1.0);
             }
             ENDHLSL
         }

@@ -160,12 +160,16 @@ namespace SdfLevel.Editor
                         ShootToyBox(scene, eye, scatter, Shot, EyeShot);
                     if (scene.name == "Computer")
                         ShootComputer(scene, scatter, Shot);
+                    if (scene.name == "Bathroom")
+                        ShootBathroom(scene, scatter, Shot);
                     QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                     EyeShot("room_eye_web", eye, Quaternion.Euler(0, 90, 0));
                     if (scene.name == "Toybox")
                         ShootToyBox(scene, eye, scatter, Shot, EyeShot, "_web");
                     if (scene.name == "Computer")
                         ShootComputer(scene, scatter, Shot, "_web");
+                    if (scene.name == "Bathroom")
+                        ShootBathroom(scene, scatter, Shot, "_web");
                     Debug.Log($"SDF level: snapshots written to {directory}");
                     return;
                 }
@@ -202,6 +206,8 @@ namespace SdfLevel.Editor
                     ShootTrees(scene, "", Shot, EyeShot);
                 if (scene.name == "Fungal")
                     ShootFungal(scene, Shot, EyeShot);
+                if (scene.name == "Arena")
+                    ShootBoss(scene, "", Shot, EyeShot);
 
                 QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
                 EyeShot("eye_+x_web", eye, Quaternion.Euler(0, 90, 0));
@@ -215,6 +221,8 @@ namespace SdfLevel.Editor
                 }
                 if (scatter != null)
                     ShootFoliage(scene, directory, "_web", Shot, EyeShot);
+                if (scene.name == "Arena")
+                    ShootBoss(scene, "_web", Shot, EyeShot);
                 if (HasGroup(scatter, TreesGroup))
                     ShootTrees(scene, "_web", Shot, EyeShot);
                 if (moon is { } toMoon)
@@ -353,6 +361,48 @@ namespace SdfLevel.Editor
             View("pc_gpu", OnGround(new Vector3(0, 0, 18)) + up, Quaternion.Euler(-8, 0, 0));
             View("pc_bridge", OnGround(new Vector3(30, 0, 8)) + up, Quaternion.LookRotation(new Vector3(-1, 0, 0.5f)));
             View("pc_ram", OnGround(new Vector3(48, 0, 0)) + up, Quaternion.Euler(-3, 90, 0));
+        }
+
+        /// <summary>
+        /// The bathroom's budget views (ticket 29.9), each logged as the toy box's are: from the west spawn towards the middle, its flag,
+        /// the tub and back; the duck, the drain and the puddle trail, the slicks, the south lane, the scale and window, the base's courtyard
+        /// and cup, the fog on the far walls, above and the whole room from the top. Unity's x is the pipeline's mirrored, so the west spawn
+        /// (pipeline (-47, -17)) stands at Unity x = +47 and faces -x towards the middle.
+        /// </summary>
+        private static void ShootBathroom(Scene scene, InstancedScatterRenderer scatter, Action<string, Vector3, Quaternion, int, int> shot, string suffix = "")
+        {
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            void View(string name, Vector3 position, Quaternion rotation)
+            {
+                shot(name + suffix, position, rotation, 1920, 1080);
+                Debug.Log($"SDF level: {name + suffix} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): {ToyCost(scene, camera, position, rotation, scatter)}");
+            }
+            Vector3 At(float x, float z) => OnGround(new Vector3(x, 0, z)) + up;
+            Quaternion Look(Vector3 from, float x, float y, float z) => Quaternion.LookRotation(new Vector3(x, y, z) - from);
+            var spawn = At(47, -17);
+            View("bath_spawn", spawn, Quaternion.Euler(0, -90, 0));
+            View("bath_spawn_flag", spawn, Look(spawn, 63, 1.5f, 0));
+            View("bath_spawn_tub", spawn, Look(spawn, 0, 12, 38.75f));
+            View("bath_spawn_back", spawn, Quaternion.Euler(0, 90, 0));
+            View("bath_duck", At(16, -14), Look(At(16, -14), 0, 4, 0));
+            View("bath_tub", At(0, 10), Quaternion.Euler(-12, 0, 0));
+            View("bath_puddles", At(0, 6), Quaternion.Euler(-6, 0, 0));
+            View("bath_drain", At(12, -10), Look(At(12, -10), 0, 0.5f, -28));
+            View("bath_scale", At(10, -22), Look(At(10, -22), 0, 3, -40));
+            View("bath_window", At(20, 10), Look(At(20, 10), 0, 18, -50));
+            View("bath_slick_north", At(62, 8), Look(At(62, 8), 40, 0.5f, 32));
+            View("bath_slick_south", At(60, -14), Look(At(60, -14), 40, 0.5f, -40));
+            View("bath_south_lane", At(60, -40), Quaternion.Euler(-2, -90, 0));
+            View("bath_courtyard", At(62, 0), Quaternion.Euler(-2, -90, 0));
+            View("bath_dish_outside", At(40, 0), Quaternion.Euler(0, 90, 0));
+            View("bath_cup", At(52, 8), Look(At(52, 8), 68.5f, 3, 0));
+            View("bath_pyramid", At(10, -4), Look(At(10, -4), 26, 3, -19));
+            View("bath_brush", At(-14, 0), Look(At(-14, 0), -30, 2, 14));
+            View("bath_fog_far", At(72, -46), Quaternion.LookRotation(new Vector3(-1, 0.05f, 0.7f)));
+            View("bath_fog_north", At(0, -20), Quaternion.Euler(-4, 0, 0));
+            View("bath_above", new Vector3(0, 62, -48), Quaternion.Euler(52, 0, 0));
+            View("bath_top", new Vector3(0, 68, 0), Quaternion.Euler(90, 0, 0));
         }
 
         /// <summary>
@@ -589,6 +639,92 @@ namespace SdfLevel.Editor
             eyeShot("island_below", below, Quaternion.LookRotation(new Vector3(0, -10, 0) - below));
 
             WalkIntoATree(scene, play);
+        }
+
+        /// <summary>
+        /// The final boss's arena (ticket 33.3) in each phase's layout (its phase groups shown and hidden as the boss's arena does): from
+        /// the red spawn looking east across the floor at the Royal Box (the busiest view: the crowd, the pieces and in phase 2 the
+        /// copter's place), from the blue flag stand back west, from the middle of the floor up at the stands, and from above. Each logs
+        /// what the placed models draw there (renderers in view of the level of detail each picks, a draw per material) beside the
+        /// ground's and the foliage groups' costs; the scene is left in phase 1.
+        /// </summary>
+        private static void ShootBoss(Scene scene, string suffix, Action<string, Vector3, Quaternion, int, int> shot, Action<string, Vector3, Quaternion> eyeShot)
+        {
+            var root = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform;
+            var arena = scene.GetRootGameObjects().Select(g => g.GetComponent<SdfBattle.BattleArena>()).FirstOrDefault(a => a != null);
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var scatter = scene.GetRootGameObjects().Select(g => g.GetComponent<InstancedScatterRenderer>()).FirstOrDefault(r => r != null);
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            var spawn = OnGround(arena.west.spawn.position) + up;
+            var stand = OnGround(arena.east.flagStand.transform.position) + up;
+            try
+            {
+                for (var phase = 1; phase <= PhaseGroup.PhaseCount; phase++)
+                {
+                    PhaseGroup.ShowPhase(root, phase);
+                    Physics.SyncTransforms();
+                    var views = new (string Name, Vector3 Position, Quaternion Rotation)[]
+                    {
+                        ("spawn_east", spawn, Quaternion.Euler(0, -90, 0)),
+                        ("blue_stand_west", stand, Quaternion.Euler(0, 90, 0)),
+                        ("stands", OnGround(new Vector3(0, 0, 0)) + up, Quaternion.Euler(-4, 0, 0)),
+                        ("above", new Vector3(0, 55, 62), Quaternion.Euler(38, 180, 0)),
+                    };
+                    foreach (var (name, position, rotation) in views)
+                    {
+                        var label = $"boss_p{phase}_{name}{suffix}";
+                        eyeShot(label, position, rotation);
+                        var (draws, triangles) = PlacedCost(scene, camera, position, rotation);
+                        Debug.Log($"SDF level: {label} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): the placed models draw {draws} times, {triangles:N0} triangles");
+                    }
+                }
+            }
+            finally
+            {
+                PhaseGroup.ShowPhase(root, 1);
+            }
+        }
+
+        /// <summary>
+        /// What the placed models (under Level/Placed, active ones only) draw in a view: each LOD group inside it at the level of detail
+        /// it picks, each renderer in view a draw per material (the ink outline is a material of its own), and its triangles.
+        /// </summary>
+        private static (int Draws, int Triangles) PlacedCost(Scene scene, Camera sceneCamera, Vector3 position, Quaternion rotation)
+        {
+            var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Count Camera", HideFlags.HideAndDontSave, typeof(Camera));
+            try
+            {
+                var camera = cameraObject.GetComponent<Camera>();
+                camera.CopyFrom(sceneCamera);
+                camera.aspect = 16f / 9f;
+                camera.transform.SetPositionAndRotation(position, rotation);
+                var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+                var halfAngle = Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                int draws = 0, triangles = 0;
+                var placed = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.LevelRootName).transform.Find(LevelBuilder.PlacedName);
+                foreach (var group in placed.GetComponentsInChildren<LODGroup>())
+                {
+                    var lods = group.GetLODs();
+                    var scale = group.transform.lossyScale;
+                    var size = group.size * Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                    var distance = Vector3.Distance(position, group.transform.TransformPoint(group.localReferencePoint));
+                    var height = size * 0.5f * QualitySettings.lodBias / (Mathf.Max(distance, 0.01f) * halfAngle);
+                    var level = Array.FindIndex(lods, lod => height >= lod.screenRelativeTransitionHeight);
+                    if (level < 0)
+                        continue;
+                    foreach (var renderer in lods[level].renderers)
+                        if (renderer != null && GeometryUtility.TestPlanesAABB(planes, renderer.bounds))
+                        {
+                            draws += renderer.sharedMaterials.Length;
+                            triangles += renderer.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3;
+                        }
+                }
+                return (draws, triangles);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(cameraObject);
+            }
         }
 
         /// <summary>

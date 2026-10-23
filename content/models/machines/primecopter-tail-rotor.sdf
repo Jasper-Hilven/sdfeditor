@@ -1,0 +1,19 @@
+# Prime-copter tail rotor (ticket 33.5): helicopter-blue-tail-rotor at seven times: a cornflower blue cap with a wavy rim of four lobes
+# on a short hub, facing out to the side (+x), spun by script, 1.1 m across.
+# Pivot: the origin is the hub's inner end on the tail rotor's axis (it spins about x); in primecopter-body it is at (0.175, 2.8, -2.15).
+format 1
+
+Detail detail=0.45
+    Rotate rotation=(0, 0, -1.5707964)
+        Union
+            Material material=machine_blue_flesh
+                Translate translation=(0, 0.084, 0)
+                    CappedCylinder radius=0.126 height=0.098
+            Material material=machine_blue_cap
+                Round radius=0.035
+                    RadialWave amount=0.08 count=4
+                        Intersection
+                            Translate translation=(0, 0.14, 0)
+                                Ellipsoid radii=(0.56, 0.154, 0.56)
+                            Translate translation=(0, 0.84, 0)
+                                Box size=(0.7, 0.7, 0.7)

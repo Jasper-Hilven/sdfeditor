@@ -1,0 +1,33 @@
+# Prime's cap (ticket 33.1): Chanterelle Prime's wavy funnel cap with its ridges, the chanterelle scout's cap (content/parts/chanterelle_scout.sdf,
+# copied: an edit there is not followed here) at 0.72 of the scout's size, with a short neck of stem flesh so that it can tilt on the stem.
+# It tilts forward 35 degrees to kneel (the gills, the weak point, show) and lifts 0.5 m (at 4.6 times) for the slam's wind-up.
+# Pivot: the origin is where the cap's neck meets the stem, on the stem's axis; in prime-stem it is at (0, 0.9216, 0). +z is forward.
+# In this model: the crown's pivot (prime-crown, home/) is at (0, 0.187, 0), the cape's (prime-cape) at (0, 0.338, -0.432), the rim's back.
+format 1
+
+Scale scale=(0.72, 0.72, 0.72)
+    # The scout's coordinates, shifted down by the pivot's height in them
+    Translate translation=(0, -1.15, 0)
+        Union
+            # The neck: stem flesh closing the funnel's narrow end on the stem's top, which the cap turns on
+            Material material=chanterelle_flesh
+                Translate translation=(0, 1.2, 0)
+                    Ellipsoid radii=(0.15, 0.07, 0.15)
+            # Cap and ridges wave up and down together, seven times around
+            RadialWave amount=0.08 count=7
+                SmoothUnion smoothness=0.015
+                    Material material=chanterelle_cap
+                        Distort amount=0.006 frequency=3
+                            Union
+                                Revolution offset=0
+                                    Translate2D offset=(0.12, 1.3)
+                                        Rotate2D angle=-1.0667
+                                            UnevenCapsule2D bottomRadius=0.07 topRadius=0.018 height=0.66
+                                Translate translation=(0, 1.31, 0)
+                                    Ellipsoid radii=(0.2, 0.06, 0.2)
+                    Material material=chanterelle_ridges
+                        SymmetryXZ
+                            Union
+                                Capsule a=(0.164, 1.24, 0.044) b=(0.58, 1.52, 0.155) radius=0.02
+                                Capsule a=(0.12, 1.24, 0.12) b=(0.424, 1.52, 0.424) radius=0.02
+                                Capsule a=(0.044, 1.24, 0.164) b=(0.155, 1.52, 0.58) radius=0.02

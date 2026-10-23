@@ -20,6 +20,8 @@ namespace SdfCampaign
         public static BattleSetup Apply(BattleSetup setup, Difficulty difficulty, int easierSteps = 0)
         {
             var result = setup.Clone();
+            result.difficulty = difficulty;
+            result.retryEasier = easierSteps > 0;
             var skill = setup.blueSkill;
             if (difficulty == Difficulty.Easy)
             {

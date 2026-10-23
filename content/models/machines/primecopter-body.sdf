@@ -1,0 +1,50 @@
+# Prime-copter body (ticket 33.5): 24's blue helicopter (helicopter-blue-body) at seven times, for the boss to hang from in phase 2:
+# a round cornflower blue puffball with a short mast, a tapering stalk of a tail and the scouts' floating eyes in front, standing on two
+# wide runners of sky blue stem flesh (Prime hangs from them by his hands) and with a rim of four sockets under the puffball, a flesh
+# collar with a gills ring, where the four spore sacs (primecopter-sac) hang, 2.5 m apart.
+# Pivot: the origin is on the ground under the middle (the runners stand on it), +z forward. The rotor's (primecopter-rotor) pivot is at
+# (0, 3.92, 0) and the tail rotor's (primecopter-tail-rotor) at (0.175, 2.8, -2.15) in this model; the sacs' pivots (their tops) at
+# (+-1.25, 1.3, +-1.25). The runners are at x = +-2.1, from z = -1.1 to 1.3, 0.2 m up: the grips for Prime's hands.
+# No collider in the file: a convex hull of this shape would swallow the sacs under the rim (shots could not reach them), so the prefab
+# gets a sphere over the puffball instead (PrimeCopterBuilder).
+format 1
+
+Detail detail=0.3
+    Union
+        # The puffball
+        Material material=machine_blue_cap
+            Translate translation=(0, 2.1, 0)
+                Ellipsoid radii=(1.54, 1.33, 1.33)
+        Material material=machine_blue_flesh
+            Union
+                # The mast up to the rotor's hub
+                Translate translation=(0, 3.5, 0)
+                    CappedCone height=0.42 bottomRadius=0.32 topRadius=0.22
+                # The tail, from the back of the puffball to the tail rotor's hub
+                ArbitraryRoundCone a=(0, 2.24, -0.84) b=(0, 2.8, -2.15) radiusA=0.42 radiusB=0.2
+                # The rim: a flared skirt of flesh round the puffball's lower flank, with a socket under it at each sac
+                Union
+                    Translate translation=(0, 1.45, 0)
+                        CappedCone height=0.15 bottomRadius=1.95 topRadius=1.2
+                    Translate translation=(1.25, 1.3, 1.25)
+                        Sphere radius=0.3
+                    Translate translation=(-1.25, 1.3, 1.25)
+                        Sphere radius=0.3
+                    Translate translation=(1.25, 1.3, -1.25)
+                        Sphere radius=0.3
+                    Translate translation=(-1.25, 1.3, -1.25)
+                        Sphere radius=0.3
+                # The runners, mirrored: a leg down from the puffball's side to a long runner along z each side
+                SymmetryX
+                    SmoothUnion smoothness=0.12
+                        ArbitraryRoundCone a=(0.9, 1.35, 0) b=(2.1, 0.3, 0) radiusA=0.22 radiusB=0.17
+                        Capsule a=(2.1, 0.17, -1.1) b=(2.1, 0.17, 1.3) radius=0.17
+        # The skirt's gills, a thin pale ring on its underside
+        Material material=machine_blue_gills
+            Translate translation=(0, 1.3, 0)
+                Torus innerRadius=1.72 outerRadius=1.9
+        # Eyes, mirrored: the scouts' eyeballs at a little over half size, seven times, floating in front of the puffball
+        SymmetryX
+            Translate translation=(0.595, 2.52, 1.645)
+                Scale scale=(3.85, 3.85, 3.85)
+                    Part part=eye_machine

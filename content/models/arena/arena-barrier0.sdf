@@ -1,0 +1,24 @@
+# Arena barrier 0 (ticket 33.2): a stone crescent with a lichen crust along its top. Knee cover: a stone crescent 4 m long and 0.9 m high, 1.2 m thick at its
+# middle, curving a little (convex towards +z). Players jump it, bots go round (26 §4). The origin is the crescent's middle on the
+# ground, front along +z. The collider is convex.
+format 1
+collider convex
+
+Detail detail=0.5
+    Union
+        Material material=arena_stone
+            SmoothIntersection smoothness=0.06
+                Subtraction
+                    Translate translation=(0, 0.45, -7.5)
+                        CappedCylinder radius=8 height=0.45
+                    Translate translation=(0, 0.45, -8.5)
+                        CappedCylinder radius=8 height=0.45
+                Translate translation=(0, 0.45, 0)
+                    Box size=(2, 0.45, 1)
+        # Lichen on the top edge
+        Material material=arena_lichen
+            Intersection
+                Translate translation=(0, 0.88, -7.5)
+                    CappedCylinder radius=7.9 height=0.04
+                Translate translation=(0, 0.88, -0.2)
+                    Box size=(1.95, 0.05, 0.5)

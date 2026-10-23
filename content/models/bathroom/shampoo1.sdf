@@ -1,0 +1,25 @@
+# Shampoo 1: a mint conditioner bottle standing on its cap, 5.4 m tall, about 3.2 m wide and 2.2 m deep (30 times life size): a white screw cap as the foot, the
+# oval bottle upside down on it with a rounded bottom as the top. Tall blocker: convex collider.
+format 1
+collider convex
+
+Detail detail=0.5
+    Union
+        # The cap it stands on, a flat round-edged oval foot
+        Material material=bath_plastic_white
+            Scale scale=(1.35, 1, 1)
+                Translate translation=(0, 0.55, 0)
+                    RoundedCylinder radius=0.85 roundness=0.15 height=0.55
+        # The bottle, wide at the top and tapering into the cap: its rounded bottom is the top
+        Material material=bath_plastic_mint
+            Scale scale=(1.45, 1, 1)
+                SmoothUnion smoothness=0.4
+                    ArbitraryRoundCone a=(0, 1.2, 0) b=(0, 2.4, 0) radiusA=0.6 radiusB=0.75
+                    Translate translation=(0, 3.5, 0)
+                        CappedCylinder radius=0.75 height=1.1
+                    Translate translation=(0, 4.6, 0)
+                        Ellipsoid radii=(0.75, 0.8, 0.75)
+        # A white label oval on the front
+        Material material=bath_plastic_cream
+            Translate translation=(0, 3.3, 1.02)
+                Ellipsoid radii=(1.3, 0.9, 0.2)

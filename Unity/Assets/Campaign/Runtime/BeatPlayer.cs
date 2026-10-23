@@ -28,6 +28,9 @@ namespace SdfCampaign
         private BeatWorld world;
         private GuiFlow flow;
         private Action onDone;
+        // Told the cue of each shot as it starts (ticket 33.8); a skipped shot's cue is told too, in order, before the end
+        private Action<string> onCue;
+        private int cued = -1;
         private bool handOver;
         private GuiScreen screen;
 
@@ -58,9 +61,11 @@ namespace SdfCampaign
         /// Sets the beat up in the scene, still covered by the loader's black: the actors stand, the camera is on the first shot, the
         /// Cutscene screen is up. It starts to run on <see cref="Begin"/>.
         /// </summary>
-        public static BeatPlayer Prepare(Beat beat, BeatWorld world, GuiFlow flow, Action onDone, bool handOver, GuiScreen screen = GuiScreen.Cutscene)
+        public static BeatPlayer Prepare(Beat beat, BeatWorld world, GuiFlow flow, Action onDone, bool handOver, GuiScreen screen = GuiScreen.Cutscene,
+            Action<string> onCue = null)
         {
             var player = new GameObject("Beat " + beat.id).AddComponent<BeatPlayer>();
+            player.onCue = onCue;
             player.beat = beat;
             player.world = world;
             player.flow = flow;
@@ -73,6 +78,30 @@ namespace SdfCampaign
         }
 
         public void Begin() => begun = true;
+
+        /// <summary>
+        /// Plays one of the boss fight's beats (<see cref="BossBeats"/>, ticket 33.8) in the arena over the running fight: the camera moves, the
+        /// captions show and the shots' cues go to <paramref name="cue"/> (with a way to ask where a beat's actor stands); the fight holds the
+        /// match meanwhile. No hand-over click: a transition leaves the HUD (or the death screen, waiting to respawn) up as it is over or
+        /// skipped; the victory leaves the screen to its caller. <paramref name="done"/> is told whether it was skipped. False when there is
+        /// no such beat or no match to play over.
+        /// </summary>
+        public static bool PlayBossBeat(GuiFlow flow, Match live, string id, Action<string, Func<string, Vector3?>> cue, Action<bool> done)
+        {
+            var beat = Beats.Find(id);
+            if (beat == null || live == null || flow == null)
+                return false;
+            var victory = id == BossBeats.Victory;
+            BeatPlayer player = null;
+            player = Prepare(beat, BeatWorld.Of(live, hidePlayers: victory), flow, () =>
+            {
+                if (!victory)
+                    flow.Show(flow.Match != null && !flow.Match.YouAreAlive ? GuiScreen.Death : GuiScreen.Hud);
+                done(player != null && player.Sequencer.Skipped);
+            }, handOver: false, GuiScreen.Cutscene, name => cue(name, player.PlaceOf));
+            player.Begin();
+            return true;
+        }
 
         // ---------------------------------------------------------------- Setting the stage
 
@@ -159,6 +188,7 @@ namespace SdfCampaign
             if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
                 sequencer.Advance();
             sequencer.Tick(Time.unscaledDeltaTime, skipHeld);
+            Cues();
             Caption();
             if (sequencer.Stage != BeatStage.Shots && !handOver)
                 Finish();
@@ -179,6 +209,22 @@ namespace SdfCampaign
                 world.camera.transform.SetPositionAndRotation(Vector3.Lerp(lastPosition, EyePosition(), t), Quaternion.Slerp(lastRotation, EyeRotation(), t));
             }
         }
+
+        // Tells the scene the cue of every shot that has started since the last frame. A skip jumps past the rest: their cues are told
+        // at once, so the scene is where the story would have left it.
+        private void Cues()
+        {
+            var upTo = sequencer.Stage == BeatStage.Shots ? sequencer.ShotIndex : beat.shots.Length - 1;
+            while (cued < upTo)
+            {
+                cued++;
+                if (onCue != null && !string.IsNullOrEmpty(beat.shots[cued].cue))
+                    onCue(beat.shots[cued].cue);
+            }
+        }
+
+        /// <summary>Where a name's actor stands in the beat (a puppet's place), for the scene's cues; null when it has none.</summary>
+        public Vector3? PlaceOf(string actor) => places.TryGetValue(actor, out var place) ? place.position : (Vector3?)null;
 
         private Vector3 EyePosition() => cameraParent != null ? cameraParent.TransformPoint(cameraLocalPosition) : eyePosition;
 

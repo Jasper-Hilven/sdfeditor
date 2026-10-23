@@ -37,6 +37,8 @@ namespace SdfBattle
         private float statusReach;
         private float clockCentreY, clockBottom, edge;
         private float shownWidth = -1;
+        // Room another HUD piece (the boss bar, ticket 33.7) takes under the clock, which the statuses and the banner clear
+        private float reserved;
         private Camera view;
         // What the texts show, so they are only rebuilt (and their strings made) when it changes
         private int shownScore = -1;
@@ -123,6 +125,13 @@ namespace SdfBattle
                 banner.gameObject.SetActive(false);
         }
 
+        /// <summary>Keeps the banner (and the statuses, when they sit under the clock) <paramref name="height"/> lower than under the clock.</summary>
+        public void ReserveBelowClock(float height)
+        {
+            reserved = height;
+            shownWidth = -1;
+        }
+
         /// <summary>
         /// The flag statuses beside the score when the screen has room for them left of the kill feed (which reaches about 415 in from
         /// the right edge past them), else under the clock; and the banner under whichever is lowest.
@@ -135,9 +144,9 @@ namespace SdfBattle
                 var sign = team == Team.Red ? -1 : 1;
                 statusPanels[(int)team].anchoredPosition = beside
                     ? new Vector2(sign * (edge + StatusGap), clockCentreY)
-                    : new Vector2(sign * 8, clockBottom - 42);
+                    : new Vector2(sign * 8, clockBottom - 42 - reserved);
             }
-            var bottom = beside ? clockBottom : clockBottom - 68;
+            var bottom = (beside ? clockBottom : clockBottom - 68) - reserved;
             if (banner != null)
             {
                 var rect = banner.rectTransform;

@@ -1,0 +1,19 @@
+# Toothbrush blue 0: a team toothbrush for the east base's cup (30 times life size): 5.7 m long standing on its handle end (y = 0) with the bristle head at the top (y 4.5 to 5.7), the
+# flat handle 0.45 m wide and 0.25 m thick, the bristles on the +z face of the head. The level leans it out of the cup (tops at 6 to 6.5 m). The blue handle is a team colour (as the
+# flags and scouts), the bristles white. Origin at the foot of the handle on y = 0. No collider.
+format 1
+collider none
+
+Detail detail=0.5
+    Union
+        Material material=bath_toothbrush_blue
+            Scale scale=(1, 1, 0.55)
+                SmoothUnion smoothness=0.1
+                    # Handle tapering into the neck, flattened front to back
+                    ArbitraryRoundCone a=(0, 0.22, 0) b=(0, 4.7, 0) radiusA=0.22 radiusB=0.11
+                    # The head's plate
+                    Translate translation=(0, 5.1, 0)
+                        RoundBox size=(0.17, 0.6, 0.18) roundness=0.08
+        Material material=bath_bristle_white
+            Translate translation=(0, 5.1, 0.24)
+                RoundBox size=(0.14, 0.5, 0.14) roundness=0.05

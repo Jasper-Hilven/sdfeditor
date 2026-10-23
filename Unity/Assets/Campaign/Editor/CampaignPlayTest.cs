@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using SdfBattle;
 using SdfGui;
@@ -274,7 +275,17 @@ namespace SdfCampaign.Editor
                            levels.cards[0].info.text.ToUpperInvariant().Contains("GOLD"), "the Meadow shows its medal: " + levels.cards[0].info.text);
                     Expect(levels.cards[1].play.gameObject.activeSelf, "Fungal is unlocked by the Meadow");
                     Expect(!levels.cards[2].play.gameObject.activeSelf && levels.cards[2].cover.activeSelf, "the Chessboard is locked");
-                    Expect(!levels.cards[3].play.gameObject.activeSelf && levels.cards[3].coverText.text == "Coming soon", "the Toy box has no scene yet");
+                    // Every later arena is locked; its cover says "Coming soon" exactly when its scene is not in the build, and "Win the previous arena" when it is
+                    var battles = runner.Definition.Battles().ToList();
+                    for (var card = 3; card < battles.Count; card++)
+                    {
+                        var wanted = GuiCampaign.IsAvailable(battles[card].scene) ? "Win the previous arena" : "Coming soon";
+                        Expect(!levels.cards[card].play.gameObject.activeSelf && levels.cards[card].coverText.text == wanted, $"{battles[card].title} is locked and says '{wanted}'");
+                    }
+                    // Of the later arenas, the kitchen (ticket 28) is the only one with no level file yet
+                    var levelFiles = Path.Combine(Application.dataPath, "..", "..", "content", "levels");
+                    var withoutLevel = battles.Where(b => !File.Exists(Path.Combine(levelFiles, b.scene.ToLowerInvariant() + ".level"))).Select(b => b.scene).ToList();
+                    Expect(withoutLevel.SequenceEqual(new[] { "Kitchen" }), "only the Kitchen has no level file yet: " + string.Join(", ", withoutLevel));
                     levels.difficulty.Set((int)Difficulty.Hard, true);
                     Expect(runner.Progress.Difficulty == Difficulty.Hard, "the selector sets the difficulty");
                     flow.Execute(GuiCommandId.PlayLevel, GuiScreen.Hud, CampaignDefinition.Meadow);
@@ -353,7 +364,15 @@ namespace SdfCampaign.Editor
                     var reloaded = CampaignProgress.Load(runner.Definition, new PlayerPrefsCampaignStorage(), null);
                     Expect(reloaded.Won(CampaignDefinition.Chessboard) && reloaded.Seen("beat-chessboard"), "the save read back after a reload has the win and the beat");
                     return true;
-                case 21: // CONTINUE after the Chessboard: the arenas to come have no scene here, so the ending, over Boot
+                case 21: // CONTINUE after the Chessboard: the ending over Boot when no later arena is built here; else the walk ends at the first one that is
+                    var onward = runner.Progress.NextStep();
+                    if (onward.id != CampaignDefinition.Ending && onward.id != CampaignDefinition.Credits)
+                    {
+                        Expect(GuiCampaign.IsAvailable(onward.scene), $"the way on after the Chessboard is a built scene: {onward.id} in {onward.scene}");
+                        Debug.Log($"SDF Campaign play test: later arenas are built here, so the walk stops after the Chessboard (next: {onward.id} in {onward.scene}); the ending is not driven");
+                        step = 25; // the loop adds one and finishes
+                        return true;
+                    }
                     flow.Execute(GuiCommandId.Next, GuiScreen.Hud);
                     endingPhase = 0;
                     sawBeatCaption = false;

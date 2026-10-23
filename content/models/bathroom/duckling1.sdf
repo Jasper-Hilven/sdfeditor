@@ -1,0 +1,32 @@
+# Duckling 1: a small yellow rubber duck (body #F7D24A, beak #F29A3A), 1.2 m long and 0.95 m tall (30 times life size), upright with its head turned to
+# the side and a plumper body than duckling 0. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+Detail detail=0.3
+    Intersection
+        Translate translation=(0, 0.3, 0)
+            Scale scale=(0.8, 0.8, 0.8)
+                Union
+                    Material material=bath_rubber_yellow
+                        SmoothUnion smoothness=0.08
+                            Translate translation=(0, -0.02, 0)
+                                Ellipsoid radii=(0.46, 0.37, 0.5)
+                            Translate translation=(0.2, 0.62, 0.26)
+                                Sphere radius=0.3
+                            ArbitraryRoundCone a=(0, 0.05, -0.34) b=(0, 0.34, -0.58) radiusA=0.17 radiusB=0.05
+                            SymmetryX
+                                Translate translation=(0.42, 0.05, -0.05)
+                                    Ellipsoid radii=(0.07, 0.17, 0.26)
+                    # The head looks to +x and a little forward: beak and eyes sit on that side
+                    Material material=bath_beak_orange
+                        Translate translation=(0.4, 0.56, 0.56)
+                            Rotate rotation=(0, 0.6, 0)
+                                Ellipsoid radii=(0.16, 0.06, 0.2)
+                    Material material=bath_eye_dark
+                        Union
+                            Translate translation=(0.45, 0.7, 0.33)
+                                Sphere radius=0.05
+                            Translate translation=(0.17, 0.7, 0.52)
+                                Sphere radius=0.05
+        Plane normal=(0, -1, 0) height=0

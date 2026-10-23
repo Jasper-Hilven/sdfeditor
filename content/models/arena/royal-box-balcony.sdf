@@ -1,0 +1,25 @@
+# Royal Box balcony (ticket 33.2): the balcony of the Royal Box, a great bracket of shelf fungus reaching 8 m forward from the box's
+# front wall at 3.5 m over the blue flag stand, 12 m wide (x) and 0.8 m thick, its top walkable, its underside cream pores. It hides
+# the flag stand from Prime's eyes. Phase 1-2 only (royal-box-balcony-fallen replaces it). The origin is the middle of its back edge
+# at its underside, front along +z; the level lifts it to 3.5 m and sets it against the box. The collider is a mesh.
+format 1
+collider mesh
+
+Detail detail=0.2
+    Union
+        # The upper part: the fan of the bracket, a half-ellipse in plan, 0.65 m thick on its top
+        Material material=arena_shelf
+            SmoothIntersection smoothness=0.1
+                Translate translation=(0, 0.475, 0)
+                    Scale scale=(0.75, 1, 1)
+                        CappedCylinder radius=8 height=0.325
+                Translate translation=(0, 0.4, 4)
+                    Box size=(6, 0.4, 4)
+        # The underside, cream pores
+        Material material=arena_shelf_pores
+            Intersection
+                Translate translation=(0, 0.075, 0)
+                    Scale scale=(0.75, 1, 1)
+                        CappedCylinder radius=7.95 height=0.075
+                Translate translation=(0, 0.4, 4)
+                    Box size=(5.95, 0.4, 3.95)

@@ -44,11 +44,13 @@ namespace SdfBattle
         {
             public WeaponPickup weapon;
             public HealthPickup health;
-            public Vector3 Position => weapon != null ? weapon.transform.position : health.transform.position;
-            public bool Available => weapon != null ? weapon.Available : health != null && health.Available;
+            public Vector3 Position => weapon != null ? weapon.transform.position : health != null ? health.transform.position : Vector3.zero;
+            // A pod switched off (the boss fight's health caps between their 30 seconds) is not there to fetch
+            public bool Available => weapon != null ? weapon.Available : health != null && health.isActiveAndEnabled && health.Available;
         }
 
         private static readonly RaycastHit[] Hits = new RaycastHit[16];
+        private static readonly RaycastHit[] TargetHits = new RaycastHit[16];
 
         private readonly BotSkill[] teamSkill = new BotSkill[Teams.Count];
         private readonly List<Bot> bots = new List<Bot>();
@@ -69,6 +71,55 @@ namespace SdfBattle
         public IReadOnlyList<Bot> All => bots;
 
         public IReadOnlyList<Pod> Pods => pods;
+
+        /// <summary>
+        /// Ticket 33.6: circles on the floor that Prime's attacks are about to hit; a bot standing in one steps out of it
+        /// (<see cref="BotDanger"/>). The boss fills it every frame; empty outside the boss fight.
+        /// </summary>
+        public List<DangerZone> Dangers { get; } = new List<DangerZone>();
+
+        /// <summary>
+        /// Ticket 33.6: what the bots may shoot at on their way while no player is in sight, beside the enemy machines: the parts of Prime
+        /// that can be hurt now, the Prime-copter's sacs, his hands. The boss fills it a few times a second; never a goal on its own.
+        /// </summary>
+        public List<IDamageable> BossTargets { get; } = new List<IDamageable>();
+
+        /// <summary>Ticket 33.6: where a team's hunters go to fight when they have no one else to find (Prime, in phases 2 and 3); null for the roaming.</summary>
+        public Vector3? HuntFocusOf(Team team) => huntFocus[(int)team];
+
+        /// <summary>Metres from <see cref="HuntFocusOf"/> the hunters stand and shoot from.</summary>
+        public float huntFocusRange = 18;
+
+        public void SetHuntFocus(Team team, Vector3? focus) => huntFocus[(int)team] = focus;
+
+        private readonly Vector3?[] huntFocus = new Vector3?[Teams.Count];
+
+        /// <summary>Adds a pod the bots may fetch from (the boss fight's health pods, which are made after the bots).</summary>
+        public void AddHealthPod(HealthPickup pod) => AddPod(null, pod);
+
+        /// <summary>
+        /// Whether nothing solid stands between an eye and a part of the boss: the first thing along the way, past the players, is that
+        /// target's own collider. Triggers are seen through.
+        /// </summary>
+        public bool LineOfSightTo(Vector3 eye, IDamageable target)
+        {
+            var along = target.Center - eye;
+            var distance = along.magnitude;
+            if (distance < 0.01f)
+                return true;
+            var count = Physics.RaycastNonAlloc(eye, along / distance, TargetHits, distance + 1.5f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            var nearest = float.PositiveInfinity;
+            var found = false;
+            for (var i = 0; i < count; i++)
+            {
+                var hit = TargetHits[i];
+                if (hit.distance >= nearest || Player.Of(hit.collider) != null)
+                    continue;
+                nearest = hit.distance;
+                found = hit.collider.GetComponentInParent<IDamageable>() == target;
+            }
+            return found || float.IsPositiveInfinity(nearest);
+        }
 
         /// <summary>Whether the scene has the bots' navmesh; without it they walk straight at their goals.</summary>
         public bool HasNavmesh { get; private set; }

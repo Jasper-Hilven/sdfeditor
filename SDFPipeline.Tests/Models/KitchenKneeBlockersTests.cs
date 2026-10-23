@@ -29,11 +29,11 @@ public class KitchenKneeBlockersTests
         { "cookie0", 3.6f, 0.72f, 3.6f },
         { "cookie-bitten0", 3.6f, 0.72f, 3.6f },
         { "butter-pat0", 1.8f, 0.9f, 1.8f },
-        { "bottle-cap0", 1.9f, 0.46f, 1.9f },
-        { "bottle-cap1", 1.9f, 0.46f, 1.9f },
+        { "crown-cap0", 1.9f, 0.46f, 1.9f },
+        { "crown-cap1", 1.9f, 0.46f, 1.9f },
         { "jar-lid0", 4.2f, 0.72f, 4.2f },
         { "teaspoon0", 8.4f, 1.0f, 2.4f },
-        { "sponge0", 6.5f, 1.5f, 4.9f },
+        { "dish-sponge0", 6.5f, 1.5f, 4.9f },
         { "garlic-clove0", 1.8f, 1.0f, 0.85f },
         { "tin-can0", 4.5f, 6.66f, 4.5f },
         { "tin-can1", 4.5f, 7.2f, 4.5f },
@@ -79,10 +79,10 @@ public class KitchenKneeBlockersTests
     [InlineData("sugar-cube2", true)]
     [InlineData("cookie0", true)]
     [InlineData("butter-pat0", true)]
-    [InlineData("bottle-cap0", true)]
+    [InlineData("crown-cap0", true)]
     [InlineData("jar-lid0", true)]
     [InlineData("teaspoon0", true)]
-    [InlineData("sponge0", true)]
+    [InlineData("dish-sponge0", true)]
     [InlineData("garlic-clove0", true)]
     [InlineData("tin-can-lying0", false)]
     [InlineData("jam-jar0", false)]

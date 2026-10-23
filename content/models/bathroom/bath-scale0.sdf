@@ -1,0 +1,59 @@
+# Bath scale 0: a square bathroom scale on the floor (30 times life size): white plastic with a chrome trim and a glass top, 9.6 m square on top at 0.75 m, with a bevelled skirt
+# 1.5 m wide all round (12.6 m square at the floor, a slope of 26.6 degrees) so the top joins the floor as a walkable hill. In the top a little display window with "42" in
+# pale lime seven-segment numbers, readable from +z (the near edge). Origin at the middle on y = 0. Convex collider.
+format 1
+collider convex
+
+# One bar of the display, flat on the glass
+hbar =
+    Box size=(0.32, 0.05, 0.1)
+vbar =
+    Box size=(0.1, 0.05, 0.28)
+
+Detail detail=0.25
+    Union
+        # The body: a pyramid cut off at 0.70 m, its slope 0.5 (1.5 m run for 0.75 m)
+        Material material=bath_plastic_white
+            Intersection
+                Scale scale=(12.6, 3.15, 12.6)
+                    Pyramid height=1
+                Translate translation=(0, 0.35, 0)
+                    Box size=(7, 0.35, 7)
+        # The chrome trim round the top edge
+        Material material=bath_chrome
+            Translate translation=(0, 0.715, 0)
+                Subtraction
+                    RoundBox size=(4.9, 0.035, 4.9) roundness=0.03
+                    Box size=(4.55, 0.1, 4.55)
+        # The glass top, flush with the trim
+        Material material=bath_glass_top
+            Translate translation=(0, 0.715, 0)
+                Box size=(4.6, 0.035, 4.6)
+        # The display window, flush, near the +z edge
+        Material material=bath_display_dark
+            Translate translation=(0, 0.715, 3.0)
+                Box size=(1.7, 0.04, 0.85)
+        # The numbers 4 (left) and 2 (right), bars 0.05 m proud; up on screen is -z
+        Material material=bath_display_lit
+            Translate translation=(0, 0.77, 3.0)
+                Union
+                    # 4: upper left, upper right, middle, lower right
+                    Translate translation=(-0.95, 0, -0.3)
+                        $vbar
+                    Translate translation=(-0.3, 0, -0.3)
+                        $vbar
+                    Translate translation=(-0.62, 0, 0)
+                        $hbar
+                    Translate translation=(-0.3, 0, 0.3)
+                        $vbar
+                    # 2: top, upper right, middle, lower left, bottom
+                    Translate translation=(0.62, 0, -0.58)
+                        $hbar
+                    Translate translation=(0.94, 0, -0.3)
+                        $vbar
+                    Translate translation=(0.62, 0, 0)
+                        $hbar
+                    Translate translation=(0.3, 0, 0.3)
+                        $vbar
+                    Translate translation=(0.62, 0, 0.58)
+                        $hbar

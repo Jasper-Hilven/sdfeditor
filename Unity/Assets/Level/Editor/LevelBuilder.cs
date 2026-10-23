@@ -98,8 +98,12 @@ namespace SdfLevel.Editor
         /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
         /// Version 22: the movers' behaviour (ticket 27.10): push, damage, kill feed name, puffs, crossing distance.
         /// Version 23: a room as a backdrop model with open edges (ticket 28.2, <see cref="LevelBackdrop"/>), no edge walls.
+        /// Version 24: the level's fog, steam and drips (ticket 29.1, <see cref="LevelAtmosphere"/>), the camera of a foggy room clearing to its colour.
+        /// Version 25: the boss arena (ticket 33.3): the placed models tagged with phases under <see cref="PhaseGroup"/> objects, Boss Spots
+        /// (<see cref="BossSpots"/>), and the navmeshes per phase layout.
+        /// Version 26: the boss's prefabs on Boss Spots (ticket 33.6).
         /// </summary>
-        public const int BuilderVersion = 23;
+        public const int BuilderVersion = 26;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -118,8 +122,8 @@ namespace SdfLevel.Editor
         /// cast no shadows of that light (the ceiling would shade the whole room) and receive none; pieces cast and receive them on the
         /// floor. A wall only grazes an overhead light, so SdfRoomFace.shader leans the light toward each face's own normal: walls in the
         /// lit and mid bands, the ceiling in the mid band, the floor in the lit band with the shadows in the shadow band. There is no
-        /// distance fade (no SkySettings fade amount): a far wall keeps its own colours, no fog, and the camera clears to a flat colour
-        /// it never shows.
+        /// distance fade (no SkySettings fade amount): a far wall keeps its own colours, no fog unless the level asks for one (a
+        /// <c>fog</c> line, <see cref="LevelAtmosphere"/>), and the camera clears to a flat colour it never shows (the fog's, if there is one).
         /// </summary>
         private static readonly MushroomScene.IndoorLighting RoomLight = new MushroomScene.IndoorLighting
         {
@@ -464,6 +468,7 @@ namespace SdfLevel.Editor
             // A backdrop (ticket 28.2) is a room with open edges: the room's lamp and no sky, but no walls and not "indoor"
             var hasBackdrop = LevelBackdrop.IsBackdrop(data);
             var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), (hasRoom || hasBackdrop) && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
+            LevelAtmosphere.ApplyFog(scene, data);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
             var groundRoot = new GameObject("Ground");
@@ -526,14 +531,23 @@ namespace SdfLevel.Editor
             MarkStatic(levelRoot);
             // The fans' blades turn (ticket 30.5), so they stay out of batching
             LevelSpinners.Add(levelRoot.transform);
+            // What a phase hides must not be merged into a static batch with what stays
+            foreach (var group in levelRoot.GetComponentsInChildren<PhaseGroup>(true))
+                foreach (var transform in group.GetComponentsInChildren<Transform>(true))
+                    GameObjectUtility.SetStaticEditorFlags(transform.gameObject, StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic);
             var scattered = AddScatter(scene, level, meshFolder, data, parts);
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
             AssetDatabase.SaveAssets();
             var player = AddPlayer(scene, data, (hasRoom || hasBackdrop) && !(data["sky"] is JObject));
             var battle = AddBattle(scene, data, player);
+            AddBossSpots(scene, data);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
             var movers = AddMovers(scene, data);
+            // The level's steam and drips (ticket 29.1) likewise
+            LevelAtmosphere.AddSteam(scene, data);
+            // The zone mask (ticket 29.7): slick and wet zones read by position
+            SdfLevel.Editor.LevelZonesBuilder.Add(scene, level, data, battle);
             // The data pulses (ticket 30.9): the overlay mesh and the rule, outside the Level root too
             LevelPulses.Add(scene, data, name, meshFolder);
             // The heat (ticket 28.10): the rule and the glow, and the rings marked as navmesh areas for the bake below
@@ -696,6 +710,9 @@ namespace SdfLevel.Editor
             var root = new GameObject(PlacedName);
             root.transform.SetParent(levelRoot, false);
             var count = 0;
+            // Ticket 33.3: the models tagged with phases (level.json "phases": [first, last]) go under a group per range, which the boss's
+            // arena shows and hides; the scene is built in phase 1
+            var phaseGroups = new Dictionary<string, Transform>();
             foreach (var placement in placements)
             {
                 var model = placement.Value<string>("model");
@@ -708,7 +725,21 @@ namespace SdfLevel.Editor
                 }
                 var position = placement["position"].ToObject<float[]>();
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
-                instance.transform.SetParent(root.transform, false);
+                var parent = root.transform;
+                if (placement["phases"] is JArray phases && phases.Count == 2)
+                {
+                    var (first, last) = (phases[0].Value<int>(), phases[1].Value<int>());
+                    var groupName = PhaseGroup.NameOf(first, last);
+                    if (!phaseGroups.TryGetValue(groupName, out parent))
+                    {
+                        var group = new GameObject(groupName);
+                        group.transform.SetParent(root.transform, false);
+                        var phaseGroup = group.AddComponent<PhaseGroup>();
+                        (phaseGroup.first, phaseGroup.last) = (first, last);
+                        phaseGroups[groupName] = parent = group.transform;
+                    }
+                }
+                instance.transform.SetParent(parent, false);
                 instance.transform.SetLocalPositionAndRotation(new Vector3(-position[0], position[1], position[2]),
                     Quaternion.Euler(0, -placement.Value<float>("yaw"), 0));
                 var scale = placement.Value<float?>("scale") ?? 1;
@@ -724,6 +755,40 @@ namespace SdfLevel.Editor
                 count++;
             }
             return count;
+        }
+
+        /// <summary>
+        /// The final boss's places (level.json "boss", ticket 33.3) as <see cref="BossSpots"/> at the scene's root: an empty marker each for
+        /// Prime, the crash, the champion's plinth and the shield's dome, x mirrored and yaw turned round, as the placements. Nothing for a
+        /// level without a boss section.
+        /// </summary>
+        private static void AddBossSpots(Scene scene, JObject data)
+        {
+            if (!(data["boss"] is JObject boss))
+                return;
+            var root = new GameObject(BossSpots.ObjectName);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            var spots = root.AddComponent<BossSpots>();
+            Transform Spot(string name, string spotName)
+            {
+                var entry = boss[name];
+                var position = entry["position"].ToObject<float[]>();
+                var marker = new GameObject(spotName).transform;
+                marker.SetParent(root.transform, false);
+                marker.SetLocalPositionAndRotation(new Vector3(-position[0], position[1], position[2]), Quaternion.Euler(0, -(entry.Value<float?>("yaw") ?? 0), 0));
+                return marker;
+            }
+            spots.prime = Spot("prime", "Prime");
+            spots.crash = Spot("crash", "Crash");
+            spots.plinth = Spot("plinth", "Plinth");
+            spots.shield = Spot("shield", "Shield");
+            spots.shieldRadius = boss["shield"].Value<float?>("radius") ?? spots.shieldRadius;
+            // The prefabs the boss's runtime (33.6) makes its things from; a missing one is left empty (a warning from the runtime)
+            spots.primePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prime/Prefabs/chanterelle-prime.prefab");
+            spots.copterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Machines/Prefabs/primecopter.prefab");
+            spots.goldMinigunPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/minigun-gold.prefab");
+            spots.crownPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/prime-crown.prefab");
+            spots.healthPodPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Pickups/Pods/health-pod.prefab");
         }
 
         public const string MoversName = "Movers";
@@ -1282,7 +1347,8 @@ namespace SdfLevel.Editor
             {
                 // Surrounded by walls: no skybox to clear to, a flat colour the room never shows; far enough for the whole cube
                 camera.clearFlags = CameraClearFlags.SolidColor;
-                camera.backgroundColor = UnityEngine.Color.black;
+                // ... or, in a level with fog (ticket 29.1), the fog's colour, as the far walls fade into it
+                camera.backgroundColor = LevelAtmosphere.FogColor(data) ?? UnityEngine.Color.black;
                 camera.farClipPlane = RoomFarPlaneOf(data);
                 // A backdrop (ticket 28.2) clears to its walls' colour, which shows beyond it, and sets its own far plane
                 if (LevelBackdrop.IsBackdrop(data))

@@ -40,6 +40,10 @@ namespace SdfBattle
         private Vector3 lastSample;
         private float sampleIn;
         private int stuck;
+        private Vector3? dropFrom;
+        private float dropYaw;
+        private bool falling;
+        private float fallSpeed;
 
         protected override Vector3 CenterLocal => new Vector3(0, 0.38f, 0);
 
@@ -60,10 +64,25 @@ namespace SdfBattle
                 Debug.LogWarning($"{name}: no Tank navmesh at its machine zone; it stays put. Rebuild the level scene (Tools > SDF Level > Rebuild), then Tools > SDF Battle > Check Navmesh");
         }
 
+        /// <summary>
+        /// Dropped from the air (ticket 33.5, the Prime-copter's tank drop): back in play at full health at <paramref name="from"/>,
+        /// facing <paramref name="yaw"/>, it falls to the ground, lands with a puff of dust and drives off. If it dies it respawns in
+        /// the machine zone as any tank.
+        /// </summary>
+        public void DropFrom(Vector3 from, float yaw)
+        {
+            dropFrom = from;
+            dropYaw = yaw;
+            Restart();
+            dropFrom = null;
+        }
+
         protected override void Place()
         {
-            var spot = Owner.ZoneSpot(Side, this);
-            hullYaw = Side.machineSpawn.eulerAngles.y;
+            var spot = dropFrom ?? Owner.ZoneSpot(Side, this);
+            falling = dropFrom.HasValue;
+            fallSpeed = 0;
+            hullYaw = dropFrom.HasValue ? dropYaw : Side.machineSpawn.eulerAngles.y;
             turretYaw = 0;
             tilt = 0;
             speed = 0;
@@ -82,6 +101,8 @@ namespace SdfBattle
 
         protected override bool TurnGun(Vector3 point, float dt, bool hasTarget)
         {
+            if (falling)
+                return false;
             var turn = State.Stats.turnSpeed;
             if (!hasTarget)
             {
@@ -108,8 +129,45 @@ namespace SdfBattle
 
         // ---------------------------------------------------------------- Driving
 
+        // Falling from a drop: faster and faster, until the ground is under it
+        private void Fall(float dt)
+        {
+            fallSpeed += 12 * dt;
+            var position = transform.position;
+            var next = position + Vector3.down * (fallSpeed * dt);
+            if (Owner.Ground(position + Vector3.up * 0.5f, 0.5f + fallSpeed * dt, out var ground, out _) && next.y <= ground.y + 0.01f)
+            {
+                transform.position = new Vector3(position.x, ground.y, position.z);
+                falling = false;
+                Landed(ground);
+                return;
+            }
+            transform.position = next;
+        }
+
+        // The landing: a ring of dust puffs and a few spores
+        private void Landed(Vector3 ground)
+        {
+            var particles = Owner.Combat != null ? Owner.Combat.Fx.Particles : null;
+            if (particles == null)
+                return;
+            var dust = new Color(0.86f, 0.8f, 0.68f);
+            for (var i = 0; i < 14; i++)
+            {
+                var angle = i / 14f * Mathf.PI * 2;
+                var direction = new Vector3(Mathf.Cos(angle), 0.15f, Mathf.Sin(angle));
+                particles.Emit(SdfEffects.FxParticles.Kind.Puff, ground + direction * 0.4f, direction * UnityEngine.Random.Range(1.4f, 2.6f),
+                    UnityEngine.Random.Range(0.5f, 0.8f), UnityEngine.Random.Range(0.2f, 0.34f), dust, dust * 0.5f, gravity: -0.4f, drag: 3);
+            }
+        }
+
         protected override void Move(float dt, Vector3? fighting)
         {
+            if (falling)
+            {
+                Fall(dt);
+                return;
+            }
             PushOffRiders(dt);
             if (!hasNavmesh)
                 return;

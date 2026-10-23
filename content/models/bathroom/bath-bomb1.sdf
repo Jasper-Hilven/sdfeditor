@@ -1,0 +1,15 @@
+# Bath bomb 1: a butter yellow bath bomb, a ball 1.2 m across and 1.1 m tall (30 times life size), a little squashed, with a pressed seam round its middle.
+# The sprinkle of tiny lilac flecks is the material's speckle pattern. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+Detail detail=0.4
+    Material material=bath_bomb_yellow
+        Intersection
+            SmoothUnion smoothness=0.03
+                Translate translation=(0, 0.52, 0)
+                    Ellipsoid radii=(0.6, 0.58, 0.6)
+                # The seam where the two halves of the mould met: a thin raised ring
+                Translate translation=(0, 0.52, 0)
+                    Torus innerRadius=0.03 outerRadius=0.57
+            Plane normal=(0, -1, 0) height=0

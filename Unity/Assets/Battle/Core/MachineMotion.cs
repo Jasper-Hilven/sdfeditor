@@ -124,6 +124,8 @@ namespace SdfBattle
         public float Margin = 6;
         public float MinHeight = 6;
         public float MaxHeight = 12;
+        /// <summary>The height it keeps over the highest surface under and ahead of it; none: <see cref="MinHeight"/>. The Prime-copter cruises 14 to 18 m up but only has to clear things by 9 (ticket 33.5).</summary>
+        public float? Clearance { get; set; }
         /// <summary>Over a raised surface (more than <see cref="RaisedAbove"/> over <see cref="Floor"/>, a base) it flies this high over the floor; none: as over the ground (6 to 12 m over what is under it). Set by <see cref="HelicopterLimits"/>.</summary>
         public float? OverBases { get; set; }
         public float Floor { get; set; }
@@ -142,6 +144,8 @@ namespace SdfBattle
         public float TurnSpeed = 90;
         /// <summary>Seconds of flight ahead it keeps clear of.</summary>
         public float LookAhead = 3;
+        /// <summary>How many points along its way ahead it asks the surface at (plus the one it is over): more for a thin pillar not to slip between them (the Prime-copter, ticket 33.5).</summary>
+        public int LookSamples = 3;
         /// <summary>Degrees it leans per metre a second of speed, and at most.</summary>
         public float LeanPerSpeed = 2.5f, MaxLean = 16;
 
@@ -174,6 +178,18 @@ namespace SdfBattle
             needIn = 0;
             cruise = MinHeight + (float)random.NextDouble() * (MaxHeight - MinHeight);
             Waypoint = new Vector3(ground.x, ground.y + cruise, ground.z);
+        }
+
+        /// <summary>In the air at <paramref name="position"/> facing <paramref name="yaw"/>, still, and on its way to a new waypoint (the Prime-copter's dive ends here, ticket 33.5).</summary>
+        public void Place(Vector3 position, float yaw)
+        {
+            Position = position;
+            Velocity = Vector3.zero;
+            Yaw = yaw;
+            Pitch = Roll = 0;
+            TakingOff = false;
+            needIn = 0;
+            PickWaypoint(position);
         }
 
         /// <summary>
@@ -265,12 +281,12 @@ namespace SdfBattle
             if (ahead.sqrMagnitude > 0 && ahead.magnitude < 4)
                 ahead = ahead.normalized * 4;
             var highest = float.NegativeInfinity;
-            for (var i = 0; i <= 3; i++)
+            for (var i = 0; i <= LookSamples; i++)
             {
-                var point = position + ahead * (i / 3f);
+                var point = position + ahead * (i / (float)LookSamples);
                 highest = Mathf.Max(highest, Under(Mathf.Clamp(point.x, AreaMin.x, AreaMax.x), Mathf.Clamp(point.z, AreaMin.y, AreaMax.y)));
             }
-            var needs = highest + MinHeight;
+            var needs = highest + (Clearance ?? MinHeight);
             return OverBase(highest) is { } over ? Mathf.Max(needs, over) : needs;
         }
 

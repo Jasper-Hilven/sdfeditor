@@ -1,0 +1,22 @@
+# Prime-copter rotor (ticket 33.5): helicopter-blue-rotor at seven times: a flat, wide cornflower blue cap with a wavy rim of five lobes
+# and pale gills under it, on a little hub, spun by script so the lobes blur into a disc, 4.9 m across.
+# Pivot: the origin is the hub's bottom on the rotor's axis (it spins about y); in primecopter-body it is at (0, 3.92, 0).
+format 1
+
+Detail detail=0.2
+    Union
+        Material material=machine_blue_flesh
+            Translate translation=(0, 0.14, 0)
+                CappedCylinder radius=0.245 height=0.175
+        Material material=machine_blue_gills
+            RadialWave amount=0.12 count=5
+                Translate translation=(0, 0.245, 0)
+                    CappedCylinder radius=2.31 height=0.042
+        Material material=machine_blue_cap
+            Round radius=0.056
+                RadialWave amount=0.12 count=5
+                    Intersection
+                        Translate translation=(0, 0.21, 0)
+                            Ellipsoid radii=(2.45, 0.42, 2.45)
+                        Translate translation=(0, 1.61, 0)
+                            Box size=(2.8, 1.4, 2.8)

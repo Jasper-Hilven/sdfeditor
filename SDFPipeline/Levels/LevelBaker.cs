@@ -24,7 +24,11 @@ public sealed record BakedLevel(string Folder, GroundLayout Layout, IReadOnlyLis
 }
 
 /// <summary>A placement as baked: the model's base at <see cref="Position"/>, on the (flattened) ground or its <see cref="Placement.Y"/> above it.</summary>
-public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, float Scale);
+public sealed record PlacedModel(string Model, Vector3 Position, float Yaw, float Scale)
+{
+    /// <summary>The phases of the final boss's fight (ticket 33.3) the model is there in; null for all of them.</summary>
+    public PhaseRange? Phases { get; init; }
+}
 
 /// <summary>
 /// Bakes a level for the game engine into a folder of its own (sdf level): the ground as chunk_&lt;i&gt;_&lt;j&gt;.glb, one per chunk
@@ -116,13 +120,17 @@ public static class LevelBaker
             if (face is not null && !materials.Contains(face))
                 throw new InvalidOperationException($"There is no material file for {face}; the room's walls and ceiling need materials/room/{face}.sdfmat");
         var placed = level.Placements
-            .Select(p => new PlacedModel(p.Model, new Vector3(p.At.X, terrain.Height(p.At.X, p.At.Y) + p.Y, p.At.Y), p.Yaw, p.Scale))
+            .Select(p => new PlacedModel(p.Model, new Vector3(p.At.X, terrain.Height(p.At.X, p.At.Y) + p.Y, p.At.Y), p.Yaw, p.Scale) { Phases = p.Phases })
             .ToArray();
         // The battle objects stand wholly inside the playable rectangle, where the player can reach them
         foreach (var item in level.Battle?.Objects ?? [])
             if (MathF.Abs(item.At.X) > level.Play.HalfSize.X - item.Radius || MathF.Abs(item.At.Y) > level.Play.HalfSize.Y - item.Radius)
                 throw new ProgramFiles.SdfProgramFileException(item.Line,
                     $"The {item.Name} at ({item.At.X}, {item.At.Y}) is not {item.Radius} m or more inside the playable area, where the player can reach it");
+        // The boss's spots (ticket 33.3) too
+        foreach (var (spot, at, line) in level.Boss?.Spots ?? [])
+            if (MathF.Abs(at.X) > level.Play.HalfSize.X || MathF.Abs(at.Y) > level.Play.HalfSize.Y)
+                throw new ProgramFiles.SdfProgramFileException(line, $"The boss's {spot} at ({at.X}, {at.Y}) is not inside the playable area");
 
         // The scattered models need only be there; the ground's colour under each instance is its material's average
         foreach (var entry in level.Scatters.Concat(level.Trees).SelectMany(s => s.Entries))
@@ -205,6 +213,21 @@ public static class LevelBaker
         var png = map.ToPng();
         GlbWriter.SaveAtomically(Path.Combine(folder, RegionMap.FileName), png);
 
+        // The zone mask (ticket 29.7), before level.json too; no zones, no file (an earlier bake's is deleted)
+        var zonesPath = Path.Combine(folder, ZoneMap.FileName);
+        ZoneMap? zoneMap = null;
+        string? zoneHash = null;
+        if (level.Zones.Count > 0)
+        {
+            zoneMap = ZoneMap.Bake(level, regions);
+            GlbWriter.SaveAtomically(zonesPath, zoneMap.Cells);
+            zoneHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(zoneMap.Cells))[..16].ToLowerInvariant();
+        }
+        else if (File.Exists(zonesPath))
+        {
+            File.Delete(zonesPath);
+        }
+
         // The scattered instances, the same way: in a grid of cells over the island
         var cellsX = (int)MathF.Ceiling(2 * terrain.HalfExtent.X / InstanceFile.CellSize - 1e-4f);
         var cellsZ = (int)MathF.Ceiling(2 * terrain.HalfExtent.Y / InstanceFile.CellSize - 1e-4f);
@@ -234,7 +257,7 @@ public static class LevelBaker
             coordinates = "x across, z along, y up, origin at the centre of the playable area; Unity mirrors x like it does for the .glb files",
             seed = level.Seed,
             play = new { size = Array(play.Size), min = Array(-play.HalfSize), max = Array(play.HalfSize), noise = play.NoiseAmplitude, noiseScale = play.NoiseScale },
-            hills = new { width = hills.Width, height = hills.Height, noise = hills.NoiseAmplitude, noiseScale = hills.NoiseScale },
+            hills = new { width = hills.Width, height = hills.Height, noise = hills.NoiseAmplitude, noiseScale = hills.NoiseScale, terrace = hills.Terrace > 0 ? hills.Terrace : (float?)null },
             // With a rim, the ground's last shoulder metres bend down to the rim's height all round, where the underside model (placed
             // at the origin, as a unique model, without outline or shadows) meets it
             edge = new
@@ -294,7 +317,9 @@ public static class LevelBaker
             },
             // The unique models, standing on the ground: position is the base of the model (its y = 0); yaw is in degrees about +y,
             // counter-clockwise seen from above. Unity mirrors x, so it places them at -x and turns them by -yaw
-            placements = placed.Select(p => new { model = p.Model, position = new[] { p.Position.X, p.Position.Y, p.Position.Z }, yaw = p.Yaw, scale = p.Scale }).ToArray(),
+            // Ticket 33.3, on the boss level: phases is [first, last], the final boss's phases the model is there in (else left out)
+            placements = placed.Select(p => new { model = p.Model, position = new[] { p.Position.X, p.Position.Y, p.Position.Z }, yaw = p.Yaw, scale = p.Scale,
+                phases = p.Phases is { } phases ? new[] { phases.First, phases.Last } : null }).ToArray(),
             // The models scattered by the thousand (instances.bin), drawn by the instanced renderer in draw groups, each group as its
             // settings below say (see DrawGroup in SDFPipeline/Levels/LevelDefinition.cs); null when nothing is scattered
             instances = instances is null ? null : new
@@ -354,11 +379,18 @@ public static class LevelBaker
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
             room = level.Room is { } room ? RoomDocument(room, materials) : level.Backdrop is { } backdrop ? BackdropDocument(backdrop) : null,
+            // The haze, plumes of steam and drips (ticket 29.1), each left out of a level without them
+            fog = LevelFx.FogDocument(level),
+            steam = LevelFx.SteamDocument(level),
+            drips = LevelFx.DripDocument(level),
             // The battle sides (west at -x, east at +x), each with its spawn, flag stand, weapon pods and health pods (and on a
             // level with machines its turrets and machine zone, ticket 24), and the neutral pods between them: position is on the ground
             // (a castle's courtyard is), yaw in degrees as a placement's. Unity builds them from Assets/Pickups (pods/<pod>-pod.prefab,
             // flags/flag-stand-<side>.prefab) and Assets/Machines/Prefabs (turret-<team>.prefab). Null for a level without sides
+            zones = ZoneMap.Document(level, zoneMap, zoneHash),
             battle = level.Battle is { } battle ? BattleDocument(battle, terrain, level, HelicopterKeepOuts.Of(level, placed, FootprintOf)) : null,
+            // The final boss's spots (ticket 33.3), on the boss level only: each on the ground, plus its y; the shield's dome with its radius
+            boss = level.Boss is { } boss ? BossDocument(boss, terrain) : null,
             // Vehicles on a closed path and a timetable (ticket 27.3), or none: the path's corners (x, z), its length, (arc length, y)
             // height keys, and the cars head first with their lengths. Their position is speed * (round clock + phase) metres along the
             // path, anticlockwise as the corners go; Unity's PathMover places each model's prefab there, with a kinematic convex collider
@@ -444,13 +476,25 @@ public static class LevelBaker
                 spawn = Item(side.Spawn),
                 flag = Item(side.Flag),
                 // The weapon pods (minigun and pistol on most levels), then the health pods
-                pods = side.Weapons.Append(side.Health).Concat(side.MoreHealth).Select(Item).ToArray(),
+                pods = side.Weapons.Concat(side.Health is null ? [] : [side.Health]).Concat(side.MoreHealth).Select(Item).ToArray(),
                 // Ticket 24, on a level with machines (else left out): the side's turrets, each where it stands, facing yaw at rest
                 // (Assets/Machines/Prefabs/turret-<team>.prefab), and the zone its helicopter and tanks start and respawn in
                 turrets = side.Turrets.Count > 0 ? side.Turrets.Select(Item).ToArray() : null,
                 machines = side.MachineSpawn is { } machines ? Item(machines) : null,
             }).ToArray(),
             neutral = battle.Neutral.Select(Item).ToArray(),
+        };
+    }
+
+    private static object BossDocument(BossSpec boss, LevelTerrain terrain)
+    {
+        float[] Position(Vector2 at, float y) => [at.X, terrain.Height(at.X, at.Y) + y, at.Y];
+        return new
+        {
+            prime = new { position = Position(boss.Prime.At, boss.Prime.Y), yaw = boss.Prime.Yaw },
+            crash = new { position = Position(boss.Crash.At, boss.Crash.Y) },
+            plinth = new { position = Position(boss.Plinth.At, boss.Plinth.Y), yaw = boss.Plinth.Yaw },
+            shield = new { position = Position(boss.Shield.At, boss.Shield.Y), radius = boss.Shield.Radius },
         };
     }
 

@@ -219,7 +219,7 @@ public class LevelFileTests
                                    "neutral\n    pod sniper at=(0, 32)\n    pod flamethrower at=(0, -32)");
 
         var west = level.Battle!.West;
-        Assert.Equal(new Vector2(-28, -43), west.Health.At);
+        Assert.Equal(new Vector2(-28, -43), west.Health!.At);
         Assert.Equal([new Vector2(-28, 43), new Vector2(-73.5f, -9)], west.MoreHealth.Select(p => p.At));
         Assert.Equal(["spawn", "flag", "pod minigun", "pod pistol", "pod health", "pod health", "pod health"], west.Objects.Select(o => o.Name));
         Assert.Empty(level.Battle.East.MoreHealth);
@@ -606,6 +606,133 @@ public class LevelFileTests
         Assert.Null(level.Sky);
         Assert.Equal(0, level.Hills.Height);
         Assert.Equal(["parts", "smd", "components"], level.DrawGroups.Select(g => g.Name));
+    }
+
+    /// <summary>
+    /// Ticket 29.8: the bathroom is one theme, a bathroom. Every model it names (placed, scattered or strewn) is in models/bathroom/,
+    /// and the bathroom machines are in models/machines/; no material, in them or in their parts, is from another theme's folder: only
+    /// bathroom/, machines/ and the machines' eyes (the scouts' floating eyes), and the ground and room materials. Nothing from the
+    /// chessboard, games, toys, grass, fungi, trees or mushrooms, and no mushroom prop; the helicopters' keep-outs cover the tall landmarks.
+    /// </summary>
+    [Fact]
+    public void ContentBathroom_HasOnlyBathroom()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "bathroom" + LevelFile.Extension));
+        var models = Path.Combine(content, "models");
+        var partsFolder = Path.Combine(content, ModelFiles.PartsFolderName);
+        var files = Directory.GetFiles(models, "*.sdf", SearchOption.AllDirectories)
+            .GroupBy(Path.GetFileNameWithoutExtension)
+            .ToDictionary(g => g.Key!, g => g.ToArray());
+
+        var named = level.Placements.Select(p => p.Model)
+            .Concat(level.Scatters.SelectMany(s => s.Entries.Select(e => e.Model)))
+            .Concat(level.Trees.SelectMany(t => t.Entries.Select(e => e.Model)))
+            .Distinct()
+            .ToArray();
+        Assert.NotEmpty(named);
+        Assert.Equal("bathroom", level.MachineSetName);
+        // The bathroom machines: every piece of each kind and team, named as the set rule says
+        var machines = Directory.GetFiles(Path.Combine(models, "machines"), "*-bathroom-*.sdf").Select(Path.GetFileNameWithoutExtension).ToArray();
+        Assert.Equal(18, machines.Length);
+
+        var bathroom = Path.Combine(models, "bathroom");
+        var pending = new Stack<string>();
+        foreach (var model in named)
+        {
+            Assert.True(files.TryGetValue(model, out var paths), $"{model} is not in content/models");
+            Assert.Single(paths!);
+            Assert.True(Path.GetDirectoryName(paths![0]) == bathroom, $"{model} is not from models/bathroom/: {paths[0]}");
+            Assert.DoesNotContain("mushroom", model);
+            pending.Push(paths[0]);
+        }
+        foreach (var model in machines)
+            pending.Push(files[model!].Single());
+
+        var materials = new SortedSet<string>();
+        var parts = new HashSet<string>();
+        while (pending.Count > 0)
+        {
+            var text = File.ReadAllText(pending.Pop());
+            foreach (Match m in Regex.Matches(text, @"^\s*Material\s+material=(\S+)", RegexOptions.Multiline))
+                materials.Add(m.Groups[1].Value);
+            foreach (Match m in Regex.Matches(text, @"^\s*Part\s+part=(\S+)", RegexOptions.Multiline))
+                if (parts.Add(m.Groups[1].Value))
+                    foreach (var file in Directory.EnumerateFiles(partsFolder, m.Groups[1].Value + ".sdf", SearchOption.AllDirectories))
+                        pending.Push(file);
+        }
+        Assert.NotEmpty(materials);
+        var materialFolders = Directory.GetFiles(Path.Combine(content, "..", "materials"), "*.sdfmat", SearchOption.AllDirectories)
+            .ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => Path.GetFileName(Path.GetDirectoryName(f))!);
+        foreach (var material in materials)
+        {
+            Assert.True(materialFolders.TryGetValue(material, out var folder), $"{material} has no material file");
+            Assert.True(folder is "bathroom" or "machines" or "eye", $"{material} is in materials/{folder}/, not a bathroom material");
+        }
+        // The floor and the room: their own materials, the grid ruled straight, no sky or hills; the steam, the machines and the two zones
+        Assert.Equal("bathroom-tile", level.Base);
+        Assert.Equal(["grout", "wet", "puddle", "suds"], level.Regions.Select(r => r.Name));
+        Assert.All(level.Regions, r => Assert.Equal(0f, r.Wobble));
+        foreach (var region in level.Regions.Select(r => r.Material).Append("ground_bathroom-tile"))
+            Assert.True(File.Exists(Path.Combine(content, "..", "materials", "ground", region + ".sdfmat")), region);
+        Assert.Equal(("bathroom-wall", "bathroom-ceiling"), (level.Room!.Walls, level.Room.Ceiling));
+        Assert.Null(level.Sky);
+        Assert.Equal(0, level.Hills.Height);
+        Assert.Equal(["suds", "toiletries"], level.DrawGroups.Select(g => g.Name));
+        Assert.NotNull(level.Fog);
+        Assert.InRange(level.Steam.Sum(s => s.Count), 1, 80);
+        Assert.Single(level.Drips);
+        Assert.Equal([("suds", "slick"), ("puddle", "wet")], level.Zones.Select(z => (z.Region, z.Rule.ToString().ToLowerInvariant())));
+    }
+
+    /// <summary>
+    /// Ticket 29.8: the helicopters keep out of the bathroom's tall placed models (HelicopterKeepOuts, over 6 m): the tub, both towels,
+    /// the giant duck, both toilet-roll pyramids, the shower riser and the window are covered; the dish, cup and scale are low.
+    /// </summary>
+    [Fact]
+    public void ContentBathroom_HelicoptersKeepOutOfTheTallLandmarks()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        var level = LevelFile.Load(Path.Combine(content, LevelFile.FolderName, "bathroom" + LevelFile.Extension));
+        var footprints = LevelModels.In(Path.Combine(content, "models"));
+        var tall = level.Placements.Where(p => p.Model is "bathtub0" or "towel-drape0" or "rubber-duck0" or "toilet-roll-pyramid0" or "shower-riser0" or "window-frosted0").ToArray();
+        Assert.Equal(8, tall.Length);
+        var placed = level.Placements.Select(p => new PlacedModel(p.Model, new Vector3(p.At.X, p.Y, p.At.Y), p.Yaw, p.Scale)).ToArray();
+
+        var boxes = HelicopterKeepOuts.Of(level, placed, model => footprints(model)!);
+
+        Assert.NotNull(boxes);
+        // Those eight and the four team toothbrushes in the cups (5.7 m long, over 6 m with the finder's rounding): small boxes inside the keeps
+        Assert.Equal(tall.Length + 4, boxes.Length);
+        // The tub's box covers its whole footprint (x -25.5 to 25.5, z 27.5 to 50), the duck's the middle
+        Assert.Contains(boxes, b => b[0] <= -25f && b[2] >= 25f && b[1] <= 28f && b[3] >= 49f);
+        Assert.Contains(boxes, b => b[0] < 0 && b[2] > 0 && b[1] < 0 && b[3] > 0);
+    }
+
+    /// <summary>
+    /// Every solid bathroom model has a `collider` line (a comment about one does not make a collider); the floor clutter, the riser,
+    /// the drain, the window and the team toothbrushes have none.
+    /// </summary>
+    [Fact]
+    public void ContentBathroom_SolidModelsHaveColliders()
+    {
+        var content = ModelFiles.FindContentFolder(AppContext.BaseDirectory);
+        Assert.NotNull(content);
+
+        string[] flat = ["suds", "droplet", "bubble", "hairpin", "swab", "bath-bead", "shower-riser", "floor-drain", "window-frosted", "toothbrush-red", "toothbrush-blue"];
+        foreach (var file in Directory.GetFiles(Path.Combine(content, "models", "bathroom"), "*.sdf"))
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            var line = Regex.Match(File.ReadAllText(file), @"^collider (\w+)", RegexOptions.Multiline);
+            if (flat.Any(name.StartsWith))
+                Assert.True(!line.Success || line.Groups[1].Value == "none", $"{name} is flat or out of reach and should have no collider");
+            else
+                Assert.True(line.Success && line.Groups[1].Value is "convex" or "mesh", $"{name} is solid and has no `collider convex|mesh` line");
+        }
     }
 
     /// <summary>

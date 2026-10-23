@@ -1,0 +1,270 @@
+# The bathroom: the tiled floor round a bathtub, at 30 times life size (a scout's 1.5 m eye is 5 cm; a shampoo bottle 22 cm tall is 6.6 m, a toilet
+# roll 3 m, a soap bar 0.9 m thick, a water drop 0.15 m; the floor is 5 x 3.3 m, 150 x 100 m here, and the 2.33 m ceiling is at 70 m). One theme,
+# a bathroom: the tub with its towels and shower, a giant rubber duck, soap, sponges, bath bombs and beads, shampoo and lotion bottles, toilet
+# rolls, a bath brush, the scale, the drain, suds and water drops, hairpins and cotton swabs. The room is steamy and wet, shown by water, suds
+# and haze, never by fungus: no mushroom props, no red or blue props (team colours only on the scouts, flags, machines and each base's two
+# toothbrushes). The two bases are soap-dish forts with a toothbrush-cup keep. Nothing lies outside the room.
+format 1
+
+play size=(150, 100) noise=0              # the tiled floor, centred on the origin: x across (west -75 to east +75), z along (south -50 to north +50); flat
+seed 6
+
+# The room: walls of white and mint tile on the floor's four edges, a plain white ceiling at 70 m. The only light is the frosted window high in
+# the south wall (window-frosted0, placed below): soft daylight falling from the south and above, 50 degrees down and heading north (the
+# direction towards the lamp is (0, 0.77, -0.64)), over a warm ambient. The light runs along z, so both halves are lit as mirror images
+room size=(150, 70, 100) walls=bathroom-wall ceiling=bathroom-ceiling
+    light=(0, 0.77, -0.64) lightColor=(1, 0.973, 0.925) ambient=(0.55, 0.52, 0.48)
+
+# The steam: exponential squared fog in warm white-mint (#E6EEEA), 87% clear at 50 m, 28% at the far wall 150 m away; the camera clears to it
+fog density=0.0075 color=(0.902, 0.933, 0.918)
+
+# Three plumes over the tub's water at the rim (16.5 m), 66 puffs in all, and a small one over the drain (12): 78 of the 80 allowed. The
+# drip: a drop falls from the shower head every 2 s into the tub's water (y 8)
+steam at=(-15, 16.5, 38.75) size=8 rise=40 count=22
+steam at=(0, 16.5, 38.75) size=8 rise=40 count=22
+steam at=(15, 16.5, 38.75) size=8 rise=40 count=22
+steam at=(0, 0.5, -28) size=5 rise=20 count=12
+drip at=(0, 57, 49.5) water=8 every=2 size=0.15
+
+# The machines (ticket 24) are bathroom things with the scouts' floating eyes: duck tanks, spray-bottle helicopters and hairdryer turrets, the
+# models tank-bathroom-<team>-..., helicopter-bathroom-..., turret-bathroom-.... The helicopters fly 6 to 12 m under a ceiling of 20 m; they keep
+# out of every placed model over 6 m (the tub, towels, duck, pyramids, riser, window) by themselves (HelicopterKeepOuts)
+machines set=bathroom ceiling=20
+
+# The twist: on the soap slicks a player slides (and gets a higher top speed), a scout standing in water takes more damage from the electro gun
+zone suds slick
+zone puddle wet
+
+# The floor, from 2D shapes; where regions overlap, the later one wins. Each is drawn in its material, materials/ground/ground_<region>.sdfmat.
+# The base is the warm white floor tile; the grid is ruled straight, as the chessboard keeps its squares.
+# grout: 29 strips 0.25 m wide along z at x = -70 ... 70 and 19 along x at z = -45 ... 45, 5 m tiles (17 cm): the grey-mint joints
+# wet: the tile a shade darker and glossier, under the tub's overflow and round the drain (the grout is lost under it)
+# puddle: standing water, the tub's overflow, the drain's pool and the trickle between them (split round the giant duck): flat pale grey-mint, a hard highlight
+# suds: the soap slicks, a smeared white foam film, one north and one south a side, mirrored
+regions base=bathroom-tile
+    grout wobble=0
+        Box2D center=(-70, 0) size=(0.25, 100)
+        Box2D center=(-65, 0) size=(0.25, 100)
+        Box2D center=(-60, 0) size=(0.25, 100)
+        Box2D center=(-55, 0) size=(0.25, 100)
+        Box2D center=(-50, 0) size=(0.25, 100)
+        Box2D center=(-45, 0) size=(0.25, 100)
+        Box2D center=(-40, 0) size=(0.25, 100)
+        Box2D center=(-35, 0) size=(0.25, 100)
+        Box2D center=(-30, 0) size=(0.25, 100)
+        Box2D center=(-25, 0) size=(0.25, 100)
+        Box2D center=(-20, 0) size=(0.25, 100)
+        Box2D center=(-15, 0) size=(0.25, 100)
+        Box2D center=(-10, 0) size=(0.25, 100)
+        Box2D center=(-5, 0) size=(0.25, 100)
+        Box2D center=(0, 0) size=(0.25, 100)
+        Box2D center=(5, 0) size=(0.25, 100)
+        Box2D center=(10, 0) size=(0.25, 100)
+        Box2D center=(15, 0) size=(0.25, 100)
+        Box2D center=(20, 0) size=(0.25, 100)
+        Box2D center=(25, 0) size=(0.25, 100)
+        Box2D center=(30, 0) size=(0.25, 100)
+        Box2D center=(35, 0) size=(0.25, 100)
+        Box2D center=(40, 0) size=(0.25, 100)
+        Box2D center=(45, 0) size=(0.25, 100)
+        Box2D center=(50, 0) size=(0.25, 100)
+        Box2D center=(55, 0) size=(0.25, 100)
+        Box2D center=(60, 0) size=(0.25, 100)
+        Box2D center=(65, 0) size=(0.25, 100)
+        Box2D center=(70, 0) size=(0.25, 100)
+        Box2D center=(0, -45) size=(150, 0.25)
+        Box2D center=(0, -40) size=(150, 0.25)
+        Box2D center=(0, -35) size=(150, 0.25)
+        Box2D center=(0, -30) size=(150, 0.25)
+        Box2D center=(0, -25) size=(150, 0.25)
+        Box2D center=(0, -20) size=(150, 0.25)
+        Box2D center=(0, -15) size=(150, 0.25)
+        Box2D center=(0, -10) size=(150, 0.25)
+        Box2D center=(0, -5) size=(150, 0.25)
+        Box2D center=(0, 0) size=(150, 0.25)
+        Box2D center=(0, 5) size=(150, 0.25)
+        Box2D center=(0, 10) size=(150, 0.25)
+        Box2D center=(0, 15) size=(150, 0.25)
+        Box2D center=(0, 20) size=(150, 0.25)
+        Box2D center=(0, 25) size=(150, 0.25)
+        Box2D center=(0, 30) size=(150, 0.25)
+        Box2D center=(0, 35) size=(150, 0.25)
+        Box2D center=(0, 40) size=(150, 0.25)
+        Box2D center=(0, 45) size=(150, 0.25)
+    wet wobble=0
+        Circle center=(0, 24) radius=10
+        Circle center=(0, -28) radius=12
+        Polyline points=[(0, 18), (0, 9), (-7, 2), (0, -8), (0, -20)] width=3
+        Polyline points=[(0, 9), (7, 2), (0, -8)] width=3
+    puddle wobble=0
+        Circle center=(0, 24) radius=6
+        Circle center=(0, -28) radius=8
+        Polyline points=[(0, 18), (0, 9), (-7, 2), (0, -8), (0, -20)] width=1.2
+        Polyline points=[(0, 9), (7, 2), (0, -8)] width=1.2
+    suds wobble=0
+        Polyline points=[(-60, 26), (-46, 34), (-34, 30), (-28, 23)] width=4
+        Polyline points=[(-58, -32), (-42, -45), (-12, -46)] width=4
+        Polyline points=[(60, 26), (46, 34), (34, 30), (28, 23)] width=4
+        Polyline points=[(58, -32), (42, -45), (12, -46)] width=4
+
+# The unique models, each from content/models/ by name, its base on the ground at (x, z), turned yaw degrees (counter-clockwise from above;
+# yaw 90 turns a model's +z onto +x). Every group starts with a comment line (the overlap and clearance tests read the groups from these
+# comments). Axes checked from the models' headers: the dish's main gate faces +z (yaw 90 puts it on the middle), the tub's front is +z (yaw
+# 180 turns it south), the towel and riser sit on the tub and the wall at local -z (yaw 180), the bath brush is long along x with its head at +x,
+# the window's room side is +z (yaw 0 on the south wall), the toothbrushes stand upright with their bristles on +z
+place
+    # The west base: the soap-dish fort, its main gate towards the middle (x -51.5) and a 2.5 m gate on each end, no flatten (the floor is level)
+    soap-dish0 at=(-62, 0) yaw=90
+    # The keep, a toothbrush cup with two team toothbrushes standing in it, bristles to the field (feet on the cup's floor, 0.35 m up; the
+    # second one raised 0.5 m so the heads stand at different heights), and two soap bars as cover inside the dish
+    toothbrush-cup0 at=(-68.5, 0) yaw=0
+    toothbrush-red0 at=(-68.3, 0.35) yaw=90 y=0.35
+    toothbrush-red0 at=(-68.7, -0.35) yaw=90 y=0.85
+    soap-bar0 at=(-58, 7) yaw=20
+    soap-bar0 at=(-58, -7) yaw=-20
+    # The east base, mirrored
+    soap-dish0 at=(62, 0) yaw=-90
+    # The east keep, blue brushes
+    toothbrush-cup0 at=(68.5, 0) yaw=0
+    toothbrush-blue0 at=(68.3, 0.35) yaw=-90 y=0.35
+    toothbrush-blue0 at=(68.7, -0.35) yaw=-90 y=0.85
+    soap-bar0 at=(58, 7) yaw=-20
+    soap-bar0 at=(58, -7) yaw=20
+    # The tub, the north wall of the middle: a built-in tub with a front panel, front face at z 27.5, x -25.5 to 25.5, 16.5 m tall; the water creeps over the rim at the middle
+    bathtub0 at=(0, 38.75) yaw=180
+    # The shower riser on the north wall over the tub, the north marker (out of reach)
+    shower-riser0 at=(0, 49.5) yaw=180
+    # Two towels hung over the tub's rim, soft cliffs in the tub lane
+    towel-drape0 at=(-14.5, 25) yaw=180
+    towel-drape0 at=(14.5, 25) yaw=180
+    # The giant duck at the centre, looking north at the tub, the blocker on the flag-to-flag line
+    rubber-duck0 at=(0, 0) yaw=0
+    # A pyramid of six toilet rolls west of the middle, a little north of the spawn-to-spawn line
+    toilet-roll-pyramid0 at=(-26, -15) yaw=10
+    # The east pyramid, a little south of it
+    toilet-roll-pyramid0 at=(26, -19) yaw=-170
+    # A bath brush lying in the north half of the west field, head to the middle, from (-36, 12.4) to (-24, 15.6)
+    bath-brush0 at=(-30, 14) yaw=-15
+    # The east brush, mirrored
+    bath-brush0 at=(30, 14) yaw=-165
+    # The bathroom scale, a low walkable hill in the open south lane
+    bath-scale0 at=(0, -40) yaw=0
+    # The floor drain, the puddle's centre and the south marker; flush with the floor
+    floor-drain0 at=(0, -28) yaw=0
+    # The frosted window in the south wall, the light
+    window-frosted0 at=(0, -50) yaw=0
+
+# The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its soap-dish fort. The flag stand inside the dish before
+# the cup; the spawn on the open floor off the dish's south-east corner, facing the middle. The pistol pod north of the main gate and the
+# blob-gun pod south of it, by the spawn; a health pod behind the dish's south end and two out on the flanks, one in the tub-end alcove
+# and one in the south lane. The level's own mix, pistol, blob-gun, electro-gun and flamethrower. The machines (ticket 24): four turrets a
+# side, two before the dish's main gate, two off its ends, and the zone for the helicopter and tanks in the north-west (north-east) alcove
+sides
+    west
+        spawn at=(-47, -17) yaw=90 radius=2.5
+        flag at=(-63, 0)
+        pod pistol at=(-44, 7)
+        pod blob-gun at=(-44, -7)
+        pod health at=(-71, -22)
+        pod health at=(-34, 40)
+        pod health at=(-28, -38)
+        turret at=(-48, 11) yaw=60
+        turret at=(-48, -11) yaw=120
+        turret at=(-62, 20) yaw=30
+        turret at=(-62, -20) yaw=150
+        machines at=(-67, 32) yaw=90 radius=3
+    east
+        spawn at=(47, -17) yaw=-90 radius=2.5
+        flag at=(63, 0)
+        pod pistol at=(44, 7)
+        pod blob-gun at=(44, -7)
+        pod health at=(71, -22)
+        pod health at=(34, 40)
+        pod health at=(28, -38)
+        turret at=(48, 11) yaw=-60
+        turret at=(48, -11) yaw=-120
+        turret at=(62, 20) yaw=-30
+        turret at=(62, -20) yaw=-150
+        machines at=(67, 32) yaw=-90 radius=3
+# The neutral pods on the middle line, 32 m apart with the giant duck between them: the electro-gun south on the open floor by the drain's
+# puddle, where the sight lines are long and water strengthens it, the flamethrower north under the tub at the trickle, among the close cover
+neutral
+    pod electro-gun at=(0, -16)
+    pod flamethrower at=(0, 16)
+
+# The small change of the floor, scattered by the thousand and drawn instanced: foam heaps and water drops in drifts about 12 m wide with bare
+# tile between, a few bubbles, and denser handfuls of the smallest bits, hairpins, cotton swabs and bath beads, and a fine sprinkle of drops.
+# None of it blocks or is taller than a shin. reach is 0: this is a room. The small bits keep out of the puddles; suds and drops on the slicks
+# and in the water are wanted
+scatter group=suds
+    suds0
+    suds1
+    suds2
+    droplet0
+    droplet1
+    droplet2
+    bubble0 weight=0.3
+    density=0.2 cluster=3 clusterScale=12 spacing=0.9 reach=0 maxSlope=20 margin=0.6 scale=(0.85, 1.15)
+scatter group=suds
+    hairpin0
+    hairpin1
+    swab0
+    swab-half0
+    bath-bead0
+    bath-bead1
+    bath-bead2
+    density=0.04 cluster=4 clusterScale=6 spacing=0.7 reach=0 maxSlope=20 avoid=puddle margin=0.6 scale=(0.85, 1.15)
+scatter group=suds
+    droplet0
+    droplet1
+    droplet2
+    density=0.15 cluster=2.5 clusterScale=8 spacing=0.5 reach=0 maxSlope=20 margin=0.3 scale=(0.85, 1.15)
+
+# The tall blockers that hide a player: shampoo, conditioner and lotion bottles (one lying on its side) and toilet rolls, in clumps 12 to 18 m
+# wide, like the spill of a knocked-over caddy, with open floor between, 3 m clear of everything placed; laid first, so the knee cover below
+# keeps clear of them
+trees group=toiletries
+    shampoo0
+    shampoo1
+    shampoo2
+    lotion-pump0
+    toilet-roll0
+    toilet-roll1
+    band=(-70, -10) density=0.004 spacing=8 cluster=3 clusterScale=16 scale=(0.9, 1.1) margin=3
+
+# Knee cover: soap bars, sponges, ducklings, bath bombs, a washcloth and bottle caps, mostly 0.6 to 1.1 m high so players jump them and bots go
+# round, in clumps about 16 m wide. band is how far inside the floor's edge they stand (negative inside it), clear of the walls
+trees group=toiletries
+    soap-bar0
+    soap-bar1
+    soap-bar2
+    sponge0
+    sponge1
+    duckling0
+    duckling1
+    duckling2
+    bath-bomb0
+    bath-bomb1
+    bath-bomb-half0
+    washcloth0
+    bottle-cap0
+    bottle-cap1
+    band=(-72, -6) density=0.006 spacing=6.5 cluster=2.5 clusterScale=16 scale=(0.9, 1.1) margin=1.5
+# A second sprinkle of the ducklings alone: the family wanders
+trees group=toiletries
+    duckling0
+    duckling1
+    duckling2
+    band=(-72, -6) density=0.0012 spacing=8 scale=(0.9, 1.1) margin=1.5
+
+# How the small bits are drawn round the camera: the finest level to 10 m with the ink outline, the next to 25 m and the coarsest to 45 m,
+# fading out over its last 15 m, shadows from the nearest ring only; no wind, and no ground colour at their feet (tintHeight 0: a tiled floor
+# is not grass). The integrated GPU / web preset draws half of them, to 0.7 times the distance
+draw suds
+    rings=[10, 25, 45] outline=1 shadows=1 blend=1 fade=15
+    lowDensity=0.5 lowDistance=0.7 tintHeight=0
+
+# How the toiletries are drawn: LOD0 to 25 m, LOD1 to 60 m and LOD2 beyond, never ended by distance inside the room, all with the ink
+# outline; shadows from the nearer two rings (only the nearest on the integrated GPU / web preset); no wind
+draw toiletries
+    rings=[25, 60, 1000] outline=3 shadows=2 lowShadows=1 blend=2 lowDistance=0.7 tintHeight=0

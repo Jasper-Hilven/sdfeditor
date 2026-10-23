@@ -1,0 +1,30 @@
+# Bath bomb half 0: half a lilac bath bomb, 0.7 m across and about 0.6 m tall (30 times life size), cut face up, fizzing: a heap of suds foams out of the
+# pale crumbly cut face. Knee cover: jump it or go round; convex collider.
+format 1
+collider convex
+
+Detail detail=0.3
+    Intersection
+        Union
+            # The dome, cut flat at the top and standing on a small flat foot
+            Material material=bath_bomb_lilac
+                Intersection
+                    Translate translation=(0, 0.28, 0)
+                        Sphere radius=0.36
+                    Plane normal=(0, 1, 0) height=-0.4
+            # The pale cut face, a thin disc on the cut
+            Material material=bath_bomb_cut
+                Translate translation=(0, 0.4, 0)
+                    CappedCylinder radius=0.3 height=0.02
+            # The fizzing suds on the face
+            Material material=bath_foam
+                SmoothUnion smoothness=0.02
+                    Translate translation=(0, 0.45, 0)
+                        Ellipsoid radii=(0.2, 0.15, 0.2)
+                    Translate translation=(0.15, 0.43, 0.08)
+                        Ellipsoid radii=(0.11, 0.09, 0.11)
+                    Translate translation=(-0.14, 0.42, -0.1)
+                        Ellipsoid radii=(0.1, 0.08, 0.1)
+                    Translate translation=(0.05, 0.42, -0.17)
+                        Ellipsoid radii=(0.08, 0.07, 0.08)
+        Plane normal=(0, -1, 0) height=0

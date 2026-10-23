@@ -1,0 +1,264 @@
+# The Champion's Arena: the fourth battle level and the last battle of the campaign (ticket 33), where Chanterelle Prime, last
+# year's runner-up, fights Mushroom 42 at giant size. The tournament's own final stadium, rebuilt by Prime on the server: a bowl of
+# fungal stone round a sand floor 120 m × 80 m, terraced stands packed with a cheering crowd of mushrooms, four floodlight mushrooms at
+# the corners, 42's Champion's Corner at the west end and Prime's Royal Box at the east end. Life size (the scout's eye at 1.5 m); Prime
+# is a giant inside it (6.5 m, a scale hack). Everything is fungal: fungal stone, shelf fungus, mycelium, moss, spore-sand, mushrooms.
+# The sky is dusk, the sun low in the west behind the red side (azimuth 255 degrees, raised to 20 degrees of elevation at the end of this
+# file), so Prime is lit from the front and nobody looks into it; the preset's sun is already in the west, so the level needs no
+# sunYaw. Palette clear of team red and blue: cream sand, grey-
+# green stone, ochre shelf fungus, moss green, the floodlights' gold; the only blues are Prime, the Royal Box's banner and the blue
+# crew, the only reds 42's team and the Champion's Corner.
+#
+# The layout is not mirrored (layout boss): west is 42's side, east is Prime's, so BattleSidesTests skip the mirror check and nothing
+# else. The boss fight has three phases and some models are there in some of them only (phases=): the Royal Box's balcony in phase 1,
+# the ramp it falls into in phases 2 and 3, the centre and east pillars in phases 1 and 2, the toppled pillars in phase 3. The
+# builder puts each range under its own Phase object, which the boss's arena shows and hides, and the navmesh is baked once per
+# phase layout. The wreck of the Prime-copter stands in phase 3; the spore shield is made by 33.6 and is not placed here yet.
+format 1
+
+layout boss                               # asymmetric sides, phases and the boss section below
+
+play size=(120, 80) noise=0.05            # the floor: x ±60, z ±40, nearly flat so the shockwave reads and bots never snag
+seed 33
+
+hills
+    ring width=24 height=12 terrace=1.5   # the stands: tiers 1.5 m deep and 0.75 m high, 16 of them up to the top row at 12 m
+    noise amplitude=0.4 scale=18          # the top tier is only a little uneven
+
+edge                                      # where the island ends, behind the top tier
+    margin=6 rim=3 shoulder=3             # its last 3 m bend down to 3 m high all round, where the underside meets the ground
+    underside arena-underside             # the rock below the island, content/models/terrain/, made for these numbers
+
+# The floor's regions, from 2D shapes (the later one wins), each drawn in its material, materials/ground/ground_<region>.sdfmat, and
+# all with wobble=0 so their painted lines stay straight. The sand is the base; the stands are the stone of the terraces, a band
+# 30 m wide outside the playable rectangle (a polyline round it, 15 m out, 15 m either side); the running track is darker packed sand
+# along the wall, a ring 6 m wide round the field, which is sand again; and the centre circle carries a mycelium ring and moss
+# emblem. The Champion's Corner and the Royal Box have their own paving in their models; there is no path or trail, the arena is one
+# open floor
+regions base=sand
+    stands wobble=0
+        Polyline points=[(-75, -55), (75, -55), (75, 55), (-75, 55), (-75, -55)] width=30
+    track wobble=0
+        RoundedBox2D center=(0, 0) size=(112, 72) radius=16
+    field wobble=0
+        RoundedBox2D center=(0, 0) size=(100, 60) radius=12
+    emblem wobble=0
+        Circle center=(6, 0) radius=9
+
+# The unique models, each from content/models/ by name, its base on the ground at (x, z) or y metres above it, turned yaw degrees
+# (counter-clockwise from above, so yaw=90 turns a model's front, +z, to +x). Each group starts with a comment; pieces of one group
+# may touch, pieces of two groups never do. Coordinates (x, z), red west, blue east, flag to flag 83.5 m
+place
+    # 42's Champion's Corner: a low red-dressed podium of fungal stone, 14 m wide and 20 m deep, turned to face the field (+x); its
+    # model reaches 0.5 m past its 20 m at the brackets, so it stands at x = -47.5 to stay wholly inside the floor and clear of the wall.
+    # The red flag stand is in the middle of it (the capture point in phases 1 and 3)
+    champions-corner at=(-47.5, 0) yaw=90
+    # The champion's plinth, where 42's golden minigun appears in phase 3 (the boss section below says where, too)
+    champion-plinth at=(-50, 10) yaw=90
+    # Prime's Royal Box: a dais 28 m wide and 16 m deep with its top 4 m up and a 12 m wall at the back, turned to face the field (west,
+    # yaw -90). Its front is at x = 41. In phase 1 its balcony (3.5 m up, 8 m forward) hangs over the blue flag stand at (36, 0) and
+    # hides it from Prime's eyes; at the change to phase 2 it falls into a ramp from the floor to the dais, which makes the dais
+    # walkable high ground (the ramp stands 0.6 m into the dais so the navmesh joins them; the balcony's tag is 1, the ramp's 2-3)
+    royal-box at=(49, 0) yaw=-90
+    royal-box-balcony at=(41, 0) y=3.5 yaw=-90 phases=1
+    royal-box-balcony-fallen at=(32.4, 0) yaw=-90 phases=2-3
+    # The four giant floodlight mushrooms behind the wall's corners, 14 m high, emissive gold caps (no real lights)
+    floodlight-mushroom at=(-54, 34) yaw=0
+    floodlight-mushroom at=(54, 34) yaw=90
+    floodlight-mushroom at=(-54, -34) yaw=180
+    floodlight-mushroom at=(54, -34) yaw=270
+    # The fungal stone pillars, 6 m high, which break Prime's line of sight: the run to the blue flag goes from shadow to shadow. The
+    # centre pillar breaks the flag-to-flag line and is crushed by the crash in phase 3, and the two east pillars topple into
+    # knee-high cover pointing west (phase 3, the toppled pieces below); the two west pillars stay
+    arena-pillar0 at=(-28, 10) yaw=0
+    arena-pillar1 at=(-28, -10) yaw=90
+    arena-pillar1 at=(20, 10) yaw=180 phases=1-2
+    arena-pillar0 at=(20, -10) yaw=270 phases=1-2
+    arena-pillar0 at=(6, 0) yaw=45 phases=1-2
+    # The toppled east pillars, lying west from their feet at the pillars' places (foot end first, 6 m long, 1.1 m high)
+    arena-pillar-toppled at=(22.5, 10) yaw=-90 phases=3
+    arena-pillar-toppled at=(22.5, -10) yaw=-90 phases=3
+    # The wreck of the Prime-copter (ticket 33.5), phase 3 only, where the copter crashes at the end of phase 2 (the boss section's crash
+    # point, the middle of the centre circle): the crumpled puffball with a level top 2 m up where the crown is, and a debris ramp
+    # up to it on the side facing the red base (yaw -90 turns the model's ramp, +z, to the west). It crushes the centre pillar (phases
+    # 1-2) it takes the place of
+    primecopter-wreck at=(6, 0) yaw=-90 phases=3
+    # The toadstool shelters, overhead cover against the Prime-copter's cannon and the downdraft dive: their caps are 3.9 m up, under
+    # the copter's 9 m minimum height. Two before the red side, two before the blue
+    shelter-toadstool0 at=(-14, 12) yaw=20
+    shelter-toadstool1 at=(-14, -12) yaw=200
+    shelter-toadstool1 at=(14, 20) yaw=110
+    shelter-toadstool0 at=(14, -20) yaw=290
+    # The knee cover, 14 stone crescents 0.9 m high in pairs with a 4.7 m gap, their curve towards the way the shots come from: between
+    # the red podium and the centre, in the north and south lanes, and before the blue side. Players jump them, bots go round
+    arena-barrier0 at=(-36, 4.5) yaw=90
+    arena-barrier1 at=(-36, -4.5) yaw=90
+    arena-barrier1 at=(-26, 22) yaw=90
+    arena-barrier0 at=(-26, -22) yaw=90
+    arena-barrier0 at=(-6, 8) yaw=90
+    arena-barrier1 at=(-6, -8) yaw=90
+    arena-barrier1 at=(-8, 30) yaw=90
+    arena-barrier0 at=(-8, -30) yaw=90
+    arena-barrier1 at=(12, 4) yaw=-90
+    arena-barrier0 at=(12, -4) yaw=-90
+    arena-barrier0 at=(26, 26) yaw=-90
+    arena-barrier1 at=(26, -26) yaw=-90
+    arena-barrier1 at=(38, 18) yaw=-90
+    arena-barrier0 at=(38, -18) yaw=-90
+    # The arena wall: 46 segments of 8 m, 2.5 m of fungal stone along the floor's edge (the front, +z, towards the floor, the middle of
+    # a segment 0.5 m in from the edge). North and south 15 each, west 10, east 6: the 4 behind the Royal Box are left out, its own
+    # back wall is the wall there. The corner segments overlap by a metre, in this one group
+    arena-wall at=(-56, 39.5) yaw=180
+    arena-wall at=(-48, 39.5) yaw=180
+    arena-wall at=(-40, 39.5) yaw=180
+    arena-wall at=(-32, 39.5) yaw=180
+    arena-wall at=(-24, 39.5) yaw=180
+    arena-wall at=(-16, 39.5) yaw=180
+    arena-wall at=(-8, 39.5) yaw=180
+    arena-wall at=(0, 39.5) yaw=180
+    arena-wall at=(8, 39.5) yaw=180
+    arena-wall at=(16, 39.5) yaw=180
+    arena-wall at=(24, 39.5) yaw=180
+    arena-wall at=(32, 39.5) yaw=180
+    arena-wall at=(40, 39.5) yaw=180
+    arena-wall at=(48, 39.5) yaw=180
+    arena-wall at=(56, 39.5) yaw=180
+    arena-wall at=(-56, -39.5) yaw=0
+    arena-wall at=(-48, -39.5) yaw=0
+    arena-wall at=(-40, -39.5) yaw=0
+    arena-wall at=(-32, -39.5) yaw=0
+    arena-wall at=(-24, -39.5) yaw=0
+    arena-wall at=(-16, -39.5) yaw=0
+    arena-wall at=(-8, -39.5) yaw=0
+    arena-wall at=(0, -39.5) yaw=0
+    arena-wall at=(8, -39.5) yaw=0
+    arena-wall at=(16, -39.5) yaw=0
+    arena-wall at=(24, -39.5) yaw=0
+    arena-wall at=(32, -39.5) yaw=0
+    arena-wall at=(40, -39.5) yaw=0
+    arena-wall at=(48, -39.5) yaw=0
+    arena-wall at=(56, -39.5) yaw=0
+    arena-wall at=(-59.5, -36) yaw=90
+    arena-wall at=(-59.5, -28) yaw=90
+    arena-wall at=(-59.5, -20) yaw=90
+    arena-wall at=(-59.5, -12) yaw=90
+    arena-wall at=(-59.5, -4) yaw=90
+    arena-wall at=(-59.5, 4) yaw=90
+    arena-wall at=(-59.5, 12) yaw=90
+    arena-wall at=(-59.5, 20) yaw=90
+    arena-wall at=(-59.5, 28) yaw=90
+    arena-wall at=(-59.5, 36) yaw=90
+    arena-wall at=(59.5, -36) yaw=-90
+    arena-wall at=(59.5, -28) yaw=-90
+    arena-wall at=(59.5, -20) yaw=-90
+    arena-wall at=(59.5, 20) yaw=-90
+    arena-wall at=(59.5, 28) yaw=-90
+    arena-wall at=(59.5, 36) yaw=-90
+
+# The battle sides (ticket 17, 20, 24, 33), west at -x and east at +x, NOT mirrored. West is 42's: the spawn zone (3 m round) beside the
+# Champion's Corner on level ground, 18.4 m from the red flag stand; the red flag stand in the middle of the corner's podium; the
+# pistol pod (dual pistols from the start of the fight) and three health pods, one behind the podium and two on the flanks a little
+# short of halfway; the minigun comes in phase 3, on the champion's plinth at (-50, 10), made at runtime. East is Prime's: the blue
+# flag stand under the Royal Box's balcony (the balcony hides it from Prime's eyes, a dead zone at his feet, not from the turrets;
+# it is there in phase 1 only, the crown being the flag in phase 3), the blue spawn beside the box's north stair for the blue crew,
+# four blue turrets (the two in front cover the blue stand) and the machine zone where phase 2's dropped tanks respawn. East has no
+# pods of its own: the blue crew uses the neutral ones. The red side has no machines. Everything stands on the ground
+sides
+    west
+        spawn at=(-50, -18) yaw=90 radius=3
+        flag at=(-47.5, 0)
+        pod pistol at=(-40, -10)
+        pod health at=(-56, 22)
+        pod health at=(-22, 32)
+        pod health at=(-22, -32)
+    east
+        spawn at=(52, 28) yaw=-150 radius=3
+        flag at=(36, 0)
+        turret at=(32, 9) yaw=-60
+        turret at=(32, -9) yaw=-120
+        turret at=(48, 20) yaw=-30
+        turret at=(48, -20) yaw=-150
+        machines at=(50, -26) yaw=-90 radius=4
+neutral
+    pod electro-gun at=(0, 26)              # long range, 60 m: its bolt jumps between the Prime-copter's spore sacs, the phase 2 tool
+    pod flamethrower at=(0, -22)            # short range, 8 m: the crew round the blue stand in phase 1, Prime's stem in phase 3
+
+# The final boss's places (ticket 33): Prime on the dais in phase 1 (4 m up, facing west), where the Prime-copter crashes in phase 2's
+# end and the wreck stands in phase 3 (the middle of the centre circle), the champion's plinth, and the spore shield's dome over
+# Prime, 7 m round and on the dais
+boss
+    prime at=(49, 0) yaw=-90 y=4
+    crash at=(6, 0)
+    plinth at=(-50, 10) yaw=90
+    shield at=(49, 0) radius=7 y=4
+
+# The ground clutter along the wall, moss cushions and small fungi in tidy drifts on the floor's edge strip and nowhere else (the
+# stadium floor stays clean), drawn instanced in the foliage group like the fungal level's. trees sections take a band: 8 m inside to
+# the edge. density is instances per square metre on average, up to cluster times that in the clusters
+trees group=foliage
+    moss-turf0 weight=3
+    moss-turf1 weight=1
+    moss-turf2 weight=1.5
+    moss-turf3 weight=1
+    moss-turf4 weight=1
+    band=(-8, 0) density=0.2 cluster=3 clusterScale=10 spacing=0.6 avoid=emblem margin=0.8 maxSlope=25
+trees group=foliage
+    fungi-tuft0 weight=2
+    fungi-tuft1 weight=1
+    fungi-tuft2 weight=0.4
+    fungi-tuft3 weight=1
+    fungi-tuft4 weight=1
+    band=(-8, 0) density=0.05 cluster=4 clusterScale=8 spacing=0.8 avoid=emblem margin=0.8 maxSlope=20
+
+# More knee cover over the field, what fungi live on: the fungal level's rocks, stumps with brackets and puffballs among the barriers,
+# with a convex collider each (the logs would span the lanes, so none). A trees section, its own group, 10 m or more from the wall
+trees group=rocks
+    rock0 weight=1
+    rock1 weight=0.6
+    rock2 weight=0.5
+    rock3 weight=0.8
+    rock4 weight=0.8
+    stump-brackets0 weight=0.7
+    stump-brackets1 weight=0.7
+    puffball0 weight=0.8
+    band=(-52, -10) density=0.006 spacing=6 scale=(0.6, 1.0) margin=3 maxSlope=25
+
+# The crowd on the stands, four kinds of cheering mushroom in a mix of yellow, orange, cream, purple and green caps, standing on the
+# treads (the risers are too steep for maxSlope) and facing the arena floor, give or take 20 degrees. The east stand behind the Royal
+# Box is Prime's fans first, cream caps with a blue scarf, in a block of about 60 (their section is before the crowd's, so the crowd
+# keeps clear of them): team dressing of the blue base. The crowd sways in the instanced renderer's wind, and the boss's cheer
+# uniform multiplies it
+trees group=crowd
+    crowd-mushroom-blue-fan
+    band=(2, 20) area=[62, -10, 76, 10] density=0.3 spacing=1.0 scale=(0.95, 1.1) maxSlope=45 facing=15
+trees group=crowd
+    crowd-mushroom0
+    crowd-mushroom1
+    crowd-mushroom2
+    crowd-mushroom3
+    band=(2, 20) density=0.1 spacing=1.3 scale=(0.9, 1.15) maxSlope=45 facing=20
+
+# How the ground clutter is drawn: the finest level with its outline and shadows up to 6 m, the next to 15 m, the coarsest to 35 m,
+# fading out over its last 15 m. A gentle sway and the turfs' lowest 8 cm in the ground's colour. The integrated GPU / web preset
+# draws half of them, to 0.7 times the distance
+draw foliage
+    rings=[6, 15, 35] outline=1 shadows=1 blend=1 fade=15
+    wind=0.04 windHeight=0.5 tintHeight=0.08
+    lowDensity=0.5 lowDistance=0.7
+
+# The field's rocks and stumps: LOD0 to 20 m, LOD1 to 50 m, LOD2 beyond, outlined, shadows from the nearest ring only
+draw rocks
+    rings=[20, 50, 1000] outline=2 shadows=1 blend=2 lowDistance=0.7
+
+# The crowd: LOD0 to 20 m, LOD1 to 50 m, LOD2 beyond, outlined on the nearer two rings, shadows from the nearest only (none on the low
+# preset); a sway of 6 cm at 1.2 m, the boss's cheer on top. The integrated GPU / web preset draws 0.6 of them
+draw crowd
+    rings=[20, 50, 1000] outline=2 shadows=1 lowShadows=0 blend=2
+    wind=0.06 windHeight=1.2
+    lowDensity=0.6 lowDistance=0.7
+
+# content/skies/dusk.sky: a low gold sun in the west, warm horizon, violet sky. Its sun is raised from 9 to 20 degrees: at 9 the stands
+# (12 m at the crest) would throw their shadow 75 m, over the whole floor; at 20 it reaches 33 m from the crest, so only the stands
+# and the track by the west wall are in it
+sky preset=dusk
+    light elevation=20

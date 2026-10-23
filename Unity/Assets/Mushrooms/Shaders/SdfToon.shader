@@ -90,6 +90,7 @@ Shader "SdfMushrooms/Toon"
             HLSLPROGRAM
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+            #pragma multi_compile_fog
             #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma multi_compile_instancing
 
@@ -134,6 +135,7 @@ Shader "SdfMushrooms/Toon"
                 // The pixel's position and normal in the part's own space, for the pattern (see SdfPattern.hlsl)
                 float3 positionOS : TEXCOORD11;
                 float3 normalOS : TEXCOORD12;
+                half fogFactor : TEXCOORD13;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -146,6 +148,7 @@ Shader "SdfMushrooms/Toon"
                 input.positionOS = SdfScatterWind(input.positionOS);
                 output.positionWS = TransformObjectToWorld(input.positionOS);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
+                output.fogFactor = ComputeFogFactor(output.positionCS.z);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.color = input.color;
                 output.uv0 = input.uv0;
@@ -201,8 +204,8 @@ Shader "SdfMushrooms/Toon"
                 // A heating model's glow (ticket 28.10), flat over the shading
                 color = lerp(color, _HeatGlow.rgb, saturate(_HeatGlow.a));
                 // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows; far away it fades
-                // toward the sky
-                return SdfToonOutput(SkyFade(color, input.positionWS), normalize(input.normalWS), input.positionWS);
+                // toward the sky, and into the level's fog if it has one
+                return SdfToonOutput(MixFog(SkyFade(color, input.positionWS), input.fogFactor), normalize(input.normalWS), input.positionWS);
             }
             ENDHLSL
         }

@@ -1,0 +1,58 @@
+# Royal Box (ticket 33.2): Prime's box at the east end of the Champion's Arena, a grown stone dais 28 m wide (x) and 16 m deep (z) with
+# its top 4 m up and a wall at the back 12 m high, in fungal stone with a spore-sand paved top. Stairs of stone blocks climb the two
+# ends (x = +-14 to 11, 3 m wide, up to the dais) and a bracket-fungus buttress juts from the wall's two ends. Hung on the back wall is
+# Prime's banner: a woven-mycelium flag (a fungal banner, not a cloth one) 6 m wide and 8 m tall, royal blue with a cream cap emblem
+# and a mycelium fringe, which the dais's front wall looks up to. The balcony in front is a separate model
+# (royal-box-balcony, and royal-box-balcony-fallen after phase 1). The origin is the dais's centre on the ground, front along +z
+# (turned to face west in the level, yaw -90). The collider is a mesh (it is walked on).
+format 1
+collider mesh
+
+Detail detail=0.25
+    Union
+        Material material=arena_stone
+            Union
+                # The dais, 4 m high, with its front edge rounded
+                Translate translation=(0, 2.0, 0)
+                    RoundBox size=(11, 2.0, 8) roundness=0.1
+                # The back wall: 12 m high, 1.5 m thick, at the back of the dais, as wide as the dais
+                Translate translation=(0, 6.0, -7.2)
+                    RoundBox size=(11, 6.0, 0.75) roundness=0.1
+                # The stairs, nine steps up each end, 0.44 m a step
+                SymmetryX
+                    Union
+                        Translate translation=(12.5, 0.22, 0)
+                            Box size=(1.5, 0.22, 8)
+                        Translate translation=(12.0, 0.66, 0)
+                            Box size=(1.0, 0.22, 8)
+        # The dais's paved top
+        Material material=arena_paving
+            Translate translation=(0, 4.0, 0)
+                Box size=(10.9, 0.02, 7.9)
+        # The banner, hung from a lintel of lichen at 11 m, 6 m wide and 8 m tall, standing proud of the back wall's front
+        Material material=arena_banner
+            Translate translation=(0, 6.9, -6.4)
+                Box size=(3, 4, 0.05)
+        Material material=arena_banner_trim
+            Union
+                # The lintel it hangs from and the fringe along the bottom
+                Translate translation=(0, 11.05, -6.4)
+                    Box size=(3.4, 0.15, 0.12)
+                Translate translation=(0, 2.9, -6.4)
+                    Box size=(3, 0.12, 0.08)
+                # The emblem: a cap half-disc over a stem
+                Translate translation=(0, 7.5, -6.34)
+                    Intersection
+                        Ellipsoid radii=(1.6, 1.3, 0.05)
+                        Translate translation=(0, 1.3, 0)
+                            Box size=(2, 1.3, 1)
+                Translate translation=(0, 6.4, -6.34)
+                    Box size=(0.35, 0.8, 0.05)
+        # Brackets of shelf fungus at the wall's two ends
+        Material material=arena_shelf
+            SymmetryX
+                Union
+                    Translate translation=(11.0, 5.0, -7.2)
+                        Ellipsoid radii=(1.0, 0.3, 1.2)
+                    Translate translation=(11.0, 7.6, -7.2)
+                        Ellipsoid radii=(0.9, 0.25, 0.9)

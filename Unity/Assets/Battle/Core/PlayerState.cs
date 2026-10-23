@@ -43,6 +43,12 @@ namespace SdfBattle
         /// <summary>Alive and still under spawn protection: takes no damage.</summary>
         public bool Protected => Alive && ProtectionLeft > 0;
 
+        /// <summary>
+        /// Out of the match for now (<see cref="MatchState.SetBenched"/>, ticket 33.6: the boss fight's crew is as big as the phase says):
+        /// not alive, and it does not respawn until it is back.
+        /// </summary>
+        public bool Benched { get; internal set; }
+
         /// <summary>Enemies this player killed this round.</summary>
         public int Kills { get; internal set; }
 
@@ -78,6 +84,8 @@ namespace SdfBattle
         /// <summary>Lets <paramref name="seconds"/> pass; returns whether a dead player's wait is over and they are to respawn now.</summary>
         internal bool Tick(float seconds)
         {
+            if (Benched)
+                return false;
             if (Alive)
             {
                 ProtectionLeft = ProtectionLeft > seconds ? ProtectionLeft - seconds : 0;

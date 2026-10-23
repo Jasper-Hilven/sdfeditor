@@ -156,10 +156,10 @@ or domed tops, so few flat tops sit between 0.4 and 1.1 m.
 | `cookie0` | 3.6 m across, domed, cocoa chips | 0.72 |
 | `cookie-bitten0` | the same with a bite out, crumbs | 0.72 |
 | `butter-pat0` | 1.8 × 1.8 m, softened and slumped | 0.9 |
-| `bottle-cap0` | crown cap 1.9 m across, crimp up (lilac, mustard) | 0.45: bots go round, players hop over |
+| `crown-cap0` | crown cap 1.9 m across, crimp up (lilac, mustard) | 0.45: bots go round, players hop over |
 | `jar-lid0` | 4.2 m across, upside down (a dish to jump into) | 0.72 rim |
 | `teaspoon0` | 8.4 m long, bowl 2.4 m wide, handle rising from it | 0.4 to 1.0 |
-| `sponge0` | washing-up sponge 6 × 4.2 m, yellow foam, green scourer on top | 1.5: the tallest, a low wall |
+| `dish-sponge0` | washing-up sponge 6 × 4.2 m, yellow foam, green scourer on top | 1.5: the tallest, a low wall |
 | `garlic-clove0` | lying, 1.8 × 1.0 m | 1.0 |
 
 ## Tall blockers
@@ -248,10 +248,10 @@ scale, origin at the base's centre on y = 0, 3 LODs at 256 (the bread box's part
 | `sugar-cube0..2` | 0.96 cube; 1.1; 1.4 | convex | 1.5-3k | sugar |
 | `cookie0`, `cookie-bitten0` | 3.6 × 0.72 | convex (mesh) | 3k | biscuit, cocoa |
 | `butter-pat0` | 1.8 × 1.8 × 0.9 | convex | 2k | butter |
-| `bottle-cap0` | 1.9 × 0.45 | convex | 2k | cap (2 tints) |
+| `crown-cap0` | 1.9 × 0.45 | convex | 2k | cap (2 tints) |
 | `jar-lid0` | 4.2 × 0.72 | mesh | 2.5k | lid |
 | `teaspoon0` | 8.4 × 2.4 × 1.0 | mesh | 3k | steel |
-| `sponge0` | 6 × 4.2 × 1.5 | convex (mesh) | 3k | foam, scourer |
+| `dish-sponge0` | 6 × 4.2 × 1.5 | convex (mesh) | 3k | foam, scourer |
 | `garlic-clove0` | 1.8 × 1.0 | convex | 2.5k | garlic |
 | `tin-can0`, `tin-can1`, `tin-can-lying0` | 6.6-7.2 × 4.5 | mesh | 4-6k | tin, label |
 | `jam-jar0`, `honey-jar0` | 5.4-6 × 4.2-4.8 | mesh | 5-6k | glass, jam/honey, lid |

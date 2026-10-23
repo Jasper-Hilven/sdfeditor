@@ -1,0 +1,26 @@
+# Turret foot, red (ticket 29.6): the lower half of the hairdryer turret, about 2 m high: a round white plastic foot with a thick coiled
+# cord (a stack of cream rings, like a curly phone cord) standing up from it, and the cord's plain end going on up to the dryer's handle.
+# The head (turret-bathroom-red-head) turns on top.
+# Pivot: the origin is on the ground at the foot's axis, +z forward. The head's pivot is at (0, 1.5, 0) in this model, where the cord goes up
+# into the dryer's handle.
+format 1
+collider convex
+
+Detail detail=0.15
+    Union
+        Material material=bath_plastic_white
+            Union
+                Translate translation=(0, 0.05, 0)
+                    Round radius=0.03
+                        CappedCylinder radius=0.45 height=0.025
+                # A short cap on the foot where the coil starts
+                Translate translation=(0, 0.14, 0)
+                    CappedCylinder radius=0.1 height=0.06
+        Material material=bath_plastic_cream
+            Union
+                # The coil: rings stacked every 0.1 m, 0.12 m round
+                Translate translation=(0, 0.8, 0)
+                    LimitedRepetition spacing=0.1 limits=(0, 6, 0)
+                        Torus innerRadius=0.032 outerRadius=0.12
+                # The straight end of the cord, up into the handle
+                Capsule a=(0, 0.2, 0) b=(0, 1.5, 0) radius=0.05

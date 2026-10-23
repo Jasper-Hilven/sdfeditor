@@ -49,6 +49,9 @@ namespace SdfLevel
         private bool jumpWanted;
         private PathMoverCar standingOn;
         private int standingFrame = -1;
+        // Ticket 29.7: the slide on a slick (soap) zone; unused where the level has no zones
+        private Vector2 slide;
+        private bool sliding;
 
         /// <summary>Where the view looks up or down, degrees, positive down (as a camera's x rotation).</summary>
         public float Pitch => pitch;
@@ -95,6 +98,24 @@ namespace SdfLevel
         /// <summary>Jumps on the next update, if on the ground then; in the air it is forgotten (no double jump).</summary>
         public void Jump() => jumpWanted = true;
 
+        /// <summary>Metres a second squared a shove slows by.</summary>
+        public const float ShoveDrag = 20;
+
+        // A shove still going (ticket 33.5: the dive's push, later the slam's and the grab's throw): metres a second, flat, slowing to 0
+        private Vector3 shove;
+
+        /// <summary>
+        /// Pushes the player <paramref name="metres"/> along <paramref name="direction"/> (flat) over a short moment: a speed that slows
+        /// by <see cref="ShoveDrag"/> and walks on top of the player's own, through the same CharacterController, so walls stop it.
+        /// </summary>
+        public void Shove(Vector3 direction, float metres)
+        {
+            direction.y = 0;
+            if (direction.sqrMagnitude < 1e-6f || metres <= 0)
+                return;
+            shove = direction.normalized * Mathf.Sqrt(2 * ShoveDrag * metres);
+        }
+
         /// <summary>Puts the player at <paramref name="position"/> (its feet) facing <paramref name="yaw"/>, level, standing still.</summary>
         public void Teleport(Vector3 position, float yaw)
         {
@@ -108,6 +129,9 @@ namespace SdfLevel
             SetAim(yaw, 0);
             verticalSpeed = 0;
             standingOn = null;
+            shove = Vector3.zero;
+            slide = Vector2.zero;
+            sliding = false;
             move = Vector2.zero;
             jumpWanted = false;
         }
@@ -166,6 +190,27 @@ namespace SdfLevel
             standingFrame = Time.frameCount;
         }
 
+        /// <summary>
+        /// The wanted horizontal velocity changed by the zones (<see cref="SdfBattle.ZoneRules"/>): on a slick a bot walks x1.2 faster; a
+        /// player's velocity moves towards x1.3 of the wanted one by the slick's slow acceleration and braking, and keeps going in the
+        /// air after a jump off the soap until the next landing on normal ground.
+        /// </summary>
+        private Vector2 ApplyZones(Vector2 wanted)
+        {
+            var onSlick = LevelZones.Current.IsSlick(transform.position);
+            if (!readsInput)
+                return wanted * SdfBattle.ZoneRules.TopSpeedFactor(onSlick, true);
+            if (controller.isGrounded)
+                sliding = onSlick;
+            if (!sliding)
+            {
+                slide = wanted;
+                return wanted;
+            }
+            slide = SdfBattle.ZoneRules.Slide(slide, wanted * SdfBattle.ZoneRules.TopSpeedFactor(true, false), walkSpeed, Time.deltaTime);
+            return slide;
+        }
+
         private void Move()
         {
             if (controller == null || !controller.enabled)
@@ -187,8 +232,19 @@ namespace SdfLevel
                 verticalSpeed -= gravity * Time.deltaTime;
             }
             jumpWanted = false;
+            // Ticket 29.7: soap makes a player slide and speeds a bot up; a level without zones skips it
+            if (LevelZones.Current != null)
+            {
+                var zoned = ApplyZones(new Vector2(velocity.x, velocity.z));
+                velocity.x = zoned.x;
+                velocity.z = zoned.y;
+            }
+            velocity += shove;
+            shove = Vector3.MoveTowards(shove, Vector3.zero, ShoveDrag * Time.deltaTime);
             velocity.y = verticalSpeed;
             var flags = controller.Move(velocity * Time.deltaTime);
+            if (sliding)
+                slide = new Vector2(controller.velocity.x, controller.velocity.z);
             // A head against a ceiling (a gate's arch, a stair above) ends the rise
             if ((flags & CollisionFlags.Above) != 0 && verticalSpeed > 0)
                 verticalSpeed = 0;

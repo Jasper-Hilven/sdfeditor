@@ -61,6 +61,9 @@ namespace SDFPipeline.Levels;
 ///
 /// backdrop kitchen at=(0, -55, 0) yaw=0     # instead of a room (ticket 28.2): a model as the room beyond the play area's open edges, no walls, no collider, no shadows
 ///     farPlane=600 clear=(0.95, 0.9, 0.78)  #   (see <see cref="BackdropSpec"/>); the camera's far clip and clear colour, and light, lightColor, ambient as the room's
+/// fog density=0.0075 color=(0.9, 0.93, 0.92)  # a haze (Unity's exponential squared fog; the camera of a room clears to its colour)
+/// steam at=(-15, 16.5, 0) size=8 rise=40 count=22    # a plume of soft puffs 8 m wide that rise 40 m, 22 alive at a time (80 in all)
+/// drip at=(0, 57, 49.5) water=16.5 every=2 size=0.15 # a drop falls from the point into water at that height every 2 s
 ///
 /// sides                                     # the two battle sides, west (-x) and east (+x), see <see cref="BattleLayout"/>
 ///     west
@@ -131,6 +134,14 @@ namespace SDFPipeline.Levels;
 /// the indoor default of the chessboard (overhead, warm white) when given.
 /// </para>
 /// <para>
+/// The <c>fog</c> line (ticket 29.1; a level has at most one) gives the level a haze: a surface <c>d</c> metres from the camera keeps
+/// <c>exp(-(density * d)^2)</c> of its colour and the rest is the fog's <c>color</c> (sRGB, each part 0 to 1; write a hex colour as
+/// its parts, as '#' starts a comment). Unity draws it with its built-in fog in the toon shaders. <c>steam</c> (any number of lines) is a
+/// plume of puffs <c>size</c> metres wide born at <c>at</c> that rise <c>rise</c> metres and fade, <c>count</c> of them alive at a time
+/// (20 by default; the level's plumes hold 80 in all, half as many on the low preset). <c>drip</c> is one drop of <c>size</c> metres
+/// (0.15) that falls from <c>at</c> to the height <c>water</c> every <c>every</c> seconds (2) and lands in a ring.
+/// </para>
+/// <para>
 /// A <c>machines</c> line of its own (ticket 27.2; not the sides' <c>machines</c> zone line) names the set of machine models the level's
 /// turrets, tanks and helicopters use: <c>machines set=toys ceiling=20</c>. Without it, or with <c>set=mushroom</c>, they are the
 /// fungal machines of ticket 24 (turret-red, ...); another set has <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c> models (turret-toys-red). With it,
@@ -138,6 +149,14 @@ namespace SDFPipeline.Levels;
 /// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
 /// <c>floor=0</c> (ticket 28.8, any level) is the lowest height the helicopters take the ground to be: over a hole in it (a sink) they fly
 /// 6-12 m over that height, not over the hole's bottom.
+/// </para>
+/// <para>
+/// <c>zone</c> lines (ticket 29.7, any number) give a ground region a rule: <c>zone suds slick</c> (players slide: ground acceleration x0.25,
+/// braking x0.1, top speed x1.3; bots only get x1.2 top speed) or <c>zone puddle wet</c> (a scout in it, or out of it less than 2 s ago,
+/// takes x1.5 damage from the electro gun). The region is one of the <c>regions</c> (or painted by a placement's <c>ground=</c>); a region
+/// may have both rules, one line each, and a rule is given once per region. They are baked as a byte mask over the playable area, 1 m
+/// cells (zones.bin, described under <c>zones</c> in level.json), read at runtime by position: no colliders, no navmesh change. Where
+/// regions overlap the later region wins, as it is drawn. A level without <c>zone</c> lines bakes no mask.
 /// </para>
 /// <para>
 /// A <c>mover</c> (ticket 27.3; there may be several, each with its own name) is a vehicle on a fixed timetable: <c>mover train speed=7
@@ -183,6 +202,19 @@ namespace SDFPipeline.Levels;
 /// the turret stands and the way it faces at rest) and one <c>machines</c> line (<c>at</c>, <c>yaw</c>, <c>radius</c>, 3 m by default:
 /// the zone where the side's helicopter and tanks start and respawn); both sides have them or neither.
 /// </para>
+/// <para>
+/// The final boss's arena (ticket 33.3) adds four things, each only there when it is asked for. A <c>layout boss</c> line (anywhere; the
+/// default is <c>layout mirrored</c>) says the sides are not mirrored: the east side may have no weapon pods and no health pod, and the
+/// sides need not have the same weapons (<see cref="LevelLayout.Boss"/>). The hills' ring takes a <c>terrace</c>, the depth in metres of
+/// steps up the slope (<c>ring width=24 height=12 terrace=1.5</c>: flat treads and risers about 0.75 m high, the arena's stands). A
+/// placement takes <c>phases</c> (<c>phases=1-2</c>, or <c>phases=3</c>) to be there in those phases of the boss fight only; the bake writes the
+/// tag, and the builder groups the tagged models under one object per range, which the boss's arena shows and hides. A boss level has a
+/// <c>boss</c> section listing, each once, <c>prime at=(50, 0) yaw=-90 y=4</c> (where Prime stands in phase 1; <c>y</c> metres above the
+/// ground, on the dais), <c>crash at=(6, 0)</c> (where the copter crashes and the wreck stands), <c>plinth at=(-50, 10) yaw=90</c> (the
+/// champion's plinth) and <c>shield at=(50, 0) radius=7 y=4</c> (the spore shield's dome), baked into level.json's <c>boss</c>. A trees
+/// section may also take <c>area=[x0, z0, x1, z1]</c> (stay inside that rectangle) and <c>facing=20</c> (face the middle of the play area,
+/// give or take 20 degrees: the crowd looks at the floor).
+/// </para>
 /// </summary>
 public static partial class LevelFile
 {
@@ -205,6 +237,9 @@ public static partial class LevelFile
     private const string Sky = "sky";
     private const string Room = "room";
     private const string Backdrop = "backdrop";
+    private const string Fog = "fog";
+    private const string Steam = "steam";
+    private const string Drip = "drip";
     private const string Ring = "ring";
     private const string Noise = "noise";
     private const string Underside = "underside";
@@ -213,15 +248,24 @@ public static partial class LevelFile
     private const string Spawn = "spawn";
     private const string Turret = "turret";
     private const string Machines = "machines";
+    private const string Zone = "zone";
     private const string Flag = "flag";
     private const string Pod = "pod";
     private const string Mover = "mover";
+    private const string Layout = "layout";
+    private const string Boss = "boss";
     private const string Pulses = "pulses";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Backdrop, Sides, Neutral, Machines, Mover, Pulses, Heat];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Backdrop, Fog, Steam, Drip, Sides, Neutral, Machines, Zone, Mover, Pulses, Heat, Layout, Boss];
+
+    /// <summary>The layouts a <c>layout</c> line names: mirrored is the default and need not be written.</summary>
+    private static readonly string[] Layouts = ["mirrored", "boss"];
+
+    /// <summary>The spots a <c>boss</c> section lists, each once.</summary>
+    private static readonly string[] BossSpots = ["prime", "crash", "plinth", "shield"];
 
     /// <summary>The sections that may be given more than once, each time with something else: a scatter or trees per layer, a draw per group.</summary>
-    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover];
+    private static readonly string[] Repeatable = [Scatter, Trees, Draw, Mover, Steam, Drip, Zone];
 
     private static readonly string[] ShapeTypes = ["Circle", "Box2D", "RoundedBox2D", "Polyline"];
 
@@ -259,6 +303,10 @@ public static partial class LevelFile
         RoomSpec? room = null;
         var roomLine = 0;
         BackdropSpec? backdrop = null;
+        FogSpec? fog = null;
+        var steam = new List<SteamSpec>();
+        var drips = new List<DripSpec>();
+        var zones = new List<ZoneSpec>();
         MachineSet? machineSet = null;
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
@@ -266,6 +314,17 @@ public static partial class LevelFile
         HeatSpec? heat = null;
         (BattleSide West, BattleSide East)? sides = null;
         IReadOnlyList<BattleObject>? neutral = null;
+        // The layout decides how the sides are read (the boss's east side need not have the west's pods), so it is read first, wherever it is
+        var layout = LevelLayout.Mirrored;
+        var layoutLine = 0;
+        BossSpec? boss = null;
+        var bossLine = 0;
+        if (lines.Skip(1).FirstOrDefault(l => new Cursor(l).TryReadName() == Layout) is { } layoutSource)
+        {
+            var layoutCursor = new Cursor(layoutSource);
+            layoutCursor.ReadName(Layout);
+            layout = ReadLayout(layoutSource, layoutCursor);
+        }
         var seen = new Dictionary<string, int>();
         foreach (var line in lines.Skip(1))
         {
@@ -319,8 +378,17 @@ public static partial class LevelFile
                 case Backdrop:
                     backdrop = ReadBackdrop(line, cursor);
                     break;
+                case Fog:
+                    fog = ReadFog(line, cursor);
+                    break;
+                case Steam:
+                    steam.Add(ReadSteam(line, cursor, steam.Sum(s => s.Count)));
+                    break;
+                case Drip:
+                    drips.Add(ReadDrip(line, cursor));
+                    break;
                 case Sides:
-                    sides = ReadSides(line, cursor);
+                    sides = ReadSides(line, cursor, layout == LevelLayout.Boss);
                     break;
                 case Neutral:
                     neutral = ReadNeutral(line, cursor);
@@ -331,9 +399,22 @@ public static partial class LevelFile
                         throw new SdfProgramFileException(line.Number, $"Mover '{mover.Name}' is given twice, first on line {twin.Line}");
                     movers.Add(mover);
                     break;
+                case Zone:
+                    var zone = ReadZone(line, cursor);
+                    if (zones.FirstOrDefault(z => z.Region == zone.Region && z.Rule == zone.Rule) is { } sameZone)
+                        throw new SdfProgramFileException(line.Number, $"The region '{zone.Region}' is given the rule {ZoneRuleName(zone.Rule)} twice, first on line {sameZone.Line}");
+                    zones.Add(zone);
+                    break;
                 case Machines:
                     machineSet = ReadMachineSet(line, cursor);
                     machineSetLine = line.Number;
+                    break;
+                case Layout:
+                    layoutLine = line.Number;
+                    break;
+                case Boss:
+                    boss = ReadBoss(line, cursor);
+                    bossLine = line.Number;
                     break;
                 case Pulses:
                     pulses = ReadPulses(line, cursor);
@@ -345,6 +426,20 @@ public static partial class LevelFile
         }
         if (backdrop is not null && room is not null)
             throw new SdfProgramFileException(seen[Backdrop], $"A level has a '{Room}' or a '{Backdrop}' (the room beyond open edges), not both; the '{Room}' is on line {roomLine}");
+        if (layout == LevelLayout.Boss)
+        {
+            if (sides is null)
+                throw new SdfProgramFileException(layoutLine, $"The boss layout is for a level with battle sides; add '{Sides}' and '{Neutral}' sections");
+            if (boss is null)
+                throw new SdfProgramFileException(layoutLine, $"The boss layout needs a '{Boss}' section listing {string.Join(", ", BossSpots)}");
+        }
+        else
+        {
+            if (boss is not null)
+                throw new SdfProgramFileException(bossLine, $"The '{Boss}' section belongs to a boss level; add '{Layout} {Layouts[1]}'");
+            if (placements.FirstOrDefault(p => p.Phases is not null) is { } phased)
+                throw new SdfProgramFileException(phased.Line, $"'phases' tags a model for the boss fight's phases, in a boss level; add '{Layout} {Layouts[1]}'");
+        }
         // The pulses line and the flagged polylines go together (ticket 30.9)
         var pulseLines = regions.SelectMany(r => r.Shapes).OfType<PolylineRegion>().Count(p => p.Pulse);
         if (pulses is not null && pulseLines == 0)
@@ -359,7 +454,7 @@ public static partial class LevelFile
 
         if (machineSet is not null)
         {
-            if (sides is null || sides.Value.West.MachineSpawn is null)
+            if (sides is null || sides.Value is { West.MachineSpawn: null, East.MachineSpawn: null })
                 throw new SdfProgramFileException(machineSetLine,
                     $"The '{Machines}' line names the models of the sides' machines, but the level's sides have no turrets and machine zone; add them to the sides, or leave the line out");
             if (machineSet.Ceiling is not null && room is null)
@@ -372,6 +467,12 @@ public static partial class LevelFile
                     $"The helicopters' flight ceiling ({FileSyntax.Number(least)} m) is under {FileSyntax.Number(MachineSet.LeastCeiling)} m, too low to clear a base; the room is too low, or give a higher 'ceiling'");
         }
 
+        // A zone names a region of the level: a listed one, or one a placement paints
+        foreach (var zone in zones)
+            if (regions.All(r => r.Name != zone.Region) && placements.All(p => p.Ground != zone.Region))
+                throw new SdfProgramFileException(zone.Line,
+                    $"The zone names the region '{zone.Region}', which the level does not have; its regions are {string.Join(", ", regions.Select(r => r.Name))}");
+
         foreach (var scatter in scatters.Concat(trees))
             if (drawGroups.All(g => g.Name != scatter.Group))
                 throw new SdfProgramFileException(scatter.Line,
@@ -382,11 +483,11 @@ public static partial class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Backdrop = backdrop, Machines = machineSet, Movers = movers, Pulses = pulses, Heat = heat,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Backdrop = backdrop, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, Zones = zones, Movers = movers, Pulses = pulses, Heat = heat, Layout = layout, Boss = boss,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
-    private static (BattleSide West, BattleSide East) ReadSides(SourceLine line, Cursor cursor)
+    private static (BattleSide West, BattleSide East) ReadSides(SourceLine line, Cursor cursor, bool boss)
     {
         cursor.ExpectEnd();
         var sides = new Dictionary<string, BattleSide>();
@@ -401,22 +502,22 @@ public static partial class LevelFile
                 throw childCursor.Error($"Side {name} is given twice, first on line {first}");
             lines[name] = child.Number;
             childCursor.ExpectEnd();
-            sides[name] = ReadSide(name, child, childCursor);
+            sides[name] = ReadSide(name, child, childCursor, boss);
         }
         foreach (var name in new[] { BattleSide.West, BattleSide.East })
             if (!sides.ContainsKey(name))
                 throw cursor.Error($"The sides need both {BattleSide.West} and {BattleSide.East} indented below them; {name} is missing");
-        // Machines (ticket 24) on both sides or on neither
+        // Machines (ticket 24) on both sides or on neither (the boss's arena gives only Prime's side turrets and a zone: ticket 33.3)
         var (west, east) = (sides[BattleSide.West], sides[BattleSide.East]);
-        if ((west.MachineSpawn is null) != (east.MachineSpawn is null))
+        if (!boss && (west.MachineSpawn is null) != (east.MachineSpawn is null))
         {
             var (with, without) = west.MachineSpawn is null ? (east, west) : (west, east);
             throw new SdfProgramFileException(lines[without.Name],
                 $"Side {with.Name} has machines (turrets and a machine zone), so side {without.Name} needs them too: {BattleLayout.TurretsPerSide} '{Turret}' lines and a '{Machines}' line");
         }
-        // The sides mirror each other, so they have the same weapon pods
+        // The sides mirror each other, so they have the same weapon pods (the boss's sides do not: ticket 33.3)
         var (westWeapons, eastWeapons) = (west.Weapons.Select(p => p.Pod!).ToArray(), east.Weapons.Select(p => p.Pod!).ToArray());
-        if (!westWeapons.SequenceEqual(eastWeapons))
+        if (!boss && !westWeapons.SequenceEqual(eastWeapons))
             throw new SdfProgramFileException(lines[BattleSide.East],
                 $"The sides mirror each other, so they have the same weapon pods; west has {string.Join(", ", westWeapons)}, east {string.Join(", ", eastWeapons)}");
         return (west, east);
@@ -426,9 +527,10 @@ public static partial class LevelFile
     /// A side's objects: exactly one spawn and one flag, one or more weapon pods, each a different one of
     /// <see cref="BattleLayout.Weapons"/> (kept in that list's order), and one or more health pods (those after the first are
     /// <see cref="BattleSide.MoreHealth"/>); and, on a level with
-    /// machines (ticket 24), exactly <see cref="BattleLayout.TurretsPerSide"/> turrets and one machine zone.
+    /// machines (ticket 24), exactly <see cref="BattleLayout.TurretsPerSide"/> turrets and one machine zone. On the boss layout
+    /// (<paramref name="boss"/>, ticket 33.3) weapon pods and health pods are optional.
     /// </summary>
-    private static BattleSide ReadSide(string name, SourceLine line, Cursor cursor)
+    private static BattleSide ReadSide(string name, SourceLine line, Cursor cursor, bool boss)
     {
         var objects = new Dictionary<string, BattleObject>();
         var turrets = new List<BattleObject>();
@@ -468,10 +570,10 @@ public static partial class LevelFile
             throw cursor.Error($"Side {name} has {turrets.Count} turrets; a side with machines has exactly {BattleLayout.TurretsPerSide} '{Turret}' lines");
         var spawn = Get(Spawn);
         var flag = Get(Flag);
-        if (weapons.Count == 0)
+        if (weapons.Count == 0 && !boss)
             throw cursor.Error($"Side {name} has no weapon pod; a side has one or more, of {string.Join(", ", BattleLayout.Weapons)}, like '{Pod} minigun at=(-48, 6)'");
         var ordered = weapons.OrderBy(p => BattleLayout.Weapons.ToList().IndexOf(p.Pod!)).ToArray();
-        return new BattleSide(name, spawn, flag, ordered, Get($"{Pod} {BattleLayout.Health}"))
+        return new BattleSide(name, spawn, flag, ordered, boss ? objects.GetValueOrDefault($"{Pod} {BattleLayout.Health}") : Get($"{Pod} {BattleLayout.Health}"))
             { MoreHealth = moreHealth, Turrets = turrets, MachineSpawn = machines };
     }
 
@@ -531,6 +633,57 @@ public static partial class LevelFile
         return new BattleObject(kind == Spawn ? BattleKind.Spawn : BattleKind.Machines, null, at, yaw, line.Number) { ZoneRadius = radius };
     }
 
+    /// <summary>layout boss (ticket 33.3): how the sides relate; mirrored, without a layout line, or boss.</summary>
+    private static LevelLayout ReadLayout(SourceLine line, Cursor cursor)
+    {
+        var name = cursor.ReadName($"a layout, one of {string.Join(", ", Layouts)}");
+        if (!Layouts.Contains(name))
+            throw cursor.Error($"A layout is one of {string.Join(", ", Layouts)}; there is no layout '{name}'");
+        cursor.ExpectEnd();
+        NothingBelow(line, Layout);
+        return name == Layouts[1] ? LevelLayout.Boss : LevelLayout.Mirrored;
+    }
+
+    /// <summary>
+    /// The boss section (ticket 33.3): its four spots on lines of their own, each once: <c>prime at=(50, 0) yaw=-90 y=4</c> (where Prime
+    /// stands), <c>crash at=(6, 0)</c> (where the copter crashes and the wreck stands), <c>plinth at=(-50, 10) yaw=90</c> (the
+    /// champion's plinth) and <c>shield at=(50, 0) radius=7 y=4</c> (the dome's middle and radius). <c>y</c> is metres above the ground
+    /// there (on the dais), 0 by default.
+    /// </summary>
+    private static BossSpec ReadBoss(SourceLine line, Cursor cursor)
+    {
+        cursor.ExpectEnd();
+        var spots = new Dictionary<string, (BossSpot Spot, float Radius)>();
+        foreach (var child in line.Children)
+        {
+            var childCursor = new Cursor(child);
+            var name = childCursor.ReadName($"a spot: {string.Join(", ", BossSpots)}");
+            if (!BossSpots.Contains(name))
+                throw childCursor.Error($"The boss section has no '{name}'; it has {string.Join(", ", BossSpots)}");
+            if (spots.TryGetValue(name, out var first))
+                throw childCursor.Error($"The boss's {name} is given twice, first on line {first.Spot.Line}");
+            var parameters = Parameters.Read($"the boss's {name}", child, childCursor);
+            var at = parameters.Vector2("at", "a point like (50, 0), x and z in metres");
+            var yaw = name is "prime" or "plinth" ? parameters.Number("yaw", 0, -360, 360, "degrees, -360 to 360") : 0;
+            var y = name is "prime" or "shield" ? parameters.Number("y", 0, 0, 100, "metres above the ground, 0 to 100") : 0;
+            var radius = name == "shield" ? parameters.Number("radius", null, 0.5f, 50, "the dome's radius in metres, 0.5 to 50") : 0;
+            parameters.Done(name switch
+            {
+                "prime" => ["at", "yaw", "y"],
+                "plinth" => ["at", "yaw"],
+                "shield" => ["at", "radius", "y"],
+                _ => ["at"],
+            });
+            spots[name] = (new BossSpot(at, yaw, y, child.Number), radius);
+        }
+        foreach (var name in BossSpots)
+            if (!spots.ContainsKey(name))
+                throw cursor.Error($"The boss section needs its {name} indented below it, like '{name} at=(0, 0)'");
+        var shield = spots["shield"];
+        return new BossSpec(spots["prime"].Spot, spots["crash"].Spot, spots["plinth"].Spot,
+            new BossShield(shield.Spot.At, shield.Radius, shield.Spot.Y, shield.Spot.Line));
+    }
+
     /// <summary>machines set=toys ceiling=20: the machine models and a room's helicopter ceiling (ticket 27.2).</summary>
     private static MachineSet ReadMachineSet(SourceLine line, Cursor cursor)
     {
@@ -544,6 +697,21 @@ public static partial class LevelFile
         float? floor = parameters.Has("floor") ? parameters.Number("floor", null, -1000, 1000, "the height (y) the helicopters never fly lower over, in metres") : null;
         parameters.Done("set", "ceiling", "floor");
         return new MachineSet(name, ceiling, floor);
+    }
+
+    private static readonly string[] ZoneRules = ["slick", "wet"];
+
+    private static string ZoneRuleName(ZoneRule rule) => rule == ZoneRule.Slick ? "slick" : "wet";
+
+    /// <summary>zone suds slick: a ground region and its rule (ticket 29.7).</summary>
+    private static ZoneSpec ReadZone(SourceLine line, Cursor cursor)
+    {
+        var region = cursor.ReadName("a region's name, like suds");
+        var rule = cursor.ReadName($"the zone's rule: {string.Join(" or ", ZoneRules)}");
+        if (!ZoneRules.Contains(rule))
+            throw cursor.Error($"A zone has no rule '{rule}'; its rules are {string.Join(" and ", ZoneRules)}");
+        cursor.ExpectEnd();
+        return new ZoneSpec(region, rule == "slick" ? ZoneRule.Slick : ZoneRule.Wet, line.Number);
     }
 
     /// <summary>
@@ -759,6 +927,47 @@ public static partial class LevelFile
         };
     }
 
+    /// <summary>fog density=0.0075 color=(0.9, 0.93, 0.92): the haze (ticket 29.1).</summary>
+    private static FogSpec ReadFog(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Fog, line, cursor);
+        var density = parameters.Number("density", null, FogSpec.MinDensity, FogSpec.MaxDensity,
+            $"a density from {FileSyntax.Number(FogSpec.MinDensity)} to {FileSyntax.Number(FogSpec.MaxDensity)} (0.0075 is 57% clear at 100 m)");
+        var color = Colour(parameters, "color");
+        parameters.Done("density", "color");
+        return new FogSpec(density, color);
+    }
+
+    /// <summary>steam at=(-15, 16.5, 0) size=8 rise=40 count=22: a plume of steam (ticket 29.1); <paramref name="before"/> puffs are already spoken for.</summary>
+    private static SteamSpec ReadSteam(SourceLine line, Cursor cursor, int before)
+    {
+        var parameters = Parameters.Read(Steam, line, cursor);
+        var at = parameters.Vector3("at", "a point like (-15, 16.5, 0), x, height and z in metres");
+        var size = parameters.Number("size", null, 0.1f, 50, "the puffs' width in metres, 0.1 to 50");
+        var rise = parameters.Number("rise", null, 0.1f, 200, "how far the puffs rise in metres, 0.1 to 200");
+        var count = parameters.Count("count", SteamSpec.DefaultCount, LevelFx.MaxSteamParticles, $"a whole number of puffs alive at a time, 1 to {LevelFx.MaxSteamParticles}");
+        parameters.Done("at", "size", "rise", "count");
+        if (count < 1)
+            throw parameters.Error("count", "A plume needs at least one puff");
+        if (before + count > LevelFx.MaxSteamParticles)
+            throw parameters.Error("count", $"The level's steam holds at most {LevelFx.MaxSteamParticles} puffs in all; this plume would make it {before + count}");
+        return new SteamSpec(at, size, rise, count, line.Number);
+    }
+
+    /// <summary>drip at=(0, 57, 49.5) water=16.5 every=2 size=0.15: a drop falling into water (ticket 29.1).</summary>
+    private static DripSpec ReadDrip(SourceLine line, Cursor cursor)
+    {
+        var parameters = Parameters.Read(Drip, line, cursor);
+        var at = parameters.Vector3("at", "a point like (0, 57, 49.5), x, height and z in metres");
+        var water = parameters.Number("water", null, -1000, 1000, "the height the drop lands at in metres");
+        var every = parameters.Number("every", DripSpec.DefaultEvery, 0.2f, 60, "seconds between drops, 0.2 to 60");
+        var size = parameters.Number("size", DripSpec.DefaultSize, 0.01f, 5, "the drop's width in metres, 0.01 to 5");
+        parameters.Done("at", "water", "every", "size");
+        if (water >= at.Y)
+            throw parameters.Error("water", $"The drop falls from {FileSyntax.Number(at.Y)} m, so 'water' must be lower than that");
+        return new DripSpec(at, water, every, size, line.Number);
+    }
+
     /// <summary>A colour like (1, 0.82, 0.5), sRGB with each part 0 to 1.</summary>
     private static Vector3 Colour(Parameters parameters, string name)
     {
@@ -794,7 +1003,7 @@ public static partial class LevelFile
     private static HillRing ReadHills(SourceLine line, Cursor cursor)
     {
         cursor.ExpectEnd();
-        (float Width, float Height)? ring = null;
+        (float Width, float Height, float Terrace)? ring = null;
         var (amplitude, scale) = (0f, HillRing.DefaultNoiseScale);
         var seen = new Dictionary<string, int>();
         foreach (var child in line.Children)
@@ -811,8 +1020,11 @@ public static partial class LevelFile
             if (entry == Ring)
             {
                 ring = (parameters.Number("width", null, 1, 1000, "the ring's width in metres, 1 to 1000"),
-                        parameters.Number("height", null, 0, 500, "the crest's height in metres, 0 to 500"));
-                parameters.Done("width", "height");
+                        parameters.Number("height", null, 0, 500, "the crest's height in metres, 0 to 500"),
+                        parameters.Number("terrace", 0, 0, 100, "the steps' depth in metres, 0 (a smooth slope) to 100"));
+                if (ring.Value.Terrace > ring.Value.Width)
+                    throw parameters.Error("terrace", $"The terrace's steps ({FileSyntax.Number(ring.Value.Terrace)} m deep) are deeper than the ring is wide ({FileSyntax.Number(ring.Value.Width)} m)");
+                parameters.Done("width", "height", "terrace");
             }
             else
             {
@@ -823,7 +1035,7 @@ public static partial class LevelFile
         }
 
         return ring is { } r
-            ? new HillRing(r.Width, r.Height, amplitude, scale)
+            ? new HillRing(r.Width, r.Height, amplitude, scale) { Terrace = r.Terrace }
             : throw cursor.Error($"The hills need a ring indented below them, like '{Ring} width=28 height=10'");
     }
 
@@ -976,8 +1188,9 @@ public static partial class LevelFile
             var margin = parameters.Number("groundMargin", Placement.DefaultGroundMargin, 0, 50, "metres, 0 to 50");
             var y = parameters.Number("y", 0, 0, 100, "metres above the ground, 0 to 100");
             var frame = parameters.Number("frame", 0, 0, 1, "1 for a model that frames the level and is no obstacle to the scatter, 0 otherwise") > 0;
-            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin", "y", "frame");
-            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number) { Y = y, Frame = frame });
+            var phases = parameters.Phases("phases");
+            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin", "y", "frame", "phases");
+            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number) { Y = y, Frame = frame, Phases = phases });
         }
         return placements.Count > 0 ? placements : throw cursor.Error("Nothing is placed; indent placements below, like 'rock1 at=(10, 30)'");
     }
@@ -1037,8 +1250,25 @@ public static partial class LevelFile
         var scale = parameters.Vector2("scale", ScatterLayer.DefaultScale, "the least and greatest scale, like (0.85, 1.15)");
         if (scale.X <= 0 || scale.Y < scale.X)
             throw parameters.Error("scale", "The scale needs a least and a greatest above 0, the least first, like (0.85, 1.15)");
-        parameters.Done("group", "density", "cluster", "clusterScale", "spacing", "avoid", "margin", "maxSlope", trees ? "band" : "reach", "scale");
-        return new ScatterLayer(entries, group, density, cluster, clusterScale, spacing, avoid, margin, maxSlope, reach, scale, line.Number) { Band = band };
+        // Ticket 33.3, trees sections only: a rectangle they stay inside, and facing the middle of the play area (the arena's crowd)
+        (Vector2 Min, Vector2 Max)? area = null;
+        float? facing = null;
+        if (trees)
+        {
+            if (parameters.Has("area"))
+            {
+                var corners = parameters.Numbers("area", "a rectangle like [62, -12, 74, 12]: the least x and z, then the greatest");
+                if (corners.Length != 4 || corners[2] <= corners[0] || corners[3] <= corners[1])
+                    throw parameters.Error("area", "The area needs the least x and z and then the greatest, like [62, -12, 74, 12]");
+                area = (new Vector2(corners[0], corners[1]), new Vector2(corners[2], corners[3]));
+            }
+            if (parameters.Has("facing"))
+                facing = parameters.Number("facing", null, 0, 180, "degrees either side of facing the middle of the play area, 0 to 180");
+        }
+        parameters.Done(trees
+            ? ["group", "density", "cluster", "clusterScale", "spacing", "avoid", "margin", "maxSlope", "band", "scale", "area", "facing"]
+            : ["group", "density", "cluster", "clusterScale", "spacing", "avoid", "margin", "maxSlope", "reach", "scale"]);
+        return new ScatterLayer(entries, group, density, cluster, clusterScale, spacing, avoid, margin, maxSlope, reach, scale, line.Number) { Band = band, Area = area, Facing = facing };
     }
 
     private static DrawGroup ReadDrawGroup(SourceLine line, Cursor cursor)
@@ -1132,6 +1362,9 @@ public static partial class LevelFile
                 }
                 cursor.Expect('=');
                 var value = cursor.ReadValue();
+                // A range of phases is written 1-2 (ticket 33.3)
+                if (name == "phases" && value is RawNumber && cursor.TryConsume('-'))
+                    value = new RawList([value, cursor.ReadValue()]);
                 // Names may be listed separated by commas, like avoid=dirt,tiles,path
                 if (value is RawName && cursor.Peek() == ',')
                 {
@@ -1202,6 +1435,25 @@ public static partial class LevelFile
             taken[name] = given.Cursor;
             return given.Value is RawList { Items: var items } && items.All(i => i is RawNumber)
                 ? items.Cast<RawNumber>().Select(n => float.Parse(n.Text, CultureInfo.InvariantCulture)).ToArray()
+                : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
+        }
+
+        /// <summary>The phases of the boss fight, like phases=3 or phases=1-2 (from 1 to <see cref="PhaseRange.Count"/>, the first not after the last); null when left out.</summary>
+        public PhaseRange? Phases(string name)
+        {
+            const string expected = "phases like 3 or 1-2, each 1 to 3, the first not after the last";
+            if (!values.Remove(name, out var given))
+                return null;
+            taken[name] = given.Cursor;
+            var numbers = given.Value switch
+            {
+                RawNumber single => [single],
+                RawList { Items: [RawNumber first, RawNumber last] } => [first, last],
+                _ => Array.Empty<RawNumber>(),
+            };
+            var phases = numbers.Select(n => n.IsWhole && int.TryParse(n.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var phase) ? phase : 0).ToArray();
+            return phases.Length > 0 && phases.All(p => p is >= 1 and <= PhaseRange.Count) && phases[0] <= phases[^1]
+                ? new PhaseRange(phases[0], phases[^1])
                 : throw given.Cursor.Error($"'{name}' of {owner} needs {expected}");
         }
 

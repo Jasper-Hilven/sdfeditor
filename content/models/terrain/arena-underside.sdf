@@ -1,0 +1,53 @@
+# Arena underside: the rock the Champion's Arena's floating island is broken off from (ticket 33.3), hanging below its edge into the
+# sky. The same island-underside as the meadow's and the fungal level's, made for the arena's numbers: at the top a band of stand stone
+# 6 m deep follows the island's outline exactly, a rounded rectangle 181 x 141 m round the playable area (120 x 80 m, hills 24 m wide
+# with the stands, edge margin 6 m), and reaches 25 cm above the ground's rim and 40 cm past the edge, so the stands end on a lip of soil
+# with no gap from any side. Below it the rock bulges out and narrows in a lumpy, inverted mountain some 40 m deep, with a central keel
+# and eight spurs hanging from it. Made for content/levels/arena.level, which places it at the origin; sdf level checks that it is
+# there. Seen far off and from above, so it is coarse, and it has no ink line or shadow of its own.
+format 1
+outline off
+shadows off
+
+# The island's outline: the playable rectangle's half size (60, 40), and how far beyond it the edge is (hills plus margin), plus the lip
+corner = 30.4
+# The top of the soil band: the level's rim plus the lip
+top = 3.25
+
+# About a sixth of the vertices its size would give it: metre cells, enough for the lumps of a mountain seen from a castle tower
+Detail detail=0.17
+    SmoothUnion smoothness=1.5
+        # The soil band: a wall a metre thick along the outline, from the top down into the rock, hollow inside so that its top stays
+        # below the ground everywhere but at the very edge. Not distorted, so it keeps the edge's line to the centimetre
+        Material material=ground_stands
+            Subtraction
+                Translate translation=(0, 0.25, 0)
+                    Elongate amount=(60, 0, 40)
+                        CappedCylinder radius=$corner height=3
+                Translate translation=(0, 3.25, 0)
+                    Elongate amount=(60, 0, 40)
+                        CappedCylinder radius=29.4 height=6
+        # The rock, lumpy at the scale of crags
+        Material material=rock_stone
+            Distort amount=1.6 frequency=0.06
+                SmoothUnion smoothness=6
+                    # The main mass: from the full outline just under the soil band's top, narrowing to a rounded floor 26 m down
+                    Translate translation=(0, -15, 0)
+                        Elongate amount=(54, 0, 34)
+                            CappedCone height=12 bottomRadius=16 topRadius=36
+                    # The keel along the middle, the lowest point, some 45 m down
+                    Translate translation=(0, -32, 0)
+                        Elongate amount=(28, 0, 10)
+                            CappedCone height=12 bottomRadius=3 topRadius=22
+        # Spurs of darker slate hanging from the underside, longer towards the middle
+        Material material=rock_slate
+            Distort amount=1 frequency=0.09
+                SmoothUnion smoothness=4
+                    ArbitraryRoundCone a=(-56, -18, 16) b=(-59.2, -38, 19.2) radiusA=9 radiusB=1.2
+                    ArbitraryRoundCone a=(-36, -24, -17.6) b=(-38.4, -50, -20) radiusA=10 radiusB=1.5
+                    ArbitraryRoundCone a=(-14.4, -30, 14.4) b=(-12.8, -58, 16) radiusA=11 radiusB=1.5
+                    ArbitraryRoundCone a=(9.6, -32, -8) b=(11.2, -64, -9.6) radiusA=12 radiusB=2
+                    ArbitraryRoundCone a=(32, -26, 17.6) b=(35.2, -52, 20.8) radiusA=10 radiusB=1.4
+                    ArbitraryRoundCone a=(57.6, -18, -14.4) b=(61.6, -36, -16.8) radiusA=8 radiusB=1
+                    ArbitraryRoundCone a=(-64, -14, -28.8) b=(-68.8, -28, -32) radiusA=7 radiusB=1
+                    ArbitraryRoundCone a=(68.8, -14, 27.2) b=(72.8, -26, 30.4) radiusA=6 radiusB=0.8
