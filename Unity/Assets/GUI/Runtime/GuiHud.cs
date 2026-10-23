@@ -111,9 +111,10 @@ namespace SdfGui
                 health.bar.SetColor(m.health < 30 ? GuiPalette.Amanita : GuiPalette.Moss);
 
             // Round
-            GuiText.Set(clock, GuiText.Clock(m.timeLeft));
+            // Sudden death has no time left to show: the clock says what decides it instead
+            GuiText.Set(clock, m.suddenDeath ? (m.suddenDeathOnKills ? "NEXT KILL WINS" : "SUDDEN DEATH") : GuiText.Clock(m.timeLeft));
             if (clock != null)
-                clock.color = m.timeLeft < 30 ? GuiPalette.Amanita : GuiPalette.Cream;
+                clock.color = m.suddenDeath || m.timeLeft < 30 ? GuiPalette.Amanita : GuiPalette.Cream;
 
             // Moments
             GuiText.Show(eliminatedPopup, m.eliminated > 0);

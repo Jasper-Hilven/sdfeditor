@@ -47,6 +47,7 @@ namespace SdfBattle
     {
         private readonly List<PlayerState> players = new List<PlayerState>();
         private readonly int[] score = new int[Teams.Count];
+        private readonly int[] teamKills = new int[Teams.Count];
 
         public MatchState(MatchRules rules) => Rules = rules ?? new MatchRules();
 
@@ -71,8 +72,14 @@ namespace SdfBattle
         /// <summary>Seconds left of the countdown, or of the result before the next round; 0 while playing.</summary>
         public float PhaseTimeLeft { get; private set; }
 
-        /// <summary>The clock ran out on a tie: the next capture wins.</summary>
+        /// <summary>The clock ran out on a tie: the next capture wins, and when nobody had captured (0-0) and the kills are level too, the next kill.</summary>
         public bool SuddenDeath { get; private set; }
+
+        /// <summary>Sudden death is decided by the next kill (or capture): the clock ran out at 0-0 with the kills level. After a tie with captures only a capture counts.</summary>
+        public bool SuddenDeathOnKills { get; private set; }
+
+        /// <summary>The round was won on kills: at 0-0 when the clock ran out, or by the first kill of sudden death. False for a win by captures.</summary>
+        public bool WonOnKills { get; private set; }
 
         /// <summary>The team that won the round, from its end until the next round starts; null before.</summary>
         public Team? Winner { get; private set; }
@@ -119,6 +126,9 @@ namespace SdfBattle
         public bool Over { get; private set; }
 
         public int Score(Team team) => score[(int)team];
+
+        /// <summary>The kills a team has made this round: its players' and its machines' (a machine has no player to credit, but the team has the kill).</summary>
+        public int TeamKills(Team team) => teamKills[(int)team];
 
         /// <summary>The players of one team, in roster order.</summary>
         public IEnumerable<PlayerState> PlayersOf(Team team)
@@ -238,7 +248,16 @@ namespace SdfBattle
             victim.Die(Rules.RespawnOf(victim.Team));
             if (death.CountsAsKill)
                 death.Killer.Kills++;
+            // A machine's kill counts for its team, not for a player; a fall, a hazard and a removal count for nobody
+            var killerTeam = death.CountsAsKill || (death.Killer == null && death.Cause == DeathCause.Killed && death.KillerTeam != victim.Team)
+                ? death.KillerTeam
+                : null;
+            if (killerTeam != null)
+                teamKills[(int)killerTeam.Value]++;
             Died?.Invoke(death);
+            // The first kill of a sudden death on kills wins at once
+            if (killerTeam != null && SuddenDeath && SuddenDeathOnKills && Phase == RoundPhase.Playing)
+                EndRound(killerTeam.Value, true);
         }
 
         /// <summary>
@@ -288,7 +307,8 @@ namespace SdfBattle
             Round++;
             Over = false;
             score[0] = score[1] = 0;
-            SuddenDeath = false;
+            teamKills[0] = teamKills[1] = 0;
+            SuddenDeath = SuddenDeathOnKills = WonOnKills = false;
             Winner = null;
             TimeLeft = Rules.roundSeconds;
             RoundClock = 0;
@@ -320,13 +340,24 @@ namespace SdfBattle
                 EndRound(score[0] > score[1] ? Team.Red : Team.Blue);
                 return;
             }
+            // Nobody captured: the team with more kills wins, and level kills go to sudden death on the next kill
+            if (score[0] == 0)
+            {
+                if (teamKills[0] != teamKills[1])
+                {
+                    EndRound(teamKills[0] > teamKills[1] ? Team.Red : Team.Blue, true);
+                    return;
+                }
+                SuddenDeathOnKills = true;
+            }
             SuddenDeath = true;
             SuddenDeathStarted?.Invoke();
         }
 
-        private void EndRound(Team winner)
+        private void EndRound(Team winner, bool onKills = false)
         {
             Winner = winner;
+            WonOnKills = onKills;
             PhaseTimeLeft = Rules.resultSeconds;
             SetPhase(RoundPhase.RoundEnd);
             RoundEnded?.Invoke(winner);

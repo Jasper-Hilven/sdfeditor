@@ -23,6 +23,8 @@ namespace SdfGui
         public int kills;
         public int deaths;
         public float seconds;
+        [UnityEngine.Tooltip("The win came on kills (no captures at time-up, or sudden death's first kill), not on captures")]
+        public bool onKills;
         [UnityEngine.Tooltip("0 none, 1 bronze, 2 silver, 3 gold (a win in the campaign)")]
         public int medal;
         public bool newBest;
@@ -45,7 +47,7 @@ namespace SdfGui
 
         public void Clear()
         {
-            set = won = winnerBlue = newBest = canRetryEasier = boss = false;
+            set = won = winnerBlue = onKills = newBest = canRetryEasier = boss = false;
             redScore = blueScore = captures = kills = deaths = medal = livesLost = damageDealt = 0;
             bossPhase = 1;
             bossHealthLeft = seconds = 0;

@@ -79,6 +79,9 @@ namespace SdfGui
         [Tooltip("The arena and the goal, the scoreboard's subtitle")]
         public string arena = "Meadow";
         public string goal = "First to 3 captures";
+        [Tooltip("The clock ran out on a tie and play goes on: the clock reads SUDDEN DEATH, and NEXT KILL WINS when a kill decides it")]
+        public bool suddenDeath;
+        public bool suddenDeathOnKills;
         [Tooltip("Seconds left of the countdown, or of the wait for the next round once it is over")]
         public float countdown;
 

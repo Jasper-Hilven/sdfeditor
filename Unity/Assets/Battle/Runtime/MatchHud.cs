@@ -212,6 +212,7 @@ namespace SdfBattle
             end.kills = you?.Kills ?? 0;
             end.deaths = you?.Deaths ?? 0;
             end.seconds = state.RoundClock;
+            end.onKills = state.WonOnKills;
             if (state.Rules.objective == MatchObjective.Boss && Boss.Current != null)
                 FeedBossEnd(end, Boss.Current);
         }
@@ -242,6 +243,8 @@ namespace SdfBattle
             };
             view.roundSeconds = state.Rules.roundSeconds;
             view.timeLeft = state.TimeLeft;
+            view.suddenDeath = state.SuddenDeath && state.Phase == RoundPhase.Playing;
+            view.suddenDeathOnKills = state.SuddenDeathOnKills;
             view.countdown = state.PhaseTimeLeft;
 
             // The roster in team colours; the round's winners are first, you before your team mates

@@ -180,8 +180,69 @@ namespace SdfBattle.Tests
             Assert.AreEqual(2, match.Score(Team.Blue));
         }
 
+        private static void Kill(MatchState match, Team killer)
+        {
+            var victim = match.PlayersOf(killer == Team.Red ? Team.Blue : Team.Red).First(p => p.Alive);
+            match.ReportDeath(new Death(victim, DeathCause.Killed, match.PlayersOf(killer).First(), weapon: "pistol"));
+        }
+
         [Test]
-        public void ClockRunsOut_WithNoCaptures_IsSuddenDeath()
+        public void ClockRunsOut_AtZeroZero_TheTeamWithMoreKillsWins()
+        {
+            var match = Playing();
+            Kill(match, Team.Blue);
+            Kill(match, Team.Blue);
+            Kill(match, Team.Red);
+
+            Run(match, 600.5f, 1);
+
+            Assert.AreEqual(RoundPhase.RoundEnd, match.Phase);
+            Assert.AreEqual(Team.Blue, match.Winner);
+            Assert.IsTrue(match.WonOnKills);
+            Assert.IsFalse(match.SuddenDeath);
+        }
+
+        [Test]
+        public void ClockRunsOut_AtZeroZero_AMachinesKillCountsForItsTeam()
+        {
+            var match = Playing();
+            var victim = match.PlayersOf(Team.Blue).First();
+            match.ReportDeath(new Death(victim, DeathCause.Killed, killerName: "Red tank", killerTeam: Team.Red, weapon: "cannon"));
+            match.ReportDeath(new Death(match.PlayersOf(Team.Red).First(), DeathCause.Fell));
+
+            Run(match, 600.5f, 1);
+
+            Assert.AreEqual(1, match.TeamKills(Team.Red));
+            Assert.AreEqual(Team.Red, match.Winner, "a fall is nobody's kill");
+        }
+
+        [Test]
+        public void ClockRunsOut_AtZeroZero_WithLevelKills_TheNextKillWins()
+        {
+            var match = Playing();
+            Kill(match, Team.Red);
+            Kill(match, Team.Blue);
+            var started = 0;
+            match.SuddenDeathStarted += () => started++;
+
+            Run(match, 600.5f, 1);
+
+            Assert.AreEqual(1, started);
+            Assert.IsTrue(match.SuddenDeath);
+            Assert.IsTrue(match.SuddenDeathOnKills);
+            Assert.AreEqual(RoundPhase.Playing, match.Phase);
+            Run(match, 120, 1);
+            Assert.AreEqual(RoundPhase.Playing, match.Phase, "sudden death has no time limit");
+
+            Kill(match, Team.Blue);
+
+            Assert.AreEqual(RoundPhase.RoundEnd, match.Phase);
+            Assert.AreEqual(Team.Blue, match.Winner);
+            Assert.IsTrue(match.WonOnKills);
+        }
+
+        [Test]
+        public void ClockRunsOut_WithNoKillsEither_IsSuddenDeath_AndACaptureAlsoWins()
         {
             var match = Playing();
 
@@ -189,6 +250,45 @@ namespace SdfBattle.Tests
 
             Assert.IsTrue(match.SuddenDeath);
             Assert.AreEqual(RoundPhase.Playing, match.Phase);
+
+            match.ReportCapture(Team.Red);
+
+            Assert.AreEqual(Team.Red, match.Winner);
+            Assert.IsFalse(match.WonOnKills);
+        }
+
+        [Test]
+        public void ClockRunsOut_OnANonZeroTie_KillsDoNotCount_OnlyACaptureEndsSuddenDeath()
+        {
+            var match = Playing();
+            match.ReportCapture(Team.Red);
+            match.ReportCapture(Team.Blue);
+            Kill(match, Team.Red);
+
+            Run(match, 600.5f, 1);
+            Kill(match, Team.Blue);
+
+            Assert.IsTrue(match.SuddenDeath);
+            Assert.IsFalse(match.SuddenDeathOnKills);
+            Assert.AreEqual(RoundPhase.Playing, match.Phase);
+            match.ReportCapture(Team.Red);
+            Assert.AreEqual(Team.Red, match.Winner);
+            Assert.IsFalse(match.WonOnKills);
+        }
+
+        [Test]
+        public void ANewRound_ClearsTheKillCountsAndTheKillWin()
+        {
+            var match = Playing();
+            Kill(match, Team.Red);
+            Run(match, 600.5f, 1);
+            Assert.IsTrue(match.WonOnKills);
+
+            match.Restart();
+
+            Assert.AreEqual(0, match.TeamKills(Team.Red));
+            Assert.IsFalse(match.WonOnKills);
+            Assert.IsFalse(match.SuddenDeathOnKills);
         }
 
         [Test]
