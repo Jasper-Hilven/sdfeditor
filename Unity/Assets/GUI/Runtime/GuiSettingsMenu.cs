@@ -28,7 +28,7 @@ namespace SdfGui
             if (!Application.isPlaying)
                 return;
             if (quality != null)
-                quality.Changed += i => QualitySettings.SetQualityLevel(i, true);
+                quality.Changed += i => QualitySettings.SetQualityLevel(QualityLevel(i), true);
             if (gore != null)
                 gore.Changed += i => GuiSettings.Gore = i;
             if (backdrop != null)
@@ -42,6 +42,12 @@ namespace SdfGui
             dismissQualityHints?.onValueChanged.AddListener(v => GuiSettings.DismissQualityHints = v);
         }
 
+        /// <summary>
+        /// The quality level for a menu row and back (the same flip): the project lists its levels best first, which the saved quality index
+        /// and the code reading it rely on, so only the menu runs them from low to high.
+        /// </summary>
+        private static int QualityLevel(int index) => QualitySettings.names.Length - 1 - index;
+
         private void OnDisable()
         {
             if (Application.isPlaying)
@@ -52,8 +58,10 @@ namespace SdfGui
         {
             if (quality != null)
             {
-                quality.options = QualitySettings.names;
-                quality.Set(QualitySettings.GetQualityLevel());
+                var names = QualitySettings.names;
+                System.Array.Reverse(names);
+                quality.options = names;
+                quality.Set(QualityLevel(QualitySettings.GetQualityLevel()));
             }
             if (gore != null)
             {
