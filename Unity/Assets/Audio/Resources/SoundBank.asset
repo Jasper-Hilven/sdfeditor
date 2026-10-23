@@ -1,0 +1,822 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ac9909a1556b4e0c979b53f8409ed13, type: 3}
+  m_Name: SoundBank
+  m_EditorClassIdentifier: Assembly-CSharp::SdfAudio.SoundBank
+  cues:
+  - name: weapon.pistol
+    clips:
+    - {fileID: 8300000, guid: 90323b73aeb8b45b39817f642e298359, type: 3}
+    volume: 0.55
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 80
+    maxVoices: 6
+    cooldown: 0
+    loop: 0
+    priority: 100
+  - name: weapon.dual-pistols
+    clips:
+    - {fileID: 8300000, guid: 90323b73aeb8b45b39817f642e298359, type: 3}
+    volume: 0.5
+    pitch: {x: 0.9, y: 1.1}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 80
+    maxVoices: 6
+    cooldown: 0.02
+    loop: 0
+    priority: 100
+  - name: weapon.sniper
+    clips:
+    - {fileID: 8300000, guid: a0a1e291a7d994bad8297ace33114b8e, type: 3}
+    volume: 1
+    pitch: {x: 0.97, y: 1.03}
+    spatial: 1
+    minDistance: 5
+    maxDistance: 200
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 90
+  - name: weapon.minigun.spin-up
+    clips: []
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 50
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: weapon.minigun.head
+    clips:
+    - {fileID: 8300000, guid: 7c5f1aeb2dd1f44abb8543bcb8590233, type: 3}
+    - {fileID: 8300000, guid: cdba2b1d92a654b8397e00d7f081b0c7, type: 3}
+    volume: 0.8
+    pitch: {x: 0.98, y: 1.02}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 70
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 100
+  - name: weapon.minigun.loop
+    clips:
+    - {fileID: 8300000, guid: 47b3e4b5dcb4c4e63b0d1908cabf4e30, type: 3}
+    - {fileID: 8300000, guid: cfb30cba9823949e890d6be94c19eb4f, type: 3}
+    - {fileID: 8300000, guid: 0b4bd01780f524e14a26fe773f450666, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 70
+    maxVoices: 4
+    cooldown: 0
+    loop: 1
+    priority: 100
+  - name: weapon.minigun.tail
+    clips:
+    - {fileID: 8300000, guid: 506e3c902c41a4d80b8e1068f22592b0, type: 3}
+    - {fileID: 8300000, guid: 31c33daa5264c4deeb9a2cdaa2642dba, type: 3}
+    volume: 0.8
+    pitch: {x: 0.98, y: 1.02}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 70
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 100
+  - name: weapon.flamethrower.start
+    clips:
+    - {fileID: 8300000, guid: 83694d50d0d554314b5cfaef8dd7c78b, type: 3}
+    volume: 0.6
+    pitch: {x: 0.97, y: 1.03}
+    spatial: 1
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 100
+  - name: weapon.flamethrower.loop
+    clips:
+    - {fileID: 8300000, guid: c2ab6f393b7fa4c908c782571ceb3dcb, type: 3}
+    volume: 0.55
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0
+    loop: 1
+    priority: 100
+  - name: weapon.flamethrower.end
+    clips:
+    - {fileID: 8300000, guid: 79c26a3f829f84ded9993c534ae51a56, type: 3}
+    volume: 0.55
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: weapon.electro-gun
+    clips:
+    - {fileID: 8300000, guid: 109b1468d3d5429a815442ad625bea0c, type: 3}
+    - {fileID: 8300000, guid: b8abef2eadf24c6386ef6708f0ea2fc7, type: 3}
+    volume: 1
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 70
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: weapon.electro-gun.chain
+    clips:
+    - {fileID: 8300000, guid: 74052411b690425b89354aea1fe36e55, type: 3}
+    volume: 0.7
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 50
+    maxVoices: 3
+    cooldown: 0.04
+    loop: 0
+    priority: 128
+  - name: weapon.poison-gun
+    clips:
+    - {fileID: 8300000, guid: 781bd0100957945f5b0ad6838b579757, type: 3}
+    - {fileID: 8300000, guid: fc7033280cc7344cab60ed6b41d5dc5c, type: 3}
+    volume: 0.6
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 60
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: weapon.poison-gun.impact
+    clips:
+    - {fileID: 8300000, guid: 26f41bfb408e140918c29b07e9e9a02e, type: 3}
+    - {fileID: 8300000, guid: fc7033280cc7344cab60ed6b41d5dc5c, type: 3}
+    volume: 0.55
+    pitch: {x: 0.85, y: 0.95}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 60
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: weapon.blob-gun
+    clips:
+    - {fileID: 8300000, guid: 9ee189522141d47f185d047d2c51af90, type: 3}
+    - {fileID: 8300000, guid: 441adfe80a5744ef4b586837d6e6266b, type: 3}
+    volume: 0.65
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 60
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: weapon.blob-gun.impact
+    clips:
+    - {fileID: 8300000, guid: c497929449f864a359b609a8274de94a, type: 3}
+    - {fileID: 8300000, guid: 26f41bfb408e140918c29b07e9e9a02e, type: 3}
+    volume: 0.65
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 60
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: weapon.casing
+    clips:
+    - {fileID: 8300000, guid: dea643443c5084bf98e7f00a874720b0, type: 3}
+    - {fileID: 8300000, guid: eb82dc57c5419429d975cfe65ad07ce7, type: 3}
+    - {fileID: 8300000, guid: ed7c812db5f894838bb125808a1fe5f4, type: 3}
+    - {fileID: 8300000, guid: 42fc744e0c49f4878a2e4dca01918aec, type: 3}
+    volume: 0.35
+    pitch: {x: 0.9, y: 1.1}
+    spatial: 1
+    minDistance: 1
+    maxDistance: 15
+    maxVoices: 3
+    cooldown: 0.06
+    loop: 0
+    priority: 200
+  - name: pickup.weapon
+    clips:
+    - {fileID: 8300000, guid: 250cf3e8000e74e41a265cfa4d63c62f, type: 3}
+    volume: 0.6
+    pitch: {x: 1.2, y: 1.3}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: pickup.health
+    clips:
+    - {fileID: 8300000, guid: 250cf3e8000e74e41a265cfa4d63c62f, type: 3}
+    volume: 0.6
+    pitch: {x: 1.05, y: 1.15}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: hit.marker
+    clips:
+    - {fileID: 8300000, guid: 90183b90eb2cd4af0b262324896f5bdb, type: 3}
+    volume: 0.45
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0.03
+    loop: 0
+    priority: 60
+  - name: hit.marker.head
+    clips:
+    - {fileID: 8300000, guid: 90183b90eb2cd4af0b262324896f5bdb, type: 3}
+    volume: 0.55
+    pitch: {x: 1.45, y: 1.55}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0.03
+    loop: 0
+    priority: 60
+  - name: hit.marker.kill
+    clips:
+    - {fileID: 8300000, guid: 90183b90eb2cd4af0b262324896f5bdb, type: 3}
+    volume: 0.75
+    pitch: {x: 0.6, y: 0.65}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0.03
+    loop: 0
+    priority: 60
+  - name: player.hurt
+    clips:
+    - {fileID: 8300000, guid: 1c48fa286470d406084b6f9417206478, type: 3}
+    volume: 0.7
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0.25
+    loop: 0
+    priority: 50
+  - name: player.death
+    clips:
+    - {fileID: 8300000, guid: 7927cb29503854f2e9c1442b9ba6cdb7, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 40
+  - name: player.death.gore
+    clips:
+    - {fileID: 8300000, guid: c4aaccf71446a4cc99dd210aaee0dc3c, type: 3}
+    volume: 0.9
+    pitch: {x: 0.9, y: 1.1}
+    spatial: 1
+    minDistance: 4
+    maxDistance: 60
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 110
+  - name: player.respawn
+    clips:
+    - {fileID: 8300000, guid: 7d56dad0b0fc442a3820d0b77958c89b, type: 3}
+    volume: 0.6
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: player.heartbeat
+    clips:
+    - {fileID: 8300000, guid: d941b7696a9e74b159c2605db3c6a0e1, type: 3}
+    volume: 0.9
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 1
+    priority: 20
+  - name: footstep.grass
+    clips:
+    - {fileID: 8300000, guid: 94370d112640241d49c43df9bcd58596, type: 3}
+    - {fileID: 8300000, guid: 7ba7da02e10ff4ae3980e9216537ebff, type: 3}
+    - {fileID: 8300000, guid: 43f07e680675a4e11a64b4cee09530c5, type: 3}
+    volume: 0.5
+    pitch: {x: 0.93, y: 1.07}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0.12
+    loop: 0
+    priority: 150
+  - name: footstep.wood
+    clips:
+    - {fileID: 8300000, guid: 4c388ffe097414d27b4e377c180233bb, type: 3}
+    - {fileID: 8300000, guid: 645d588b3a91945009fd5dedd709c99f, type: 3}
+    - {fileID: 8300000, guid: dfc5ab38f9ea84139a26020d83f21f71, type: 3}
+    - {fileID: 8300000, guid: 2359fc0d7bf70494a92e9200bb71dc7d, type: 3}
+    volume: 0.5
+    pitch: {x: 0.93, y: 1.07}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0.12
+    loop: 0
+    priority: 150
+  - name: footstep.carpet
+    clips:
+    - {fileID: 8300000, guid: 0af3f14e849f54e739425a6b38d5864b, type: 3}
+    - {fileID: 8300000, guid: ed0a23cd588e4433bb2cf2e7576584af, type: 3}
+    - {fileID: 8300000, guid: 1f2fb0fbd68704aabbddeee82074d5ba, type: 3}
+    volume: 0.55
+    pitch: {x: 0.93, y: 1.07}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0.12
+    loop: 0
+    priority: 150
+  - name: footstep.enemy
+    clips:
+    - {fileID: 8300000, guid: 4c5c9c38967534e93939e4a48480313b, type: 3}
+    - {fileID: 8300000, guid: 7b98a26b06fa644f091fe4ae6dbc397b, type: 3}
+    - {fileID: 8300000, guid: b41f67ca43f5d4f3ba8c27eff3e0bec0, type: 3}
+    volume: 0.35
+    pitch: {x: 0.9, y: 1.1}
+    spatial: 1
+    minDistance: 2
+    maxDistance: 22
+    maxVoices: 6
+    cooldown: 0.05
+    loop: 0
+    priority: 180
+  - name: player.jump
+    clips: []
+    volume: 0.5
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 140
+  - name: player.land
+    clips:
+    - {fileID: 8300000, guid: a20a32e226750460da3f0924542adbb1, type: 3}
+    volume: 0.5
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 140
+  - name: explosion.small
+    clips:
+    - {fileID: 8300000, guid: 5a75cef138c12431f9894adb4318784b, type: 3}
+    volume: 0.9
+    pitch: {x: 0.92, y: 1.08}
+    spatial: 1
+    minDistance: 8
+    maxDistance: 90
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 80
+  - name: explosion.medium
+    clips:
+    - {fileID: 8300000, guid: 809a88df5c9cf4434a175672657dc927, type: 3}
+    volume: 1
+    pitch: {x: 0.92, y: 1.08}
+    spatial: 1
+    minDistance: 10
+    maxDistance: 130
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 80
+  - name: explosion.large
+    clips:
+    - {fileID: 8300000, guid: 16b14baadc72640d6bee5c810d7def05, type: 3}
+    volume: 1
+    pitch: {x: 0.92, y: 1.08}
+    spatial: 1
+    minDistance: 14
+    maxDistance: 180
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 70
+  - name: explosion.distant
+    clips:
+    - {fileID: 8300000, guid: d0dd51287295540978e3ad111c0fdb99, type: 3}
+    volume: 0.7
+    pitch: {x: 0.92, y: 1.08}
+    spatial: 1
+    minDistance: 60
+    maxDistance: 500
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 120
+  - name: explosion.debris.small
+    clips:
+    - {fileID: 8300000, guid: d344e289f6d974f1d81c236597636377, type: 3}
+    volume: 0.6
+    pitch: {x: 0.92, y: 1.08}
+    spatial: 1
+    minDistance: 6
+    maxDistance: 80
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 130
+  - name: explosion.debris.medium
+    clips:
+    - {fileID: 8300000, guid: e2e22ca7f86a14f7f9659dd9a42fd756, type: 3}
+    volume: 0.6
+    pitch: {x: 0.92, y: 1.08}
+    spatial: 1
+    minDistance: 6
+    maxDistance: 100
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 130
+  - name: explosion.debris.large
+    clips:
+    - {fileID: 8300000, guid: 234e3c66893144a4b88d56d54286b837, type: 3}
+    volume: 0.6
+    pitch: {x: 0.92, y: 1.08}
+    spatial: 1
+    minDistance: 6
+    maxDistance: 120
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 130
+  - name: machine.turret.fire
+    clips:
+    - {fileID: 8300000, guid: 0c9e15093247d478cb59c92e6d4b2f73, type: 3}
+    volume: 0.55
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 3
+    maxDistance: 70
+    maxVoices: 4
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: machine.tank.fire
+    clips:
+    - {fileID: 8300000, guid: e8285e5d495b64145be0c1494d651567, type: 3}
+    volume: 0.9
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 1
+    minDistance: 5
+    maxDistance: 100
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: machine.helicopter.fire
+    clips:
+    - {fileID: 8300000, guid: 0c9e15093247d478cb59c92e6d4b2f73, type: 3}
+    volume: 0.5
+    pitch: {x: 0.8, y: 0.9}
+    spatial: 1
+    minDistance: 4
+    maxDistance: 80
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: machine.tank.engine
+    clips: []
+    volume: 0.5
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 5
+    maxDistance: 60
+    maxVoices: 3
+    cooldown: 0
+    loop: 1
+    priority: 160
+  - name: machine.helicopter.rotor
+    clips: []
+    volume: 0.55
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 8
+    maxDistance: 120
+    maxVoices: 3
+    cooldown: 0
+    loop: 1
+    priority: 150
+  - name: flag.pickup
+    clips:
+    - {fileID: 8300000, guid: 250cf3e8000e74e41a265cfa4d63c62f, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: flag.drop
+    clips:
+    - {fileID: 8300000, guid: fbecdbe4a8aff4d2f9b1a5c63930687d, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: flag.return
+    clips:
+    - {fileID: 8300000, guid: 5c01698ddd714435086f6f9fc5175d46, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: flag.capture
+    clips:
+    - {fileID: 8300000, guid: 044853d91b01f4672b2a54bd534165d3, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: flag.lost
+    clips:
+    - {fileID: 8300000, guid: fbecdbe4a8aff4d2f9b1a5c63930687d, type: 3}
+    volume: 0.7
+    pitch: {x: 0.8, y: 0.8}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: flag.capture.sting
+    clips:
+    - {fileID: 8300000, guid: 4433f6f818f2b49dbbe97bf107957170, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 30
+  - name: match.applause
+    clips: []
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 40
+  - name: match.victory.sting
+    clips:
+    - {fileID: 8300000, guid: 265e85f1ff945413792f1408c8668f28, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 30
+  - name: match.defeat
+    clips:
+    - {fileID: 8300000, guid: fbecdbe4a8aff4d2f9b1a5c63930687d, type: 3}
+    volume: 0.7
+    pitch: {x: 0.65, y: 0.65}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: match.sudden-death
+    clips:
+    - {fileID: 8300000, guid: 4433f6f818f2b49dbbe97bf107957170, type: 3}
+    volume: 0.6
+    pitch: {x: 0.7, y: 0.7}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: spore.ready
+    clips:
+    - {fileID: 8300000, guid: 76c3b79e438f842b5846c87b02f9a0b0, type: 3}
+    volume: 0.6
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 4
+    maxDistance: 50
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: spore.rush
+    clips:
+    - {fileID: 8300000, guid: 0f819ae281d9a44b28e4b51bb9f4b181, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 4
+    maxDistance: 50
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: spore.regrowth
+    clips:
+    - {fileID: 8300000, guid: 45d185cdb3abd4320bde1aae85f8eb1c, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 4
+    maxDistance: 50
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: spore.armour
+    clips:
+    - {fileID: 8300000, guid: ed4b005f8ce74456baa881f14be7603c, type: 3}
+    volume: 0.7
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 4
+    maxDistance: 50
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: boss.phase
+    clips:
+    - {fileID: 8300000, guid: 809a88df5c9cf4434a175672657dc927, type: 3}
+    volume: 0.6
+    pitch: {x: 0.65, y: 0.7}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: boss.shield-down
+    clips:
+    - {fileID: 8300000, guid: ed4b005f8ce74456baa881f14be7603c, type: 3}
+    volume: 0.9
+    pitch: {x: 0.55, y: 0.55}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 128
+  - name: boss.crash
+    clips:
+    - {fileID: 8300000, guid: 113386ccdfdc5438fb377d0310618721, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    spatial: 1
+    minDistance: 20
+    maxDistance: 300
+    maxVoices: 1
+    cooldown: 0
+    loop: 0
+    priority: 60
+  - name: ui.okay
+    clips:
+    - {fileID: 8300000, guid: 90e2c7458a1d1480d994ed2aef600ec6, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 20
+  - name: ui.cancel
+    clips:
+    - {fileID: 8300000, guid: 9417188a228c54da8bcdad3b4a6f4e18, type: 3}
+    volume: 0.8
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 3
+    cooldown: 0
+    loop: 0
+    priority: 20
+  - name: comic.panel
+    clips: []
+    volume: 0.6
+    pitch: {x: 0.95, y: 1.05}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 2
+    cooldown: 0
+    loop: 0
+    priority: 20
+  - name: music.menu
+    clips:
+    - {fileID: 8300000, guid: 69a7dd562cd544b6386a5044097ecaf5, type: 3}
+    volume: 1
+    pitch: {x: 1, y: 1}
+    spatial: 0
+    minDistance: 2
+    maxDistance: 40
+    maxVoices: 1
+    cooldown: 0
+    loop: 1
+    priority: 0
