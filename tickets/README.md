@@ -48,6 +48,26 @@ ticket's Status says.
 | 38 | [Streamed web build](38-streamed-web-build.md) | The web player is only Boot, the GUI, the menu backdrop, the intro comic and the Meadow (the initial download); every later arena and comic is an AssetBundle in `Builds/Web/Bundles`, fetched when the campaign goes there and prefetched in the background during the previous arena, with a retry on the Loading screen. Plain AssetBundles (LZ4), no Addressables; one command builds both |
 | 39 | [GPU SDF evaluation](39-gpu-sdf-evaluation.md) | SDF evaluation on the GPU from the pipeline (macOS: Metal, e.g. via WebGPU/wgpu-native): a compute-shader generator next to the WebGL 2 one, a GPU evaluator with CPU parity tests, dual contouring sampling on the GPU, then ticket 37's SDF bracket test and (if its timings say so) its per-round scoring; `--gpu`/`--cpu` switch, same meshes as the CPU path. Not started. After 37 |
 
+## Running the open tickets
+
+For a lead agent that runs them, one ticket per subagent, merging (or here: committing) each before the next. Every ticket's "Next"
+section says what is left.
+
+| Order | Ticket | Runs alongside | Needs |
+|---|---|---|---|
+| 1 | [39 GPU SDF evaluation](39-gpu-sdf-evaluation.md) | 35 | pipeline only (no Unity) until its last step |
+| 1 | [35 Menu backdrop](35-menu-backdrop.md) | 39 | Unity batch (snapshots) |
+| 2 | [37 Vertex compression](37-vertex-compression.md): the full re-mesh, rebuild and web build | — | after 39; Unity closed; about 2 hours of meshing |
+| 3 | [38 Streamed web build](38-streamed-web-build.md): under 50 MB initial | — | after 37 |
+| 4 | [36 CrazyGames SDK](36-crazygames-sdk.md): tests, build, browser check, portal checklist | — | after 38; the upload is the user's |
+
+Rules for every agent:
+- Model `sonnet` for every subagent; one ticket per agent; it commits its ticket's work when done (the user pushes or asks to).
+- Work in the main checkout, not a worktree: the generated meshes and level bakes are git-ignored and only exist here.
+- Mesh at the default 128 cells, never 256 or 512. No full re-mesh except ticket 37's last step, after ticket 39; test with a few models.
+- Batch Unity only through `tools/unity-batch.sh` (one at a time, with a lock), and only with the editor closed; if it is open,
+  ask the user to close it and poll. Run long commands in the foreground; never stop "waiting" with nothing running.
+
 ## The level
 
 - There are now three levels: the meadow (`Meadow.unity`, a plain meadow after ticket 15), the chessboard (`Chessboard.unity`, board games)

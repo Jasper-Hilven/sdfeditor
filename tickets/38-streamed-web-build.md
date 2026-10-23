@@ -105,3 +105,14 @@ Meadow's `regions.png` (4.8 MB), the Unity splash logo (2.7 MB).
 Done and tested as above. Left: get the initial download under 50 MB (ticket 37's mesh packing; then re-measure), try the CrazyGames
 preview, and check the cache across reloads. The first Loading wait of an arena depends on the prefetch finishing (41 MB at the player's
 connection speed within one match); if it often does not, prefetch earlier (e.g. start in the Meadow's warm-up).
+
+## Next (for the agent that takes this ticket)
+
+After 37's full rebuild and web build:
+1. Re-measure the initial download (the player's `.data` + `.wasm` + `.framework`/loader in `Unity/Builds/Web/Build`). If it is
+   over 50 MB: take the smaller wins listed above (the Story screen PNGs, the Meadow's `regions.png`, the splash logo); if still over,
+   give the player a tiny start scene and stream Boot and the Meadow too, which also ends the 81.5 MB of assets duplicated between the
+   player and the bundles.
+2. Start the next arena's prefetch earlier (in the Meadow's warm-up / on the title once a campaign is chosen) if a 41 MB arena would
+   not finish within a match on a ~20 Mbit connection.
+3. Check the cache across a page reload in a normal Chrome profile, and Safari, with the browser tools if they are connected.

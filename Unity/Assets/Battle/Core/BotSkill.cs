@@ -23,8 +23,8 @@ namespace SdfBattle
 
         private float L(float atZero, float atOne) => Mathf.Lerp(atZero, atOne, Mathf.Clamp01(level));
 
-        /// <summary>How far off every bot's aim is against the tuned numbers below: 10% more (2026-10-23), so they miss a little more.</summary>
-        public const float AimErrorScale = 1.1f;
+        /// <summary>How far off every bot's aim is against the tuned numbers below: 20% more (2026-10-23, twice 10%), so they miss a little more.</summary>
+        public const float AimErrorScale = 1.2f;
 
         /// <summary>Seconds from first seeing a new target until the first shot at it.</summary>
         public float ReactionSeconds => L(0.65f, 0.2f);

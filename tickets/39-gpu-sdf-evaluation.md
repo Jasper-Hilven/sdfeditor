@@ -43,3 +43,15 @@ Depends on: 37 (the batched simplifier and its timing table per phase, which dec
 
 Not started. Waiting on ticket 37's timing table. The full re-mesh of every model (with 37's reduction and formats) waits for this
 ticket: it runs once, on the GPU path, when 39 is done.
+
+## Next (for the agent that takes this ticket)
+
+1. Read 37's timing table (`tickets/37-vertex-compression.md`, "Numbers" and the simplifier timings) and `DualContouring.cs`: confirm
+   where the meshing time goes (SDF sampling vs the rest) on 3-4 test models at 128 cells.
+2. Choose the GPU route (WebGPU via Silk.NET over wgpu-native, or Veldrid, or Metal bindings), pin it, and prove a headless compute
+   dispatch from `SDFPipeline.Cli` on this Mac (M4 Max).
+3. The WGSL/MSL generator for SDF programs next to `Webgl2CodeGenerator.cs`, covering every node type of `SDFCalculatorCPU.cs`; the
+   parity tests (distances within tolerance, signs, materials) on all node types and on real models.
+4. Dual contouring's sampling on the GPU behind `--gpu`/`--cpu`; the same meshes as the CPU path on the parity models; then 37's
+   sign-bracket test on the GPU; scoring only if the numbers say so.
+5. Timings CPU vs GPU on the test models in this ticket. Never a full re-mesh here: that is 37's last step, after this ticket.

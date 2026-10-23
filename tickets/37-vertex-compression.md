@@ -252,3 +252,11 @@ Not run on purpose (the full re-mesh takes about 2 hours; ticket 39 moves SDF ev
   `Mushrooms/Editor/MushroomBuilder.cs` (`Fill`, `FillCollider`, `FillFloats` for comparisons), `PackedMeshTool.cs`, `WebBuild.cs`,
   `Mushrooms/Shaders/SdfPacked.hlsl`, `SdfToon.shader`, `SdfToonFar.shader`, `SdfToonOutline.shader`, `SdfScatter.hlsl`,
   `Level/Editor/LevelBuilder.cs` (`Mirrored`, `MarkStatic`), `CastleChecks.cs`.
+
+## Next (for the agent that takes this ticket)
+
+Only after ticket 39 is done (the user's rule: no full re-mesh before the GPU path). Then, in the main checkout, Unity closed:
+run "Left to do" steps 1-4 above on the GPU path (`--gpu`), at the default 128 cells: the full re-mesh (long: run it in the foreground
+and wait), Update All, the release web build. Record the build report's Meshes MB, the complete build size and the initial download
+(the player's files) in "Numbers"; look at a few levels in snapshots for cracks or outline changes; run the EditMode tests; then move
+this ticket to `done/`.

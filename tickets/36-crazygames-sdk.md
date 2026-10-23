@@ -62,3 +62,13 @@ download <= 50 MB until the first gameplay start, total <= 250 MB, <= 1500 files
 
 Wrapper, call sites, storage and tests written; code compiled against the project's assemblies (editor was open, so no EditMode run yet).
 Left: run EditMode tests (`SdfPlatform.Tests`, `LayeredStorageTests`), a WebGL build, a run in the preview tool, the portal checklist.
+
+## Next (for the agent that takes this ticket)
+
+After 38's re-measured build (the web build changes with 37 and 38):
+1. Run the EditMode tests (`SdfPlatform.Tests`, `LayeredStorageTests` and the rest).
+2. A release web build; serve it on `localhost`; in the browser console check the SDK's events: init, gameplay start/stop on the HUD
+   and off it (pause, comics, menus), loading start/stop around a streamed arena, happy time after the boss, the save in the data module
+   (reload the page: the campaign continues). Ads stay off (`WebPortal.AdsAllowed = false`): check no ad is requested.
+3. Write the portal checklist for the user (developer.crazygames.com: create the game, Unity engine, upload `Unity/Builds/Web` with
+   `Bundles/`, Progress Save on, the preview tool). Uploading and the portal account are the user's step.

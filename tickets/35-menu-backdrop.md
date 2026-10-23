@@ -68,3 +68,12 @@ is mostly hidden by the cards (the monitor glows behind them), tune by taste; pr
 flower and the fungal puffball were seen in the snapshots, from the sample save; the other six are not looked at, the left cluster may be behind 42's chair in the Wide shot); the web
 build (size of the atlases, the flat wall on WebGL, the Ultra Low auto choice); a panel-wall look with every comic seen (more than 48 panels
 thin out); the Ending screen still draws its own opaque desk over Boot (the fallback when `ending` has no panels).
+
+## Next (for the agent that takes this ticket)
+
+1. With a sample save that has every arena won, render the Title and Level Select (`BootSnapshot`) and check all eight desk props:
+   none hidden behind 42's chair, none floating or clipping; move them in `DeskDioramaBuilder` if needed.
+2. The panel wall with every comic seen (all 8 comics, more than 48 panels): it thins out readably.
+3. The Ending screen: let it show Boot's desk backdrop instead of drawing its own opaque desk (it is the fallback when `ending` has
+   no panels).
+4. A Play-mode run through the menus (camera moves, drift) where the batch tools allow it; then move this ticket to `done/`.
