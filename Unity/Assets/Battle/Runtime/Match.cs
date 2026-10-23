@@ -145,6 +145,8 @@ namespace SdfBattle
             Bots.Create(this);
             // The final boss (ticket 33.6) in a scene with his arena: after everything it drives, before the first round it resets for
             Boss.Create(this);
+            // The cheat codes, typed blind (skipthisgamecheat: three captures for your team; Prime beaten in the boss fight)
+            Cheats.Attach(this);
             State.Begin();
             // A beat or the warm-up plays before the match (ticket 32.7): held from the first frame
             if (Setup != null && (Setup.held || Setup.warmUp))

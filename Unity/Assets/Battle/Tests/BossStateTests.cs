@@ -159,6 +159,26 @@ namespace SdfBattle.Tests
             Assert.AreEqual(Team.Red, match.Winner);
         }
 
+        [Test]
+        public void TheCheat_ConcedesFromPhaseOne_AsAWin()
+        {
+            boss.Begin();
+            Assert.IsTrue(boss.Concede());
+            Assert.AreEqual(BossPhase.Victory, boss.Phase);
+            Assert.AreEqual(0, boss.Health);
+            CollectionAssert.Contains(events, "defeated");
+            Assert.AreEqual(Team.Red, match.Winner);
+        }
+
+        [Test]
+        public void TheCheat_DoesNothingBeforeTheFightOrAfterItsEnd()
+        {
+            Assert.IsFalse(boss.Concede());
+            boss.Begin();
+            boss.Concede();
+            Assert.IsFalse(boss.Concede());
+        }
+
         // ---------------------------------------------------------------- Phase 1: shield, kneel, heal
 
         [Test]

@@ -446,6 +446,20 @@ namespace SdfBattle
             return dealt;
         }
 
+        /// <summary>
+        /// The cheat (<see cref="CheatCode.Skip"/>): Prime's bars are emptied at once and the fight is won as if bar 3 had gone, victory
+        /// beat and all. From a fight phase or a transition; false before the fight or after its end.
+        /// </summary>
+        public bool Concede()
+        {
+            if (!Phase.IsFight() && Phase != BossPhase.Transition12 && Phase != BossPhase.Transition23)
+                return false;
+            Array.Clear(bars, 0, bars.Length);
+            Phase = BossPhase.Phase3;
+            EndBar();
+            return true;
+        }
+
         private void EndBar()
         {
             switch (Phase)
