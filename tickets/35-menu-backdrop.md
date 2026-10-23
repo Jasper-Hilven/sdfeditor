@@ -69,11 +69,21 @@ flower and the fungal puffball were seen in the snapshots, from the sample save;
 build (size of the atlases, the flat wall on WebGL, the Ultra Low auto choice); a panel-wall look with every comic seen (more than 48 panels
 thin out); the Ending screen still draws its own opaque desk over Boot (the fallback when `ending` has no panels).
 
-## Next (for the agent that takes this ticket)
+## Done in the follow-up
 
-1. With a sample save that has every arena won, render the Title and Level Select (`BootSnapshot`) and check all eight desk props:
-   none hidden behind 42's chair, none floating or clipping; move them in `DeskDioramaBuilder` if needed.
-2. The panel wall with every comic seen (all 8 comics, more than 48 panels): it thins out readably.
-3. The Ending screen: let it show Boot's desk backdrop instead of drawing its own opaque desk (it is the fallback when `ending` has
-   no panels).
-4. A Play-mode run through the menus (camera moves, drift) where the batch tools allow it; then move this ticket to `done/`.
+- `GuiCampaign.PreviewFull` (editor) shows a save with every arena won and every comic seen; `BootSnapshot` now also takes `FullTitle`, `FullLevelSelect`,
+  `FullStory` and `Ending`.
+- The desk props: the right-hand four (kitchen to boss) stood at x 1.28 to 1.42, past the desk's end (it spans -1.5 to 0.3), floating in the air and out of
+  view. All eight now stand in two rows at the desk's right end (`DeskProgress.Props`), looked at in `FullTitle.png`: knight, block, cookie, duck, RAM bank,
+  crown and flower are in sight, none floating or clipping; the puffball sits mostly behind the knight.
+- The wall with every comic seen: the nine comics have 47 panels in all, under the 48 places, so nothing thins out; the grid fills (`FullStory.png`).
+- The Ending screen no longer draws its own desk from GUI shapes: it dims Boot's desk (backdrop alpha 0.3) over the `Wide` shot (`ShotFor(Ending)`) and holds the
+  caption box (`Ending.png`). In the GUI scene (no desk) it shows the dimmed meadow like the other screens.
+- GUI prefabs and scene and Boot re-saved by the editor (new object ids, no other change).
+
+## Next (for whoever takes the rest)
+
+1. A Play-mode look at the camera moves between menus and the drift (stills only so far; batch cannot show motion), then move this ticket to `done/`.
+2. By taste: the Level Select shot (the monitor glows behind the cards), the puffball behind the knight, the bare cork square on the Ending's wall (the
+   place kept clear behind the monitor, seen from the Wide shot).
+3. The web build (atlas size, the flat wall on WebGL, the Ultra Low auto choice) comes with tickets 37 and 38.

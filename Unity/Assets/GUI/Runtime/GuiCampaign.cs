@@ -21,11 +21,16 @@ namespace SdfGui
         /// <summary>The editor's snapshot of the title with the campaign complete (the sample save is not).</summary>
         public static bool PreviewComplete;
 
+        /// <summary>The editor's snapshot of every arena won and every comic seen (ticket 35), in place of the sample save.</summary>
+        public static bool PreviewFull;
+
+        private static CampaignProgress fullSample;
+
         private static bool Live => Application.isPlaying && CampaignRunner.Instance != null;
 
         public static CampaignDefinition Definition => Live ? CampaignRunner.Instance.Definition : Sample().definition;
 
-        public static CampaignProgress Progress => Live ? CampaignRunner.Instance.Progress : Sample().progress;
+        public static CampaignProgress Progress => Live ? CampaignRunner.Instance.Progress : PreviewFull ? Full() : Sample().progress;
 
         /// <summary>Whether the title offers the save: a real one, or the sample in the editor.</summary>
         public static bool ShowsSave => Live ? Progress.HasSave : !Application.isPlaying;
@@ -52,6 +57,24 @@ namespace SdfGui
                 sample.RecordWin(CampaignDefinition.Fungal, 3, 1, 420, Difficulty.Normal);
             }
             return (sampleDefinition, sample);
+        }
+
+        private static CampaignProgress Full()
+        {
+            if (fullSample == null)
+            {
+                var definition = Sample().definition;
+                fullSample = CampaignProgress.Load(definition, new MemoryCampaignStorage(), _ => true);
+                fullSample.NewCampaign(Difficulty.Normal);
+                foreach (var step in definition.Steps)
+                {
+                    if (step.IsBattle)
+                        fullSample.RecordWin(step.id, 3, 0, 300, Difficulty.Normal);
+                    else
+                        fullSample.CompleteCutscene(step.id);
+                }
+            }
+            return fullSample;
         }
 
         /// <summary>"Arena 3 of 8 · 4 medals", or "Campaign complete · 8 medals"; empty before there is a save.</summary>

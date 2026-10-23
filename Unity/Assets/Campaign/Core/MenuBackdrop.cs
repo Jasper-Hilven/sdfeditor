@@ -92,14 +92,14 @@ namespace SdfCampaign
         // and the snack bowl at x +1.0; the free spots are two corners of two props deep, either side of them
         public static readonly IReadOnlyList<DeskProp> Props = new[]
         {
-            new DeskProp(CampaignDefinition.Meadow, "flower0", new Vector3(-0.22f, 0.55f, -1.32f), 0, 0.2f),
-            new DeskProp(CampaignDefinition.Fungal, "puffball0", new Vector3(-0.08f, 0.55f, -1.32f), 0, 0.1f),
-            new DeskProp(CampaignDefinition.Chessboard, "knight-light", new Vector3(-0.22f, 0.55f, -1.02f), 200, 0.18f),
-            new DeskProp(CampaignDefinition.ToyBox, "alpha-block0", new Vector3(-0.08f, 0.55f, -1.02f), 25, 0.08f),
-            new DeskProp(CampaignDefinition.Kitchen, "cookie0", new Vector3(1.28f, 0.55f, -1.02f), 0, 0.04f),
-            new DeskProp(CampaignDefinition.Bathroom, "rubber-duck0", new Vector3(1.42f, 0.55f, -1.02f), 160, 0.09f),
-            new DeskProp(CampaignDefinition.Computer, "ram-bank-red", new Vector3(1.28f, 0.55f, -1.32f), 90, 0.1f),
-            new DeskProp(CampaignDefinition.Boss, "prime-crown", new Vector3(1.42f, 0.55f, -1.32f), 15, 0.1f),
+            new DeskProp(CampaignDefinition.Meadow, "flower0", new Vector3(-0.3f, 0.55f, -1.36f), 0, 0.2f),
+            new DeskProp(CampaignDefinition.Fungal, "puffball0", new Vector3(-0.16f, 0.55f, -1.36f), 0, 0.1f),
+            new DeskProp(CampaignDefinition.Chessboard, "knight-light", new Vector3(-0.28f, 0.55f, -1.1f), 200, 0.18f),
+            new DeskProp(CampaignDefinition.ToyBox, "alpha-block0", new Vector3(-0.12f, 0.55f, -1.1f), 25, 0.08f),
+            new DeskProp(CampaignDefinition.Kitchen, "cookie0", new Vector3(0.05f, 0.55f, -1.02f), 0, 0.04f),
+            new DeskProp(CampaignDefinition.Bathroom, "rubber-duck0", new Vector3(0.19f, 0.55f, -1.02f), 160, 0.09f),
+            new DeskProp(CampaignDefinition.Computer, "ram-bank-red", new Vector3(0.0f, 0.55f, -1.36f), 90, 0.1f),
+            new DeskProp(CampaignDefinition.Boss, "prime-crown", new Vector3(0.17f, 0.55f, -1.36f), 15, 0.1f),
         };
 
         /// <summary>The props of the arenas won, in the order of <see cref="Props"/>.</summary>

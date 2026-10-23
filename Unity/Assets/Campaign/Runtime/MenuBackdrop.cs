@@ -69,6 +69,7 @@ namespace SdfCampaign
             switch (screen)
             {
                 case GuiScreen.Title:
+                case GuiScreen.Ending:
                     return MenuShot.Wide;
                 case GuiScreen.LevelSelect:
                     return MenuShot.Monitor;

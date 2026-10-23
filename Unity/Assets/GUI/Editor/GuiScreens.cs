@@ -908,44 +908,13 @@ namespace SdfGui.Editor
 
         // ---------------------------------------------------------------- The ending and the credits (ticket 32.8)
 
-        // 42's desk and the monitor, drawn from the GUI's own shapes and the scouts' avatars (Home.unity is editor-only): the ending's lines go
-        // in the caption box under it. No new props.
+        // Over Boot the backdrop is 42's desk diorama (ticket 35), so the screen only dims it a little and holds the caption box with the
+        // ending's lines under it; the Ending shot is MenuShots' Wide. (The GUI scene has no desk: it shows its dimmed meadow.)
         private GameObject Ending()
         {
             var root = Root("Ending", GuiScreen.Ending);
             var t = root.transform;
-            Backdrop(t);
-            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.2f), Centre, new Vector2(330, 160), new Vector2(1100, 800));
-
-            // The desk along the bottom of the picture, the trophy and 42 in the chair on it
-            f.Panel(t, "Desk", GuiPalette.AmanitaDark, Centre, new Vector2(0, -145), new Vector2(1500, 130), 24);
-            void Avatar(Transform parent, string name, Color colour, int icon, Vector2 position, float size)
-            {
-                var avatar = Instance<GuiAvatar>(p.Avatar, parent, name, Centre, position, new Vector2(size, size));
-                avatar.Set(colour, icon, false);
-            }
-            f.Panel(t, "Chair", GuiPalette.Dusk, Centre, new Vector2(-470, 20), new Vector2(380, 360), 60);
-            Avatar(t, "Mushroom 42", GuiPalette.Amanita, 0, new Vector2(-470, 50), 300);
-            var trophy = f.Shape(t, "Trophy Cup", ToonShapeKind.Cap, GuiPalette.Gold, Centre, new Vector2(-110, 50), new Vector2(120, 110), s =>
-            {
-                s.Outline = 5;
-                s.Shadow = 6;
-                s.Spots = 0;
-            });
-            trophy.rectTransform.localRotation = Quaternion.Euler(0, 0, 180);
-            f.Panel(t, "Trophy Stem", GuiPalette.Gold, Centre, new Vector2(-110, -25), new Vector2(26, 50), 6);
-            f.Panel(t, "Trophy Base", GuiPalette.Gold, Centre, new Vector2(-110, -65), new Vector2(110, 30), 10);
-
-            // The monitor: the referee and, tiny, Prime
-            f.Panel(t, "Monitor Stand", GuiPalette.Dusk, Centre, new Vector2(330, -60), new Vector2(200, 36), 12);
-            f.Panel(t, "Monitor", GuiPalette.Dusk, Centre, new Vector2(330, 150), new Vector2(760, 440), 36);
-            var screen = f.Panel(t, "Monitor Screen", GuiPalette.SporeDeep, Centre, new Vector2(330, 150), new Vector2(690, 370), 22);
-            screen.Outline = 4;
-            Avatar(screen.transform, "Ref Puffball", GuiPalette.Cream, 1, new Vector2(-130, 20), 230);
-            f.Text(screen.transform, "Ref Name", "REF PUFFBALL", TextStyle.Label, 30, GuiPalette.Cream, Bottom, new Vector2(-130, 22), new Vector2(300, 40));
-            Avatar(screen.transform, "Prime", GuiPalette.Sky, 1, new Vector2(190, -40), 96);
-            f.Text(screen.transform, "Prime Name", "PRIME", TextStyle.Label, 24, GuiPalette.Cream, Bottom, new Vector2(190, 22), new Vector2(200, 34));
-
+            Backdrop(t, 0.3f);
             CaptionBox(root, true);
             return Save(root);
         }

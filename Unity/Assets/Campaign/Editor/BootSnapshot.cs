@@ -49,6 +49,7 @@ namespace SdfCampaign.Editor
                 Take("LevelSelect", GuiScreen.LevelSelect);
                 Take("Story", GuiScreen.Story);
                 Take("Credits", GuiScreen.Credits);
+                Take("Ending", GuiScreen.Ending);
                 // Cards over the title keep its shot
                 Take("Settings", GuiScreen.Title, f => f.Show(GuiScreen.Settings));
                 Take("Difficulty", GuiScreen.Title, f => f.Show(GuiScreen.Difficulty));
@@ -56,6 +57,12 @@ namespace SdfCampaign.Editor
                 GuiCampaign.PreviewComplete = true;
                 Take("TitleComplete", GuiScreen.Title);
                 GuiCampaign.PreviewComplete = false;
+                // Every arena won and every comic seen: all eight desk props, the full wall
+                GuiCampaign.PreviewFull = true;
+                Take("FullTitle", GuiScreen.Title);
+                Take("FullLevelSelect", GuiScreen.LevelSelect);
+                Take("FullStory", GuiScreen.Story);
+                GuiCampaign.PreviewFull = false;
                 GuiSettings.MenuBackdrop = BackdropChoice.ForceFlat;
                 Take("FlatTitle", GuiScreen.Title);
                 Take("FlatLevelSelect", GuiScreen.LevelSelect);
@@ -63,6 +70,7 @@ namespace SdfCampaign.Editor
             }
             finally
             {
+                GuiCampaign.PreviewFull = false;
                 GuiCampaign.PreviewComplete = false;
                 GuiSettings.MenuBackdrop = before;
             }
