@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using SDFPipeline.Gpu;
 using SDFPipeline.Levels;
 using SDFPipeline.Materials;
 using SDFPipeline.Meshing;
@@ -39,6 +40,10 @@ const string usage = """
                --timings              print where batched simplification spent its time, per mesh
                --simplifier <kind>    batched (default: rounds of folds over independent vertices, vertices stay where they are) or
                                       greedy (the earlier one-collapse-at-a-time)
+               --gpu | --cpu          sample the SDF on the GPU (contouring, the simplifier's sign-bracket tests and facing gradients) or on
+                                      the CPU. By default each mesh goes to the GPU when one is found and the CPU is predicted to spend 10 s
+                                      or more on its SDF samples (small, cheap ones are faster on the CPU); --gpu sends every mesh
+                                      there and fails if there is no GPU. Also accepted by sdf unity, and by sdf level, which has nothing to switch
                --max-error <cells>    how far simplification may move the surface, in grid cells (default 0.3 batched, 0.08 greedy); more cells,
                                       fewer triangles; 0 turns simplification off
       sdf level <level.level> --into <folder>                 Bakes the level's ground into <folder>: a .glb per 25 m chunk with
@@ -129,12 +134,18 @@ int Mesh(string[] arguments)
     float? maxError = null;
     var simplifier = Simplifier.Batched;
     var timings = false;
+    bool? useGpu = null;
     var paths = new List<string>();
     for (var i = 0; i < arguments.Length; i++)
     {
         if (arguments[i] == "--into" && i + 1 < arguments.Length)
         {
             into = arguments[++i];
+            continue;
+        }
+        if (arguments[i] is "--gpu" or "--cpu")
+        {
+            useGpu = arguments[i] == "--gpu";
             continue;
         }
         if (arguments[i] == "--suffix" && i + 1 < arguments.Length)
@@ -188,7 +199,16 @@ int Mesh(string[] arguments)
         return 1;
     if (LoadPatterns() is not { } patterns)
         return 1;
-    var options = new MeshingOptions { Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Simplifier = simplifier, Materials = materials, Patterns = patterns };
+    if (useGpu == true && GpuContext.Shared is null)
+    {
+        Console.Error.WriteLine($"--gpu: there is no usable GPU ({GpuContext.WhyNot})");
+        return 1;
+    }
+    var onGpu = useGpu != false && GpuContext.Shared is not null;
+    Console.WriteLine(onGpu
+        ? $"Sampling the SDF on the GPU ({GpuContext.Shared!.AdapterName}, {GpuContext.Shared.BackendName}){(useGpu == true ? "" : " for meshes whose SDF is dear to evaluate")}; --cpu turns it off"
+        : useGpu == false ? "Sampling the SDF on the CPU (--cpu)" : $"Sampling the SDF on the CPU: no usable GPU ({GpuContext.WhyNot})");
+    var options = new MeshingOptions { UseGpu = onGpu, GpuMinPredictedCpuSeconds = useGpu == true ? 0 : MeshingOptions.DefaultGpuMinPredictedCpuSeconds, Resolution = resolution, ReferenceSize = referenceSize, LodCount = lods, Simplifier = simplifier, Materials = materials, Patterns = patterns };
     if (maxError is { } given)
         options = options with { MaxErrorInCells = given };
     // Where each model's mesh goes: next to it, or into the --into folder under the same subfolder it has below the meshed directory
@@ -309,6 +329,8 @@ bool MeshOne(string input, string output, MeshingOptions options, TextWriter? lo
             log.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"  {mesh.Name.PadRight(nameWidth)}  {statistics.ContouredTriangles,8:N0} → {statistics.SimplifiedTriangles,7:N0} triangles, {statistics.Vertices,7:N0} vertices, {statistics.Time.TotalSeconds:0.00} s{detail}{instances}{(statistics.TrackedError > 0 ? $", tracked {statistics.TrackedError * 1000:0.##} mm" : "")}"));
             // Each level of detail is simplified on from the one before, so its time is on top of that level's
+            if (showTimings)
+                log.WriteLine(string.Create(CultureInfo.InvariantCulture, $"    contouring of {mesh.Name}: {statistics.ContourTime.TotalSeconds:0.00} s"));
             if (showTimings && (mesh.Lods.Count > 0 ? mesh.Lods[^1].Statistics.Timings : statistics.Timings) is { } phases)
                 log.WriteLine($"    simplification of {mesh.Name} over all its levels: {phases}");
             for (var level = 1; level <= mesh.Lods.Count; level++)
@@ -343,6 +365,8 @@ int Level(string[] arguments)
             into = arguments[++i];
             continue;
         }
+        if (arguments[i] is "--gpu" or "--cpu")
+            continue; // Baking a level meshes no SDF program (its ground is a height field), so there is nothing to switch
         if (arguments[i].StartsWith("--"))
             return Usage($"Unknown or invalid option {arguments[i]}, sdf level takes --into <folder>");
         paths.Add(arguments[i]);
@@ -463,8 +487,8 @@ int Unity(string[] arguments)
     if (content is null)
         return Usage($"No '{ModelFiles.ContentFolderName}' folder was found here or in a folder above");
     var root = Path.GetDirectoryName(content)!;
-    if (arguments.FirstOrDefault(a => a.StartsWith("--") && a is not ("--resolution" or "--lods" or "--max-error" or "--simplifier" or "--timings")) is { } unknown)
-        return Usage($"sdf unity takes --resolution, --lods, --max-error and --simplifier, not {unknown}");
+    if (arguments.FirstOrDefault(a => a.StartsWith("--") && a is not ("--resolution" or "--lods" or "--max-error" or "--simplifier" or "--timings" or "--gpu" or "--cpu")) is { } unknown)
+        return Usage($"sdf unity takes --resolution, --lods, --max-error, --simplifier and --gpu or --cpu, not {unknown}");
 
     // Models first: the levels place model prefabs, which Unity builds from the meshes before it builds the level scenes
     var models = Mesh([Path.Combine(content, "models"), "--into", Path.Combine(root, unityModelsFolder), .. arguments]);

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using SDFPipeline.Gpu;
 using SDFPipeline.ProgramFiles;
 using SDFPipeline.Rendering;
 using SDFProject.Calculation;
@@ -9,7 +10,11 @@ namespace SDFPipeline.Meshing;
 
 /// <param name="Time">How long the mesh took; for a level of detail, how long it took on top of the level before.</param>
 /// <param name="TrackedError">With batched simplification, the furthest any vertex folded away is from the surface that replaced it, in metres.</param>
-public sealed record MeshStatistics(int ContouredTriangles, int SimplifiedTriangles, int Vertices, TimeSpan Time, float TrackedError = 0, SimplifyTimings? Timings = null);
+public sealed record MeshStatistics(int ContouredTriangles, int SimplifiedTriangles, int Vertices, TimeSpan Time, float TrackedError = 0, SimplifyTimings? Timings = null)
+{
+    /// <summary>How long dual contouring took (level 0 only; the sampling of the SDF is nearly all of it).</summary>
+    public TimeSpan ContourTime { get; init; }
+}
 
 
 /// <summary>
@@ -135,12 +140,44 @@ public static class ModelMesher
             ? modelGrid
             : ContouringGrid.Around(bounds, options.CellsAlong(bounds.LongestSide, source.Detail));
 
+    /// <summary>
+    /// How many CPU-seconds contouring and simplifying will spend on SDF samples: about 500 per cell along the longest side of the grid,
+    /// squared (the surface's cells, and per vertex the samples of contouring and of the simplifier's checks), each as long as the CPU
+    /// takes for one evaluation, measured here on points spread through the grid.
+    /// </summary>
+    private static float PredictedCpuSeconds(Func<Vector3, float> sdf, ContouringGrid grid)
+    {
+        var longest = Math.Max(grid.Cells.X, Math.Max(grid.Cells.Y, grid.Cells.Z));
+        const int warmUp = 20, samples = 300;
+        var random = new Random(1);
+        var size = grid.Max - grid.Origin;
+        Vector3 Point() => grid.Origin + size * new Vector3(random.NextSingle(), random.NextSingle(), random.NextSingle());
+        for (var i = 0; i < warmUp; i++)
+            sdf(Point());
+        var points = Enumerable.Range(0, samples).Select(_ => Point()).ToArray();
+        var started = Stopwatch.GetTimestamp();
+        foreach (var point in points)
+            sdf(point);
+        var microseconds = Stopwatch.GetElapsedTime(started).TotalMilliseconds * 1000 / samples;
+        var predicted = (float)(500.0 * longest * longest * microseconds * 1e-6);
+        if (Environment.GetEnvironmentVariable("SDF_GPU_TRACE") is { Length: > 0 })
+            Console.Error.WriteLine($"CPU evaluation: {microseconds:0.0} us, predicted {predicted:0.0} CPU-seconds");
+        return predicted;
+    }
+
     private static PartMesh? MeshOne(MeshSource source, SdfCalculatorCpu calculator, SdfCalculatorCpu.Prepared whole,
         SdfCalculatorCpu.Prepared? surface, ContouringGrid grid, MaterialTable table, MeshingOptions options)
     {
         var stopwatch = Stopwatch.StartNew();
         var shape = calculator.Prepare(source.Program);
-        var contoured = DualContouring.Contour(shape.Distance, grid);
+        string? gpuProblem = null;
+        var gpu = options.UseGpu && PredictedCpuSeconds(shape.Distance, grid) >= options.GpuMinPredictedCpuSeconds
+            ? GpuSdf.TryCreate(source.Program, options.Materials, out gpuProblem)
+            : null;
+        if (options.UseGpu && gpu is null && gpuProblem is not null)
+            GpuNotes.Once($"{source.Name}: meshed on the CPU, the GPU could not take it: {gpuProblem}");
+        var contoured = DualContouring.Contour(shape.Distance, grid, gpu);
+        var contourTime = stopwatch.Elapsed;
         if (contoured.Mesh.TriangleCount == 0)
             return null;
 
@@ -157,7 +194,7 @@ public static class ModelMesher
         // How far each vertex has blended into a second material: a fold that changes it much is dearer (batched simplification)
         var batched = options.Simplifier == Simplifier.Batched;
         var blends = batched ? Evaluate(contoured.Mesh.Positions, p => Blend(shape.Surface(p))) : null;
-        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees, regions, batched, blends))
+        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees, regions, batched, blends, gpu))
         {
             var level = levels.Count;
             var shaded = CreaseNormals.Split(simplified, shape.Distance, cellSize, options.CreaseAngleDegrees);
@@ -195,7 +232,7 @@ public static class ModelMesher
                 occlusion[v] = SurfaceAttributes.Occlusion(measured.Distance, position, normal);
             });
 
-            var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, simplified.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed, simplified.TrackedError, simplified.Timings);
+            var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, simplified.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed, simplified.TrackedError, simplified.Timings) { ContourTime = level == 0 ? contourTime : default };
             levels.Add(new PartMesh(source.Name, shaded.Positions, shaded.Normals, materials, thickness, occlusion, shaded.Triangles, maxErrors[level], statistics)
             {
                 Detail = source.Detail,

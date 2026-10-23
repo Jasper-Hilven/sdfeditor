@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Numerics;
+using SDFPipeline.Gpu;
 using SDFProject.MeshExport;
 
 namespace SDFPipeline.Meshing;
@@ -90,13 +91,40 @@ public static class DualContouring
     /// <summary>A second difference above this fraction of the step means the samples straddle a sharp edge.</summary>
     private const float KinkThreshold = 0.05f;
 
-    public static ContouredMesh Contour(Func<Vector3, float> sdf, ContouringGrid grid)
+    /// <summary>
+    /// Contours the SDF on the grid. With a <paramref name="gpu"/> (the same SDF compiled for the GPU), the SDF's corner values, edge
+    /// crossings and normals, the octree's centre tests and the facing tests of the quads are computed there, a batch of blocks at a
+    /// time; the rest (the cells, the QEF, the vertices, the quads) is the same code as without it. <paramref name="sdf"/> is still
+    /// used for the few samples that depend on what the others found (the centres of faces with four crossings, the unfolding).
+    /// </summary>
+    public static ContouredMesh Contour(Func<Vector3, float> sdf, ContouringGrid grid, GpuSdf? gpu = null)
     {
         var clipped = Clip(sdf, grid);
-        var blocks = SurfaceBlocks(clipped, grid);
-        var results = new ConcurrentBag<BlockResult>();
-        Parallel.ForEach(blocks, block => results.Add(new BlockContourer(clipped, grid, block).Run()));
-        return Assemble(results, grid, clipped);
+        if (gpu is null)
+        {
+            var blocks = SurfaceBlocks(clipped, grid);
+            var results = new ConcurrentBag<BlockResult>();
+            Parallel.ForEach(blocks, block => results.Add(new BlockContourer(clipped, grid, block).Run()));
+            return Assemble(results, grid, clipped, null, default);
+        }
+
+        var clip = ClipOf(grid);
+        var surfaceBlocks = SurfaceBlocks(gpu, clip, grid);
+        var gpuResults = new ConcurrentBag<BlockResult>();
+        // The GPU makes the next batch while the CPU contours this one
+        Task<GpuSdf.BlockData> Fetch(int start) =>
+            Task.Run(() => gpu.Blocks(surfaceBlocks.Skip(start).Take(GpuSdf.BlocksPerBatch).Select(b => (b.I, b.J, b.K)).ToArray(), new ContouringGridSpec(grid.Origin, grid.CellSize), clip));
+        var pending = surfaceBlocks.Count > 0 ? Fetch(0) : null;
+        for (var start = 0; start < surfaceBlocks.Count; start += GpuSdf.BlocksPerBatch)
+        {
+            var data = pending!.Result;
+            var next = start + GpuSdf.BlocksPerBatch;
+            pending = next < surfaceBlocks.Count ? Fetch(next) : null;
+            var count = Math.Min(GpuSdf.BlocksPerBatch, surfaceBlocks.Count - start);
+            var first = start;
+            Parallel.For(0, count, b => gpuResults.Add(new BlockContourer(clipped, grid, surfaceBlocks[first + b], new GpuBlock(data, b)).Run()));
+        }
+        return Assemble(gpuResults, grid, clipped, gpu, clip);
     }
 
     /// <summary>
@@ -105,10 +133,7 @@ public static class DualContouring
     /// </summary>
     private static Func<Vector3, float> Clip(Func<Vector3, float> sdf, ContouringGrid grid)
     {
-        var half = grid.CellSize * 0.5f;
-        var center = (grid.Origin + grid.Max) * 0.5f;
-        var extent = (grid.Max - grid.Origin) * 0.5f - new Vector3(half);
-        var jitter = new Vector3(0.31f, 0.57f, 0.73f) * (grid.CellSize * 1e-3f);
+        var (center, extent, jitter) = ClipOf(grid);
         return p =>
         {
             var d = sdf(p);
@@ -120,6 +145,15 @@ public static class DualContouring
             var box = Vector3.Max(q, Vector3.Zero).Length() + MathF.Min(MathF.Max(q.X, MathF.Max(q.Y, q.Z)), 0f);
             return MathF.Max(d, box);
         };
+    }
+
+    private static GpuClip ClipOf(ContouringGrid grid)
+    {
+        var half = grid.CellSize * 0.5f;
+        var center = (grid.Origin + grid.Max) * 0.5f;
+        var extent = (grid.Max - grid.Origin) * 0.5f - new Vector3(half);
+        var jitter = new Vector3(0.31f, 0.57f, 0.73f) * (grid.CellSize * 1e-3f);
+        return new GpuClip(center, extent, jitter);
     }
 
     private readonly record struct Block(int I, int J, int K);
@@ -152,6 +186,31 @@ public static class DualContouring
         }
     }
 
+    /// <summary><see cref="SurfaceBlocks(Func{Vector3, float}, ContouringGrid)"/> with the centres of each level's nodes evaluated on the GPU in one batch.</summary>
+    private static List<Block> SurfaceBlocks(GpuSdf gpu, GpuClip clip, ContouringGrid grid)
+    {
+        var size = BlockSize;
+        var longest = Math.Max(grid.Cells.X, Math.Max(grid.Cells.Y, grid.Cells.Z));
+        while (size < longest) size *= 2;
+
+        var nodes = new List<(int i, int j, int k)> { (0, 0, 0) };
+        while (true)
+        {
+            var nodeSize = size;
+            var inside = nodes.Where(n => n.i < grid.Cells.X && n.j < grid.Cells.Y && n.k < grid.Cells.Z).ToArray();
+            var halfSize = nodeSize * grid.CellSize * 0.5f;
+            var centres = inside.Select(n => grid.Corner(n.i, n.j, n.k) + new Vector3(halfSize)).ToArray();
+            var values = gpu.Distances(centres, clip);
+            var near = inside.Where((_, index) => NearSurface(values[index], halfSize)).ToList();
+
+            if (size == BlockSize)
+                return near.Select(n => new Block(n.i, n.j, n.k)).ToList();
+
+            size /= 2;
+            nodes = near.SelectMany(n => Children(n, size)).ToList();
+        }
+    }
+
     private static IEnumerable<(int i, int j, int k)> Children((int i, int j, int k) node, int childSize)
     {
         for (var c = 0; c < 8; c++)
@@ -162,9 +221,14 @@ public static class DualContouring
     private static bool MayContainSurface(Func<Vector3, float> sdf, ContouringGrid grid, int i, int j, int k, int size)
     {
         var halfSize = size * grid.CellSize * 0.5f;
-        var d = sdf(grid.Corner(i, j, k) + new Vector3(halfSize));
-        return float.IsNaN(d) || float.IsFinite(d) && MathF.Abs(d) <= halfSize * MathF.Sqrt(3f) * SkipSlack;
+        return NearSurface(sdf(grid.Corner(i, j, k) + new Vector3(halfSize)), halfSize);
     }
+
+    private static bool NearSurface(float d, float halfSize) =>
+        float.IsNaN(d) || float.IsFinite(d) && MathF.Abs(d) <= halfSize * MathF.Sqrt(3f) * SkipSlack;
+
+    /// <summary>One block's values and crossings in a batch the GPU made (see <see cref="GpuSdf.Blocks"/>).</summary>
+    private readonly record struct GpuBlock(GpuSdf.BlockData Data, int Index);
 
     /// <summary>A grid edge the surface crosses, named by its lower corner and axis; it becomes a quad.</summary>
     private readonly record struct CrossedEdge(int I, int J, int K, int Axis, bool InsideAtLowerCorner);
@@ -175,7 +239,7 @@ public static class DualContouring
     private sealed record BlockResult(List<CellVertices> Cells, List<CrossedEdge> Edges);
 
     /// <summary>Contours one block: its corner values and edge crossings are cached, as neighbouring cells share them.</summary>
-    private sealed class BlockContourer(Func<Vector3, float> sdf, ContouringGrid grid, Block block)
+    private sealed class BlockContourer(Func<Vector3, float> sdf, ContouringGrid grid, Block block, GpuBlock? gpu = null)
     {
         private const int Corners = BlockSize + 1;
         private readonly float[] values = new float[Corners * Corners * Corners];
@@ -194,7 +258,7 @@ public static class DualContouring
             var (gi, gj, gk) = (block.I + i, block.J + j, block.K + k);
             if (gi >= grid.Cells.X || gj >= grid.Cells.Y || gk >= grid.Cells.Z)
                 return;
-            if (size < BlockSize && !MayContainSurface(sdf, grid, gi, gj, gk, size))
+            if (size < BlockSize && !MayContain(i, j, k, size, gi, gj, gk))
                 return;
             if (size > 1)
             {
@@ -208,9 +272,22 @@ public static class DualContouring
 
         private static int CornerIndex(int i, int j, int k) => i + Corners * (j + Corners * k);
 
+        /// <summary>Whether the sub-cube of <paramref name="size"/> cells at local (i, j, k) may hold surface: from the GPU's centre values if it made them.</summary>
+        private bool MayContain(int i, int j, int k, int size, int gi, int gj, int gk)
+        {
+            if (gpu is not { } g)
+                return MayContainSurface(sdf, grid, gi, gj, gk, size);
+            var dim = BlockSize / size;
+            var index = i / size + dim * (j / size + dim * (k / size));
+            var offset = size switch { 4 => 729, 2 => 737, _ => 801 };
+            return NearSurface(g.Data.Values[g.Index * GpuSdf.ValuesPerBlock + offset + index], size * grid.CellSize * 0.5f);
+        }
+
         private float Value(int i, int j, int k)
         {
             var index = CornerIndex(i, j, k);
+            if (gpu is { } g)
+                return g.Data.Values[g.Index * GpuSdf.ValuesPerBlock + index];
             if (!known[index])
             {
                 values[index] = sdf(grid.Corner(block.I + i, block.J + j, block.K + k));
@@ -470,9 +547,20 @@ public static class DualContouring
 
             var a = grid.Corner(block.I + i, block.J + j, block.K + k);
             var direction = axis switch { 0 => Vector3.UnitX, 1 => Vector3.UnitY, _ => Vector3.UnitZ } * grid.CellSize;
-            var t = FindRoot(sdf, a, direction, da, db, grid.CellSize);
+            float t;
+            Vector3 normal;
+            if (gpu is { } g)
+            {
+                var at = (g.Index * 729 * 3 + key) * 4;
+                normal = new Vector3(g.Data.Crossings[at], g.Data.Crossings[at + 1], g.Data.Crossings[at + 2]);
+                t = g.Data.Crossings[at + 3];
+            }
+            else
+            {
+                t = FindRoot(sdf, a, direction, da, db, grid.CellSize);
+                normal = Normal(sdf, a + direction * t, grid.CellSize);
+            }
             var point = a + direction * t;
-            var normal = Normal(sdf, point, grid.CellSize);
             var length = normal.Length();
             var crossing = length > 1e-6f && float.IsFinite(length) ? (point, normal / length, true) : (point, Vector3.Zero, false);
             crossings[key] = crossing;
@@ -575,7 +663,7 @@ public static class DualContouring
     /// Numbers the vertices and turns each crossed edge into a quad of the pieces of surface around it, split along the diagonal that
     /// keeps both triangles facing the way the SDF does (the shorter one when both do). Then no vertex may fold its faces over.
     /// </summary>
-    private static ContouredMesh Assemble(IEnumerable<BlockResult> results, ContouringGrid grid, Func<Vector3, float> sdf)
+    private static ContouredMesh Assemble(IEnumerable<BlockResult> results, ContouringGrid grid, Func<Vector3, float> sdf, GpuSdf? gpu, GpuClip clip)
     {
         var blocks = results.ToList();
         var firstVertexOfCell = new Dictionary<long, (int first, int[] vertexOfEdge)>();
@@ -597,6 +685,9 @@ public static class DualContouring
         var edges = blocks.SelectMany(b => b.Edges).OrderBy(e => (CellKey(grid, e.I, e.J, e.K), e.Axis)).ToArray();
         var quads = new int[edges.Length][];
         var foldedQuad = new bool[edges.Length];
+
+        // The four corners of every quad whose four cells have a vertex
+        var corners = new int[edges.Length][];
         Parallel.For(0, edges.Length, q =>
         {
             var edge = edges[q];
@@ -613,14 +704,54 @@ public static class DualContouring
             // Inside at the lower corner means the surface faces along the axis, which is the order above
             if (!edge.InsideAtLowerCorner)
                 (quad[1], quad[3]) = (quad[3], quad[1]);
+            corners[q] = quad;
+        });
 
+        // On the GPU, whether each of the four triangles a quad can be split into faces out, by the SDF's gradient at its centre:
+        // (0, 1, 2) and (0, 2, 3) are the split along the 0-2 diagonal, (0, 1, 3) and (1, 2, 3) the split along 1-3
+        bool[]? facesOutOf = null;
+        if (gpu is not null)
+        {
+            var centres = new List<Vector3>();
+            foreach (var quad in corners.Where(c => c is not null))
+            {
+                var (p0, p1, p2, p3) = (positions[quad![0]], positions[quad[1]], positions[quad[2]], positions[quad[3]]);
+                centres.AddRange([(p0 + p1 + p2) / 3, (p0 + p2 + p3) / 3, (p0 + p1 + p3) / 3, (p1 + p2 + p3) / 3]);
+            }
+            var gradients = gpu.Gradients(centres.ToArray(), gradientStep, clip);
+            facesOutOf = new bool[centres.Count];
+            var at = 0;
+            foreach (var quad in corners.Where(c => c is not null))
+            {
+                var (p0, p1, p2, p3) = (positions[quad![0]], positions[quad[1]], positions[quad[2]], positions[quad[3]]);
+                Vector3[][] triangleCorners = [[p0, p1, p2], [p0, p2, p3], [p0, p1, p3], [p1, p2, p3]];
+                for (var t = 0; t < 4; t++, at++)
+                {
+                    var normal = Vector3.Cross(triangleCorners[t][1] - triangleCorners[t][0], triangleCorners[t][2] - triangleCorners[t][0]);
+                    facesOutOf[at] = normal.LengthSquared() > 0 && Vector3.Dot(normal, gradients[at]) > 0;
+                }
+            }
+        }
+        var quadNumber = new int[edges.Length];
+        var counted = 0;
+        for (var q = 0; q < edges.Length; q++)
+            quadNumber[q] = corners[q] is null ? -1 : counted++;
+
+        Parallel.For(0, edges.Length, q =>
+        {
+            if (corners[q] is not { } quad)
+                return;
             var (p0, p1, p2, p3) = (positions[quad[0]], positions[quad[1]], positions[quad[2]], positions[quad[3]]);
             int[] first = [quad[0], quad[1], quad[2], quad[0], quad[2], quad[3]];
             int[] second = [quad[0], quad[1], quad[3], quad[1], quad[2], quad[3]];
-            var (preferred, other) = Vector3.DistanceSquared(p0, p2) <= Vector3.DistanceSquared(p1, p3) ? (first, second) : (second, first);
-            if (FacesOutAll(preferred))
+            var firstIsPreferred = Vector3.DistanceSquared(p0, p2) <= Vector3.DistanceSquared(p1, p3);
+            var (preferred, other) = firstIsPreferred ? (first, second) : (second, first);
+            bool PairFacesOut(bool isFirst, int[] pair) => facesOutOf is not null
+                ? facesOutOf[4 * quadNumber[q] + (isFirst ? 0 : 2)] && facesOutOf[4 * quadNumber[q] + (isFirst ? 1 : 3)]
+                : FacesOutAll(pair);
+            if (PairFacesOut(firstIsPreferred, preferred))
                 quads[q] = preferred;
-            else if (FacesOutAll(other))
+            else if (PairFacesOut(!firstIsPreferred, other))
                 quads[q] = other;
             else
                 (quads[q], foldedQuad[q]) = (preferred, true);

@@ -51,6 +51,27 @@ public sealed record MeshingOptions
     /// </summary>
     public int Resolution { get; init; } = DefaultResolution;
 
+    /// <summary>
+    /// Whether to sample the SDF on the GPU (ticket 39): the contouring's samples, and with batched simplification the sign-bracket
+    /// tests and the facing tests' gradients. Off here, so the CPU stays the reference the tests and library callers get; the command
+    /// line (<c>sdf mesh</c>) turns it on by default when a GPU is found (<c>--cpu</c> turns it off). A model that does not compile for
+    /// the GPU is meshed on the CPU. The contour is the CPU's up to float rounding of the edge crossings, and the simplifier's choices
+    /// are the same on the same contour, so the meshes differ by a few per cent of triangles at most.
+    /// </summary>
+    public bool UseGpu { get; init; }
+
+    /// <summary>
+    /// With <see cref="UseGpu"/>, a mesh is sampled on the GPU only if the CPU is predicted to spend at least this many CPU-seconds on its
+    /// SDF samples, which are about 500 per cell along the grid's longest side squared, each at the CPU's measured cost of one
+    /// evaluation (see <c>ModelMesher</c>): the GPU costs a fixed 0.1 to 0.3 s per mesh (compiling the shader) and the CPU sets
+    /// the pace for everything else, so a small, cheap program is meshed faster on the CPU. 0 sends every mesh to the GPU. Tuned on five
+    /// models on an M4 Max: a room (predicted about 70 s, meshed in under half the time) goes, a character (about 3 s, slightly slower
+    /// on the GPU) does not.
+    /// </summary>
+    public float GpuMinPredictedCpuSeconds { get; init; } = DefaultGpuMinPredictedCpuSeconds;
+
+    public const float DefaultGpuMinPredictedCpuSeconds = 10;
+
     /// <summary>The size in metres at which the longest side gets <see cref="Resolution"/> cells.</summary>
     public float ReferenceSize { get; init; } = DefaultReferenceSize;
 

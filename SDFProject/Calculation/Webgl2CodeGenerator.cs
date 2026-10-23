@@ -99,6 +99,16 @@ public partial class Webgl2CodeGenerator(MaterialLibrary? materials = null)
         return string.Join("\n\n", functions.Append(material).Prepend(Webgl2SdfLibrary.CodeFor(context.UsedLibraryMethods.Keys)));
     }
 
+    /// <summary>
+    /// The library and the distance function (<see cref="SceneFunctionName"/>) alone, without the material function: what a compute
+    /// shader that only needs distances (the pipeline's GPU meshing) is built on.
+    /// </summary>
+    public string GenerateDistanceCode(SDFProgram program)
+    {
+        var (functions, _, context) = Generate(program, materials);
+        return string.Join("\n\n", functions.Prepend(Webgl2SdfLibrary.CodeFor(context.UsedLibraryMethods.Keys)));
+    }
+
     public IReadOnlyDictionary<string, int> CountLibraryMethodUses(SDFProgram program) => Generate(program, materials).context.UsedLibraryMethods;
 
     private static (string[] functions, string material, GeneratorContext context) Generate(SDFProgram program, MaterialLibrary materials)

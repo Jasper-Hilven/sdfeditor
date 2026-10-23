@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using SDFPipeline.Gpu;
 
 namespace SDFPipeline.Meshing;
 
@@ -86,9 +87,9 @@ public static class QuadricSimplifier
     /// </summary>
     /// <param name="maxErrors">The error limit of each level, in metres, growing.</param>
     public static IEnumerable<TriangleMesh> SimplifyInSteps(ContouredMesh mesh, Func<Vector3, float> sdf, IReadOnlyList<float> maxErrors,
-        float cellSize, float creaseAngleDegrees, int[]? regions = null, bool batched = false, float[]? attributes = null)
+        float cellSize, float creaseAngleDegrees, int[]? regions = null, bool batched = false, float[]? attributes = null, GpuSdf? gpu = null)
     {
-        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked: null, batched, attributes);
+        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked: null, batched, attributes) { Gpu = gpu };
         for (var level = 0; level < maxErrors.Count; level++)
             yield return simplification.Run(maxErrors[level], coarse: level > 0);
     }
@@ -160,6 +161,46 @@ public static class QuadricSimplifier
         private readonly bool[] removedVertex;
 
         private readonly Func<Vector3, float> sdf;
+
+        /// <summary>The same SDF on the GPU, if there is one: the batched mode's sign-bracket checks of the folds chosen in a round are made there, all at once.</summary>
+        public GpuSdf? Gpu { get; init; }
+
+        /// <summary>
+        /// The SDF's gradient (the tetrahedron's four samples, see <see cref="GradientOnCpu"/>) at the points the GPU answered for before a
+        /// phase of the rounds began; read-only while the threads of that phase run. Vertices never move in half-edge folds, so the centres
+        /// of faces made of them are the same from round to round, and the entries stay valid for the whole run.
+        /// </summary>
+        private Dictionary<Vector3, Vector3> gradientCache = new();
+
+        private const int MaxCachedGradients = 3_000_000;
+
+        /// <summary>
+        /// CPU time over all threads spent on gradients the cache did not have, which decides whether asking the GPU first pays: noting
+        /// the places takes about as long as the scoring itself, so it only wins where the SDF's gradient is over
+        /// <see cref="PrefillWorthShare"/> of the scoring (a big program, like a room), not where the facing tests mostly skip the SDF.
+        /// </summary>
+        private long gradientTicks;
+
+        private const double PrefillWorthShare = 0.5;
+
+        /// <summary>Set once the scoring or the folds are seen to spend that share on gradients; from then on the places are noted and answered first.</summary>
+        private bool prefillForScoring, prefillForFolds;
+
+        /// <summary>Asks the GPU for the gradient at every point of <paramref name="points"/> not already known, in one batch.</summary>
+        private void FillGradientCache(IEnumerable<Vector3> points)
+        {
+            if (Gpu is null)
+                return;
+            var wanted = points.Where(p => !gradientCache.ContainsKey(p)).Distinct().ToArray();
+            if (wanted.Length == 0)
+                return;
+            if (gradientCache.Count + wanted.Length > MaxCachedGradients)
+                gradientCache = new Dictionary<Vector3, Vector3>();
+            var gradients = Gpu.TetrahedronGradients(wanted, gradientStep);
+            gradientCache.EnsureCapacity(gradientCache.Count + wanted.Length);
+            for (var i = 0; i < wanted.Length; i++)
+                gradientCache[wanted[i]] = gradients[i];
+        }
         private readonly float gradientStep;
         private readonly float cellVertexDistance;
 
@@ -446,7 +487,25 @@ public static class QuadricSimplifier
                 var phase = Stopwatch.StartNew();
                 timings.Rounds++;
                 var stale = Enumerable.Range(0, count).Where(v => dirty[v] && !removedVertex[v]).ToArray();
+                var gradientBefore = Interlocked.Read(ref gradientTicks);
+                if (prefillForScoring)
+                {
+                    // The facing tests of the scoring ask for the SDF's gradient at many places: note them first, answer them on the GPU
+                    var queries = new System.Collections.Concurrent.ConcurrentBag<List<Vector3>>();
+                    Parallel.ForEach(stale, Threads, () => new List<Vector3>(), (v, _, list) =>
+                    {
+                        BestFold(v, maxSquaredError, rejected, list);
+                        return list;
+                    }, queries.Add);
+                    FillGradientCache(queries.SelectMany(list => list));
+                }
+                var scoringBefore = Stopwatch.GetTimestamp();
                 Parallel.ForEach(stale, Threads, v => (best[v], score[v]) = BestFold(v, maxSquaredError, rejected));
+                if (Gpu is not null && !prefillForScoring && stale.Length >= 500)
+                {
+                    var wall = Stopwatch.GetTimestamp() - scoringBefore;
+                    prefillForScoring = (Interlocked.Read(ref gradientTicks) - gradientBefore) > PrefillWorthShare * wall * (MaxDegreeOfParallelism > 0 ? MaxDegreeOfParallelism : Environment.ProcessorCount);
+                }
                 timings.Scored += stale.Length;
                 timings.Score += phase.Elapsed;
                 phase.Restart();
@@ -508,14 +567,32 @@ public static class QuadricSimplifier
                 var allowed = order.Count <= 3 ? order.Count : (int)Math.Ceiling(order.Count * FoldShare);
                 var window = Math.Min(order.Count, allowed + allowed / 4 + 4);
                 var checkedAhead = new Prechecked?[window];
+                var bracketsOnGpu = Gpu is null ? null : BracketsOnGpu(order, window, best);
+                if (prefillForFolds)
+                {
+                    // The facing re-checks of the folds below, which are made one at a time, find their gradients ready
+                    var queries = new List<Vector3>[window];
+                    Parallel.For(0, window, Threads, i =>
+                    {
+                        queries[i] = [];
+                        KeepsFacing(order[i], best[order[i]], positions[best[order[i]]], !coarse, queries[i]);
+                    });
+                    FillGradientCache(queries.SelectMany(list => list));
+                }
                 Parallel.For(0, window, Threads, i =>
                 {
                     var u = order[i];
                     var into = best[u];
+                    bool ok;
+                    if (bracketsOnGpu is not null)
+                        ok = bracketsOnGpu[i];
+                    else
+                    {
+                        var bracketStarted = Stopwatch.GetTimestamp();
+                        ok = FacesStayOnTheSurface(u, into, positions[into]);
+                        Interlocked.Add(ref bracketTicks, Stopwatch.GetTimestamp() - bracketStarted);
+                    }
                     var started = Stopwatch.GetTimestamp();
-                    var ok = FacesStayOnTheSurface(u, into, positions[into]);
-                    Interlocked.Add(ref bracketTicks, Stopwatch.GetTimestamp() - started);
-                    started = Stopwatch.GetTimestamp();
                     var tracking = ok ? EvaluateFold(u, into, double.PositiveInfinity) : null;
                     Interlocked.Add(ref trackingTicks, Stopwatch.GetTimestamp() - started);
                     checkedAhead[i] = new Prechecked(into, ok, tracking);
@@ -523,6 +600,8 @@ public static class QuadricSimplifier
                 timings.Prechecked += window;
                 timings.Precheck += phase.Elapsed;
                 phase.Restart();
+                var applyGradientBefore = Interlocked.Read(ref gradientTicks);
+                var applyStarted = Stopwatch.GetTimestamp();
                 var folded = 0;
                 var refused = 0;
                 var position = -1;
@@ -601,6 +680,8 @@ public static class QuadricSimplifier
                     }
                 }
                 timings.Apply += phase.Elapsed;
+                if (Gpu is not null && !prefillForFolds && folded >= 50)
+                    prefillForFolds = Interlocked.Read(ref gradientTicks) - applyGradientBefore > 0.3 * (Stopwatch.GetTimestamp() - applyStarted);
                 // 4. Another round, unless nothing could be folded and no refusal changed what the next scores will be
                 if (folded == 0 && refused == 0)
                     return;
@@ -689,7 +770,7 @@ public static class QuadricSimplifier
         /// around <paramref name="u"/>, and <paramref name="u"/> itself) from the faces that would replace the fan: so error cannot add up
         /// unseen from fold to fold. QEM only picks which neighbours to try, cheapest first.
         /// </summary>
-        private (int Into, double Cost) BestFold(int u, double maxSquaredError, HashSet<(int, int, int, int)> rejected)
+        private (int Into, double Cost) BestFold(int u, double maxSquaredError, HashSet<(int, int, int, int)> rejected, List<Vector3>? collect = null)
         {
             if (removedVertex[u] || locked is not null && locked[u] || trianglesOf[u].Count == 0)
                 return (-1, double.PositiveInfinity);
@@ -743,9 +824,19 @@ public static class QuadricSimplifier
             var tried = 0;
             foreach (var (v, _, length) in options.OrderBy(o => o.Cost).ThenBy(o => o.Length).ThenBy(o => o.V))
             {
-                if (tried >= TrackedTries)
+                if (tried >= TrackedTries + (collect is null ? 0 : 2))
                     break;
                 var guardQuality = !coarse;
+                if (collect is not null)
+                {
+                    // Collecting where the gradient is asked: the candidates a scoring would try, and a few more in case the gradient refuses some
+                    if (StaysManifold(v, u))
+                    {
+                        KeepsFacing(u, v, positions[v], guardQuality, collect);
+                        tried++;
+                    }
+                    continue;
+                }
                 if (!StaysManifold(v, u) || !KeepsFacing(u, v, positions[v], guardQuality))
                     continue;
                 tried++;
@@ -994,7 +1085,7 @@ public static class QuadricSimplifier
         /// not become flat, nor turn far, nor face against the SDF's gradient; but one contouring folded against the surface may turn
         /// back to face outwards.
         /// </summary>
-        private bool KeepsFacing(int moved, int other, Vector3 target, bool guardQuality)
+        private bool KeepsFacing(int moved, int other, Vector3 target, bool guardQuality, List<Vector3>? collect = null)
         {
             foreach (var t in trianglesOf[moved])
             {
@@ -1013,9 +1104,19 @@ public static class QuadricSimplifier
                 // A face facing with the SDF may not come to face against it. Where the surface's own normals vouch for the face that
                 // cannot happen; elsewhere, as on a thin lip, ask the SDF. A face contouring left folded may stay so while others untangle
                 var vouched = !coarse && Vector3.Dot(after, surface) >= VouchedAgreement * after.Length() * surface.Length();
-                if (!vouched && Vector3.Dot(after, Gradient((pa + pb + pc) / 3)) <= 0
-                             && Vector3.Dot(before, Gradient((positions[a] + positions[b] + positions[c]) / 3)) > 0)
-                    return false;
+                if (!vouched)
+                {
+                    var afterCentre = (pa + pb + pc) / 3;
+                    var beforeCentre = (positions[a] + positions[b] + positions[c]) / 3;
+                    if (collect is not null)
+                    {
+                        // Only noting where the gradient will be asked, so the GPU can answer all of it at once
+                        collect.Add(afterCentre);
+                        collect.Add(beforeCentre);
+                    }
+                    else if (Vector3.Dot(after, Gradient(afterCentre)) <= 0 && Vector3.Dot(before, Gradient(beforeCentre)) > 0)
+                        return false;
+                }
                 if (guardQuality && Quality(pa, pb, pc) is var quality && quality < MinQuality && quality < Quality(positions[a], positions[b], positions[c]))
                     return false;
             }
@@ -1079,6 +1180,59 @@ public static class QuadricSimplifier
             return true;
         }
 
+        /// <summary>
+        /// <see cref="FacesStayOnTheSurface"/> for the first <paramref name="window"/> folds of <paramref name="order"/> (each vertex into
+        /// its best neighbour), the SDF samples of all of them taken on the GPU in one batch.
+        /// </summary>
+        private bool[] BracketsOnGpu(List<int> order, int window, int[] best)
+        {
+            var started = Stopwatch.GetTimestamp();
+            var segmentsOf = new List<(Vector3, Vector3, float)>?[window];
+            Parallel.For(0, window, Threads, i =>
+            {
+                var (moved, other) = (order[i], best[order[i]]);
+                var target = positions[other];
+                var segments = new List<(Vector3, Vector3, float)>();
+                foreach (var t in trianglesOf[moved])
+                {
+                    var (a, b, c) = Corners(t);
+                    if (a == other || b == other || c == other)
+                        continue;
+                    var (pa, pb, pc) = (a == moved ? target : positions[a], b == moved ? target : positions[b], c == moved ? target : positions[c]);
+                    var cross = Vector3.Cross(pb - pa, pc - pa);
+                    if (cross.LengthSquared() <= 0)
+                    {
+                        segmentsOf[i] = null;
+                        return;
+                    }
+                    var normal = Vector3.Normalize(cross);
+                    segments.Add(((pa + pb + pc) / 3, normal, maxFaceDistance));
+                    segments.Add(((pa + pb) * 0.5f, normal, maxFaceDistance));
+                    segments.Add(((pb + pc) * 0.5f, normal, maxFaceDistance));
+                    segments.Add(((pc + pa) * 0.5f, normal, maxFaceDistance));
+                }
+                segmentsOf[i] = segments;
+            });
+
+            var offsets = new int[window + 1];
+            for (var i = 0; i < window; i++)
+                offsets[i + 1] = offsets[i] + (segmentsOf[i]?.Count ?? 0);
+            var all = new (Vector3, Vector3, float)[offsets[window]];
+            for (var i = 0; i < window; i++)
+                segmentsOf[i]?.CopyTo(all, offsets[i]);
+            var found = Gpu!.SurfaceWithin(all, gradientStep * 0.1f);
+
+            var ok = new bool[window];
+            for (var i = 0; i < window; i++)
+            {
+                ok[i] = segmentsOf[i] is not null;
+                for (var s = offsets[i]; ok[i] && s < offsets[i + 1]; s++)
+                    ok[i] = found[s];
+            }
+            Interlocked.Add(ref bracketTicks, Stopwatch.GetTimestamp() - started);
+            return ok;
+        }
+
         /// <summary>Whether the SDF changes sign (or is zero) along the segment of the given length either way from <paramref name="p"/> along <paramref name="normal"/>.</summary>
         private bool SurfaceWithin(Vector3 p, Vector3 normal, float distance)
         {
@@ -1098,6 +1252,18 @@ public static class QuadricSimplifier
 
         /// <summary>The SDF's gradient from four samples on a tetrahedron, which is enough to tell which way a face should face.</summary>
         private Vector3 Gradient(Vector3 p)
+        {
+            if (gradientCache.TryGetValue(p, out var known))
+                return known;
+            if (Gpu is null)
+                return GradientOnCpu(p);
+            var started = Stopwatch.GetTimestamp();
+            var gradient = GradientOnCpu(p);
+            Interlocked.Add(ref gradientTicks, Stopwatch.GetTimestamp() - started);
+            return gradient;
+        }
+
+        private Vector3 GradientOnCpu(Vector3 p)
         {
             var h = gradientStep;
             var (a, b, c, d) = (new Vector3(h, -h, -h), new Vector3(-h, -h, h), new Vector3(-h, h, -h), new Vector3(h, h, h));
