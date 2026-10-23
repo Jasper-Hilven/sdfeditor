@@ -147,6 +147,24 @@ namespace SdfBattle
             thinkIn = Mathf.Min(thinkIn, moment);
         }
 
+        /// <summary>
+        /// Ticket 28.10: it stands in a warming or hot burner ring. It walks <paramref name="direction"/> (flat, out of the ring) for a moment
+        /// and finds its path again at the ring's cost; called every frame it is in one.
+        /// </summary>
+        public void StepOff(Vector3 direction, float seconds = 0.4f)
+        {
+            if (sidestepLeft <= 0)
+                hasPath = false;
+            direction.y = 0;
+            if (direction.sqrMagnitude < 1e-6f)
+                return;
+            sidestep = direction.normalized;
+            sidestepLeft = Mathf.Max(sidestepLeft, seconds);
+        }
+
+        /// <summary>Finds its path again soon, at the area costs of now (a burner pair warmed up).</summary>
+        public void Replan() => hasPath = false;
+
         /// <summary>Hurt: it turns to where the shot came from (the shooter remembered there), and thinks again when low.</summary>
         public void OnHurt(Damage damage, float amount)
         {
@@ -723,8 +741,12 @@ namespace SdfBattle
                 case 4:
                 {
                     var angle = (random.NextDouble() < 0.5 ? -1 : 1) * (60 + 60 * (float)random.NextDouble());
-                    sidestep = Quaternion.Euler(0, angle, 0) * (corner < corners.Count ? Flat(corners[corner] - feet).normalized : transform.forward);
-                    sidestepLeft = 0.6f;
+                    var along = corner < corners.Count ? Flat(corners[corner] - feet).normalized : transform.forward;
+                    sidestep = Quaternion.Euler(0, angle, 0) * along;
+                    // Not off an edge (a worktop's, a sink's): the other side, or none
+                    if (!BotNavigation.Clear(feet, feet + sidestep * 3))
+                        sidestep = Quaternion.Euler(0, -angle, 0) * along;
+                    sidestepLeft = BotNavigation.Clear(feet, feet + sidestep * 3) ? 0.6f : 0;
                     controller.Jump();
                     break;
                 }

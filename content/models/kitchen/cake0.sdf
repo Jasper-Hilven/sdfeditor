@@ -1,0 +1,64 @@
+# Cake 0: a lemon layer cake, 12 m across and 6 m high (60 times life size): two lemon sponges (kitchen_sponge_cake) round a layer of buttercream (kitchen_cream), lemon
+# glaze (kitchen_icing) with a few drips down the side, three lemon slices on top (kitchen_lemon, kitchen_cream), one slice (a 40 degree wedge) cut out towards +x; the notch is
+# a firing slot. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.3
+    Subtraction
+        Union
+            Material material=kitchen_sponge_cake
+                Union
+                    Translate translation=(0, 1.2, 0)
+                        RoundedCylinder radius=6 roundness=0.3 height=1.2
+                    Translate translation=(0, 4.2, 0)
+                        RoundedCylinder radius=6 roundness=0.3 height=1.2
+            Material material=kitchen_cream
+                Translate translation=(0, 2.7, 0)
+                    RoundedCylinder radius=6.12 roundness=0.25 height=0.3
+            Material material=kitchen_icing
+                Union
+                    Translate translation=(0, 5.7, 0)
+                        RoundedCylinder radius=6.06 roundness=0.3 height=0.3
+                    Capsule a=(-5.1529, 5.5, 2.975) b=(-5.1529, 4.2, 2.975) radius=0.38
+                    Translate translation=(-5.1529, 4.2, 2.975)
+                        Sphere radius=0.5
+                    Capsule a=(-5.7473, 5.5, -1.54) b=(-5.7473, 4.2, -1.54) radius=0.38
+                    Translate translation=(-5.7473, 4.2, -1.54)
+                        Sphere radius=0.5
+                    Capsule a=(-2.975, 5.5, -5.1529) b=(-2.975, 4.2, -5.1529) radius=0.38
+                    Translate translation=(-2.975, 4.2, -5.1529)
+                        Sphere radius=0.5
+                    Capsule a=(1.54, 5.5, -5.7473) b=(1.54, 4.2, -5.7473) radius=0.38
+                    Translate translation=(1.54, 4.2, -5.7473)
+                        Sphere radius=0.5
+                    Capsule a=(-2.975, 5.5, 5.1529) b=(-2.975, 4.5, 5.1529) radius=0.38
+                    Translate translation=(-2.975, 4.5, 5.1529)
+                        Sphere radius=0.5
+                    Capsule a=(5.1529, 5.5, -2.975) b=(5.1529, 4.2, -2.975) radius=0.38
+                    Translate translation=(5.1529, 4.2, -2.975)
+                        Sphere radius=0.5
+            Union
+                Material material=kitchen_cream
+                    Translate translation=(-1.8, 6.1, 2.4)
+                        CappedCylinder radius=1.3 height=0.12
+                Material material=kitchen_lemon
+                    Translate translation=(-1.8, 6.14, 2.4)
+                        CappedCylinder radius=1.05 height=0.12
+            Union
+                Material material=kitchen_cream
+                    Translate translation=(0.4, 6.1, -2.6)
+                        CappedCylinder radius=1.3 height=0.12
+                Material material=kitchen_lemon
+                    Translate translation=(0.4, 6.14, -2.6)
+                        CappedCylinder radius=1.05 height=0.12
+            Union
+                Material material=kitchen_cream
+                    Translate translation=(-2.9, 6.1, -1.2)
+                        CappedCylinder radius=1.3 height=0.12
+                Material material=kitchen_lemon
+                    Translate translation=(-2.9, 6.14, -1.2)
+                        CappedCylinder radius=1.05 height=0.12
+        Intersection
+            Plane normal=(-0.364, 0, 1) height=0
+            Plane normal=(-0.364, 0, -1) height=0

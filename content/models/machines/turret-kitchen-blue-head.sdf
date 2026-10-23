@@ -1,0 +1,52 @@
+# Turret head, blue (ticket 28.8): the dial head of the kitchen timer, turning on the foot's flat top: a cream dome in a blue enamelled
+# rim, with a round cream dial face tilted up on its front, a blue ring round the face, black ticks and a black hand; the scouts'
+# floating eyes hover in front of the dial.
+# Pivot: the origin is the dome's bottom on the head's axis (it turns about y); in turret-kitchen-blue-foot it is at (0, 1.5, 0). The
+# barrel's (turret-kitchen-blue-barrel) pivot is at (0, 0, 0.3) in this model, inside the dome (the winding knob's stem comes out of it).
+format 1
+collider convex
+
+Detail detail=0.18
+    Union
+        # The rim at the dome's foot
+        Material material=machine_blue_paint
+            Translate translation=(0, 0.06, 0)
+                Round radius=0.03
+                    CappedCylinder radius=0.6 height=0.03
+        # The dome, cut flat at its bottom
+        Material material=kitchen_glaze_cream
+            Intersection
+                Translate translation=(0, 0.03, 0)
+                    Ellipsoid radii=(0.62, 0.52, 0.62)
+                Translate translation=(0, 0.5, 0)
+                    Box size=(1, 0.5, 1)
+        # The dial face on the dome's front, tilted to look forwards and up
+        Translate translation=(0, 0.35, 0.42)
+            Rotate rotation=(0.9, 0, 0)
+                Union
+                    Material material=machine_blue_paint
+                        Round radius=0.015
+                            CappedCylinder radius=0.3 height=0.03
+                    Material material=kitchen_cream
+                        Translate translation=(0, 0.04, 0)
+                            CappedCylinder radius=0.265 height=0.03
+                    Material material=kitchen_black
+                        Union
+                            # The hand and its hub
+                            Capsule a=(0, 0.075, 0) b=(0.12, 0.075, -0.17) radius=0.02
+                            Translate translation=(0, 0.075, 0)
+                                CappedCylinder radius=0.045 height=0.015
+                            # Ticks at the four quarters
+                            Translate translation=(0, 0.075, -0.22)
+                                Box size=(0.02, 0.012, 0.035)
+                            Translate translation=(0, 0.075, 0.22)
+                                Box size=(0.02, 0.012, 0.035)
+                            Translate translation=(0.22, 0.075, 0)
+                                Box size=(0.035, 0.012, 0.02)
+                            Translate translation=(-0.22, 0.075, 0)
+                                Box size=(0.035, 0.012, 0.02)
+        # Eyes, mirrored: the scouts' eyeballs at their own size, floating in front of the dial, as eye_machine,
+        # the scouts' eye meshed coarser (content/parts/machines)
+        SymmetryX
+            Translate translation=(0.18, 0.42, 0.8)
+                Part part=eye_machine

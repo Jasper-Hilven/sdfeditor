@@ -97,12 +97,13 @@ namespace SdfLevel.Editor
         /// Version 20: the level's machine set and a room's helicopter ceiling (ticket 27.2).
         /// Version 21: the level's movers (ticket 27.3, <see cref="PathMover"/>), under Movers at the scene's root.
         /// Version 22: the movers' behaviour (ticket 27.10): push, damage, kill feed name, puffs, crossing distance.
-        /// Version 23: the level's fog, steam and drips (ticket 29.1, <see cref="LevelAtmosphere"/>), the camera of a foggy room clearing to its colour.
-        /// Version 24: the boss arena (ticket 33.3): the placed models tagged with phases under <see cref="PhaseGroup"/> objects, Boss Spots
+        /// Version 23: a room as a backdrop model with open edges (ticket 28.2, <see cref="LevelBackdrop"/>), no edge walls.
+        /// Version 24: the level's fog, steam and drips (ticket 29.1, <see cref="LevelAtmosphere"/>), the camera of a foggy room clearing to its colour.
+        /// Version 25: the boss arena (ticket 33.3): the placed models tagged with phases under <see cref="PhaseGroup"/> objects, Boss Spots
         /// (<see cref="BossSpots"/>), and the navmeshes per phase layout.
-        /// Version 25: the boss's prefabs on Boss Spots (ticket 33.6).
+        /// Version 26: the boss's prefabs on Boss Spots (ticket 33.6).
         /// </summary>
-        public const int BuilderVersion = 25;
+        public const int BuilderVersion = 26;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -464,7 +465,9 @@ namespace SdfLevel.Editor
             }
 
             var hasRoom = LevelRoom.HasRoom(data);
-            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), hasRoom && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
+            // A backdrop (ticket 28.2) is a room with open edges: the room's lamp and no sky, but no walls and not "indoor"
+            var hasBackdrop = LevelBackdrop.IsBackdrop(data);
+            var sun = MushroomScene.BuildLighting(scene, LevelSky.Lighting(name, data), (hasRoom || hasBackdrop) && !(data["sky"] is JObject) ? RoomLightOf(data) : null);
             LevelAtmosphere.ApplyFog(scene, data);
             var levelRoot = new GameObject(LevelRootName);
             SceneManager.MoveGameObjectToScene(levelRoot, scene);
@@ -516,6 +519,8 @@ namespace SdfLevel.Editor
 
             if (hasRoom)
                 LevelRoom.Add(levelRoot.transform, name, meshFolder, data);
+            else if (hasBackdrop)
+                LevelBackdrop.Add(levelRoot.transform, scene, data);
             else
                 AddWalls(levelRoot.transform, data);
             var parts = new PartInstances(((data["drawGroups"] as JArray) ?? new JArray()).Any(g => g.Value<string>("name") == PartsGroup),
@@ -534,7 +539,7 @@ namespace SdfLevel.Editor
             var scatterColliders = AddScatterColliders(levelRoot.transform, meshFolder, data);
             parts.DeleteUnused();
             AssetDatabase.SaveAssets();
-            var player = AddPlayer(scene, data, hasRoom && !(data["sky"] is JObject));
+            var player = AddPlayer(scene, data, (hasRoom || hasBackdrop) && !(data["sky"] is JObject));
             var battle = AddBattle(scene, data, player);
             AddBossSpots(scene, data);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
@@ -545,9 +550,12 @@ namespace SdfLevel.Editor
             SdfLevel.Editor.LevelZonesBuilder.Add(scene, level, data, battle);
             // The data pulses (ticket 30.9): the overlay mesh and the rule, outside the Level root too
             LevelPulses.Add(scene, data, name, meshFolder);
+            // The heat (ticket 28.10): the rule and the glow, and the rings marked as navmesh areas for the bake below
+            var heatMarkers = LevelHeat.Add(scene, data, placements);
             // The bots' navmesh (ticket 23), from the level's colliders, without the player and the battle objects
             var navmeshes = SdfBattle.Editor.BattleNavmesh.Build(levelRoot.transform, PlayCorner(data, "min"), PlayCorner(data, "max"), battle, meshFolder,
                 player, battle != null ? battle.gameObject : null);
+            LevelHeat.Finish(heatMarkers);
             LevelSky.Add(levelRoot.transform, name, data);
             AddStaticShadow(scene, sun);
             var sceneInfo = AddSceneInfo(scene, name, hasRoom, data, levelRoot.transform, player, placements, battle);
@@ -635,13 +643,14 @@ namespace SdfLevel.Editor
                 var channel = i < channels.Count ? (JObject)channels[i] : null;
                 var region = channel == null ? null : MaterialOf(materials, channel.Value<string>("name"))
                     ?? throw new InvalidDataException($"level.json has no material for the region {channel.Value<string>("name")}; bake the level again");
-                var stones = channel?.Value<string>("pattern") == "stones";
+                var pattern = channel?.Value<string>("pattern");
+                var patternKind = pattern == "stones" ? 1 : pattern == "staves" ? 2 : 0;
                 material.SetVector($"_Region{i}Base", region == null ? Vector4.zero : Color(region, "baseColor", region.Number("emission")));
                 material.SetVector($"_Region{i}Variation", region == null ? Vector4.zero : Color(region, "variationColor", region.Number("variationScale")));
                 material.SetVector($"_Region{i}Surface", region == null ? new Vector4(0.9f, 0.3f, 0, 0.5f) : Surface(region));
                 material.SetVector($"_Region{i}Speckle", region == null ? Vector4.zero : Color(region, "speckleColor", region.Number("speckleScale")));
                 material.SetVector($"_Region{i}Pattern", region == null ? Vector4.zero
-                    : new Vector4(region.Number("speckleDensity"), region.Number("speckleSize"), stones ? 1 : 0, channel.Value<float?>("stoneSize") ?? 0.6f));
+                    : new Vector4(region.Number("speckleDensity"), region.Number("speckleSize"), patternKind, channel.Value<float?>("stoneSize") ?? 0.6f));
                 material.SetVector($"_Region{i}Grout", region == null ? Vector4.zero : Color(region, "edgeColor", channel.Value<float?>("groutWidth") ?? 0));
             }
 
@@ -1341,6 +1350,12 @@ namespace SdfLevel.Editor
                 // ... or, in a level with fog (ticket 29.1), the fog's colour, as the far walls fade into it
                 camera.backgroundColor = LevelAtmosphere.FogColor(data) ?? UnityEngine.Color.black;
                 camera.farClipPlane = RoomFarPlaneOf(data);
+                // A backdrop (ticket 28.2) clears to its walls' colour, which shows beyond it, and sets its own far plane
+                if (LevelBackdrop.IsBackdrop(data))
+                {
+                    camera.backgroundColor = LevelBackdrop.Clear(data);
+                    camera.farClipPlane = LevelBackdrop.FarPlane(data);
+                }
             }
             return player;
         }
@@ -1453,7 +1468,7 @@ namespace SdfLevel.Editor
             AddMatch(root, player);
             // Ticket 24.3: the helicopters' and tanks' prefabs, which the match makes in the machine zones at its start
             if (SdfBattle.Machines.HasMachines(arena))
-                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0, KeepOuts(battle["helicopterKeepOuts"]));
+                AddMachines(root, machineSet, battle.Value<float?>("flightCeiling") ?? 0, battle.Value<float?>("helicopterFloor"), KeepOuts(battle["helicopterKeepOuts"]));
             return arena;
         }
 
@@ -1503,11 +1518,13 @@ namespace SdfLevel.Editor
         /// The machines (ticket 24.3) on Battle: the red and blue tank and helicopter prefabs (Assets/Machines/Prefabs), which the match
         /// makes in each side's machine zone at its start; the turrets are the sides' own scene objects. A missing prefab logs a warning.
         /// </summary>
-        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling, SdfBattle.KeepOut[] keepOuts)
+        private static void AddMachines(GameObject battle, string machineSet, float flightCeiling, float? helicopterFloor, SdfBattle.KeepOut[] keepOuts)
         {
             var machines = battle.AddComponent<SdfBattle.Machines>();
             machines.machineSet = machineSet;
             machines.flightCeiling = flightCeiling;
+            machines.hasHelicopterFloor = helicopterFloor.HasValue;
+            machines.helicopterFloor = helicopterFloor ?? 0;
             machines.helicopterKeepOuts = keepOuts;
             GameObject Load(SdfBattle.MachineKind kind, SdfBattle.Team team)
             {

@@ -64,8 +64,9 @@ public static class GroundMesher
     public const float SkirtDepth = 0.5f;
 
     /// <returns>The mesh, or null when the chunk lies wholly beyond the island's edge.</returns>
-    public static GroundMesh? Mesh(LevelTerrain terrain, GroundLayout layout, int chunkI, int chunkJ, GroundDetail detail)
+    public static GroundMesh? Mesh(LevelTerrain terrain, GroundLayout layout, int chunkI, int chunkJ, GroundDetail detail, GroundHoles? holes = null)
     {
+        holes ??= GroundHoles.None;
         var cells = detail.Cells;
         var cellSize = layout.ChunkSize / cells;
         var n = cells + 1;
@@ -73,6 +74,7 @@ public static class GroundMesher
 
         // The grid, its points beyond the edge moved onto it
         var grid = new Vector3[n * n];
+        var inHole = new bool[n * n];
         var flat = new Vector2[n * n];
         for (var b = 0; b < n; b++)
         for (var a = 0; a < n; a++)
@@ -81,9 +83,15 @@ public static class GroundMesher
             var z = layout.Z(chunkJ * cells + b, cells);
             flat[Index(a, b)] = new Vector2(x, z);
             var ground = terrain.OnIsland(x, z) ? new Vector2(x, z) : terrain.OntoEdge(x, z);
+            // A point in a hole goes onto the hole's edge, as one beyond the island goes onto the island's
+            inHole[Index(a, b)] = holes.Contains(ground);
+            if (inHole[Index(a, b)])
+                ground = holes.OntoEdge(ground);
             grid[Index(a, b)] = new Vector3(ground.X, terrain.Height(ground.X, ground.Y), ground.Y);
         }
 
+        // A triangle with all three corners in a hole is left out, so the hole ends on the edge the corners were moved onto (the same
+        // reasoning as the island's edge, which keeps a triangle with a corner on the island)
         // Two triangles per cell, split along the diagonal whose middle is nearer the ground's height there. A triangle stays when a
         // corner of it is on the island: then every open edge between kept and dropped triangles has both ends beyond the edge, moved
         // onto it, so the island ends on the curve rather than in a cell-sized zigzag
@@ -91,7 +99,7 @@ public static class GroundMesher
         var triangles = new List<int>();
         void AddTriangle(int p, int q, int r)
         {
-            if (onIsland[p] || onIsland[q] || onIsland[r])
+            if ((onIsland[p] || onIsland[q] || onIsland[r]) && !(inHole[p] && inHole[q] && inHole[r]))
                 triangles.AddRange([p, q, r]);
         }
         for (var b = 0; b < cells; b++)

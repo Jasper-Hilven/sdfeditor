@@ -27,9 +27,12 @@ namespace SDFPipeline.Levels;
 ///     dirt
 ///         Circle center=(-60, 0) radius=18 noise=1.2
 ///     tiles stone=0.6 grout=0.05             # drawn as stones (the region named tiles is, unless pattern=plain)
+///     planks pattern=staves stone=2.4 grout=0.1   # boards 2.4 m wide and 6 times as long, laid along x with random joints (the kitchen's oak)
 ///         RoundedBox2D center=(-62, 0) size=(14, 10) radius=1
 ///     path
 ///         Polyline points=[(-45, 0), (-10, 6), (20, -4), (45, 0)] width=3 noise=0.6
+///     sink hole=1                            # no ground at all inside its shapes (the kitchen's sink): no triangles, no collider, no navmesh floor;
+///         RoundedBox2D center=(0, 31) size=(27, 22) radius=2   # not a region (no material, not one of the four, not to avoid=); a ruled edge is cut crisp
 ///
 /// place                                     # unique models from content/models/, by name
 ///     castle0 at=(-62, 0) yaw=90 ground=tiles flatten=22
@@ -56,6 +59,8 @@ namespace SDFPipeline.Levels;
 /// room size=(150, 64, 100) walls=toybox-wall ceiling=toybox-lid     # the same with the faces in the named materials, not the checker
 ///      glow=north height=3 color=(1, 0.82, 0.5) light=(0, 0.77, 0.64) lightColor=(1, 0.93, 0.7) ambient=(0.45, 0.4, 0.6)
 ///
+/// backdrop kitchen at=(0, -55, 0) yaw=0     # instead of a room (ticket 28.2): a model as the room beyond the play area's open edges, no walls, no collider, no shadows
+///     farPlane=600 clear=(0.95, 0.9, 0.78)  #   (see <see cref="BackdropSpec"/>); the camera's far clip and clear colour, and light, lightColor, ambient as the room's
 /// fog density=0.0075 color=(0.9, 0.93, 0.92)  # a haze (Unity's exponential squared fog; the camera of a room clears to its colour)
 /// steam at=(-15, 16.5, 0) size=8 rise=40 count=22    # a plume of soft puffs 8 m wide that rise 40 m, 22 alive at a time (80 in all)
 /// drip at=(0, 57, 49.5) water=16.5 every=2 size=0.15 # a drop falls from the point into water at that height every 2 s
@@ -94,7 +99,8 @@ namespace SDFPipeline.Levels;
 /// A placement names a model as its file is named, hyphens and all (amanita-scout), then <c>at</c> (x, z), and optionally <c>yaw</c>
 /// (degrees, counter-clockwise from above), <c>scale</c>, <c>flatten</c> (the radius of level ground round it), <c>falloff</c> (metres
 /// over which that ground blends back), <c>ground</c> (a region painted under its footprint), <c>groundMargin</c> (how far that
-/// reaches past the footprint) and <c>y</c> (metres above the ground there that its base stands, to put it on top of another model).
+/// reaches past the footprint), <c>y</c> (metres above the ground there that its base stands, to put it on top of another model) and
+/// <c>frame=1</c> (ticket 28.9: a model that frames the level, like the kitchen's worktop edge, which the scatter does not keep clear of).
 /// </para>
 /// <para>
 /// A scatter (<see cref="ScatterLayer"/>; there may be several) lists the models it picks from below it, each named as its file is, with
@@ -141,6 +147,8 @@ namespace SDFPipeline.Levels;
 /// fungal machines of ticket 24 (turret-red, ...); another set has <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c> models (turret-toys-red). With it,
 /// a level with a room also gives its helicopters the room's limits (6-12 m, 16 m over bases, 3 m off the walls) under the flight
 /// <c>ceiling</c> (metres over the floor, at least 17, at most 2 under the lid; 20, or the room's height less 8 if lower, by default).
+/// <c>floor=0</c> (ticket 28.8, any level) is the lowest height the helicopters take the ground to be: over a hole in it (a sink) they fly
+/// 6-12 m over that height, not over the hole's bottom.
 /// </para>
 /// <para>
 /// <c>zone</c> lines (ticket 29.7, any number) give a ground region a rule: <c>zone suds slick</c> (players slide: ground acceleration x0.25,
@@ -175,6 +183,15 @@ namespace SDFPipeline.Levels;
 /// together: neither may be given alone. See <see cref="PulseSpec"/>.
 /// </para>
 /// <para>
+/// Heat (ticket 28.10, the kitchen's hob) is rings of floor that get hot in turns: <c>heat cycle=45 first=20 warm=3 hot=12 cool=3 damage=10
+/// cost=50 name="the hob"</c>, every parameter optional with the values shown, and below it one line per ring, <c>ring group=back
+/// at=(-10.5, 3) radius=5.4</c> (<c>at</c> is x and z, <c>radius</c> metres). The rings of a group heat together (a mirrored pair); the groups
+/// take turns in the order they first appear: a group warms for <c>warm</c> seconds (a glow, harmless), is hot for <c>hot</c> (<c>damage</c> a
+/// second to a scout or tank in it, a kill of no one's, named <c>name</c> in the kill feed; bots and tanks pay <c>cost</c> times the path cost
+/// of a warming or hot ring), cools for <c>cool</c>, and the next group follows; the turns run once through every <c>cycle</c> seconds
+/// (what is left over is cold glass), the first starting <c>first</c> seconds into a round. At most four groups. See <see cref="HeatSpec"/>.
+/// </para>
+/// <para>
 /// The sides (<see cref="BattleLayout"/>) list <c>west</c> and <c>east</c>, each with exactly one <c>spawn</c>, one <c>flag</c> and one
 /// or more weapon <c>pod</c>s and one or more <c>pod health</c>, below it. A side's weapon pods are any of minigun, pistol, sniper,
 /// electro-gun, flamethrower, poison-gun and blob-gun, each at most once, and both sides have the same ones (most levels give each side a
@@ -199,7 +216,7 @@ namespace SDFPipeline.Levels;
 /// give or take 20 degrees: the crowd looks at the floor).
 /// </para>
 /// </summary>
-public static class LevelFile
+public static partial class LevelFile
 {
     public const int FormatVersion = 1;
 
@@ -219,6 +236,7 @@ public static class LevelFile
     private const string Draw = "draw";
     private const string Sky = "sky";
     private const string Room = "room";
+    private const string Backdrop = "backdrop";
     private const string Fog = "fog";
     private const string Steam = "steam";
     private const string Drip = "drip";
@@ -238,7 +256,7 @@ public static class LevelFile
     private const string Boss = "boss";
     private const string Pulses = "pulses";
 
-    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Fog, Steam, Drip, Sides, Neutral, Machines, Zone, Mover, Pulses, Layout, Boss];
+    private static readonly string[] Sections = [Play, Seed, Hills, Edge, Regions, Place, Scatter, Trees, Draw, Sky, Room, Backdrop, Fog, Steam, Drip, Sides, Neutral, Machines, Zone, Mover, Pulses, Heat, Layout, Boss];
 
     /// <summary>The layouts a <c>layout</c> line names: mirrored is the default and need not be written.</summary>
     private static readonly string[] Layouts = ["mirrored", "boss"];
@@ -275,6 +293,7 @@ public static class LevelFile
         var hills = HillRing.None;
         var edge = IslandEdge.None;
         IReadOnlyList<GroundRegion> regions = [];
+        IReadOnlyList<GroundHole> holes = [];
         var baseGround = LevelDefinition.DefaultBase;
         IReadOnlyList<Placement> placements = [];
         var scatters = new List<ScatterLayer>();
@@ -283,6 +302,7 @@ public static class LevelFile
         SkySection? sky = null;
         RoomSpec? room = null;
         var roomLine = 0;
+        BackdropSpec? backdrop = null;
         FogSpec? fog = null;
         var steam = new List<SteamSpec>();
         var drips = new List<DripSpec>();
@@ -291,6 +311,7 @@ public static class LevelFile
         var machineSetLine = 0;
         var movers = new List<MoverSpec>();
         PulseSpec? pulses = null;
+        HeatSpec? heat = null;
         (BattleSide West, BattleSide East)? sides = null;
         IReadOnlyList<BattleObject>? neutral = null;
         // The layout decides how the sides are read (the boss's east side need not have the west's pods), so it is read first, wherever it is
@@ -330,7 +351,7 @@ public static class LevelFile
                     edge = ReadEdge(line, cursor);
                     break;
                 case Regions:
-                    (regions, baseGround) = ReadRegions(line, cursor);
+                    (regions, holes, baseGround) = ReadRegions(line, cursor);
                     break;
                 case Place:
                     placements = ReadPlacements(line, cursor);
@@ -353,6 +374,9 @@ public static class LevelFile
                 case Room:
                     room = ReadRoom(line, cursor);
                     roomLine = line.Number;
+                    break;
+                case Backdrop:
+                    backdrop = ReadBackdrop(line, cursor);
                     break;
                 case Fog:
                     fog = ReadFog(line, cursor);
@@ -395,8 +419,13 @@ public static class LevelFile
                 case Pulses:
                     pulses = ReadPulses(line, cursor);
                     break;
+                case Heat:
+                    heat = ReadHeat(line, cursor);
+                    break;
             }
         }
+        if (backdrop is not null && room is not null)
+            throw new SdfProgramFileException(seen[Backdrop], $"A level has a '{Room}' or a '{Backdrop}' (the room beyond open edges), not both; the '{Room}' is on line {roomLine}");
         if (layout == LevelLayout.Boss)
         {
             if (sides is null)
@@ -454,7 +483,7 @@ public static class LevelFile
         if (room is not null && (MathF.Abs(room.Size.X - play.Size.X) > 1e-3f || MathF.Abs(room.Size.Z - play.Size.Y) > 1e-3f))
             throw new SdfProgramFileException(roomLine,
                 $"The room's walls stand on the playable area's edges; its size ({FileSyntax.Number(room.Size.X)}, {FileSyntax.Number(room.Size.Z)}) across and along must be the play size ({FileSyntax.Number(play.Size.X)}, {FileSyntax.Number(play.Size.Y)})");
-        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, Zones = zones, Movers = movers, Pulses = pulses, Layout = layout, Boss = boss,
+        return new LevelDefinition(play, seed, hills, edge) { Regions = regions, Holes = holes, Base = baseGround, Placements = placements, Scatters = scatters, Trees = trees, DrawGroups = drawGroups, Sky = sky, Room = room, Backdrop = backdrop, Fog = fog, Steam = steam, Drips = drips, Machines = machineSet, Zones = zones, Movers = movers, Pulses = pulses, Heat = heat, Layout = layout, Boss = boss,
             Battle = sides is { } s ? new BattleLayout(s.West, s.East, neutral!) : null };
     }
 
@@ -665,8 +694,9 @@ public static class LevelFile
         float? ceiling = parameters.Has("ceiling")
             ? parameters.Number("ceiling", null, MachineSet.LeastCeiling, 1000, $"metres over the floor, {FileSyntax.Number(MachineSet.LeastCeiling)} or more")
             : null;
-        parameters.Done("set", "ceiling");
-        return new MachineSet(name, ceiling);
+        float? floor = parameters.Has("floor") ? parameters.Number("floor", null, -1000, 1000, "the height (y) the helicopters never fly lower over, in metres") : null;
+        parameters.Done("set", "ceiling", "floor");
+        return new MachineSet(name, ceiling, floor);
     }
 
     private static readonly string[] ZoneRules = ["slick", "wet"];
@@ -869,6 +899,34 @@ public static class LevelFile
         };
     }
 
+    /// <summary>
+    /// backdrop kitchen at=(0, -55, 0) yaw=0 farPlane=600 clear=(0.95, 0.9, 0.78) light=... lightColor=... ambient=...: the model that is
+    /// the room beyond the play area's open edges (ticket 28.2).
+    /// </summary>
+    private static BackdropSpec ReadBackdrop(SourceLine line, Cursor cursor)
+    {
+        var model = cursor.ReadFileName("a model's name, like kitchen-room");
+        var parameters = Parameters.Read(Backdrop, line, cursor);
+        var at = parameters.Has("at") ? parameters.Vector3("at", "a point like (0, -55, 0), x, y and z in metres") : Vector3.Zero;
+        var yaw = parameters.Number("yaw", 0, -360, 360, "degrees, -360 to 360");
+        var farPlane = parameters.Number("farPlane", BackdropSpec.DefaultFarPlane, 50, 5000, "the camera's far clip in metres, 50 to 5000");
+        var clear = parameters.Has("clear") ? Colour(parameters, "clear") : BackdropSpec.DefaultClear;
+        Vector3? direction = null;
+        if (parameters.Has("light"))
+        {
+            direction = parameters.Vector3("light", "the direction towards the lamp, like (0, 0.77, 0.64)");
+            if (direction.Value.LengthSquared() < 1e-6f)
+                throw parameters.Error("light", "The lamp's direction needs a length, like (0, 0.77, 0.64)");
+        }
+        Vector3? lampColor = parameters.Has("lightColor") ? Colour(parameters, "lightColor") : null;
+        Vector3? ambient = parameters.Has("ambient") ? Colour(parameters, "ambient") : null;
+        parameters.Done("at", "yaw", "farPlane", "clear", "light", "lightColor", "ambient");
+        return new BackdropSpec(model, at, yaw, farPlane, clear, line.Number)
+        {
+            Light = direction is null && lampColor is null && ambient is null ? null : new RoomLighting(direction, lampColor, ambient),
+        };
+    }
+
     /// <summary>fog density=0.0075 color=(0.9, 0.93, 0.92): the haze (ticket 29.1).</summary>
     private static FogSpec ReadFog(SourceLine line, Cursor cursor)
     {
@@ -1023,13 +1081,14 @@ public static class LevelFile
         return new IslandEdge(margin) { Rim = rim, Shoulder = shoulder, Underside = underside };
     }
 
-    private static (IReadOnlyList<GroundRegion> Regions, string Base) ReadRegions(SourceLine line, Cursor cursor)
+    private static (IReadOnlyList<GroundRegion> Regions, IReadOnlyList<GroundHole> Holes, string Base) ReadRegions(SourceLine line, Cursor cursor)
     {
         // The regions line's own parameters: base=moss, the ground outside the regions (materials/ground/ground_moss.sdfmat)
         var baseParameters = Parameters.Read(Regions, line with { Children = [] }, cursor);
         var baseGround = baseParameters.Name("base", LevelDefinition.DefaultBase, null)!;
         baseParameters.Done("base");
         var regions = new List<GroundRegion>();
+        var holes = new List<GroundHole>();
         var seen = new Dictionary<string, int>();
         foreach (var child in line.Children)
         {
@@ -1038,23 +1097,35 @@ public static class LevelFile
             if (seen.TryGetValue(name, out var first))
                 throw childCursor.Error($"Region '{name}' is given twice, first on line {first}; give it more shapes instead");
             seen[name] = child.Number;
-            if (regions.Count == GroundRegions.MaxRegions)
-                throw childCursor.Error($"A level has at most {GroundRegions.MaxRegions} regions besides grass");
 
             // The region's own parameters are on its line; its shapes are indented below it
             var parameters = Parameters.Read($"region {name}", child with { Children = [] }, childCursor);
-            var pattern = parameters.Name("pattern", name == GroundRegion.Tiles ? "stones" : "plain", ["plain", "stones"]) == "stones"
-                ? GroundPattern.Stones
-                : GroundPattern.Plain;
-            var stone = parameters.Number("stone", GroundRegion.DefaultStoneSize, 0.1f, 10, "the stones' length in metres, 0.1 to 10");
+            if (parameters.Number("hole", 0, 0, 1, "1 to leave the ground out inside its shapes, 0 for a region") > 0)
+            {
+                // A hole has shapes only: no material, so none of the region's looks, and it does not use one of the four channels
+                parameters.Done("hole");
+                if (child.Children.Count == 0)
+                    throw childCursor.Error($"Hole '{name}' needs shapes indented below it, like 'RoundedBox2D center=(0, 31) size=(27, 22) radius=2'");
+                holes.Add(new GroundHole(name, child.Children.Select(ReadShape).ToArray(), child.Number));
+                continue;
+            }
+            if (regions.Count == GroundRegions.MaxRegions)
+                throw childCursor.Error($"A level has at most {GroundRegions.MaxRegions} regions besides grass");
+            var pattern = parameters.Name("pattern", name == GroundRegion.Tiles ? "stones" : "plain", ["plain", "stones", "staves"]) switch
+            {
+                "stones" => GroundPattern.Stones,
+                "staves" => GroundPattern.Staves,
+                _ => GroundPattern.Plain,
+            };
+            var stone = parameters.Number("stone", GroundRegion.DefaultStoneSize, 0.1f, 10, "the stones' length (the staves' width) in metres, 0.1 to 10");
             var grout = parameters.Number("grout", GroundRegion.DefaultGroutWidth, 0, 0.5f, "the grout's width in metres, 0 to 0.5");
             var wobble = parameters.Number("wobble", GroundRegion.DefaultWobble, 0, 0.5f, "metres the shader wobbles the edge, 0 (straight) to 0.5");
-            parameters.Done("pattern", "stone", "grout", "wobble");
+            parameters.Done("hole", "pattern", "stone", "grout", "wobble");
             if (child.Children.Count == 0)
                 throw childCursor.Error($"Region '{name}' needs shapes indented below it, like 'Circle center=(0, 0) radius=10'");
             regions.Add(new GroundRegion(name, child.Children.Select(ReadShape).ToArray(), pattern, stone, grout, wobble));
         }
-        return regions.Count > 0 ? (regions, baseGround) : throw cursor.Error("The regions need a region indented below them, like 'dirt'");
+        return regions.Count + holes.Count > 0 ? (regions, holes, baseGround) : throw cursor.Error("The regions need a region indented below them, like 'dirt'");
     }
 
     private static RegionShape ReadShape(SourceLine line)
@@ -1116,9 +1187,10 @@ public static class LevelFile
             var ground = parameters.Name("ground", null, null);
             var margin = parameters.Number("groundMargin", Placement.DefaultGroundMargin, 0, 50, "metres, 0 to 50");
             var y = parameters.Number("y", 0, 0, 100, "metres above the ground, 0 to 100");
+            var frame = parameters.Number("frame", 0, 0, 1, "1 for a model that frames the level and is no obstacle to the scatter, 0 otherwise") > 0;
             var phases = parameters.Phases("phases");
-            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin", "y", "phases");
-            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number) { Y = y, Phases = phases });
+            parameters.Done("at", "yaw", "scale", "flatten", "falloff", "ground", "groundMargin", "y", "frame", "phases");
+            placements.Add(new Placement(model, at, yaw, scale, flatten, falloff, ground, margin, child.Number) { Y = y, Frame = frame, Phases = phases });
         }
         return placements.Count > 0 ? placements : throw cursor.Error("Nothing is placed; indent placements below, like 'rock1 at=(10, 30)'");
     }

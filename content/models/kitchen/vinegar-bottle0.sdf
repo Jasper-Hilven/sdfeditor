@@ -1,0 +1,27 @@
+# Vinegar bottle 0: a bottle of vinegar, 12 m tall and 3.6 m across (60 times life size): green glass (kitchen_glass_green) with a sloping shoulder and a long neck, a gold
+# cap (kitchen_lid_gold) and a plain cream label band with mustard stripes (kitchen_label_cream, kitchen_label_mustard). Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.22
+    Union
+        Material material=kitchen_glass_green
+            SmoothUnion smoothness=0.1
+                Translate translation=(0, 3.6, 0)
+                    RoundedCylinder radius=1.8 roundness=0.3 height=3.6
+                Translate translation=(0, 8.2, 0)
+                    CappedCone height=1 bottomRadius=1.8 topRadius=0.7
+                Translate translation=(0, 10.2, 0)
+                    CappedCylinder radius=0.7 height=1
+        Material material=kitchen_lid_gold
+            Translate translation=(0, 11.6, 0)
+                RoundedCylinder radius=0.75 roundness=0.15 height=0.4
+        Material material=kitchen_label_cream
+            Translate translation=(0, 3.7, 0)
+                CappedCylinder radius=1.82 height=1.7
+        Material material=kitchen_label_mustard
+            Union
+                Translate translation=(0, 2.15, 0)
+                    CappedCylinder radius=1.83 height=0.1
+                Translate translation=(0, 5.25, 0)
+                    CappedCylinder radius=1.83 height=0.1

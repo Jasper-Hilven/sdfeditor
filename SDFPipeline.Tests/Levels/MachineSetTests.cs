@@ -62,6 +62,18 @@ public class MachineSetTests
     }
 
     [Fact]
+    public void Read_TakesAHelicopterFloor_InAnyLevel_AndItIsLeftOutByDefault()
+    {
+        // Ticket 28.8: machines set=kitchen floor=0, no room needed (the kitchen's backdrop is not a room)
+        var kitchen = LevelFile.Read(FungalText + "\nmachines set=kitchen floor=0\n").Machines!;
+        Assert.Equal(new MachineSet("kitchen", null, 0), kitchen);
+        Assert.Equal(-2.5f, LevelFile.Read(FungalText + "\nmachines set=kitchen floor=-2.5\n").Machines!.Floor);
+        Assert.Null(LevelFile.Read(FungalText + "\nmachines set=kitchen\n").Machines!.Floor);
+        var bad = Assert.Throws<SdfProgramFileException>(() => LevelFile.Read(FungalText + "\nmachines set=kitchen floor=5000\n"));
+        Assert.Contains("floor", bad.Problem);
+    }
+
+    [Fact]
     public void Read_ARoomLevel_HasTheCeilingItNamesOr20OrEightUnderTheLid()
     {
         Assert.Equal(25f, LevelFile.Read(RoomWithSides("machines set=toys ceiling=25\n")).Machines!.Ceiling);
@@ -132,6 +144,11 @@ public class MachineSetTests
             // The default set named: still neither
             var named = Battle(level with { Machines = new MachineSet("mushroom", null) });
             Assert.False(named.TryGetProperty("machineSet", out _) || named.TryGetProperty("flightCeiling", out _));
+
+            // Ticket 28.8: the helicopters' floor only when the machines line gives it, 0 included
+            Assert.False(named.TryGetProperty("helicopterFloor", out _));
+            Assert.False(Battle(level with { Machines = new MachineSet("kitchen", null) }).TryGetProperty("helicopterFloor", out _));
+            Assert.Equal(0f, Battle(level with { Machines = new MachineSet("kitchen", null, 0) }).GetProperty("helicopterFloor").GetSingle());
 
             // Another set, and in a room its ceiling (the given one, or the default 20)
             var toys = Battle(level with { Machines = new MachineSet("toys", null) });

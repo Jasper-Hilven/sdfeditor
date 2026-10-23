@@ -1,0 +1,42 @@
+# Cookie 0: a round biscuit (kitchen_biscuit) with cocoa chips (kitchen_cocoa), 3.6 m across and 0.72 m high (60 times life size), a dome with a sharp-cut
+# edge, lying on the worktop. Knee cover. Convex collider (a hull over 3 m becomes a mesh).
+format 1
+collider convex
+
+Detail detail=0.3
+    Union
+        Material material=kitchen_biscuit
+            Intersection
+                Translate translation=(0, -0.28, 0)
+                    Ellipsoid radii=(1.87, 1, 1.87)
+                Translate translation=(0, 1, 0)
+                    Box size=(2, 1, 2)
+        Material material=kitchen_cocoa
+            Union
+                Translate translation=(0, 0.71, 0)
+                    Rotate rotation=(0, 0.3, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(0.7459, 0.6007, 0.4075)
+                    Rotate rotation=(0, 1, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(-0.633, 0.5713, 0.7084)
+                    Rotate rotation=(0, 0.2, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(-0.7985, 0.5187, -0.7565)
+                    Rotate rotation=(0, 0.7, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(0.3514, 0.626, -0.6626)
+                    Rotate rotation=(0, 1.4, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(0.238, 0.373, 1.3796)
+                    Rotate rotation=(0, 0.4, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(-1.3365, 0.402, 0.1905)
+                    Rotate rotation=(0, 1.1, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(-0.1626, 0.3415, -1.4409)
+                    Rotate rotation=(0, 0.9, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)
+                Translate translation=(1.3283, 0.3071, -0.6969)
+                    Rotate rotation=(0, 0.1, 0)
+                        Ellipsoid radii=(0.2, 0.1, 0.16)

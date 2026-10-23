@@ -65,7 +65,8 @@ namespace SdfLevel.Editor
             }
         }
 
-        public static bool HasRoom(Newtonsoft.Json.Linq.JObject data) => data["room"] is JObject;
+        /// <summary>Whether the level has a closed room; a backdrop (ticket 28.2, <see cref="LevelBackdrop"/>) shares the "room" block but is not one.</summary>
+        public static bool HasRoom(Newtonsoft.Json.Linq.JObject data) => data["room"] is JObject && !LevelBackdrop.IsBackdrop(data);
 
         /// <summary>The faces of the level's room (floor, ceiling, wall-z-, wall-z+, wall-x-, wall-x+), x mirrored; none without a room.</summary>
         public static Face[] Faces(JObject data)

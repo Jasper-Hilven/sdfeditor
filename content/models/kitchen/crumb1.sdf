@@ -1,0 +1,14 @@
+# Crumb 1: a bread crumb of golden crust (kitchen_crumb), 0.3 m long, 0.25 m wide and 0.15 m tall (60 times life size): one rounded chunk with a
+# small flake on its side. Ground clutter on the worktop: no collider.
+format 1
+
+# A fifth of the vertices its size would give it: a small lump
+Detail detail=0.11
+    Material material=kitchen_crumb
+        Union
+            Translate translation=(0, 0.06, 0)
+                Rotate rotation=(0, 1.1, 0)
+                    RoundBox size=(0.11, 0.06, 0.09) roundness=0.03
+            Translate translation=(0.1, 0.04, -0.06)
+                Rotate rotation=(0, 0.4, 0)
+                    RoundBox size=(0.05, 0.04, 0.04) roundness=0.02

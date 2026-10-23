@@ -29,8 +29,8 @@ namespace SdfBattle
         private static NavMeshPath scratch;
         private static Vector3? home;
 
-        /// <summary>The query filter of the scouts' agent type.</summary>
-        public static NavMeshQueryFilter Filter => new NavMeshQueryFilter { agentTypeID = AgentType, areaMask = NavMesh.AllAreas };
+        /// <summary>The query filter of the scouts' agent type, with the area costs of the moment (<see cref="NavAreaCosts"/>: a hot burner ring costs more).</summary>
+        public static NavMeshQueryFilter Filter => NavAreaCosts.Filter(AgentType);
 
         /// <summary>The id of the scouts' agent type; 0 (the default type) when the project has none of that name.</summary>
         public static int AgentType

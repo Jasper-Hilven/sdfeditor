@@ -1,0 +1,15 @@
+# Sugar cube 2: two sugar cubes (kitchen_sugar), one standing and one tipped onto an edge and leaning on it: 2.3 m wide and about 1.35 m tall (60 times life
+# size), a wall to both sides. Knee cover. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.25
+    Material material=kitchen_sugar
+        Union
+            Translate translation=(-0.6, 0.48, 0)
+                Rotate rotation=(0, 0.15, 0)
+                    RoundBox size=(0.48, 0.48, 0.48) roundness=0.08
+            Translate translation=(0.57, 0.6718, 0.05)
+                Rotate rotation=(0, 0.1, 0)
+                    Rotate rotation=(0, 0, 0.7)
+                        RoundBox size=(0.5, 0.5, 0.5) roundness=0.08

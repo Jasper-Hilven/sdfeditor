@@ -393,6 +393,9 @@ bool BakeOne(string input, string into, MaterialLibrary materials)
         if (level.Edge.Underside is { } underside)
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"  underside     {underside.Model}, meeting the ground at the rim, {level.Edge.Rim:0.##} m high"));
+        if (level.Backdrop is { } backdrop)
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"  backdrop      {backdrop.Model} at ({backdrop.At.X:0.##}, {backdrop.At.Y:0.##}, {backdrop.At.Z:0.##}), far plane {backdrop.FarPlane:0.##} m, open edges"));
         if (scattered.Instances.Count > 0)
             Console.WriteLine($"  instances     {LevelBaker.Count(scattered.Instances.Count)} in {InstanceFile.FileName}");
         return true;

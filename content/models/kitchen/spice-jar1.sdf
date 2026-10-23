@@ -1,0 +1,31 @@
+# Spice jar 1: a tall spice jar, 6.0 m tall and 2.7 m across (60 times life size): glass (kitchen_glass) with dried herbs (kitchen_spice_herb), a oak lid
+# (kitchen_oak) and a plain cream label band with a mint stripe. Tall blocker. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.17
+    Union
+        Material material=kitchen_glass
+            Subtraction
+                Translate translation=(0, 2.5, 0)
+                    RoundedCylinder radius=1.35 roundness=0.25 height=2.5
+                Translate translation=(0, 2.35, 0)
+                    Box size=(3, 2.05, 3)
+        Material material=kitchen_spice_herb
+            Intersection
+                Translate translation=(0, 2.5, 0)
+                    RoundedCylinder radius=1.35 roundness=0.25 height=2.5
+                Translate translation=(0, 2.35, 0)
+                    Box size=(3, 2.05, 3)
+        Material material=kitchen_oak
+            Translate translation=(0, 5.5, 0)
+                RoundedCylinder radius=1.22 roundness=0.12 height=0.5
+        Material material=kitchen_label_cream
+            Translate translation=(0, 2.3, 0)
+                CappedCylinder radius=1.37 height=0.8
+        Material material=kitchen_label_mint
+            Union
+                Translate translation=(0, 1.65, 0)
+                    CappedCylinder radius=1.38 height=0.07
+                Translate translation=(0, 2.95, 0)
+                    CappedCylinder radius=1.38 height=0.07

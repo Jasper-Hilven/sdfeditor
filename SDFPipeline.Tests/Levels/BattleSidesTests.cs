@@ -31,26 +31,27 @@ public class BattleSidesTests
     /// <summary>The least room round a battle object's edge, in metres, to a model or to another battle object.</summary>
     private const float Gap = 0.2f;
 
-    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "computer", "bathroom", "arena"];
+    private static readonly string[] LevelNames = ["meadow", "fungal", "chessboard", "toybox", "kitchen", "computer", "bathroom", "arena"];
 
     /// <summary>The levels whose sides mirror each other: all but the boss's arena (ticket 33.3: <c>layout boss</c>), which skips this check and only this one.</summary>
     private static readonly string[] MirroredLevels = ["meadow", "fungal", "chessboard"];
 
-    /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun.</summary>
+    /// <summary>Each level's side weapon pods: the minigun and the pistol, but the chessboard's electro-gun and poison-gun and the toy box's pistol and blob-gun, the kitchen's minigun and flamethrower.</summary>
     private static readonly Dictionary<string, string[]> SideWeapons = new()
     {
         ["meadow"] = ["minigun", "pistol"],
         ["fungal"] = ["minigun", "pistol"],
         ["chessboard"] = ["electro-gun", "poison-gun"],
         ["toybox"] = ["pistol", "blob-gun"],
+        ["kitchen"] = ["minigun", "flamethrower"],
         ["computer"] = ["minigun", "poison-gun"],
         ["bathroom"] = ["pistol", "blob-gun"],
     };
 
-    /// <summary>The levels whose sides have machines (ticket 24): the fungal level, the toy box and the computer.</summary>
-    private static readonly string[] MachineLevels = ["fungal", "toybox", "computer", "bathroom"];
+    /// <summary>The levels whose sides have machines (ticket 24): the fungal level, the toy box, the kitchen, the computer and the bathroom.</summary>
+    private static readonly string[] MachineLevels = ["fungal", "toybox", "kitchen", "computer", "bathroom"];
 
-    /// <summary>The machine levels whose bases are castles; the computer's are RAM banks, which the castle check does not know.</summary>
+    /// <summary>The machine levels whose bases are castles; the kitchen's are bread boxes and the computer's RAM banks, which the castle check does not know.</summary>
     private static readonly string[] CastleMachineLevels = ["fungal", "toybox"];
 
     public static TheoryData<string> Levels => new(LevelNames);
@@ -177,7 +178,7 @@ public class BattleSidesTests
         var level = Load(name);
         var footprints = LevelModels.In(Path.Combine(Content, "models"));
         var regions = new GroundRegions(level, model => footprints(model)!);
-        var castles = level.Placements.Where(p => p.Model.StartsWith("castle", StringComparison.Ordinal) || p.Model.StartsWith("toy-castle", StringComparison.Ordinal)).ToList();
+        var castles = level.Placements.Where(p => p.Model.StartsWith("castle", StringComparison.Ordinal) || p.Model.StartsWith("toy-castle", StringComparison.Ordinal) || p.Model.StartsWith("bread-box", StringComparison.Ordinal)).ToList();
         var shapes = new Dictionary<string, Func<Vector3, float>>();
         var files = ModelFiles.All(Path.Combine(Content, "models")).ToDictionary(f => Path.GetFileNameWithoutExtension(f)!, f => f);
 
@@ -192,7 +193,8 @@ public class BattleSidesTests
             foreach (var turret in side.Turrets)
             {
                 // From the castle's middle out to the turret, 3 m up: a wall or tower on the way
-                var walled = false;
+                // A bread box (the kitchen) has an open front, where its turrets stand: they need only be outside its footprint
+                var walled = castle.Model.StartsWith("bread-box", StringComparison.Ordinal) && !InFootprint(castle, turret.At, footprints);
                 for (var t = 0f; t <= 1 && !walled; t += 0.01f)
                 {
                     var local = Placement2D.ToLocal(Vector2.Lerp(castle.At, turret.At, t) - castle.At, castle.Yaw) / castle.Scale;
@@ -216,7 +218,14 @@ public class BattleSidesTests
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
-    public static TheoryData<string> WithMachines => new(CastleMachineLevels);
+    private static bool InFootprint(Placement placement, Vector2 at, Func<string, ModelFootprint?> footprints)
+    {
+        var footprint = footprints(placement.Model)!;
+        var local = Placement2D.ToLocal(at - placement.At, placement.Yaw) / placement.Scale;
+        return local.X >= footprint.Min.X && local.X <= footprint.Max.X && local.Y >= footprint.Min.Y && local.Y <= footprint.Max.Y;
+    }
+
+    public static TheoryData<string> WithMachines => new([.. CastleMachineLevels, "kitchen"]);
 
     /// <summary>
     /// Ticket 33.3: the boss's layout is not mirrored, but everything else holds: Prime's side has the flag stand, the turrets and the

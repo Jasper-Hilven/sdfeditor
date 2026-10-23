@@ -19,7 +19,7 @@ namespace SdfBattle
     public readonly struct Death
     {
         public Death(PlayerState victim, DeathCause cause, PlayerState killer = null, string killerName = null, Team? killerTeam = null, string weapon = null,
-            bool headshot = false, string weaponId = null)
+            bool headshot = false, string weaponId = null, bool heat = false)
         {
             Victim = victim;
             Cause = cause;
@@ -29,6 +29,7 @@ namespace SdfBattle
             Weapon = weapon;
             Headshot = headshot;
             WeaponId = weaponId ?? weapon;
+            Heat = heat;
         }
 
         public PlayerState Victim { get; }
@@ -44,6 +45,9 @@ namespace SdfBattle
         public string WeaponId { get; }
         /// <summary>The killing shot hit the head (the sniper's, ticket 22): the kill feed shows a popped cap.</summary>
         public bool Headshot { get; }
+
+        /// <summary>A hot patch of the level burnt the victim (ticket 28.10): the kill feed says so, by the hazard's name; no killer, weapon or credit.</summary>
+        public bool Heat { get; }
 
         /// <summary>Whether a player of the other team gets the kill.</summary>
         public bool CountsAsKill => Killer != null && Killer != Victim && Killer.Team != Victim.Team;

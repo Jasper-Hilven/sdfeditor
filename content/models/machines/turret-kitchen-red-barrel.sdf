@@ -1,0 +1,20 @@
+# Turret barrel, red (ticket 28.8): the timer's winding knob as a gun: a steel stem with a fluted black knob on it and a red enamelled
+# cap at its end.
+# Pivot: the origin is the stem's root inside the dome, the hinge it tilts about (local x); it points along +z. In
+# turret-kitchen-red-head it is at (0, 0, 0.3).
+format 1
+
+Detail detail=0.25
+    Union
+        Material material=kitchen_steel
+            Capsule a=(0, 0, -0.1) b=(0, 0, 0.75) radius=0.06
+        Material material=kitchen_black
+            Translate translation=(0, 0, 0.85)
+                Rotate rotation=(1.5707964, 0, 0)
+                    RadialWave amount=0.025 count=12
+                        CappedCylinder radius=0.17 height=0.1
+        Material material=machine_red_paint
+            Translate translation=(0, 0, 0.97)
+                Rotate rotation=(1.5707964, 0, 0)
+                    Round radius=0.02
+                        CappedCylinder radius=0.1 height=0.015

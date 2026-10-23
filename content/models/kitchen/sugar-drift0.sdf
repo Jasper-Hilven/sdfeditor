@@ -1,0 +1,31 @@
+# Sugar drift 0: a low mound of sugar crystals (kitchen_sugar), 2.4 m across and 0.15 m high (60 times life size), spilled on the worktop, with a few
+# bigger crystals on top that catch the light. Ground clutter: no collider.
+format 1
+
+# A fifth of the vertices its size would give it: a soft mound, the crystals holding the rest
+Detail detail=0.35
+    Material material=kitchen_sugar
+        Union
+            Intersection
+                Union
+                    Translate translation=(0, -2.933, 0)
+                        Sphere radius=3.083
+                    Translate translation=(0.45, -1.8, 0.2)
+                        Sphere radius=1.95
+                    Translate translation=(-0.5, -1.982, -0.1)
+                        Sphere radius=2.102
+                # Everything above the worktop (a box, as the bounds finder does not take a plane's infinite half-space well)
+                Translate translation=(0, 1, 0)
+                    Box size=(1.4, 1, 1.1)
+            Translate translation=(0.1, 0.1, 0.05)
+                Rotate rotation=(0.3, 0.4, 0.2)
+                    RoundBox size=(0.045, 0.045, 0.045) roundness=0.01
+            Translate translation=(-0.5, 0.1, -0.25)
+                Rotate rotation=(0.3, 1.1, 0.2)
+                    RoundBox size=(0.04, 0.04, 0.04) roundness=0.01
+            Translate translation=(0.55, 0.1, 0.3)
+                Rotate rotation=(0.3, 0.2, 0.2)
+                    RoundBox size=(0.04, 0.04, 0.04) roundness=0.01
+            Translate translation=(0.2, 0.1, -0.3)
+                Rotate rotation=(0.3, 0.8, 0.2)
+                    RoundBox size=(0.035, 0.035, 0.035) roundness=0.01

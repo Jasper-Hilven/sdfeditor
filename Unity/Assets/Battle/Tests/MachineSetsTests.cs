@@ -48,6 +48,9 @@ namespace SdfBattle.Tests
         [TestCase("turret-toy-red-foot", "turret", "toy", "red", "foot")]
         [TestCase("tank-toy-blue-barrel", "tank", "toy", "blue", "barrel")]
         [TestCase("helicopter-toy-red-tail-rotor", "helicopter", "toy", "red", "tail-rotor")]
+        [TestCase("turret-kitchen-red-foot", "turret", "kitchen", "red", "foot")]
+        [TestCase("tank-kitchen-blue-barrel", "tank", "kitchen", "blue", "barrel")]
+        [TestCase("helicopter-kitchen-red-tail-rotor", "helicopter", "kitchen", "red", "tail-rotor")]
         [TestCase("turret-computer-red-foot", "turret", "computer", "red", "foot")]
         [TestCase("tank-computer-blue-barrel", "tank", "computer", "blue", "barrel")]
         [TestCase("helicopter-computer-red-tail-rotor", "helicopter", "computer", "red", "tail-rotor")]
@@ -93,6 +96,43 @@ namespace SdfBattle.Tests
             Assert.AreEqual(22, pilot.Ceiling, "the ceiling is over the floor (here at 2 m)");
             Assert.AreEqual(2, pilot.Floor);
             Assert.AreEqual(4, pilot.Margin, "waypoints one metre inside the 3 m clearance");
+        }
+
+        /// <summary>A 40 x 30 m sink, 13.2 m deep, in the middle of the field (ticket 28.8: the kitchen's).</summary>
+        private static float Sink(float x, float z) => Mathf.Abs(x) < 20 && Mathf.Abs(z) < 15 ? -13.2f : 0;
+
+        [Test]
+        public void WithAGroundFloor_TheHelicopterDoesNotSinkIntoAHole_ButFliesSixToTwelveOverTheFloor()
+        {
+            var pilot = new HelicopterPilot(Min, Max, Sink, new System.Random(7)) { GroundFloor = 0 };
+            pilot.Start(new Vector3(-60, 0, 0), 90);
+            var lowest = float.MaxValue;
+            var over = 0;
+            for (var t = 0f; t < 900; t += 0.05f)
+            {
+                pilot.Tick(0.05f);
+                if (pilot.TakingOff || t < 10)
+                    continue;
+                lowest = Mathf.Min(lowest, pilot.Position.y);
+                if (Mathf.Abs(pilot.Position.x) < 20 && Mathf.Abs(pilot.Position.z) < 15)
+                    over++;
+            }
+            Assert.Greater(over, 100, "it crossed the hole");
+            Assert.GreaterOrEqual(lowest, 5.5f, "never lower than 6 m over the floor, whatever is under it");
+        }
+
+        [Test]
+        public void WithoutAGroundFloor_TheHelicopterFollowsAHoleDown()
+        {
+            var pilot = new HelicopterPilot(Min, Max, Sink, new System.Random(7));
+            pilot.Start(new Vector3(-60, 0, 0), 90);
+            var lowest = float.MaxValue;
+            for (var t = 0f; t < 900; t += 0.05f)
+            {
+                pilot.Tick(0.05f);
+                lowest = Mathf.Min(lowest, pilot.Position.y);
+            }
+            Assert.Less(lowest, 0, "as in ticket 24, it sinks");
         }
 
         [Test]

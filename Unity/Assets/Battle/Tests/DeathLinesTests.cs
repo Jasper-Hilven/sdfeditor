@@ -73,7 +73,7 @@ namespace SdfBattle.Tests
         {
             var safe = new HashSet<string>(All().Where(l => l.line.Gore == GoreRules.Off).Select(l => l.line.Text))
             {
-                DeathLines.PlainFeed, DeathLines.PlainFallFeed,
+                DeathLines.PlainFeed, DeathLines.PlainFallFeed, DeathLines.PlainHeatFeed,
             };
             var gory = All().Where(l => l.line.Gore > GoreRules.Off).Select(l => l.line.Text).ToList();
             Assert.IsNotEmpty(gory, "some lines are for gore on");
@@ -215,6 +215,8 @@ namespace SdfBattle.Tests
             Assert.AreEqual(DeathKind.Cannon, DeathLines.KindOf(new Death(Red, DeathCause.Killed, killerName: "Blue thing", killerTeam: Team.Blue, weapon: "cannon")));
             // A hazard has a name and no team (ticket 27.10's "Toy train")
             Assert.AreEqual(DeathKind.Hazard, DeathLines.KindOf(new Death(Red, DeathCause.Killed, killerName: "Toy train")));
+            // A hot patch (ticket 28.10's hob) is a hazard that burns: its own words, next to the fall's
+            Assert.AreEqual(DeathKind.Heat, DeathLines.KindOf(new Death(Red, DeathCause.Killed, killerName: "the hob", heat: true)));
             Assert.AreEqual(DeathKind.Headshot, DeathLines.KindOf(new Death(Red, DeathCause.Killed, Blue, weapon: WeaponIds.Sniper, headshot: true)));
             Assert.AreEqual(DeathKind.Flamethrower, DeathLines.KindOf(new Death(Red, DeathCause.Killed, Blue, weapon: WeaponIds.Flamethrower)));
             Assert.AreEqual(DeathKind.Generic, DeathLines.KindOf(new Death(Red, DeathCause.Killed, Blue, weapon: "spoon")));

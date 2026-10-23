@@ -1,0 +1,320 @@
+# Kitchen room (ticket 28.7): the backdrop of the kitchen level, the room round the island's worktop at 60 times life size. The origin is the worktop's surface centre, so the level
+# places it at (0, 0, 0): the floor (grey slate) is at y = -55 and the ceiling (cream, with the walls) at y = 101; the room inside is 300 (x) x 156 (y) x 270 (z), walls 3 m thick
+# outside it. North (+z): a run of sage cabinets with an oak worktop at y = 0, white metro tiles to 36 m above it, a 72 x 72 m sash window (daylight, a basil pot on the sill)
+# and upper cabinets either side. West and east: the same run with upper cabinets and warm light strips under them. South: a tall cream fridge with magnets and the door.
+# Two brass pendant lamps hang over the island, their shades 65 m above the worktop. Eight materials: kitchen_wall, _slate, _tile, _cabinet, _oak, _brass, _glow, _basil.
+# Emission: the window, the strips and the lamps' undersides are kitchen_glow, a pale warm material with emission 1 (30.1): it glows flat, in shadow too.
+# No collider: the room is out of reach and takes no shadows.
+# Plain big faces on purpose (no noise); the grid is coarse (about 1.2 m cells), so nothing thinner than 2 m is modelled.
+format 1
+collider none
+
+Detail detail=0.09
+    Union
+        Material material=kitchen_wall
+            Union
+                Subtraction
+                    Subtraction
+                        Translate translation=(0, 24, 0)
+                            Box size=(153, 81, 138)
+                        Translate translation=(0, 20.5, 0)
+                            Box size=(150, 80.5, 135)
+                    Translate translation=(0, 48, 135)
+                        Box size=(36, 36, 2)
+                Translate translation=(0, 0, -135)
+                    Union
+                        Translate translation=(-88, -1, 16.5)
+                            RoundBox size=(24, 54, 17.5) roundness=0.5
+                        Translate translation=(-88, 34.75, 34.1)
+                            RoundBox size=(23, 17.25, 1.1) roundness=0.8
+                        Translate translation=(-88, -19.5, 34.1)
+                            RoundBox size=(23, 33.5, 1.1) roundness=0.8
+        Material material=kitchen_slate
+            Translate translation=(0, -57, 0)
+                Box size=(153, 2, 138)
+        Material material=kitchen_tile
+            Union
+                Subtraction
+                    Translate translation=(0, 18, 134.5)
+                        Box size=(150, 18, 1)
+                    Translate translation=(0, 22.5, 135)
+                        Box size=(36, 17.5, 5)
+                Translate translation=(0, 13.5, 136)
+                    Box size=(36, 1.5, 1)
+                Translate translation=(0, 82.5, 136)
+                    Box size=(36, 1.5, 1)
+                Translate translation=(-34.5, 48, 136)
+                    Box size=(1.5, 36, 1)
+                Translate translation=(34.5, 48, 136)
+                    Box size=(1.5, 36, 1)
+                Translate translation=(0, 48, 136)
+                    Box size=(1.5, 36, 1)
+                Translate translation=(0, 48, 136)
+                    Box size=(36, 1.5, 1)
+                Translate translation=(0, 10.75, 130.25)
+                    RoundBox size=(40, 1.25, 5.25) roundness=0.6
+                Translate translation=(0, 0, -135)
+                    Translate translation=(79, 6.5, 0.5)
+                        Box size=(27, 61.5, 1.5)
+                Translate translation=(0, 0, -135)
+                    Translate translation=(-95.5, 26.5, 35.4)
+                        Box size=(2.5, 2.5, 0.4)
+        Material material=kitchen_cabinet
+            Union
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Union
+                            Translate translation=(0, -26.7, 14)
+                                Box size=(150, 24.3, 15)
+                            Translate translation=(0, -53, 12.5)
+                                Box size=(150, 2, 13.5)
+                            Translate translation=(-128.5714, -27.35, 29.1)
+                                RoundBox size=(20.4286, 23.15, 1.1) roundness=0.4
+                            Translate translation=(-85.7143, -27.35, 29.1)
+                                RoundBox size=(20.4286, 23.15, 1.1) roundness=0.4
+                            Translate translation=(-42.8571, -27.35, 29.1)
+                                RoundBox size=(20.4286, 23.15, 1.1) roundness=0.4
+                            Translate translation=(0, -27.35, 29.1)
+                                RoundBox size=(20.4286, 23.15, 1.1) roundness=0.4
+                            Translate translation=(42.8571, -27.35, 29.1)
+                                RoundBox size=(20.4286, 23.15, 1.1) roundness=0.4
+                            Translate translation=(85.7143, -27.35, 29.1)
+                                RoundBox size=(20.4286, 23.15, 1.1) roundness=0.4
+                            Translate translation=(128.5714, -27.35, 29.1)
+                                RoundBox size=(20.4286, 23.15, 1.1) roundness=0.4
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Union
+                            Translate translation=(-97, 57, 9)
+                                Box size=(53, 21, 10)
+                            Translate translation=(-132.3333, 57, 19.1)
+                                RoundBox size=(16.6667, 20, 1.1) roundness=0.4
+                            Translate translation=(-97, 57, 19.1)
+                                RoundBox size=(16.6667, 20, 1.1) roundness=0.4
+                            Translate translation=(-61.6667, 57, 19.1)
+                                RoundBox size=(16.6667, 20, 1.1) roundness=0.4
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Union
+                            Translate translation=(97, 57, 9)
+                                Box size=(53, 21, 10)
+                            Translate translation=(61.6667, 57, 19.1)
+                                RoundBox size=(16.6667, 20, 1.1) roundness=0.4
+                            Translate translation=(97, 57, 19.1)
+                                RoundBox size=(16.6667, 20, 1.1) roundness=0.4
+                            Translate translation=(132.3333, 57, 19.1)
+                                RoundBox size=(16.6667, 20, 1.1) roundness=0.4
+                Translate translation=(-150, 0, 0)
+                    Rotate rotation=(0, 1.5708, 0)
+                        Union
+                            Translate translation=(14.5, -26.7, 14)
+                                Box size=(120.5, 24.3, 15)
+                            Translate translation=(14.5, -53, 12.5)
+                                Box size=(120.5, 2, 13.5)
+                            Translate translation=(-81.9, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(-33.7, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(14.5, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(62.7, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(110.9, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                Translate translation=(-150, 0, 0)
+                    Rotate rotation=(0, 1.5708, 0)
+                        Union
+                            Translate translation=(14.5, 57, 9)
+                                Box size=(125, 21, 10)
+                            Translate translation=(-85.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(-35.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(14.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(64.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(114.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                Translate translation=(150, 0, 0)
+                    Rotate rotation=(0, -1.5708, 0)
+                        Union
+                            Translate translation=(-14.5, -26.7, 14)
+                                Box size=(120.5, 24.3, 15)
+                            Translate translation=(-14.5, -53, 12.5)
+                                Box size=(120.5, 2, 13.5)
+                            Translate translation=(-110.9, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(-62.7, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(-14.5, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(33.7, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                            Translate translation=(81.9, -27.35, 29.1)
+                                RoundBox size=(23.1, 23.15, 1.1) roundness=0.4
+                Translate translation=(150, 0, 0)
+                    Rotate rotation=(0, -1.5708, 0)
+                        Union
+                            Translate translation=(-14.5, 57, 9)
+                                Box size=(125, 21, 10)
+                            Translate translation=(-114.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(-64.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(-14.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(35.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+                            Translate translation=(85.5, 57, 19.1)
+                                RoundBox size=(24, 20, 1.1) roundness=0.4
+        Material material=kitchen_oak
+            Union
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Translate translation=(0, -1.2, 14.5)
+                            RoundBox size=(150, 1.2, 15.5) roundness=0.5
+                Translate translation=(-18, 15.5, 131)
+                    CappedCone height=3.5 bottomRadius=3.6 topRadius=4.7
+                Translate translation=(-150, 0, 0)
+                    Rotate rotation=(0, 1.5708, 0)
+                        Translate translation=(14.5, -1.2, 14.5)
+                            RoundBox size=(120.5, 1.2, 15.5) roundness=0.5
+                Translate translation=(150, 0, 0)
+                    Rotate rotation=(0, -1.5708, 0)
+                        Translate translation=(-14.5, -1.2, 14.5)
+                            RoundBox size=(120.5, 1.2, 15.5) roundness=0.5
+                Translate translation=(0, 0, -135)
+                    Translate translation=(79, 5, 1.1)
+                        RoundBox size=(24, 60, 2.1) roundness=0.4
+                Translate translation=(0, 0, -135)
+                    Translate translation=(-86, 29.5, 35.6)
+                        Box size=(1.5, 1.5, 0.6)
+        Material material=kitchen_brass
+            Union
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Union
+                            Capsule a=(-112.1429, -18, 31.8) b=(-112.1429, -7, 31.8) radius=1.1
+                            Capsule a=(-69.2857, -18, 31.8) b=(-69.2857, -7, 31.8) radius=1.1
+                            Capsule a=(-26.4286, -18, 31.8) b=(-26.4286, -7, 31.8) radius=1.1
+                            Capsule a=(16.4286, -18, 31.8) b=(16.4286, -7, 31.8) radius=1.1
+                            Capsule a=(59.2857, -18, 31.8) b=(59.2857, -7, 31.8) radius=1.1
+                            Capsule a=(102.1429, -18, 31.8) b=(102.1429, -7, 31.8) radius=1.1
+                            Capsule a=(145, -18, 31.8) b=(145, -7, 31.8) radius=1.1
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Union
+                            Translate translation=(-119.6667, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(-84.3333, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(-49, 41, 21.4)
+                                Sphere radius=1.3
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Union
+                            Translate translation=(74.3333, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(109.6667, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(145, 41, 21.4)
+                                Sphere radius=1.3
+                Translate translation=(-150, 0, 0)
+                    Rotate rotation=(0, 1.5708, 0)
+                        Union
+                            Capsule a=(-62.8, -18, 31.8) b=(-62.8, -7, 31.8) radius=1.1
+                            Capsule a=(-14.6, -18, 31.8) b=(-14.6, -7, 31.8) radius=1.1
+                            Capsule a=(33.6, -18, 31.8) b=(33.6, -7, 31.8) radius=1.1
+                            Capsule a=(81.8, -18, 31.8) b=(81.8, -7, 31.8) radius=1.1
+                            Capsule a=(130, -18, 31.8) b=(130, -7, 31.8) radius=1.1
+                Translate translation=(-150, 0, 0)
+                    Rotate rotation=(0, 1.5708, 0)
+                        Union
+                            Translate translation=(-65.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(-15.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(34.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(84.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(134.5, 41, 21.4)
+                                Sphere radius=1.3
+                Translate translation=(150, 0, 0)
+                    Rotate rotation=(0, -1.5708, 0)
+                        Union
+                            Capsule a=(-91.8, -18, 31.8) b=(-91.8, -7, 31.8) radius=1.1
+                            Capsule a=(-43.6, -18, 31.8) b=(-43.6, -7, 31.8) radius=1.1
+                            Capsule a=(4.6, -18, 31.8) b=(4.6, -7, 31.8) radius=1.1
+                            Capsule a=(52.8, -18, 31.8) b=(52.8, -7, 31.8) radius=1.1
+                            Capsule a=(101, -18, 31.8) b=(101, -7, 31.8) radius=1.1
+                Translate translation=(150, 0, 0)
+                    Rotate rotation=(0, -1.5708, 0)
+                        Union
+                            Translate translation=(-94.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(-44.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(5.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(55.5, 41, 21.4)
+                                Sphere radius=1.3
+                            Translate translation=(105.5, 41, 21.4)
+                                Sphere radius=1.3
+                Translate translation=(0, 0, -135)
+                    Translate translation=(60, 4, 5.4)
+                        Sphere radius=1.6
+                Translate translation=(0, 0, -135)
+                    Union
+                        Capsule a=(-68.5, 18.5, 37.4) b=(-68.5, 40, 37.4) radius=1.2
+                        Capsule a=(-68.5, -7, 37.4) b=(-68.5, 12, 37.4) radius=1.2
+                        Translate translation=(-94, 35, 35.2)
+                            Sphere radius=1.7
+                Translate translation=(-40, 70, 0)
+                    CappedCone height=5 bottomRadius=11 topRadius=3.5
+                Capsule a=(-40, 74, 0) b=(-40, 102, 0) radius=1
+                Translate translation=(-40, 100.5, 0)
+                    CappedCylinder radius=3.5 height=1.5
+                Translate translation=(40, 70, 0)
+                    CappedCone height=5 bottomRadius=11 topRadius=3.5
+                Capsule a=(40, 74, 0) b=(40, 102, 0) radius=1
+                Translate translation=(40, 100.5, 0)
+                    CappedCylinder radius=3.5 height=1.5
+        Material material=kitchen_glow
+            Union
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Translate translation=(-97, 35.25, 9)
+                            Box size=(52, 1.25, 6)
+                Translate translation=(0, 0, 135)
+                    Rotate rotation=(0, 3.1416, 0)
+                        Translate translation=(97, 35.25, 9)
+                            Box size=(52, 1.25, 6)
+                Translate translation=(0, 48, 137.25)
+                    Box size=(36, 36, 0.75)
+                Translate translation=(-150, 0, 0)
+                    Rotate rotation=(0, 1.5708, 0)
+                        Translate translation=(14.5, 35.25, 9)
+                            Box size=(124, 1.25, 6)
+                Translate translation=(150, 0, 0)
+                    Rotate rotation=(0, -1.5708, 0)
+                        Translate translation=(-14.5, 35.25, 9)
+                            Box size=(124, 1.25, 6)
+                Translate translation=(-40, 64.8, 0)
+                    CappedCylinder radius=8.6 height=1
+                Translate translation=(40, 64.8, 0)
+                    CappedCylinder radius=8.6 height=1
+        Material material=kitchen_basil
+            Union
+                Translate translation=(-18, 21, 131)
+                    Sphere radius=4.6
+                Translate translation=(-14.4, 20, 130)
+                    Sphere radius=3.4
+                Translate translation=(-21.4, 20.2, 132)
+                    Sphere radius=3.5
+                Translate translation=(-18, 24.5, 132)
+                    Sphere radius=3
+                Translate translation=(0, 0, -135)
+                    Translate translation=(-80, 40, 35.2)
+                        Sphere radius=1.7

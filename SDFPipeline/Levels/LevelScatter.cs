@@ -82,10 +82,12 @@ public static class LevelScatter
 
     /// <param name="footprintOf">Where a model stands on the ground, for the placements and for the models of the trees sections.</param>
     /// <param name="groundColor">The ground's colour at a point, linear RGB.</param>
+    /// <param name="holes">Where the ground is left out; nothing is scattered within a layer's margin of one.</param>
     /// <exception cref="SdfProgramFileException">A layer avoids a region the level does not have, or uses a model in two groups.</exception>
     public static ScatteredLevel Scatter(LevelDefinition level, LevelTerrain terrain, GroundRegions regions,
-        Func<string, ModelFootprint> footprintOf, Func<Vector2, Vector3> groundColor)
+        Func<string, ModelFootprint> footprintOf, Func<Vector2, Vector3> groundColor, GroundHoles? holes = null)
     {
+        holes ??= GroundHoles.None;
         var layers = level.Scatters.Concat(level.Trees).ToArray();
         if (layers.Length == 0)
             return ScatteredLevel.None;
@@ -120,13 +122,13 @@ public static class LevelScatter
                             footprintOf(prototypes[instance.Prototype].Model)));
                 offset += counts[earlier];
             }
-            ScatterLayer(level, layers[index], stream, terrain, regions, footprintOf, groundColor, prototypes, instances, obstacles);
+            ScatterLayer(level, layers[index], stream, terrain, regions, holes, footprintOf, groundColor, prototypes, instances, obstacles);
             counts.Add(instances.Count - before);
         }
         return new ScatteredLevel(prototypes, instances, counts);
     }
 
-    private static void ScatterLayer(LevelDefinition level, ScatterLayer layer, int index, LevelTerrain terrain, GroundRegions regions,
+    private static void ScatterLayer(LevelDefinition level, ScatterLayer layer, int index, LevelTerrain terrain, GroundRegions regions, GroundHoles holes,
         Func<string, ModelFootprint> footprintOf, Func<Vector2, Vector3> groundColor, List<ScatterPrototype> prototypes,
         List<ScatteredInstance> instances, IReadOnlyList<Obstacle> obstacles)
     {
@@ -138,7 +140,7 @@ public static class LevelScatter
                 : throw new SdfProgramFileException(layer.Line,
                     $"The scatter avoids '{name}', which is not a region of the level; its regions are {string.Join(", ", regions.Regions.Select(r => r.Name))}");
         }).ToArray();
-        var placements = level.Placements.Select(p => new Obstacle(p.At, p.Yaw, p.Scale, footprintOf(p.Model))).ToArray();
+        var placements = level.Placements.Where(p => !p.Frame).Select(p => new Obstacle(p.At, p.Yaw, p.Scale, footprintOf(p.Model))).ToArray();
         var cosMaxSlope = MathF.Cos(layer.MaxSlope * MathF.PI / 180);
         var battle = level.Battle?.Objects.ToArray() ?? [];
 
@@ -161,6 +163,8 @@ public static class LevelScatter
             foreach (var region in avoided)
                 if (regions.Distance(region, p) < layer.Margin)
                     return false;
+            if (holes.Any && holes.Distance(p) < layer.Margin)
+                return false;
             foreach (var placement in placements)
                 if (placement.Covers(p, layer.Margin))
                     return false;

@@ -156,10 +156,10 @@ or domed tops, so few flat tops sit between 0.4 and 1.1 m.
 | `cookie0` | 3.6 m across, domed, cocoa chips | 0.72 |
 | `cookie-bitten0` | the same with a bite out, crumbs | 0.72 |
 | `butter-pat0` | 1.8 × 1.8 m, softened and slumped | 0.9 |
-| `bottle-cap0` | crown cap 1.9 m across, crimp up (lilac, mustard) | 0.45: bots go round, players hop over |
+| `crown-cap0` | crown cap 1.9 m across, crimp up (lilac, mustard) | 0.45: bots go round, players hop over |
 | `jar-lid0` | 4.2 m across, upside down (a dish to jump into) | 0.72 rim |
 | `teaspoon0` | 8.4 m long, bowl 2.4 m wide, handle rising from it | 0.4 to 1.0 |
-| `sponge0` | washing-up sponge 6 × 4.2 m, yellow foam, green scourer on top | 1.5: the tallest, a low wall |
+| `dish-sponge0` | washing-up sponge 6 × 4.2 m, yellow foam, green scourer on top | 1.5: the tallest, a low wall |
 | `garlic-clove0` | lying, 1.8 × 1.0 m | 1.0 |
 
 ## Tall blockers
@@ -248,10 +248,10 @@ scale, origin at the base's centre on y = 0, 3 LODs at 256 (the bread box's part
 | `sugar-cube0..2` | 0.96 cube; 1.1; 1.4 | convex | 1.5-3k | sugar |
 | `cookie0`, `cookie-bitten0` | 3.6 × 0.72 | convex (mesh) | 3k | biscuit, cocoa |
 | `butter-pat0` | 1.8 × 1.8 × 0.9 | convex | 2k | butter |
-| `bottle-cap0` | 1.9 × 0.45 | convex | 2k | cap (2 tints) |
+| `crown-cap0` | 1.9 × 0.45 | convex | 2k | cap (2 tints) |
 | `jar-lid0` | 4.2 × 0.72 | mesh | 2.5k | lid |
 | `teaspoon0` | 8.4 × 2.4 × 1.0 | mesh | 3k | steel |
-| `sponge0` | 6 × 4.2 × 1.5 | convex (mesh) | 3k | foam, scourer |
+| `dish-sponge0` | 6 × 4.2 × 1.5 | convex (mesh) | 3k | foam, scourer |
 | `garlic-clove0` | 1.8 × 1.0 | convex | 2.5k | garlic |
 | `tin-can0`, `tin-can1`, `tin-can-lying0` | 6.6-7.2 × 4.5 | mesh | 4-6k | tin, label |
 | `jam-jar0`, `honey-jar0` | 5.4-6 × 4.2-4.8 | mesh | 5-6k | glass, jam/honey, lid |
@@ -328,6 +328,28 @@ back ledge over the sink (the fruit bowl, tap, sink and both cereal boxes). The 
 `pantry` 26 variants. `LevelSnapshot` triangles and draws per group on both presets go in this ticket next to the meadow's and the
 chessboard's.
 
+Measured in 28.11 with `LevelSnapshot` (`-level kitchen`, 18 views on each preset; triangles include outlines; draws = instanced + placed models, the backdrop included, not the
+ground chunks or shadow passes). Busiest views first:
+
+| View | High: triangles / draws | Integrated GPU / Web: triangles / draws |
+|---|---|---|
+| Back ledge over the sink (`k_sink_ledge`: sink, tap, rolling pin, fruit bowl, cereal box, kettle) | 242k / 168 (crumbs 9k, pantry 22k, placed 206k) | 170k / 124 |
+| Hob close, towards the burners (`k_burners`) | 235k / 153 (crumbs 42k, pantry 27k, placed 160k) | 152k / 117 |
+| Across the hob from the east, plate stack beside it (`k_hob`) | 198k / 166 | 119k / 133 |
+| Window and tap from the south (`k_window`) | 194k / 127 | 121k / 87 |
+| West spawn towards the hob | 163k / 159 | 144k / 127 |
+| West spawn facing the middle | 155k / 144 (crumbs 15k, pantry 17k, placed 116k) | 137k / 111 |
+| West spawn north | 145k / 105 | 129k / 83 |
+| Pantry lane, both ways | 135k / 101 and 157k / 117 | 107k / 68 and 123k / 92 |
+| Sink from its front rim | 112k / 112 | 90k / 71 |
+| West spawn towards its flag / back (the bread box close) | 102k / 91 and 99k / 56 | 89k / 68 and 61k / 53 |
+| Bread box from the middle, cake close | 67k / 79 and 73k / 89 | 54k / 62 and 62k / 55 |
+| From above and outside / straight down | 95k / 87 and 113k / 89 | 92k / 79 and 95k / 83 |
+
+Shares: the placed models are 65-85 % of every view (the room backdrop, bread boxes, cakes, kettle, plate stacks, sink); `crumbs` at most 42k High / 15k Web in view, 22 variants and
+59-72 draws on High, at most 50 on Web; `pantry` at most 32k / 27k and at most 50 draws High, 42 Web; the bread boxes' slats (`castle` group) at most 1k. Ground chunks 0.6-6.5k. All under
+the targets (2M High; 500k and 200 draws Web): the busiest view is 242k and 168 draws on High and 170k and 133 draws on Web. No ring or density had to be lowered.
+
 ## Risks
 
 - **The ground has no holes**: the sink needs a cut-out in the worktop's floor (the island edge's code on an inner shape, or a
@@ -358,20 +380,17 @@ chessboard's.
 
 ## Subtickets
 
-- **28.1 Pipeline: the worktop and the kitchen room.** The ground's cut-out for the sink; a room larger than the play area with its
-  floor below (the backdrop model instead of the checker); the worktop's edge and cabinet base; the far plane. `LevelFile` and
-  `LevelBaker` changes with tests; the chessboard bakes unchanged.
-- **28.2 Clutter models**: the `crumbs` layer's 20 and the accent's 4, with bounds tests.
-- **28.3 Knee cover and tall blockers**: the `pantry` group's 25 models.
-- **28.4 Landmarks**: sink, tap, rolling pin, kettle, burners, plate stack, pepper mill, cereal box, fruit bowl, cake, blender.
-- **28.5 Base**: `bread-box0` and the two tea towels; the box's inside walked in Play mode.
-- **28.6 Backdrop**: `kitchen-room`, `counter-base`, `worktop-edge`; the light.
-- **28.7 Machines**: `timer-turret`, `tin-tank`, `whisk-copter` in red and blue; the per-level machine set; the helicopter's floor.
-- **28.8 Level file**: `content/levels/kitchen.level` with every section commented, `BattleSidesTests.LevelNames` and the weapon
-  table, a theme test `ContentKitchen_HasOnlyKitchen` (no model from another theme's folder, no `home/` model, no other theme's
-  material), the sink-depth test; bake.
-- **28.9 The hob twist**: the burner cycle, damage, glow, NavMesh area costs, the kill-feed cause; EditMode tests.
-- **28.10 Unity and checks**: `Kitchen.unity` rebuilt, Check Navmesh, snapshots and budgets on both presets, a full match with 7 bots.
+- **[28.1 Pipeline: a hole in the ground (the sink)](28.1-ground-hole.md)**
+- **[28.2 Pipeline: a room larger than the play area, open edges, backdrop model](28.2-open-room.md)**
+- **[28.3 Models: worktop clutter](28.3-models-clutter.md)**
+- **[28.4 Models: knee cover and tall blockers](28.4-models-knee-and-blockers.md)**
+- **[28.5 Models: sink, tap, kettle and the other landmarks](28.5-models-landmarks.md)**
+- **[28.6 Models: the bread box base and tea towels](28.6-bread-box.md)**
+- **[28.7 Models: the kitchen room, the island base and the worktop edge](28.7-backdrop.md)**
+- **[28.8 Kitchen machines and the per-level helicopter floor](28.8-kitchen-machines.md)**
+- **[28.9 The level file kitchen.level and its tests](28.9-level-file.md)**
+- **[28.10 The hob heats up](28.10-hob-twist.md)**
+- **[28.11 Bake, build and check](28.11-unity-and-checks.md)**
 
 ## Acceptance criteria
 
@@ -391,4 +410,10 @@ chessboard's.
 
 ## Status
 
-**Not started.**
+Done in code, pipeline and Unity batch (subtickets 28.1-28.11, each with its own Status): a hole in the ground (`hole=1` regions), the `backdrop` room form (a model as the room, open play-area edges, far plane, clear colour), the 18 clutter, 25 knee/tall, 12 landmark, bread box, tea towel, room/base/edge and 18 machine models, `machines set=kitchen floor=0` (helicopters hold 6 m over the worktop, never sinking into the sink), `kitchen.level` with its tests (mirror, clearances, theme, sink depth), the hob heat cycle (`heat` section, Core rules, damage, glow, Burner navmesh areas, "the hob" death line), the `staves` oak ground pattern, a Unity batch build of `Kitchen.unity` with Check Navmesh reaching every spawn, stand and pod, and 36 snapshots looked at. Worst view: 242k triangles / 168 draws High, 170k / 124 Web (table above). Main (ticket 30) was merged in; conflicts resolved in `LevelFile`, `LevelBaker`, `LevelBuilder`, `MachineMotion`, `Machines`, `BattleSidesTests`.
+
+Left (by eye / in Unity): a Play-mode match with 7 bots (no falls off the edge or into the sink, the rolling pin crossed, tanks and helicopters in kitchen forms); the burners' glow, the 10 a second damage and the kill line in motion; frame time and a WebGL2 compile of the `staves` ground branch and the emission; the hob's control strip and the flour pattern (ground shader entries, not done); the glow strip tone (white) and the tile tone (lilac); the plate stacks are 60-80% over their budgets (rims needed the finer detail).
+
+Main checkout after merging (generated files are not in git): `sdf unity --resolution 256 --lods 3` (all models; the kitchen room takes about 9 min), then `bread-box0` alone at 128 (`sdf mesh content/models/kitchen/bread-box0.sdf Unity/Assets/Mushrooms/Generated/kitchen/bread-box0.glb --resolution 128 --lods 3`; check the folder against the run config); `sdf level --into Unity/Assets/Level/Generated` (all levels); Unity `LevelBuilder.BuildAllInBatch` twice (the first builds the new prefabs and machine pieces, the second places them), Tools > SDF Machines > Rebuild Machines if the kitchen machine prefabs are missing; Tools > SDF Battle > Check Navmesh and Check Hob Navmesh. The kitchen prefabs, `Kitchen.unity` and materials made in the worktree were not committed (their guids belong to the worktree).
+
+After merging 29 (bathroom), the kitchen's `bottle-cap0/1` and `sponge0` were renamed `crown-cap0/1` and `dish-sponge0` (model names are global; the bathroom owns the old ones). Stale `bottle-cap*`/`sponge0` kitchen glbs and prefabs in a checkout are overwritten by the next re-mesh of the bathroom models.

@@ -26,6 +26,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The ground's regions other than the base ground, in the file's order: where they overlap, the later one wins.</summary>
     public IReadOnlyList<GroundRegion> Regions { get; init; } = [];
 
+    /// <summary>The places the ground is left out (the file's <c>hole=1</c> regions, ticket 28.1), in the file's order; not regions.</summary>
+    public IReadOnlyList<GroundHole> Holes { get; init; } = [];
+
     /// <summary>The unique models placed in the level (castles, big rocks), in the file's order.</summary>
     public IReadOnlyList<Placement> Placements { get; init; } = [];
 
@@ -47,6 +50,11 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
     /// <summary>The closed room over the playable area (walls and ceiling), or null for a level open to the sky.</summary>
     public RoomSpec? Room { get; init; }
 
+    /// <summary>
+    /// A model standing in for the room beyond a play area with open edges (ticket 28.2), or null. A level has a <see cref="Room"/>
+    /// or a backdrop, not both.
+    /// </summary>
+    public BackdropSpec? Backdrop { get; init; }
     /// <summary>The haze (ticket 29.1), or null for none.</summary>
     public FogSpec? Fog { get; init; }
 
@@ -76,6 +84,9 @@ public sealed record LevelDefinition(PlayArea Play, int Seed, HillRing Hills, Is
 
     /// <summary>The data pulses that run along the region polylines flagged <c>pulse</c> (ticket 30.9), or null for a level without them.</summary>
     public PulseSpec? Pulses { get; init; }
+
+    /// <summary>The rings of floor that heat up in turns (ticket 28.10), or null for a level without them.</summary>
+    public HeatSpec? Heat { get; init; }
 
     /// <summary>The polylines the pulses run along, in the file's order: the flagged polylines of the regions.</summary>
     public IEnumerable<PolylineRegion> PulseLines => Regions.SelectMany(r => r.Shapes).OfType<PolylineRegion>().Where(p => p.Pulse);
@@ -132,9 +143,10 @@ public sealed record BossSpec(BossSpot Prime, BossSpot Crash, BossSpot Plinth, B
 /// Which models the level's machines (ticket 24) are, and how high its helicopters may fly (ticket 27.2): the level file's
 /// <c>machines set=toys ceiling=20</c> line. A set other than <see cref="Default"/> has its models <c>&lt;kind&gt;-&lt;set&gt;-&lt;team&gt;</c>
 /// (turret-toys-red, parts turret-toys-red-foot, ...), the default's are <c>&lt;kind&gt;-&lt;team&gt;</c> (turret-red) as ever.
-/// <paramref name="Ceiling"/> is the highest a helicopter flies over the floor, in metres, in a room level only.
+/// <paramref name="Ceiling"/> is the highest a helicopter flies over the floor, in metres, in a room level only. <paramref name="Floor"/> (ticket 28.8,
+/// <c>floor=0</c>) is the lowest height the helicopters take the ground to be, in y: over a hole in the floor (the kitchen's sink) they keep to it.
 /// </summary>
-public sealed record MachineSet(string Name, float? Ceiling)
+public sealed record MachineSet(string Name, float? Ceiling, float? Floor = null)
 {
     /// <summary>The set of the meadow, fungal level and chessboard: the mushroom machines of ticket 24.</summary>
     public const string Default = "mushroom";
@@ -188,6 +200,22 @@ public sealed record RoomSpec(Vector3 Size, float Square)
 
     /// <summary>How many squares the room has along x, y and z (the checker's; a rounded count otherwise).</summary>
     public (int X, int Y, int Z) Squares => ((int)MathF.Round(Size.X / Square), (int)MathF.Round(Size.Y / Square), (int)MathF.Round(Size.Z / Square));
+}
+
+/// <summary>
+/// The room as a backdrop (ticket 28.2): one <paramref name="Model"/> placed at <paramref name="At"/> (x, y, z in metres, y absolute) and
+/// turned <paramref name="Yaw"/> degrees, drawn as an ordinary mesh with no collider, no shadows cast or taken and no outline. The play area
+/// has no walls: a scout walks off its edge and falls (<c>Match</c> kills it 3 m below the spawns outside it). <see cref="Light"/> is the
+/// lamp as a room's, <paramref name="FarPlane"/> the camera's far clip in metres and <paramref name="Clear"/> the colour the camera clears
+/// to (sRGB, 0 to 1), the backdrop's walls' own, as there is no sky.
+/// </summary>
+public sealed record BackdropSpec(string Model, Vector3 At, float Yaw, float FarPlane, Vector3 Clear, int Line)
+{
+    public const float DefaultFarPlane = 450;
+    public static readonly Vector3 DefaultClear = new(0, 0, 0);
+
+    /// <summary>The lamp and ambient where the level changes them from the indoor default, or null.</summary>
+    public RoomLighting? Light { get; init; }
 }
 
 /// <summary>
@@ -279,8 +307,8 @@ public sealed record IslandUnderside(string Model, int Line);
 /// name it paint (see <see cref="Placement.Ground"/>).
 /// </summary>
 /// <param name="Pattern">How the material is drawn: plainly, or as stones with grout lines between them.</param>
-/// <param name="StoneSize">The stones' length in metres, for <see cref="GroundPattern.Stones"/>.</param>
-/// <param name="GroutWidth">The width of the grout lines between stones in metres, for <see cref="GroundPattern.Stones"/>.</param>
+/// <param name="StoneSize">The stones' length in metres, for <see cref="GroundPattern.Stones"/>; the boards' width for <see cref="GroundPattern.Staves"/>.</param>
+/// <param name="GroutWidth">The width of the grout lines between stones or boards in metres, for <see cref="GroundPattern.Stones"/> and <see cref="GroundPattern.Staves"/>.</param>
 /// <param name="Wobble">Metres the ground shader wobbles the region's edge with fine noise, so that it is not ruled; 0 keeps it straight.</param>
 public sealed record GroundRegion(string Name, IReadOnlyList<RegionShape> Shapes, GroundPattern Pattern, float StoneSize, float GroutWidth, float Wobble = GroundRegion.DefaultWobble)
 {
@@ -303,6 +331,9 @@ public enum GroundPattern
 
     /// <summary>A world-space offset grid of stones (an offset brick bond), with grout lines and bevelled edges, drawn by the shader.</summary>
     Stones,
+
+    /// <summary>Long boards laid along x, each row's joints shifted at random (a plank or stave floor); <see cref="GroundRegion.StoneSize"/> is the board's width.</summary>
+    Staves,
 }
 
 /// <summary>
@@ -327,6 +358,11 @@ public sealed record Placement(string Model, Vector2 At, float Yaw, float Scale,
     /// </summary>
     public float Y { get; init; }
 
+    /// <summary>
+    /// A model that frames the level (the kitchen's worktop edge and cabinet base, ticket 28.9) rather than stands in it: its footprint
+    /// is the whole play area or more, so the scatter does not treat it as an obstacle. False by default.
+    /// </summary>
+    public bool Frame { get; init; }
     /// <summary>The phases of the final boss's fight (ticket 33.3) it is there in; null for all of them. Only on a level with <see cref="LevelLayout.Boss"/>.</summary>
     public PhaseRange? Phases { get; init; }
 }

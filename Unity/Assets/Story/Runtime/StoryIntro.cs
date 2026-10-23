@@ -40,6 +40,8 @@ namespace SdfStory
         private Action onFinished;
         private int startFrame;
         private float fade = 1;
+        // Whether the incoming panel has not yet taken the current one's place (true from a Next until SettleFade)
+        private bool crossing;
         private int lastWidth, lastHeight;
         private bool ending;
         private bool musicFading;
@@ -168,6 +170,7 @@ namespace SdfStory
                 incoming.texture = panels[logic.Index];
                 incoming.color = new Color(1, 1, 1, 0);
                 fade = 0;
+                crossing = true;
                 nextLabel.text = logic.NextLabel;
             }
             else if (logic.Finished)
@@ -192,8 +195,10 @@ namespace SdfStory
 
         private void SettleFade()
         {
-            if (fade >= 1)
+            // Not on fade: the fade reaches 1 before it settles, and the incoming panel must still become the current one then
+            if (!crossing)
                 return;
+            crossing = false;
             current.texture = incoming.texture;
             incoming.color = new Color(1, 1, 1, 0);
             fade = 1;

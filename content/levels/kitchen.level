@@ -1,0 +1,247 @@
+# The kitchen: the worktop of a giant kitchen island, at 60 times life size (a 1.75 m scout is a 2.9 cm figure; the worktop is 2.5 x 1.67 m, 150 x 100 m here;
+# a sugar cube is 0.96 m, a tin can 6.6 m, the kettle 13 m; the counter stands 55 m over the floor, the ceiling 101 m over the worktop). One theme, a kitchen: food and its
+# crumbs, packets and jars, crockery, cutlery, utensils and small appliances, and the kitchen itself as the backdrop. No toys, no board games, no bathroom things, nothing that
+# grows, no mushroom features, nothing from home/, no red or blue props (tomatoes, ketchup, blueberries; the burners glow ember orange to yellow). Two bread boxes are the
+# bases; the sink is a pit in the worktop and the hob an arena of black glass between them. The worktop's edge is the boundary: nothing stops a scout walking off, and
+# falling kills (Match, 3 m under the spawns outside the play area).
+format 1
+
+play size=(150, 100) noise=0              # the worktop, centred on the origin: x across (west -x), z along (north +z); flat
+seed 5
+
+# The room round the island (ticket 28.2): the model kitchen-room, 300 x 156 x 270 m, its floor 55 m under the worktop and its ceiling 101 m over it, drawn instead of walls and
+# a sky; no collider, no shadows. Its origin is the worktop's surface centre. The lamp is the window on the north wall, warm white daylight (#FFF4E0) 55 degrees up from the
+# north-north-west (towards the lamp (-0.22, 0.82, 0.53)), so the shadows run south-south-east across the worktop; the ambient is a little cool from the window. The camera
+# clears to the walls' cream and sees to 500 m
+backdrop kitchen-room at=(0, 0, 0) farPlane=500 clear=(0.93, 0.89, 0.8)
+    light=(-0.22, 0.82, 0.53) lightColor=(1, 0.957, 0.878) ambient=(0.42, 0.46, 0.56)
+
+# The machines (ticket 24) are kitchen things: wind-up timers, sardine-tin tanks and whisk helicopters, the models timer-turret, tin-tank and whisk-copter. There is no room
+# (the backdrop is not one), so the helicopters fly under no ceiling; floor=0 makes them fly 6 to 12 m over the worktop even over the sink's 13 m hole
+machines set=kitchen floor=0
+
+# The floor, from 2D shapes; where regions overlap, the later one wins, and the worktop is honey oak. Each is drawn in its material, materials/ground/ground_<region>.sdfmat.
+# All ruled (no wobble) but the flour, which is soft. The sink is a hole: no ground inside it (no triangles, no collider, no navmesh floor), cut crisp at the bowl's 27 x 22 m
+regions base=oak
+    planks pattern=staves stone=2.4 grout=0.1 wobble=0   # the whole worktop laid as oak staves 2.4 m wide along x, 14 m long, with seams (ground_planks)
+        RoundedBox2D center=(0, 0) size=(152, 102) radius=0
+    sink hole=1                                     # the sink's bowl, 13.2 m deep: a scout who falls in is dead before the bottom (deeper than Match.killDepth)
+        RoundedBox2D center=(0, 31) size=(27, 22) radius=2
+    steel wobble=0                                  # the sink's 1.5 m rim, flush with the oak
+        RoundedBox2D center=(0, 31) size=(30, 25) radius=2
+    hob wobble=0                                    # the black glass hob, 35 x 31 m, between the sink and the pantry strip
+        RoundedBox2D center=(0, -6) size=(35, 31) radius=1.5
+    flour                                           # flour spilled round each cake and in a drift beside it, soft edged
+        Circle center=(-44, -36) radius=10 noise=0.8
+        Circle center=(44, -36) radius=10 noise=0.8
+        Circle center=(-20, -42) radius=7 noise=0.8
+        Circle center=(20, -42) radius=7 noise=0.8
+
+# The unique models, each from content/models/ by name, its base on the ground at (x, z), turned yaw degrees (counter-clockwise from above). Every group starts with a comment
+# line (the overlap and clearance tests read the groups from these comments). The mirrored pairs share a group: the east one is the west one with x and yaw negated, or turned
+# half round where the model has a front (the cake's slice, the blender's handle, the cereal boxes' open ends face the middle)
+place
+    # The worktop's frame and the island's cabinets under it: models that frame the level, no obstacles to the scatter (frame=1)
+    worktop-edge at=(0, 0) frame=1
+    counter-base at=(0, 0) frame=1
+    # The bases: a bread box each, the roll top rolled up so the whole front is open towards the middle (the box's front is +z), a gingham tea towel in the team's cloth over its lid
+    bread-box0 at=(-62, 0) yaw=90
+    tea-towel-red at=(-62, 0) yaw=90
+    # The east bread box and its blue tea towel
+    bread-box0 at=(62, 0) yaw=-90
+    tea-towel-blue at=(62, 0) yaw=-90
+    # The sink, its rim flush with the oak, the tap behind it (the spout over the bowl, facing -z) and the rolling pin laid across the bowl at z = 31: tips on the rims, a player's bridge
+    sink0 at=(0, 31)
+    tap0 at=(0, 47)
+    rolling-pin0 at=(0, 31) yaw=90
+    # The centre: the kettle on the hob on the flag line, the four burners round it (flat rings, no collider; they heat in turns, ticket 28.10)
+    kettle0 at=(0, 0)
+    burner-large at=(-10.5, 3)
+    burner-large at=(10.5, 3)
+    burner-small at=(-10.5, -15)
+    burner-small at=(10.5, -15)
+    # The plate stacks beside the hob, the second block on the flag line
+    plate-stack0 at=(-34, -2)
+    plate-stack0 at=(34, -2)
+    # The pepper mills breaking the spawn-to-spawn line
+    pepper-mill0 at=(-26, -21)
+    pepper-mill0 at=(26, -21)
+    # Toppled cereal boxes, the open end towards the middle: the wall between the north and centre lanes on each half
+    cereal-box-toppled0 at=(-34, 22) yaw=20
+    cereal-box-toppled0 at=(34, 22) yaw=160
+    # Fruit bowls near the north corners, sheltering the north flank
+    fruit-bowl0 at=(-44, 38)
+    fruit-bowl0 at=(44, 38)
+    # Cakes on the south flank, the slice's notch towards the middle a firing slot
+    cake0 at=(-44, -36)
+    cake0 at=(44, -36) yaw=180
+    # Blenders marking the back south corners, hiding the spawns from the far south lane (the handle towards the middle)
+    blender0 at=(-66, -42)
+    blender0 at=(66, -42) yaw=180
+    # Cereal loops pouring from each toppled cereal box's open end, towards the middle
+    cereal-loop0 at=(-24.1, 18.7) yaw=-180
+    cereal-loop1 at=(-23.8, 16.9) yaw=-127
+    cereal-loop2 at=(-22.3, 19.3) yaw=-74
+    cereal-loop0 at=(-21.9, 17.6) yaw=-21
+    cereal-loop1 at=(-21.7, 15.8) yaw=32
+    cereal-loop2 at=(-20.1, 18.2) yaw=85
+    cereal-loop0 at=(-19.7, 16.6) yaw=138
+    cereal-loop0 at=(24.1, 18.7) yaw=-180
+    cereal-loop1 at=(23.8, 16.9) yaw=127
+    cereal-loop2 at=(22.3, 19.3) yaw=74
+    cereal-loop0 at=(21.9, 17.6) yaw=21
+    cereal-loop1 at=(21.7, 15.8) yaw=-32
+    cereal-loop2 at=(20.1, 18.2) yaw=-85
+    cereal-loop0 at=(19.7, 16.6) yaw=-138
+    # A trail of coffee beans from each north flank health pod towards the sink
+    coffee-bean0 at=(-23.6, 38) yaw=-180
+    coffee-bean1 at=(-22.8, 38.6) yaw=-109
+    coffee-bean0 at=(-21.9, 38.3) yaw=-38
+    coffee-bean1 at=(-21.1, 37.6) yaw=33
+    coffee-bean0 at=(-20.2, 37.5) yaw=104
+    coffee-bean1 at=(-19.4, 38.1) yaw=175
+    coffee-bean0 at=(-18.5, 38.6) yaw=-114
+    coffee-bean1 at=(-17.7, 38.2) yaw=-43
+    coffee-bean0 at=(-16.8, 37.5) yaw=28
+    coffee-bean0 at=(23.6, 38) yaw=-180
+    coffee-bean1 at=(22.8, 38.6) yaw=109
+    coffee-bean0 at=(21.9, 38.3) yaw=38
+    coffee-bean1 at=(21.1, 37.6) yaw=-33
+    coffee-bean0 at=(20.2, 37.5) yaw=-104
+    coffee-bean1 at=(19.4, 38.1) yaw=-175
+    coffee-bean0 at=(18.5, 38.6) yaw=114
+    coffee-bean1 at=(17.7, 38.2) yaw=43
+    coffee-bean0 at=(16.8, 37.5) yaw=-28
+    # A spilled sugar heap round each cake, in the flour
+    sugar-drift0 at=(-53.5, -34.3) yaw=-180
+    sugar-drift1 at=(-46.5, -45.3) yaw=-97
+    sugar-drift0 at=(-40.7, -45.0) yaw=-14
+    sugar-drift1 at=(-34.5, -37.7) yaw=69
+    sugar-drift0 at=(53.5, -34.3) yaw=-180
+    sugar-drift1 at=(46.5, -45.3) yaw=97
+    sugar-drift0 at=(40.7, -45.0) yaw=14
+    sugar-drift1 at=(34.5, -37.7) yaw=-69
+
+# The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its bread box. The flag stand inside, 4 m in front of the back wall; the spawn beside the box
+# outside its south wall, facing the field. The minigun pod and the flamethrower pod before the box's open front, the minigun to the north where the hob is open, the
+# flamethrower to the south where the attackers come close; a health pod inside the box by the south wall and two out on the north and south flanks, near where the
+# lanes begin. The level's own mix, minigun, flamethrower, electro-gun and blob-gun, which no other level has. The machines (ticket 24): four turrets per side, two before the
+# box's front, two off its flanks, and the zone for the helicopter and tanks off the box's back north corner, open to the field
+sides
+    west
+        spawn at=(-54, -22) yaw=90 radius=3
+        flag at=(-65, 0)
+        pod minigun at=(-49, 7)
+        pod flamethrower at=(-49, -7)
+        pod health at=(-65, -8)
+        pod health at=(-26, 38)
+        pod health at=(-26, -38)
+        turret at=(-48, 15) yaw=60
+        turret at=(-48, -15) yaw=120
+        turret at=(-64, 18) yaw=30
+        turret at=(-64, -18) yaw=150
+        machines at=(-68, 26) yaw=90 radius=3
+    east
+        spawn at=(54, -22) yaw=-90 radius=3
+        flag at=(65, 0)
+        pod minigun at=(49, 7)
+        pod flamethrower at=(49, -7)
+        pod health at=(65, -8)
+        pod health at=(26, 38)
+        pod health at=(26, -38)
+        turret at=(48, 15) yaw=-60
+        turret at=(48, -15) yaw=-120
+        turret at=(64, 18) yaw=-30
+        turret at=(64, -18) yaw=-150
+        machines at=(68, 26) yaw=-90 radius=3
+# The neutral pods on the middle line, 49 m apart: the electro-gun in front of the sink, where the long sight lines over it and across the hob are, between the sink's front rim
+# and the kettle; the blob-gun south of the hob in the close cover of the pantry lane
+neutral
+    pod electro-gun at=(0, 13)
+    pod blob-gun at=(0, -36)
+
+# What spills on a worktop, scattered by the thousand and drawn instanced: crumbs, rice, cereal loops, coffee beans and sprinkles in drifts about 12 m wide with bare oak between,
+# and denser handfuls of the smallest bits, sugar and salt drifts and frozen peas, in heaps about 6 m wide. None of it blocks or is taller than a shin. reach is 0: the
+# worktop ends at its edge. It keeps off the sink's rim (the sink's hole it keeps off by itself) but lies on the hob too, where crumbs read well on black glass
+scatter group=crumbs
+    crumb0
+    crumb1
+    crumb2
+    rice-grain0
+    rice-grain1
+    cereal-loop0
+    cereal-loop1
+    cereal-loop2
+    coffee-bean0
+    coffee-bean1
+    sprinkle0 weight=0.6
+    sprinkle1 weight=0.6
+    sprinkle2 weight=0.6
+    sprinkle3 weight=0.6
+    density=0.2 cluster=3 clusterScale=12 spacing=0.8 reach=0 avoid=steel margin=0.6 scale=(0.85, 1.15) maxSlope=20
+scatter group=crumbs
+    sugar-drift0
+    sugar-drift1
+    pea0
+    pea1
+    density=0.04 cluster=4 clusterScale=6 spacing=0.7 reach=0 avoid=steel margin=0.6 scale=(0.85, 1.15) maxSlope=20
+
+# The tall blockers that hide a player: loose clumps of tin cans, jars, mugs, a vinegar bottle, a milk carton and low plate stacks, 10 to 20 m wide with open worktop between;
+# laid first, so the knee cover below keeps clear of them. Off the sink's rim and the hob (the hob stays an open arena)
+trees group=pantry
+    tin-can0
+    tin-can1
+    tin-can-lying0
+    jam-jar0
+    honey-jar0
+    spice-jar0
+    spice-jar1
+    salt-shaker0
+    mug0
+    mug-tipped0
+    vinegar-bottle0
+    milk-carton0
+    plate-stack-low0
+    band=(-46, -8) density=0.014 spacing=8 cluster=3 clusterScale=18 avoid=steel,hob scale=(0.9, 1.1) margin=3
+
+# Knee cover, drawn instanced like a meadow's trees: sugar cubes, cookies, a butter pat, bottle caps, a jar lid, a teaspoon, a sponge and a garlic clove, mostly 0.4 to 1.5 m
+# high with rounded or domed tops, so players jump them and bots go round, in clumps about 18 m wide
+trees group=pantry
+    sugar-cube0
+    sugar-cube1
+    sugar-cube2
+    cookie0
+    cookie-bitten0
+    butter-pat0
+    crown-cap0
+    crown-cap1
+    jar-lid0
+    teaspoon0
+    dish-sponge0
+    garlic-clove0
+    band=(-46, -4) density=0.025 spacing=6 cluster=2.5 clusterScale=18 avoid=steel,hob scale=(0.9, 1.1) margin=1.5
+
+# How the crumbs are drawn round the camera: the finest level to 10 m with the ink outline, the next to 25 m and the coarsest to 45 m, fading out over its last 15 m, shadows from
+# the nearest ring only; no wind, and no ground colour at their feet (tintHeight 0: oak is not grass). The integrated GPU / web preset draws half of them, to 0.7 times the distance
+draw crumbs
+    rings=[10, 25, 45] outline=1 shadows=1 blend=1 fade=15
+    lowDensity=0.5 lowDistance=0.7 tintHeight=0
+
+# How the pantry is drawn: LOD0 to 25 m, LOD1 to 60 m and LOD2 beyond, never ended by distance, all with the ink outline; shadows from the nearer two rings (only the nearest on the
+# integrated GPU / web preset); no wind
+draw pantry
+    rings=[25, 60, 1000] outline=3 shadows=2 lowShadows=1 blend=2 lowDistance=0.7
+
+# The bread boxes' repeated parts (the roll top's slats), instanced through the parts group, which the level builder names castle whatever the base
+draw castle
+    rings=[25, 60, 400] outline=2 shadows=3 lowShadows=1 blend=2 lowDistance=0.4
+
+# The hob heats up (ticket 28.10): the four burners heat in turns, one mirrored pair at a time, so both sides face the same heat. A 45 s cycle from 20 s into a round: the back pair (the
+# large rings, z = 3) warms 3 s (a dull ember glow), is hot 12 s (orange to yellow; 10 damage a second to a scout or tank in the ring, a kill of no one's, "the hob" in the kill feed) and cools 3 s,
+# then the front pair (the small rings, z = -15) the same, and the 9 s that are left are cold glass. Bots and tanks pay 50 times the path cost of a warming or hot ring and step off it. The
+# rings are the burners' outer radii (5.4 and 4.2 m) at their placements; the kettle (0, 0) is clear of all four, a safe middle
+heat cycle=45 first=20 warm=3 hot=12 cool=3 damage=10 cost=50 name="the hob"
+    ring group=back at=(-10.5, 3) radius=5.4
+    ring group=back at=(10.5, 3) radius=5.4
+    ring group=front at=(-10.5, -15) radius=4.2
+    ring group=front at=(10.5, -15) radius=4.2

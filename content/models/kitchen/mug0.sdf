@@ -1,0 +1,24 @@
+# Mug 0: a mustard mug (kitchen_glaze_mustard) of coffee (kitchen_coffee), 6 m tall and 4.8 m across plus its ring handle on the +x side (60 times life size), with a
+# cream stripe (kitchen_glaze_cream) round it and the coffee up to 4.9 m. Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.25
+    Union
+        Subtraction
+            Union
+                Material material=kitchen_glaze_mustard
+                    Union
+                        Translate translation=(0, 3, 0)
+                            RoundedCylinder radius=2.4 roundness=0.2 height=3
+                        Translate translation=(2.45, 3.3, 0)
+                            Rotate rotation=(1.5708, 0, 0)
+                                Torus innerRadius=0.6 outerRadius=1.3
+                Material material=kitchen_glaze_cream
+                    Translate translation=(0, 4.6, 0)
+                        CappedCylinder radius=2.41 height=0.22
+            Translate translation=(0, 3.5, 0)
+                CappedCylinder radius=2.1 height=3
+        Material material=kitchen_coffee
+            Translate translation=(0, 2.7, 0)
+                CappedCylinder radius=2.12 height=2.2

@@ -1,0 +1,38 @@
+# Sponge 0: a washing-up sponge, 6 m by 4.2 m and 1.5 m high (60 times life size): yellow foam (kitchen_foam) with pores in its sides and a green scourer
+# (kitchen_scourer) on top, turned a little. The tallest knee cover, a low wall. Convex collider (a hull over 3 m becomes a mesh).
+format 1
+collider convex
+
+Detail detail=0.18
+    Rotate rotation=(0, 0.12, 0)
+        Union
+            Material material=kitchen_foam
+                Subtraction
+                    Translate translation=(0, 0.475, 0)
+                        RoundBox size=(3, 0.475, 2.1) roundness=0.22
+                    Union
+                        Translate translation=(-2, 0.3, 2.08)
+                            Sphere radius=0.26
+                        Translate translation=(-0.6, 0.62, 2.08)
+                            Sphere radius=0.26
+                        Translate translation=(0.9, 0.28, 2.08)
+                            Sphere radius=0.26
+                        Translate translation=(2.2, 0.55, 2.08)
+                            Sphere radius=0.26
+                        Translate translation=(-1.5, 0.55, -2.08)
+                            Sphere radius=0.26
+                        Translate translation=(0.3, 0.3, -2.08)
+                            Sphere radius=0.26
+                        Translate translation=(1.8, 0.6, -2.08)
+                            Sphere radius=0.26
+                        Translate translation=(3.05, 0.3, -0.6)
+                            Sphere radius=0.26
+                        Translate translation=(3.05, 0.6, 1)
+                            Sphere radius=0.26
+                        Translate translation=(-3.05, 0.7, 0.4)
+                            Sphere radius=0.26
+                        Translate translation=(-3.05, 0.3, -1)
+                            Sphere radius=0.26
+            Material material=kitchen_scourer
+                Translate translation=(0, 1.225, 0)
+                    RoundBox size=(2.95, 0.275, 2.05) roundness=0.12

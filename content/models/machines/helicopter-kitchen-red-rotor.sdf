@@ -1,0 +1,22 @@
+# Helicopter rotor, red (ticket 28.8): two crossed butter knives (steel blades, black handles) on a steel hub, spun by script so the knives
+# blur into a disc.
+# Pivot: the origin is the hub's bottom on the rotor's axis (it spins about y); in helicopter-kitchen-red-body it is at (0, 0.56, 0).
+format 1
+
+Detail detail=0.45
+    Union
+        Material material=kitchen_steel
+            Union
+                Translate translation=(0, 0.025, 0)
+                    CappedCylinder radius=0.04 height=0.025
+                # The blades, one along x and one along z, each from the hub to its tip
+                Translate translation=(0.1, 0.055, 0)
+                    RoundBox size=(0.09, 0.008, 0.028) roundness=0.006
+                Translate translation=(0, 0.07, -0.1)
+                    RoundBox size=(0.028, 0.008, 0.09) roundness=0.006
+        Material material=kitchen_black
+            Union
+                Translate translation=(-0.1, 0.055, 0)
+                    RoundBox size=(0.09, 0.012, 0.018) roundness=0.008
+                Translate translation=(0, 0.07, 0.1)
+                    RoundBox size=(0.018, 0.012, 0.09) roundness=0.008

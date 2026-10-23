@@ -109,9 +109,13 @@ public static class LevelBaker
         if (level.Edge.Underside is { } underside && !(modelExists ?? (name => models?.Invoke(name) is not null))(underside.Model))
             throw new ProgramFiles.SdfProgramFileException(underside.Line, $"There is no model '{underside.Model}' in content/models/");
         var regions = new GroundRegions(level, model => footprints[model]);
+        var holes = new GroundHoles(level.Holes, level.Seed);
         foreach (var region in regions.Regions)
             if (!materials.Contains(region.Material))
                 throw new InvalidOperationException($"There is no material file for {region.Material}; the ground needs materials/ground/{region.Material}.sdfmat");
+        // The backdrop (ticket 28.2) is a model like the underside: it need only be there
+        if (level.Backdrop is { } backdropModel && !(modelExists ?? (name => models?.Invoke(name) is not null))(backdropModel.Model))
+            throw new ProgramFiles.SdfProgramFileException(backdropModel.Line, $"There is no model '{backdropModel.Model}' in content/models/");
         foreach (var face in new[] { level.Room?.Walls, level.Room?.Ceiling })
             if (face is not null && !materials.Contains(face))
                 throw new InvalidOperationException($"There is no material file for {face}; the room's walls and ceiling need materials/room/{face}.sdfmat");
@@ -147,6 +151,7 @@ public static class LevelBaker
             foreach (var corner in pulseLine.Points)
                 if (!terrain.OnIsland(corner.X, corner.Y))
                     throw new ProgramFiles.SdfProgramFileException(level.Pulses!.Line, $"A pulse line goes beyond the island's edge, at ({corner.X}, {corner.Y})");
+        HeatBake.Check(level, terrain);
         var groundColors = regions.Regions.Select(r => r.Material).Prepend(level.BaseMaterial)
             .Select(m => AverageColor(materials.Resolve(m))).ToArray();
         // The trees sections' models need their footprints too where a later section keeps clear of them (LevelScatter.KeepsClearOf),
@@ -158,14 +163,14 @@ public static class LevelBaker
         {
             var region = regions.At(p);
             return groundColors[region is null ? 0 : regions.Regions.ToList().IndexOf(region) + 1];
-        });
+        }, holes);
 
         // Each chunk on its own, in parallel; the results go in order, so the files do not depend on which finished first
         var chunks = new GroundMesh?[layout.CountX * layout.CountZ][];
         Parallel.For(0, chunks.Length, index =>
         {
             var (i, j) = (index % layout.CountX, index / layout.CountX);
-            chunks[index] = Details.Select(detail => GroundMesher.Mesh(terrain, layout, i, j, detail)).ToArray();
+            chunks[index] = Details.Select(detail => GroundMesher.Mesh(terrain, layout, i, j, detail, holes)).ToArray();
         });
 
         Directory.CreateDirectory(folder);
@@ -303,9 +308,9 @@ public static class LevelBaker
                     channel = "rgba"[index].ToString(),
                     name = r.Name,
                     material = r.Material,
-                    pattern = r.Pattern == GroundPattern.Stones ? "stones" : "plain",
-                    stoneSize = r.Pattern == GroundPattern.Stones ? r.StoneSize : (float?)null,
-                    groutWidth = r.Pattern == GroundPattern.Stones ? r.GroutWidth : (float?)null,
+                    pattern = r.Pattern switch { GroundPattern.Stones => "stones", GroundPattern.Staves => "staves", _ => "plain" },
+                    stoneSize = r.Pattern != GroundPattern.Plain ? r.StoneSize : (float?)null,
+                    groutWidth = r.Pattern != GroundPattern.Plain ? r.GroutWidth : (float?)null,
                     wobble = r.Wobble,
                     shapes = r.Shapes.Count,
                 }).ToArray(),
@@ -373,7 +378,7 @@ public static class LevelBaker
             sky = sky is null ? null : SkyDocument.Of(sky.Definition, sky.Hash, SkyLayout.Of(sky.Definition, level.Seed, play.HalfSize, terrain.EdgeDistance)),
             // The closed room, if the level has one: six chessboards over the floor, for Unity to build walls and ceiling from (the floor
             // itself is the ground above). Null otherwise
-            room = level.Room is { } room ? RoomDocument(room, materials) : null,
+            room = level.Room is { } room ? RoomDocument(room, materials) : level.Backdrop is { } backdrop ? BackdropDocument(backdrop) : null,
             // The haze, plumes of steam and drips (ticket 29.1), each left out of a level without them
             fog = LevelFx.FogDocument(level),
             steam = LevelFx.SteamDocument(level),
@@ -428,10 +433,13 @@ public static class LevelBaker
                     y = l.Points.Select(p => terrain.Height(p.X, p.Y)).ToArray(),
                 }).ToArray(),
             } : null,
+            // The rings of floor that heat in turns (ticket 28.10), or none: see HeatBake.Document
+            heat = HeatBake.Document(level, terrain),
             // Every model the level uses, placed, scattered, under the island or in the sky, once, so Unity rebuilds the level when one of
             // their prefabs is rebuilt
             models = placed.Select(p => p.Model).Concat(scattered.Prototypes.Select(p => p.Model))
                 .Concat(level.Edge.Underside is { } under ? [under.Model] : [])
+                .Concat(level.Backdrop is { } backdropUsed ? [backdropUsed.Model] : [])
                 .Concat(level.Movers.SelectMany(m => m.Cars.Select(c => c.Model)))
                 .Concat(sky?.Definition.Models ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
         };
@@ -457,6 +465,8 @@ public static class LevelBaker
             // the set of machine models (turret-<set>-<team>) and, in a room, the helicopters' flight ceiling over the floor in metres
             machineSet = level.Machines is { } set && set.Name != MachineSet.Default ? set.Name : null,
             flightCeiling = level.Machines?.CeilingIn(level.Room),
+            // Ticket 28.8: the helicopters' floor (y) from the machines line's floor=, else left out
+            helicopterFloor = level.Machines?.Floor,
             // Ticket 30.7, in a room with a machines line and models over 6 m placed in it (else left out): their footprints as
             // [minX, minZ, maxX, maxZ], which the helicopters keep out of (HelicopterPilot.KeepOuts)
             helicopterKeepOuts = keepOuts,
@@ -575,6 +585,24 @@ public static class LevelBaker
             },
         };
     }
+
+    /// <summary>
+    /// The room block of a level with a backdrop (ticket 28.2): <c>form</c> "backdrop" (a closed room's block has no form), the model, where
+    /// it stands (x, y, z; y absolute) and its yaw, the camera's far plane and clear colour (sRGB), and the lamp as a room's <c>light</c>.
+    /// There are no faces, no size and no walls: Unity builds no colliders for it, and the play area's edges are open.
+    /// </summary>
+    private static object BackdropDocument(BackdropSpec backdrop) => new
+    {
+        form = "backdrop",
+        model = backdrop.Model,
+        at = Array(backdrop.At),
+        yaw = backdrop.Yaw,
+        farPlane = backdrop.FarPlane,
+        clear = Array(backdrop.Clear),
+        light = backdrop.Light is { } light
+            ? new { direction = light.Direction is { } d ? Array(d) : null, color = light.Color is { } c ? Array(c) : null, ambient = light.Ambient is { } a ? Array(a) : null }
+            : null,
+    };
 
     private static string FaceName(RoomFace face) => face switch
     {

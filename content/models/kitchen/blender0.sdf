@@ -1,0 +1,48 @@
+# Blender 0: a kitchen blender (60 times life size), 15 m tall on a 7.2 m base: a sage glaze base (kitchen_glaze_sage) with a mustard dial on the +z side (kitchen_glaze_mustard),
+# a steel collar (kitchen_steel), a glass jug (kitchen_glass) of yellow smoothie (kitchen_smoothie) up to 10.6 m, a cream lid with a knob (kitchen_lid_cream) and a black
+# handle on +x (kitchen_black). Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.4
+    Union
+        Material material=kitchen_glaze_sage
+            Translate translation=(0, 2, 0)
+                RoundBox size=(3.6, 2, 3.6) roundness=0.9
+        Material material=kitchen_glaze_mustard
+            Translate translation=(0, 2.2, 3.7)
+                Rotate rotation=(1.5708, 0, 0)
+                    CappedCylinder radius=0.75 height=0.35
+        Material material=kitchen_steel
+            Translate translation=(0, 4.3, 0)
+                CappedCone height=0.35 bottomRadius=2.9 topRadius=2.7
+        Material material=kitchen_glass
+            Subtraction
+                Subtraction
+                    Translate translation=(0, 8.9, 0)
+                        CappedCone height=4.3 bottomRadius=2.6 topRadius=3.2
+                    Translate translation=(0, 9.3, 0)
+                        CappedCone height=4.3 bottomRadius=2.35 topRadius=2.95
+                Translate translation=(0, 7.9, 0)
+                    Box size=(5, 2.7, 5)
+        Material material=kitchen_smoothie
+            Intersection
+                Subtraction
+                    Translate translation=(0, 8.9, 0)
+                        CappedCone height=4.3 bottomRadius=2.6 topRadius=3.2
+                    Translate translation=(0, 9.3, 0)
+                        CappedCone height=4.3 bottomRadius=2.35 topRadius=2.95
+                Translate translation=(0, 7.9, 0)
+                    Box size=(5, 2.7, 5)
+        Material material=kitchen_lid_cream
+            Union
+                Translate translation=(0, 13.6, 0)
+                    CappedCone height=0.4 bottomRadius=3.2 topRadius=2.9
+                Translate translation=(0, 14.2, 0)
+                    Sphere radius=0.8
+        Material material=kitchen_black
+            Union
+                Capsule a=(3, 12.3, 0) b=(4.4, 12, 0) radius=0.45
+                Capsule a=(4.4, 12, 0) b=(4.6, 9.5, 0) radius=0.45
+                Capsule a=(4.6, 9.5, 0) b=(4.2, 7.2, 0) radius=0.45
+                Capsule a=(4.2, 7.2, 0) b=(3, 6, 0) radius=0.45

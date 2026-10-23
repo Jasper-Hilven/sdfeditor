@@ -21,6 +21,9 @@ Shader "SdfMushrooms/Toon"
         _ToonRim("Rim (strength, width)", Vector) = (0.25, 0.3, 0, 0)
         _ToonVariation("Colour variation (amount)", Vector) = (0.5, 0, 0, 0)
         _ToonInk("Ink of the patterns' lines (the colour times this, linear)", Vector) = (0.18, 0.13, 0.14, 0)
+        // Ticket 28.10: a model that heats up (the kitchen's burners) gets this per renderer from the level's HeatHazard (a property block): a flat
+        // glow colour (linear) over the model's own, w = how much of it. Nothing at 0, the default
+        [HideInInspector] _HeatGlow("Heat glow (linear colour, share)", Vector) = (0, 0, 0, 0)
 
         // Only declared because SdfSurface.hlsl, which this shader includes, reads them: the toon look takes everything per vertex,
         // so one material draws every mushroom
@@ -52,6 +55,7 @@ Shader "SdfMushrooms/Toon"
         float4 _ToonRim;
         float4 _ToonVariation;
         float4 _ToonInk;
+        float4 _HeatGlow;
         float4 _EdgeColor;
         float4 _DetailAxis;
         float4 _Subsurface;
@@ -197,6 +201,8 @@ Shader "SdfMushrooms/Toon"
                 float3 color = SdfToonShade(albedo, n, v, l, shadow, tint, input.uv0.x, input.uv0.y, input.color.a, saturate(input.uv0.w),
                     saturate(input.uv6.a));
                 color = SdfToonEmit(color, albedo, input.uv5.z);
+                // A heating model's glow (ticket 28.10), flat over the shading
+                color = lerp(color, _HeatGlow.rgb, saturate(_HeatGlow.a));
                 // The colour is shown as it is: the light's intensity does not scale it, only tone mapping follows; far away it fades
                 // toward the sky, and into the level's fog if it has one
                 return SdfToonOutput(MixFog(SkyFade(color, input.positionWS), input.fogFactor), normalize(input.normalWS), input.positionWS);

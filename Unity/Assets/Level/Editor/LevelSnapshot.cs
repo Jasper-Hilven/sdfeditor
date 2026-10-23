@@ -173,6 +173,15 @@ namespace SdfLevel.Editor
                     Debug.Log($"SDF level: snapshots written to {directory}");
                     return;
                 }
+                if (scene.name == "Kitchen")
+                {
+                    // A worktop with a backdrop, no hills or sky: its own views, on both presets
+                    ShootKitchen(scene, scatter, Shot);
+                    QualitySettings.SetQualityLevel(RenderPipelineSetup.WebLevel, true);
+                    ShootKitchen(scene, scatter, Shot, "_web");
+                    Debug.Log($"SDF level: snapshots written to {directory}");
+                    return;
+                }
                 foreach (var (name, yaw) in new[] { ("eye_+x", 90f), ("eye_-x", -90f), ("eye_+z", 0f), ("eye_-z", 180f) })
                     EyeShot(name, eye, Quaternion.Euler(0, yaw, 0));
 
@@ -394,6 +403,42 @@ namespace SdfLevel.Editor
             View("bath_fog_north", At(0, -20), Quaternion.Euler(-4, 0, 0));
             View("bath_above", new Vector3(0, 62, -48), Quaternion.Euler(52, 0, 0));
             View("bath_top", new Vector3(0, 68, 0), Quaternion.Euler(90, 0, 0));
+        }
+
+        /// <summary>
+        /// The kitchen's budget views (ticket 28.11), each logged as the toy box's are: from the west spawn four ways and towards its flag, across the
+        /// hob, the burners close, the sink from its front rim and from the back ledge, the bread box, the pantry lane, a cake, the worktop's edge, the
+        /// window and lamps, and from above and outside. Unity's x is the pipeline's mirrored, so the west spawn (pipeline (-54, -22)) stands at Unity
+        /// x = +54 and faces -x towards the middle.
+        /// </summary>
+        private static void ShootKitchen(Scene scene, InstancedScatterRenderer scatter, Action<string, Vector3, Quaternion, int, int> shot, string suffix = "")
+        {
+            var camera = scene.GetRootGameObjects().First(g => g.name == LevelBuilder.PlayerName).GetComponentInChildren<Camera>();
+            var up = Vector3.up * LevelBuilder.EyeHeight;
+            void View(string name, Vector3 position, Quaternion rotation)
+            {
+                shot(name + suffix, position, rotation, 1920, 1080);
+                Debug.Log($"SDF level: {name + suffix} ({QualitySettings.names[QualitySettings.GetQualityLevel()]}): {ToyCost(scene, camera, position, rotation, scatter)}");
+            }
+            var spawn = OnGround(new Vector3(54, 0, -22)) + up;
+            View("k_spawn_middle", spawn, Quaternion.Euler(0, -90, 0));
+            View("k_spawn_hob", spawn, Quaternion.LookRotation(new Vector3(-1, 0, 0.6f)));
+            View("k_spawn_flag", spawn, Quaternion.LookRotation(new Vector3(11, 0, 22)));
+            View("k_spawn_back", spawn, Quaternion.Euler(0, 90, 0));
+            View("k_spawn_north", spawn, Quaternion.Euler(0, 0, 0));
+            View("k_hob", OnGround(new Vector3(46, 0, -12)) + up, Quaternion.LookRotation(new Vector3(-1, -0.05f, 0.1f)));
+            View("k_burners", OnGround(new Vector3(0, 0, -26)) + up, Quaternion.Euler(18, 0, 0));
+            View("k_sink_front", OnGround(new Vector3(0, 0, 8)) + up, Quaternion.Euler(14, 0, 0));
+            View("k_sink_ledge", OnGround(new Vector3(18, 0, 46)) + up, Quaternion.LookRotation(new Vector3(-0.5f, -0.2f, -0.8f)));
+            View("k_bread_box", OnGround(new Vector3(40, 0, -9)) + up, Quaternion.LookRotation(new Vector3(1, 0, 0.35f)));
+            View("k_pantry", OnGround(new Vector3(10, 0, -31)) + up, Quaternion.Euler(0, 90, 0));
+            View("k_pantry_east", OnGround(new Vector3(-10, 0, -31)) + up, Quaternion.Euler(0, -90, 0));
+            View("k_cake", OnGround(new Vector3(26, 0, -24)) + up, Quaternion.LookRotation(new Vector3(1, 0, -0.6f)));
+            View("k_edge", OnGround(new Vector3(14, 0, -42)) + up, Quaternion.Euler(12, 180, 0));
+            View("k_window", OnGround(new Vector3(14, 0, -30)) + up, Quaternion.Euler(-12, 0, 0));
+            View("k_lamps", OnGround(new Vector3(14, 0, -30)) + up, Quaternion.Euler(-38, 20, 0));
+            View("k_above", new Vector3(0, 70, -105), Quaternion.Euler(32, 0, 0));
+            View("k_top", new Vector3(0, 96, 0), Quaternion.Euler(90, 0, 0));
         }
 
         /// <summary>What the toy box draws in a view: the instanced groups (bits, toys, castle parts), the placed models and the movers' cars.</summary>

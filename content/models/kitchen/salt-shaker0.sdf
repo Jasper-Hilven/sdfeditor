@@ -1,0 +1,40 @@
+# Salt shaker 0: a salt shaker, 4.8 m tall and 3 m across (60 times life size): glass (kitchen_glass) full of salt (kitchen_salt) with a domed steel cap
+# (kitchen_steel) pierced with five holes. Tall blocker. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.3
+    Union
+        Material material=kitchen_glass
+            Subtraction
+                Translate translation=(0, 1.7, 0)
+                    RoundedCylinder radius=1.5 roundness=0.3 height=1.7
+                Translate translation=(0, 1.65, 0)
+                    Box size=(3, 1.35, 3)
+        Material material=kitchen_salt
+            Intersection
+                Translate translation=(0, 1.7, 0)
+                    RoundedCylinder radius=1.5 roundness=0.3 height=1.7
+                Translate translation=(0, 1.65, 0)
+                    Box size=(3, 1.35, 3)
+        Material material=kitchen_steel
+            Subtraction
+                Union
+                    Translate translation=(0, 3.7, 0)
+                        CappedCone height=0.4 bottomRadius=1.3 topRadius=1
+                    Intersection
+                        Translate translation=(0, 4.1, 0)
+                            Ellipsoid radii=(1, 0.7, 1)
+                        Translate translation=(0, 5.1, 0)
+                            Box size=(2, 1, 2)
+                Union
+                    Translate translation=(0, 4.7, 0)
+                        CappedCylinder radius=0.09 height=0.45
+                    Translate translation=(0.45, 4.7, 0)
+                        CappedCylinder radius=0.09 height=0.45
+                    Translate translation=(0, 4.7, 0.45)
+                        CappedCylinder radius=0.09 height=0.45
+                    Translate translation=(-0.45, 4.7, 0)
+                        CappedCylinder radius=0.09 height=0.45
+                    Translate translation=(0, 4.7, -0.45)
+                        CappedCylinder radius=0.09 height=0.45

@@ -1,0 +1,34 @@
+# Jam jar 0: a jar of apricot jam, 5.4 m tall and 4.2 m across (60 times life size): glass (kitchen_glass) base, shoulder and neck round apricot jam (kitchen_jam),
+# a cream lacquered lid (kitchen_lid_cream) and a plain cream label band with mustard stripes (kitchen_label_cream, kitchen_label_mustard). Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.15
+    Union
+        Material material=kitchen_glass
+            Subtraction
+                Union
+                    Translate translation=(0, 2.3, 0)
+                        RoundedCylinder radius=2.1 roundness=0.35 height=2.3
+                    Translate translation=(0, 4.7, 0)
+                        CappedCylinder radius=1.55 height=0.15
+                Translate translation=(0, 2.1, 0)
+                    Box size=(3, 1.75, 3)
+        Material material=kitchen_jam
+            Intersection
+                Translate translation=(0, 2.3, 0)
+                    RoundedCylinder radius=2.1 roundness=0.35 height=2.3
+                Translate translation=(0, 2.1, 0)
+                    Box size=(3, 1.75, 3)
+        Material material=kitchen_lid_cream
+            Translate translation=(0, 5, 0)
+                RoundedCylinder radius=1.72 roundness=0.1 height=0.4
+        Material material=kitchen_label_cream
+            Translate translation=(0, 1.95, 0)
+                CappedCylinder radius=2.12 height=0.75
+        Material material=kitchen_label_mustard
+            Union
+                Translate translation=(0, 1.3, 0)
+                    CappedCylinder radius=2.13 height=0.08
+                Translate translation=(0, 2.6, 0)
+                    CappedCylinder radius=2.13 height=0.08

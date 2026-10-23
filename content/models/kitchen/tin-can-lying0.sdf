@@ -1,0 +1,30 @@
+# Tin can lying 0: a dented tin on its side, 4.5 m high and 6.6 m long (60 times life size), its axis along x: tin body (kitchen_tin), a butter yellow label band with a
+# cream stripe and a soft dent in the side. Cover on its side. Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.18
+    Subtraction
+        Translate translation=(0, 2.25, 0)
+            Rotate rotation=(0, 0, 1.5708)
+                Union
+                    Material material=kitchen_tin
+                        Union
+                            RoundedCylinder radius=2.24 roundness=0.06 height=3.3
+                            Translate translation=(0, 3.15, 0)
+                                Torus innerRadius=2 outerRadius=2.25
+                            Translate translation=(0, -3.15, 0)
+                                Torus innerRadius=2 outerRadius=2.25
+                    Material material=kitchen_label_yellow
+                        CappedCylinder radius=2.25 height=2.1
+                    Material material=kitchen_label_cream
+                        Translate translation=(0, 0, 0)
+                            CappedCylinder radius=2.26 height=0.35
+                    Material material=kitchen_tin
+                        Union
+                            Translate translation=(0.65, 3.32, 0)
+                                RoundBox size=(0.7, 0.04, 0.32) roundness=0.03
+                            Translate translation=(-0.35, 3.31, 0)
+                                Torus innerRadius=0.18 outerRadius=0.5
+        Translate translation=(0.6, 4.33, 2.1)
+            Sphere radius=1

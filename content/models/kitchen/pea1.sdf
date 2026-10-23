@@ -1,0 +1,14 @@
+# Pea 1: three frozen peas (kitchen_pea) together, each 0.48 m across and the three about 0.95 m wide (60 times life size), touching on the worktop.
+# Ground clutter: no collider.
+format 1
+
+# A fifth of the vertices its size would give it: three plain balls
+Detail detail=0.05
+    Material material=kitchen_pea
+        Union
+            Translate translation=(-0.24, 0.24, -0.14)
+                Sphere radius=0.24
+            Translate translation=(0.24, 0.24, -0.1)
+                Sphere radius=0.24
+            Translate translation=(0, 0.24, 0.3)
+                Sphere radius=0.24

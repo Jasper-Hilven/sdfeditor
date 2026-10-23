@@ -1,0 +1,120 @@
+# Cereal box toppled 0: a cereal box that fell over (60 times life size), lying on its narrow side: the box is 14.4 m long (x from -9 to 5.4), 4.2 m deep and 12 m high, sunny
+# yellow card (kitchen_card_yellow) with a mint band and a honey sun printed on both big faces (kitchen_label_mint, kitchen_cereal_honey; no text), cream inside (kitchen_carton_cream).
+# Its top end, at +x, is open with the four flaps bent out (the bottom one lying flat on the worktop), and honey, mint and cocoa cereal rings (kitchen_cereal_*) have poured out
+# in a heap to x = 9 m, so the model is 18 m long in all. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.15
+    Union
+        Material material=kitchen_card_yellow
+            Union
+                Subtraction
+                    Translate translation=(-1.8, 6, 0)
+                        RoundBox size=(7.2, 6, 2.1) roundness=0.2
+                    Translate translation=(-0.85, 6, 0)
+                        Box size=(7.97, 5.87, 1.97)
+                Union
+                    Translate translation=(6.3735, 6, 2.4933)
+                        Rotate rotation=(0, -0.384, 0)
+                            Box size=(1.05, 5.75, 0.125)
+                    Translate translation=(6.3735, 6, -2.4933)
+                        Rotate rotation=(0, 0.384, 0)
+                            Box size=(1.05, 5.75, 0.125)
+                    Translate translation=(6.4397, 12.1465, 0)
+                        Rotate rotation=(0, 0, 0.14)
+                            Box size=(1.05, 0.125, 1.85)
+                    Translate translation=(6.45, 0.125, 0)
+                        Rotate rotation=(0, 0, 0)
+                            Box size=(1.05, 0.125, 1.85)
+        Material material=kitchen_carton_cream
+            Intersection
+                Translate translation=(-1.8, 6, 0)
+                    RoundBox size=(7.2, 6, 2.1) roundness=0.2
+                Subtraction
+                    Translate translation=(-0.85, 6, 0)
+                        Box size=(7.97, 5.87, 1.97)
+                    Translate translation=(-0.85, 6, 0)
+                        Box size=(7.85, 5.75, 1.85)
+        Material material=kitchen_label_mint
+            Union
+                Translate translation=(-4.2, 2, 0)
+                    Box size=(4.8, 0.45, 2.13)
+                Translate translation=(-4.2, 9.6, 0)
+                    Box size=(4.8, 0.45, 2.13)
+        Material material=kitchen_cereal_honey
+            Union
+                Translate translation=(-3.6, 6, 0)
+                    Rotate rotation=(1.5708, 0, 0)
+                        CappedCylinder radius=2.2 height=2.14
+        Material material=kitchen_cereal_honey
+            Translate translation=(6.5, 0.5, 0)
+                CappedCone height=0.5 bottomRadius=2.4 topRadius=1.4
+        Material material=kitchen_cereal_honey
+            Translate translation=(6.7682, 1.2938, 0.2927)
+                Rotate rotation=(-0.1758, 0.7528, 0.0756)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(5.4523, 1.2734, 1.2257)
+                Rotate rotation=(-0.2296, 1.1715, -0.1472)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_mint
+            Translate translation=(5.333, 1.3389, -1.2127)
+                Rotate rotation=(-0.379, 1.9488, -0.3297)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_cocoa
+            Translate translation=(6.9206, 1.4159, -0.7718)
+                Rotate rotation=(-0.1613, 0.5377, -0.2208)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(7.5676, 1.1616, 0.8209)
+                Rotate rotation=(-0.0985, 1.8214, 0.4095)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(6.6412, 1.4756, 1.4349)
+                Rotate rotation=(0.4456, 1.9041, -0.0886)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_mint
+            Translate translation=(7.23, 1.4911, -0.7273)
+                Rotate rotation=(0.2243, 0.3836, -0.4912)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_cocoa
+            Translate translation=(7.8195, 1.3162, 0.7854)
+                Rotate rotation=(0.0544, 1.799, -0.2094)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(7.51, 1.1992, 0.698)
+                Rotate rotation=(0.3938, 1.596, -0.1992)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(7.3873, 1.2929, -0.9703)
+                Rotate rotation=(0.0702, 0.7197, 0.2906)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_mint
+            Translate translation=(7.2809, 0.19, -0.1688)
+                Rotate rotation=(-0.2077, 2.1862, 0.1433)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_cocoa
+            Translate translation=(6.4258, 0.19, -0.2525)
+                Rotate rotation=(-0.4983, 0.2747, -0.0849)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(5.8756, 0.19, -0.6814)
+                Rotate rotation=(-0.3037, 2.019, -0.3873)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(6.8717, 0.19, -1.172)
+                Rotate rotation=(0.0783, 2.1139, -0.4551)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_mint
+            Translate translation=(6.2499, 0.19, -1.503)
+                Rotate rotation=(0.1628, 1.3756, -0.0655)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_cocoa
+            Translate translation=(6.0084, 0.19, 0.1331)
+                Rotate rotation=(0.0454, 0.5707, -0.0666)
+                    Torus innerRadius=0.22 outerRadius=0.6
+        Material material=kitchen_cereal_honey
+            Translate translation=(5.987, 0.19, -1.981)
+                Rotate rotation=(0.4412, 0.3574, -0.167)
+                    Torus innerRadius=0.22 outerRadius=0.6

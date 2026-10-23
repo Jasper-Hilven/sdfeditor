@@ -1,0 +1,26 @@
+# Tin can 0: a tin of beans, 6.6 m tall and 4.5 m across (60 times life size): tin body and rims (kitchen_tin), a mustard label band (kitchen_label_mustard) with a
+# cream stripe, and a ring-pull tab on top. Tall blocker. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.2
+    Translate translation=(0, 3.3, 0)
+        Union
+            Material material=kitchen_tin
+                Union
+                    RoundedCylinder radius=2.24 roundness=0.06 height=3.3
+                    Translate translation=(0, 3.15, 0)
+                        Torus innerRadius=2 outerRadius=2.25
+                    Translate translation=(0, -3.15, 0)
+                        Torus innerRadius=2 outerRadius=2.25
+            Material material=kitchen_label_mustard
+                CappedCylinder radius=2.25 height=2.1
+            Material material=kitchen_label_cream
+                Translate translation=(0, 0, 0)
+                    CappedCylinder radius=2.26 height=0.45
+            Material material=kitchen_tin
+                Union
+                    Translate translation=(0.65, 3.32, 0)
+                        RoundBox size=(0.7, 0.04, 0.32) roundness=0.03
+                    Translate translation=(-0.35, 3.31, 0)
+                        Torus innerRadius=0.18 outerRadius=0.5

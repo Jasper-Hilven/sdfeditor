@@ -1,0 +1,15 @@
+# Bottle cap 0: a crown cap (kitchen_cap_lilac) lying on the worktop with its fluted skirt up, 1.9 m across and 0.45 m high (60 times life size): a low
+# rim that bots go round and players hop over. Knee cover. Convex collider.
+format 1
+collider convex
+
+Detail detail=0.3
+    Material material=kitchen_cap_lilac
+        Union
+            Translate translation=(0, 0.07, 0)
+                RoundedCylinder radius=0.9 roundness=0.05 height=0.09
+            Translate translation=(0, 0.22, 0)
+                RadialWave amount=0.04 count=21
+                    Subtraction
+                        CappedCone height=0.2 bottomRadius=0.82 topRadius=0.95
+                        CappedCone height=0.22 bottomRadius=0.68 topRadius=0.83

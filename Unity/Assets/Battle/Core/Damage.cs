@@ -10,7 +10,7 @@ namespace SdfBattle
     public readonly struct Damage
     {
         public Damage(float amount, string weapon, Team attackerTeam, PlayerState attacker = null, string attackerName = null, Vector3? from = null,
-            bool headshot = false, bool overTime = false, bool neutral = false)
+            bool headshot = false, bool overTime = false, bool neutral = false, bool heat = false)
         {
             Amount = amount;
             Weapon = weapon;
@@ -21,6 +21,7 @@ namespace SdfBattle
             Headshot = headshot;
             OverTime = overTime;
             Neutral = neutral;
+            Heat = heat;
         }
 
         public float Amount { get; }
@@ -51,6 +52,12 @@ namespace SdfBattle
         /// </summary>
         public bool Neutral { get; }
 
+        /// <summary>
+        /// From a hot patch of the level (ticket 28.10's hob): a <see cref="Neutral"/> hazard whose kills the kill feed words as burns
+        /// (<see cref="DeathKind.Heat"/>), named by <see cref="AttackerName"/> ("the hob").
+        /// </summary>
+        public bool Heat { get; }
+
         /// <summary>A player's hit.</summary>
         public static Damage By(PlayerState attacker, string weapon, float amount, Vector3? from = null, bool headshot = false) =>
             new Damage(amount, weapon, attacker.Team, attacker, null, from, headshot);
@@ -63,13 +70,17 @@ namespace SdfBattle
         public static Damage ByHazard(string hazardName, float amount, Vector3? from = null) =>
             new Damage(amount, null, default, null, hazardName, from, neutral: true);
 
+        /// <summary>A hot patch's burn (ticket 28.10): a hazard's hit that comes in ticks, named like the patch ("the hob").</summary>
+        public static Damage ByHeat(string heatName, float amount, Vector3? from = null) =>
+            new Damage(amount, null, default, null, heatName, from, overTime: true, neutral: true, heat: true);
+
         /// <summary>The same source with another amount: a burn's or a cloud's tick.</summary>
         public Damage With(float amount, bool overTime = true, Vector3? from = null) =>
-            new Damage(amount, Weapon, AttackerTeam, Attacker, AttackerName, from ?? From, false, overTime, Neutral);
+            new Damage(amount, Weapon, AttackerTeam, Attacker, AttackerName, from ?? From, false, overTime, Neutral, Heat);
 
         /// <summary>The death this damage causes: the killer, the weapon (dual pistols are pistols in the kill feed), the headshot.</summary>
         public Death ToDeath(PlayerState victim) =>
-            new Death(victim, DeathCause.Killed, Attacker, AttackerName, Neutral ? (Team?)null : AttackerTeam, WeaponIds.ModelOf(Weapon), Headshot, Weapon);
+            new Death(victim, DeathCause.Killed, Attacker, AttackerName, Neutral ? (Team?)null : AttackerTeam, WeaponIds.ModelOf(Weapon), Headshot, Weapon, Heat);
     }
 
     /// <summary>

@@ -1,0 +1,19 @@
+# Jar lid 0: a screw lid (kitchen_lid_gold) upside down on the worktop, 4.2 m across with a rolled rim 0.72 m high: a dish to jump into, a cream gasket
+# (kitchen_gasket) round its floor (60 times life size). Knee cover. Mesh collider.
+format 1
+collider mesh
+
+Detail detail=0.2
+    Union
+        Material material=kitchen_lid_gold
+            Union
+                Subtraction
+                    Translate translation=(0, 0.36, 0)
+                        RoundedCylinder radius=2.1 roundness=0.1 height=0.36
+                    Translate translation=(0, 0.72, 0)
+                        CappedCylinder radius=1.8 height=0.4
+                Translate translation=(0, 0.57, 0)
+                    Torus innerRadius=1.8 outerRadius=2.1
+        Material material=kitchen_gasket
+            Translate translation=(0, 0.34, 0)
+                Torus innerRadius=1.2 outerRadius=1.7
