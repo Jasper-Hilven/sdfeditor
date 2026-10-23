@@ -62,8 +62,8 @@ namespace SdfBattle
             spores.State.Sporulated += spores.OnSporulated;
             spores.trailClock = new float[match.Players.Count];
             spores.swell = new float[match.Players.Count];
-            if (spores.State.Enabled)
-                SporeHud.Create(spores);
+            // Made with the spores off too: it hides the HUD's spore pieces then (the GUI's HUD shows them unless told)
+            SporeHud.Create(spores);
             Current = spores;
             return spores;
         }

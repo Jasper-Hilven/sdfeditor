@@ -65,7 +65,9 @@ namespace SdfGui.Editor
             button.targetGraphic = shape;
             shape.gameObject.AddComponent<ToonButton>().shape = shape;
             shape.gameObject.AddComponent<GuiCommand>();
-            f.FillText(shape.transform, "Label", "BUTTON", TextStyle.Title, 40, GuiPalette.Cream);
+            var label = f.FillText(shape.transform, "Label", "BUTTON", TextStyle.Title, 40, GuiPalette.Cream);
+            label.characterSpacing = 3;
+            GuiFactory.Gradient(label, Color.white, GuiPalette.Hex(0xFFDFA0));
             return Save(shape.gameObject, PathOf("Button"));
         }
 

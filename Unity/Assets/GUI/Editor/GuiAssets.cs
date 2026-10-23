@@ -35,6 +35,10 @@ namespace SdfGui.Editor
             public Material lilitaInk;
             /// <summary>Fredoka with a thin ink outline, readable over the world.</summary>
             public Material fredokaInk;
+            /// <summary>Lilita One for a logo's front layer: a medium ink outline, no shadow (the back layer carries those).</summary>
+            public Material logoFront;
+            /// <summary>Lilita One for a logo's back layer: a thick cream sticker border with a solid ink extrusion below it.</summary>
+            public Material logoBack;
             public GuiIconSet icons;
         }
 
@@ -64,6 +68,8 @@ namespace SdfGui.Editor
             };
             kit.lilitaInk = TextMaterial(kit.lilita, "Lilita One Ink", 0.28f, true);
             kit.fredokaInk = TextMaterial(kit.fredoka, "Fredoka Ink", 0.2f, false);
+            kit.logoFront = LogoMaterial(kit.lilita, "Lilita One Logo Front", 0.3f, GuiPalette.Ink, null);
+            kit.logoBack = LogoMaterial(kit.lilita, "Lilita One Logo Back", 0.42f, GuiPalette.Cream, GuiPalette.Ink);
             kit.icons = AssetDatabase.LoadAssetAtPath<GuiIconSet>(GuiIcons.SetPath);
             return kit;
         }
@@ -121,6 +127,30 @@ namespace SdfGui.Editor
                 material.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.35f);
                 material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.7f);
                 material.SetFloat(ShaderUtilities.ID_UnderlayDilate, outline * 1.6f);
+                material.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0);
+            }
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+
+        private static Material LogoMaterial(TMP_FontAsset font, string materialName, float outline, Color outlineColor, Color? extrusion)
+        {
+            var path = $"{FontFolder}/{materialName}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null)
+                return material;
+            material = new Material(font.material) { name = materialName };
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, outline);
+            material.SetColor(ShaderUtilities.ID_OutlineColor, outlineColor);
+            material.SetFloat(ShaderUtilities.ID_FaceDilate, outline * 0.6f);
+            if (extrusion.HasValue)
+            {
+                // A solid copy pushed down and a little right, which reads as the letters' thickness
+                material.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+                material.SetColor(ShaderUtilities.ID_UnderlayColor, extrusion.Value);
+                material.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.15f);
+                material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.85f);
+                material.SetFloat(ShaderUtilities.ID_UnderlayDilate, outline * 1.1f);
                 material.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0);
             }
             AssetDatabase.CreateAsset(material, path);

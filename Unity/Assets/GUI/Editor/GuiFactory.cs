@@ -134,6 +134,41 @@ namespace SdfGui.Editor
             return label;
         }
 
+        /// <summary>Fills a text's letters with a colour fading from <paramref name="top"/> to <paramref name="bottom"/> (the text's colour is then white).</summary>
+        public static T Gradient<T>(T label, Color top, Color bottom) where T : TMP_Text
+        {
+            label.color = Color.white;
+            label.enableVertexGradient = true;
+            label.colorGradient = new VertexGradient(top, top, bottom, bottom);
+            return label;
+        }
+
+        /// <summary>
+        /// One word of a logo in two layers: a back one with the cream sticker border and the ink extrusion, a front one with the
+        /// gradient face and the ink outline, both bent and bounced alike by <see cref="GuiTextWarp"/>. Returns the front text.
+        /// </summary>
+        public TextMeshProUGUI LogoWord(Transform parent, string name, string text, float size, Color top, Color bottom, Vector2 position, Vector2 box,
+            float arch, float archTilt, float bounce)
+        {
+            TextMeshProUGUI Layer(string layer, Material material, Color colour)
+            {
+                var label = Text(parent, layer, text, TextStyle.Title, size, colour, Centre, position, box);
+                label.fontSharedMaterial = material;
+                label.characterSpacing = 4;
+                var warp = label.gameObject.AddComponent<GuiTextWarp>();
+                warp.arch = arch;
+                warp.archTilt = archTilt;
+                warp.bounce = bounce;
+                return label;
+            }
+            Layer(name + " Back", Kit.logoBack, GuiPalette.Cream);
+            // The letters' thickness: an ink copy straight below
+            position += new Vector2(0, -9);
+            Layer(name + " Extrusion", Kit.logoFront, GuiPalette.Ink);
+            position += new Vector2(0, 9);
+            return Gradient(Layer(name, Kit.logoFront, Color.white), top, bottom);
+        }
+
         /// <summary>A text filling its parent, centred.</summary>
         public TextMeshProUGUI FillText(Transform parent, string name, string text, TextStyle style, float size, Color color,
             TextAlignmentOptions alignment = TextAlignmentOptions.Center)

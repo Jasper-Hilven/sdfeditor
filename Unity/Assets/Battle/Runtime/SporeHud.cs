@@ -108,6 +108,12 @@ namespace SdfBattle
                 return;
             var you = spores.Match.You;
             var state = spores.State;
+            // A level with the spores off (the meadow, before 42 has heard of them): no meter, cards or power line at all
+            if (!state.Enabled)
+            {
+                Show(false, false, false);
+                return;
+            }
             var alive = you != null && you.State.Alive;
             var m = alive ? state.MeterOf(you.State) : null;
             var on = m != null && m.Active;

@@ -41,16 +41,15 @@ place
     rock1 at=(-16, 10) yaw=160 scale=1.4
 
 # The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its castle. The flag stand stands in the courtyard
-# before the keep's door; the spawn zone (ticket 20; 2 m round) lies outside the castle, beside it on its north (+z) side by the
-# front corner, on the open level plateau 9 m out from the wall and the north large tower, 8 m past the health pod and clear of
-# the path, facing out over the field like the gate (the same place as on the fungal level); the minigun and pistol pods flank
+# before the keep's door; the spawn zone (ticket 20; 2 m round) lies behind the castle, off its back south (-z) corner (the same place as
+# on the fungal level), so a respawn walks round the castle to the field, facing the way the gate does; the minigun and pistol pods flank
 # the tiled apron before the gate, the health pod off to one side of them, and two more health pods out on the north and south
 # flanks, a little past halfway to the middle, clear of the rocks (as on the fungal level). Everything stands on the ground, which
 # is the courtyard's floor (the castles have none of their own there). The neutral pods are in the open field on the middle line,
 # one each side of the path, clear of the rocks; the scatter keeps clear of every pod, stand and spawn
 sides
     west
-        spawn at=(-52, 20) yaw=90 radius=2
+        spawn at=(-70, -22) yaw=90 radius=2
         flag at=(-60.5, 0)
         pod minigun at=(-48, 6)
         pod pistol at=(-48, -6)
@@ -58,7 +57,7 @@ sides
         pod health at=(-28, 40)
         pod health at=(-28, -40)
     east
-        spawn at=(52, 20) yaw=-90 radius=2
+        spawn at=(70, -22) yaw=-90 radius=2
         flag at=(60.5, 0)
         pod minigun at=(48, 6)
         pod pistol at=(48, -6)

@@ -149,10 +149,10 @@ place
     team-blue-clump0 at=(60.2, 6.6) yaw=20 scale=0.85
 
 # The battle sides (ticket 17), west at -x and east at +x, mirrored: each side is its castle. The flag stand stands in the middle of
-# the castle (half a metre towards the gate, clear of the keep stairs' foot); the spawn zone (ticket 20; 2.5 m round) lies outside
-# the castle, beside it on its north (+z) side by the front corner, on the open level plateau 9 m out from the wall and the north
-# large tower, between the front and the north flank turrets (5.5 m or more from the turrets, the clumps at the walls' foot and the
-# gate's clumps, edge to edge) and well clear of the machine zone, facing out over the field like the gate; the minigun
+# the castle (half a metre towards the gate, clear of the keep stairs' foot); the spawn zone (ticket 20; 2.5 m round) lies behind
+# the castle, off its back south (-z) corner on the level plateau (the strip behind the back wall is too thin for it; the machine
+# zone has the back north corner), so a respawn walks round the castle to the field,
+# facing the way the gate does; the minigun
 # and pistol pods each stand in the middle of a fairy ring near the castle, north and south of it, and the health pods out on the
 # south and north flanks, halfway to the middle, and one behind the castle, in the strip between its back wall (south of the keep,
 # clear of the small tower and the clumps at the wall's foot) and the play area's edge. Everything stands on the ground, which is the courtyard's floor (the castles have none of
@@ -165,7 +165,7 @@ place
 # behind its back line, 6 m from the large tower and clear of the plateau clump; tanks drive out to the field round the tower
 sides
     west
-        spawn at=(-52, 20) yaw=90 radius=2.5
+        spawn at=(-70, -22.5) yaw=90 radius=2.5
         flag at=(-61.5, 0)
         pod minigun at=(-46, 38)
         pod pistol at=(-44, -22)
@@ -175,7 +175,7 @@ sides
         turret at=(-47, 10) yaw=60
         machines at=(-70, 22.5) yaw=90 radius=3
     east
-        spawn at=(52, 20) yaw=-90 radius=2.5
+        spawn at=(70, -22.5) yaw=-90 radius=2.5
         flag at=(61.5, 0)
         pod minigun at=(46, 38)
         pod pistol at=(44, -22)

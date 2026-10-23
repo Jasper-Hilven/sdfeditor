@@ -82,7 +82,7 @@ namespace SdfGui.Editor
 
             // Logo: a big spotted cap with the name on it, the 2 on a gold burst
             var logo = Object("Logo", t);
-            Place(logo.transform, Top, new Vector2(0, -70), new Vector2(1100, 430));
+            Place(logo.transform, Top, new Vector2(0, -50), new Vector2(1100, 430));
             f.Shape(logo.transform, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.35f), Centre, new Vector2(0, -10), new Vector2(1300, 520));
             f.Shape(logo.transform, "Cap", ToonShapeKind.Cap, GuiPalette.Amanita, Centre, new Vector2(0, 40), new Vector2(980, 330), s =>
             {
@@ -114,20 +114,69 @@ namespace SdfGui.Editor
                 s.Shadow = 0;
             });
             title.crown = crown;
-            f.Text(logo.transform, "Minigun", "MINIGUN", TextStyle.Title, 120, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(900, 130));
-            f.Text(logo.transform, "Mushrooms", "MUSHROOMS", TextStyle.Title, 104, GuiPalette.Gold, Centre, new Vector2(0, -40), new Vector2(900, 120));
-            var burst = f.Shape(logo.transform, "Two Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, new Vector2(470, -100), new Vector2(190, 190), s =>
+            // The name, in two layers a word (sticker border and extrusion behind, gradient face with ink outline in front), each word on a little arch
+            f.LogoWord(logo.transform, "Minigun", "MINIGUN", 128, GuiPalette.Hex(0xFFFAEA), GuiPalette.Hex(0xFFDB7A), new Vector2(0, 84), new Vector2(980, 150), 22, 6, 6);
+            f.LogoWord(logo.transform, "Mushrooms", "MUSHROOMS", 108, GuiPalette.Hex(0xFFE46B), GuiPalette.Hex(0xF59A2E), new Vector2(0, -38), new Vector2(980, 130), 16, 5, 5);
+            // Glints on the letters
+            f.Shape(logo.transform, "Glint 1", ToonShapeKind.Burst, Color.white, Centre, new Vector2(-292, 134), new Vector2(34, 34), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 1.4f; });
+            f.Shape(logo.transform, "Glint 2", ToonShapeKind.Burst, Color.white, Centre, new Vector2(352, 18), new Vector2(26, 26), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 2.7f; });
+            f.Shape(logo.transform, "Glint 3", ToonShapeKind.Burst, Color.white, Centre, new Vector2(-376, -22), new Vector2(22, 22), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 0.6f; });
+            logo.transform.localRotation = Quaternion.Euler(0, 0, 1.5f);
+
+            // The subtitle, "Second Place": Prime's grudge, a runner-up's ribbon across the cap's foot, with a silver rosette and its two tails at the left end
+            var subtitle = Object("Subtitle", logo.transform);
+            Place(subtitle.transform, Centre, new Vector2(0, -142), new Vector2(720, 130));
+            subtitle.transform.localRotation = Quaternion.Euler(0, 0, -2.5f);
+            for (var i = 0; i < 2; i++)
+            {
+                var tail = f.Shape(subtitle.transform, $"Tail {i + 1}", ToonShapeKind.Box, i == 0 ? GuiPalette.Sky : GuiPalette.Violet, Centre, new Vector2(-300 + i * 50, -60), new Vector2(40, 78),
+                    s => { s.CornerRadius = 6; s.Outline = 5; s.Shadow = 4; });
+                tail.rectTransform.localRotation = Quaternion.Euler(0, 0, i == 0 ? 12 : -12);
+            }
+            f.Shape(subtitle.transform, "Ribbon", ToonShapeKind.Box, GuiPalette.Night, Centre, new Vector2(30, 0), new Vector2(620, 88), s =>
+            {
+                s.CornerRadius = 20;
+                s.Outline = 7;
+                s.Shadow = 12;
+                s.Spots = 0;
+            });
+            f.Shape(subtitle.transform, "Ribbon Inner", ToonShapeKind.Box, GuiPalette.Dusk, Centre, new Vector2(30, 0), new Vector2(586, 56), s =>
+            {
+                s.CornerRadius = 14;
+                s.Outline = 0;
+                s.Shadow = 0;
+                s.Shading = 0;
+                s.Spots = 0;
+            });
+            var words = f.Text(subtitle.transform, "Second Place", "SECOND PLACE", TextStyle.Title, 64, Color.white, Centre, new Vector2(40, 2), new Vector2(560, 80));
+            words.characterSpacing = 6;
+            GuiFactory.Gradient(words, Color.white, GuiEndScreen.Silver);
+            var rosette = f.Shape(subtitle.transform, "Second Place Rosette", ToonShapeKind.Burst, GuiEndScreen.Silver, Centre, new Vector2(-290, 0), new Vector2(128, 128), s =>
             {
                 s.Outline = 6;
                 s.Shadow = 8;
                 s.Seed = 0.2f;
             });
-            f.FillText(burst.transform, "Two", "2", TextStyle.Title, 110, GuiPalette.Amanita);
-            f.Text(logo.transform, "Tagline", "Last year's champion. Probably still.", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -170), new Vector2(900, 50));
+            rosette.rectTransform.localRotation = Quaternion.Euler(0, 0, -8);
+            f.Shape(rosette.transform, "Medal", ToonShapeKind.Pill, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(70, 70), s => { s.Outline = 4; s.Shadow = 0; });
+            f.FillText(rosette.transform, "Number", "2", TextStyle.Label, 52, GuiPalette.Night);
+
+            // The tagline on a plate of its own, slanted a little as if lettered by hand
+            var plate = f.Shape(logo.transform, "Tagline Plate", ToonShapeKind.Pill, GuiPalette.Night, Centre, new Vector2(0, -246), new Vector2(740, 56), s =>
+            {
+                s.Outline = 5;
+                s.Shadow = 8;
+                s.Shading = 0;
+            });
+            plate.rectTransform.localRotation = Quaternion.Euler(0, 0, 1);
+            var tagline = f.FillText(plate.transform, "Tagline", "Last year's champion. Probably still.", TextStyle.Title, 34, Color.white);
+            tagline.fontStyle = FontStyles.Italic;
+            tagline.characterSpacing = 2;
+            GuiFactory.Gradient(tagline, GuiPalette.Cream, GuiPalette.Hex(0xFFD98A));
 
             // Top to bottom; GuiTitle shows what the save allows, and the layout closes the gaps
             var buttons = Object("Buttons", t);
-            Place(buttons.transform, Top, new Vector2(0, -500), new Vector2(420, 540));
+            Place(buttons.transform, Top, new Vector2(0, -540), new Vector2(420, 480));
             var layout = buttons.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 12;
             layout.childAlignment = TextAnchor.UpperCenter;
@@ -140,14 +189,12 @@ namespace SdfGui.Editor
             var levelSelect = Menu("LEVEL SELECT", GuiPalette.Violet, GuiCommandId.Show, GuiScreen.LevelSelect);
             Menu("SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, GuiScreen.Settings);
             Menu("GALLERY", GuiPalette.SporeDeep, GuiCommandId.Show, GuiScreen.Story);
-            var quit = Menu("QUIT", GuiPalette.Dusk, GuiCommandId.Quit, spots: 0);
             title.continueButton = resume.gameObject;
             title.newCampaignShape = newCampaign.GetComponent<ToonShape>();
             title.levelSelectButton = levelSelect.gameObject;
-            title.quitButton = quit.gameObject;
 
-            title.progress = f.Text(t, "Progress", "", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.7f), BottomLeft, new Vector2(5, 5), new Vector2(700, 44), TextAlignmentOptions.Left);
-            title.version = f.Text(t, "Version", Application.version, TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.7f), BottomRight, new Vector2(-5, 5), new Vector2(600, 44), TextAlignmentOptions.Right);
+            title.progress = f.Text(t, "Progress", "", TextStyle.Title, 28, GuiPalette.Cream, BottomLeft, new Vector2(5, 5), new Vector2(700, 44), TextAlignmentOptions.Left);
+            title.version = f.Text(t, "Version", Application.version, TextStyle.Title, 28, GuiPalette.Cream, BottomRight, new Vector2(-5, 5), new Vector2(600, 44), TextAlignmentOptions.Right);
             return Save(root);
         }
 
