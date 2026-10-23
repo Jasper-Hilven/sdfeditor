@@ -11,7 +11,7 @@ namespace SdfMushrooms.Editor
 {
     /// <summary>
     /// Makes the project render with URP without a single click: linear colour, one universal renderer, and a URP asset for each of the
-    /// quality levels, best first: <see cref="UltraHigh"/>, <see cref="High"/> (the dev machine), <see cref="Web"/> (integrated GPUs and
+    /// quality levels, best first: <see cref="UltraEpic"/>, <see cref="Epic"/>, <see cref="UltraHigh"/>, <see cref="High"/> (the dev machine), <see cref="Web"/> (integrated GPUs and
     /// the browser) and <see cref="UltraLow"/>, each with LOD cross-fade on, which the models' LOD groups rely on to change level without
     /// a pop. Desktop builds start on High, web builds on Web. When the editor opens it also builds any prefab and level scene an import missed and shows the mushroom scene instead
     /// of an empty one.
@@ -41,6 +41,31 @@ namespace SdfMushrooms.Editor
             public bool Hdr;
             public float LodBias;
         }
+
+        /// <summary>
+        /// The top of the range, for a GPU with time to spare (the auto quality climbs here only after 10 s above 120 fps): the frame drawn at
+        /// twice the resolution (four times the pixels) with eight samples each, LOD0 kept four times as far as on <see cref="High"/>, shadows
+        /// to 200 m on an 8192 map (about the texel size of <see cref="UltraHigh"/>'s), the foliage drawn 1.5 times as far
+        /// (<see cref="SdfMushrooms.QualityExtras"/>) and the bloom high-quality filtered. Still one cascade, as <see cref="High"/> says why.
+        /// Nothing here is downloaded: every mesh, LOD and instance is already in the build.
+        /// </summary>
+        public static readonly Preset UltraEpic = new Preset
+        {
+            Name = SdfMushrooms.QualityExtras.UltraEpic, AssetPath = SettingsFolder + "/URP Ultra Epic.asset",
+            ShadowDistance = 200, ShadowCascades = 1, ShadowResolution = 8192, SoftShadows = SoftShadowQuality.High,
+            Msaa = 8, RenderScale = 2, Hdr = true, LodBias = 4,
+        };
+
+        /// <summary>
+        /// Between <see cref="UltraHigh"/> and <see cref="UltraEpic"/>: 1.5 times the resolution, LOD0 two and a half times as far as on
+        /// <see cref="High"/>, shadows to 160 m on an 8192 map, the foliage 1.25 times as far, the bloom high-quality filtered.
+        /// </summary>
+        public static readonly Preset Epic = new Preset
+        {
+            Name = SdfMushrooms.QualityExtras.Epic, AssetPath = SettingsFolder + "/URP Epic.asset",
+            ShadowDistance = 160, ShadowCascades = 1, ShadowResolution = 8192, SoftShadows = SoftShadowQuality.High,
+            Msaa = 8, RenderScale = 1.5f, Hdr = true, LodBias = 2.5f,
+        };
 
         /// <summary>
         /// Beyond the dev machine: shadows twice as far and softer, eight samples per pixel on a supersampled target, and finer levels of
@@ -88,7 +113,7 @@ namespace SdfMushrooms.Editor
         };
 
         /// <summary>The quality levels, best first.</summary>
-        public static readonly IReadOnlyList<Preset> Presets = new[] { UltraHigh, High, Web, UltraLow };
+        public static readonly IReadOnlyList<Preset> Presets = new[] { UltraEpic, Epic, UltraHigh, High, Web, UltraLow };
 
         /// <summary>The quality level desktop players start on, <see cref="High"/>.</summary>
         public static int DesktopLevel => IndexOf(High);

@@ -13,7 +13,7 @@ namespace SdfLevel
     /// over <see cref="blend"/> metres round their border and the last fades out over its last <see cref="fade"/> metres, by dither in
     /// the shader. <see cref="wind"/> is metres of sway at <see cref="windHeight"/> above the base (0 for none: a static group), and the
     /// lowest <see cref="tintHeight"/> metres take the instance's tint. The integrated GPU / web preset draws <see cref="lowDensity"/> of
-    /// the instances (by their hash, so the same ones each frame) with every distance times <see cref="lowDistance"/>.
+    /// the instances (by their hash, so the same ones each frame) with every distance times <see cref="lowDistance"/>; Epic and Ultra Epic draw every distance further (<see cref="SdfMushrooms.QualityExtras.FoliageDistance"/>).
     /// </summary>
     [Serializable]
     public sealed class ScatterDrawGroup
@@ -419,7 +419,7 @@ namespace SdfLevel
         /// <summary>A group's rings for this preset: each ring's fade in (from, to) and fade out (from, to), in metres from the camera.</summary>
         private static Vector4[] Rings(ScatterDrawGroup group, bool low)
         {
-            var scale = low ? group.lowDistance : 1;
+            var scale = low ? group.lowDistance : SdfMushrooms.QualityExtras.FoliageDistance;
             var count = group.rings.Length;
             var result = new Vector4[count];
             var half = group.blend * scale / 2;
