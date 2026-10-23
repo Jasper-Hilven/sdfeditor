@@ -1,0 +1,68 @@
+# B2 "That's my chess set" (tickets 32 and 34): the story beat before the chessboard battle, as five comic panels, 1920 x 1080 each, in the
+# same look and viewer as B1 (content/story/beat-fungal.txt; content/story/intro.txt documents the frames of reference, the grammar is in
+# SDFPipeline/Story/StoryFile.cs). The campaign plays it over Chessboard.unity, loaded and held, then CLICK TO PLAY lets the match go; the
+# editor's StoryCapture renders it into Assets/Story/Resources/Comics/beat-chessboard/panel-NN.jpg. 42 is "they", Chanterelle Prime is "he".
+#
+# The stage is the chessboard level as it is (content/levels/chessboard.level): one theme, so the panels add only players. The board is
+# 160 x 160 m, x across and z along, the red (west) side at -x. The red back rank: the wall at x = -80, the flag stand at (-72, -4), the
+# red spawn at (-66, -4) facing +x, the board stretching 140 m ahead (a Jenga tower at (-30, -3), a dice tower at (-38, -12), a game box lid
+# at (-45.5, 10) stand over the strewn pieces; a giant fallen king lies across the middle). The floor and the walls are one cream and dark
+# checker of 8 m squares, so behind anyone who looks back the red wall is a checker wall, and ahead the pieces are the size of houses.
+# 42 stands just ahead of the spawn at (-65, -4), Mushroom 13 at their one side (-65.6, -6.6), Mushroom 7 at the other (-65.6, -1.4),
+# and Prime already stands on the board 5.5 m ahead of them at (-59.5, -4.5), facing back (no pop-in: that is B1's). The scouts are 1.6 m tall. I could not render this
+# (no editor free): every camera is aimed by arithmetic, yaw = atan2(dx, dz), pitch from the height drop, as B1's; the level's own
+# lighting is the light (nothing is added), so the tuning left is by eye.
+# Actors: "Mushroom 42", "Mushroom 7", "Mushroom 13" (the red amanita scouts), "Chanterelle Prime" (the blue chanterelle scout with his crown).
+# The balloons carry no names: Mushroom 13, new here, gets the narrator's note in the panel where they first speak.
+
+format 1
+
+# 1. Arena three: from behind-left at scout height, the three reds in a row looking up the board, its pieces huge beyond them
+panel 1 stage=chessboard
+    camera pos=(-69.5, 1.3, -9.6) rot=(-11.5, 46, 0) fov=60
+    # Three-quarter to us, faces up and ahead
+    actor "Mushroom 42" pos=(-65, 0, -4) rot=(0, 135, 0)
+    actor "Mushroom 13" pos=(-65.6, 0, -6.6) rot=(0, 145, 0)
+    actor "Mushroom 7" pos=(-65.6, 0, -1.4) rot=(0, 120, 0)
+    caption text="Arena three: Chessboard. The red back rank." anchor=(0.3, 0.1)
+
+# 2. The set: 42 in three-quarter profile facing the board, pointing; the light king far up the board is the one they glued
+panel 2 stage=chessboard
+    camera pos=(-67.2, 1.2, -7.0) rot=(-1, 24, 0) fov=50
+    actor "Mushroom 42" pos=(-65, 0, -4) rot=(0, 255, 0)
+    actor "Mushroom 42" part=eye-left scale=1.3
+    actor "Mushroom 42" part=eye-right scale=1.3
+    actor "Mushroom 42" part=hand-right pos=(0, 0.5, 0.3)
+    balloon speaker=42 text="That's my chess set." anchor=(0.3, 0.12) tail="Mushroom 42"
+    balloon speaker=42 text="I glued that king's head back on. *Twice.*" anchor=(0.62, 0.3) tail="Mushroom 42"
+
+# 3. The question: Mushroom 13 face on, the wall behind, leaning towards 42 off to the side
+panel 3 stage=chessboard
+    camera pos=(-62.84, 1.3, -6.11) rot=(5.1, 260, 0) fov=45
+    actor "Mushroom 13" pos=(-65.6, 0, -6.6) rot=(0, 80, 0)
+    actor "Mushroom 13" part=body rot=(0, 0, 6)
+    actor "Mushroom 13" part=hand-left pos=(0, 0.3, 0.15)
+    balloon speaker="Mushroom 13" text="Is it normal for the tournament to be inside your *house?*" anchor=(0.5, 0.12) tail="Mushroom 13"
+    note text="Mushroom 13. New. Asks the obvious questions." anchor=(0.3, 0.8) at="Mushroom 13"
+
+# 4. Prime is simply there: over the reds' shoulders, he stands on the board with the Jenga tower far behind him
+panel 4 stage=chessboard
+    camera pos=(-68.5, 1.3, -1.8) rot=(2, 106.7, 0) fov=36
+    actor "Mushroom 42" pos=(-65, 0, -4) rot=(0, 100, 0)
+    actor "Mushroom 13" pos=(-65.6, 0, -6.6) rot=(0, 85, 0)
+    actor "Mushroom 7" pos=(-65.6, 0, -1.4) rot=(0, 105, 0)
+    actor "Chanterelle Prime" pos=(-59.5, 0, -4.5) rot=(0, 263, 0)
+    actor "Chanterelle Prime" part=hand-left pos=(0, 0.35, 0.1)
+    actor "Chanterelle Prime" part=hand-right pos=(0, 0.35, 0.1)
+    balloon speaker=Prime text="Board games are a *sport* now." anchor=(0.6, 0.1) tail="Chanterelle Prime"
+
+# 5. The ban: two frames, Prime face on with the board behind him, then 42 face on and flat
+panel 5 stage=chessboard
+    actor "Mushroom 42" pos=(-65, 0, -4) rot=(0, 80, 0)
+    actor "Chanterelle Prime" pos=(-59.5, 0, -4.5) rot=(0, 275, 0)
+    actor "Chanterelle Prime" part=hand-right pos=(0, 0.55, 0.15)
+    frame x=0 y=0 w=0.6 h=1
+        camera pos=(-62.47, 1.6, -4.92) rot=(6.7, 82, 0) fov=48
+        balloon speaker=Prime text="The minigun? *Banned.* Board-game reasons." anchor=(0.5, 0.12) tail="Chanterelle Prime"
+    frame x=0.6 y=0 w=0.4 h=1
+        camera pos=(-62.64, 1.25, -3.58) rot=(4.8, 260, 0) fov=42

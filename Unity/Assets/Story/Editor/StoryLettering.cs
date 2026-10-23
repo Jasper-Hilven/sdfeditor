@@ -15,9 +15,9 @@ namespace SdfStory.Editor
 {
     /// <summary>
     /// Draws a frame's comic devices and lettering over its finished render (ticket 31.6): speed lines, motion lines, impact bursts, the
-    /// speech balloons with tails, caption boxes, Prime's jagged sky box, the SFX lettering and the frame's irregular ink border. The
+    /// speech balloons with tails, caption boxes, the narrator's small side notes with their arrows, Prime's jagged sky box, the SFX lettering and the frame's irregular ink border. The
     /// shapes are antialiased coverage masks (SdfStory.Layout, pure and tested) painted into the frame's pixels; the text is TextMesh Pro
-    /// (the GUI's Fredoka for speech and Lilita One for names and SFX), rendered by an orthographic camera at one unit per pixel and
+    /// (the GUI's Fredoka for speech and notes and Lilita One for SFX), rendered by an orthographic camera at one unit per pixel and
     /// composited over the shapes. Where things go (the safe area, balloons kept apart, the tails) is decided by <see cref="StoryLetterLayout"/>.
     /// </summary>
     public static class StoryLettering
@@ -27,36 +27,36 @@ namespace SdfStory.Editor
         private const float OutlineWidth = 4;
         /// <summary>TextMesh Pro's 3D text is a tenth of its font size in world units: the lettering camera sees ten pixels to the unit.</summary>
         private const float Unit = 0.1f;
+        /// <summary>The SFX lettering (SHLORP, TAK TAK TAK...) and its burst: this share of their first size.</summary>
+        public const float SfxScale = 0.7f;
+
+        /// <summary>A burst colour and the lettering colours (top to bottom of each letter) that stand out from it.</summary>
+        private readonly struct SfxLook
+        {
+            public readonly Color Burst, Top, Bottom;
+            public SfxLook(int burst, int top, int bottom) { Burst = GuiPalette.Hex(burst); Top = GuiPalette.Hex(top); Bottom = GuiPalette.Hex(bottom); }
+        }
+
+        private static readonly Dictionary<string, SfxLook> SfxLooks = new Dictionary<string, SfxLook>
+        {
+            { "yellow", new SfxLook(0xFFD23F, 0xFF6B4A, 0xD81E3A) },
+            { "orange", new SfxLook(0xFF8A2B, 0x8CE4FF, 0x2F78E8) },
+            { "red", new SfxLook(0xF04545, 0xFFF59A, 0xFFC21F) },
+            { "pink", new SfxLook(0xFF72B4, 0xFFF59A, 0xFFC21F) },
+            { "blue", new SfxLook(0x3F9BF0, 0xFFF59A, 0xFFB81F) },
+            { "green", new SfxLook(0x6CCB3C, 0xC9A6FF, 0x6A3FD0) },
+            { "purple", new SfxLook(0x9966E0, 0xFFF59A, 0xFFC21F) },
+        };
+
+        private static SfxLook LookOf(StoryText text) => SfxLooks[text.Color ?? StoryFile.SfxColorFor(text.Text)];
 
         private static readonly Color Ink = GuiPalette.Ink;
         private static readonly Color Balloon = GuiPalette.Hex(0xFFFAEE);
+
         private static readonly Color Caption = GuiPalette.Cream;
-        private static readonly Color PrimeBlue = GuiPalette.Hex(0x2F6FDB);
+        /// <summary>The side notes: a paler, warmer paper than the captions' cream, so that they read as scribbled in the margin.</summary>
+        private static readonly Color NotePaper = GuiPalette.Hex(0xFFF1B8);
         private static readonly Color PrimeBox = GuiPalette.Hex(0x3C82F0);
-
-        /// <summary>The colour of a speaker's name; null for the narrator.</summary>
-        public static Color? SpeakerColour(string speaker)
-        {
-            switch (speaker)
-            {
-                case "42": return GuiPalette.Amanita;
-                case "Prime": return PrimeBlue;
-                case "Mushroom 7": return GuiPalette.Amanita;
-                default: return null;
-            }
-        }
-
-        /// <summary>The name set over a speaker's lines.</summary>
-        public static string SpeakerName(string speaker)
-        {
-            switch (speaker)
-            {
-                case "Prime": return "PRIME";
-                case "Mushroom 7": return "MUSHROOM 7";
-                case "42": return "42";
-                default: return null;
-            }
-        }
 
         /// <summary>
         /// Letters one frame. <paramref name="pixels"/> are the frame's, y up as Texture2D has them; <paramref name="actorPoint"/> gives the frame
@@ -111,21 +111,26 @@ namespace SdfStory.Editor
             try
             {
                 var placed = new List<Box>();
-                var sfxItems = new List<(StoryText text, Box box, float size)>();
+                var sfxItems = new List<(StoryText text, Box box, Pt[] outline)>();
                 var bursts = frame.Devices.Where(d => d.Kind == "burst" && d.At.HasValue).ToList();
                 var scale = Math.Min(1f, 0.55f + frame.H * 0.45f) * Math.Min(1f, 0.6f + frame.W * 0.4f);
 
                 // SFX first: they sit where the picture says, and the speech is kept clear of them
                 foreach (var text in frame.Texts.Where(t => t.Kind == StoryTextKind.Sfx))
                 {
-                    var size = 112 * Math.Max(0.4f, text.Size) * scale;
-                    var measured = letters.Sfx(text.Text, size, text.Angle);
+                    var size = 112 * SfxScale * Math.Max(0.4f, text.Size) * scale;
+                    var look = LookOf(text);
+                    var measured = letters.Sfx(text.Text, size, text.Angle, look);
                     var centre = Point(text.Anchor, width, height);
-                    var burstMargin = new Pt(60, 46);
-                    var box = StoryLetterLayout.ClampInto(Box.Around(centre, measured.X + burstMargin.X * 2, measured.Y + burstMargin.Y * 2), safe);
-                    sfxItems.Add((text, box, size));
+                    // The burst is fitted around the text as measured (its outline and shadow included), turned as it is, with a margin
+                    var outline = StoryLetterLayout.FitBurst(centre, measured, text.Angle, Math.Max(10, size * 0.2f), seed * 31 + sfxItems.Count * 7 + text.Text.Length);
+                    var bounds = Bounds(outline);
+                    var box = StoryLetterLayout.ClampInto(bounds, safe);
+                    var shift = box.Center - bounds.Center;
+                    outline = outline.Select(p => p + shift).ToArray();
+                    sfxItems.Add((text, box, outline));
                     placed.Add(box);
-                    letters.PlaceSfx(box);
+                    letters.PlaceSfx(box.Center);
                 }
 
                 // Speech and captions
@@ -146,13 +151,10 @@ namespace SdfStory.Editor
                     if (near.text != null)
                         continue;
                     var radius = 150 * Math.Max(0.3f, device.Size) * scale;
-                    DrawBurst(mask, Paint, at, radius, radius * 0.85f, burstSeed++);
+                    DrawBurst(mask, Paint, at, StoryLetterLayout.Burst(at, radius, radius * 0.85f, 15, burstSeed++), GuiPalette.Gold, false);
                 }
-                foreach (var (text, box, size) in sfxItems)
-                {
-                    var tint = text.Text.StartsWith("BZZ", StringComparison.Ordinal) ? GuiPalette.Spore : GuiPalette.Gold;
-                    DrawBurst(mask, Paint, box.Center, box.W * 0.54f, box.H * 0.6f, burstSeed++, tint);
-                }
+                foreach (var (text, box, outline) in sfxItems)
+                    DrawBurst(mask, Paint, box.Center, outline, LookOf(text).Burst, true);
 
                 foreach (var item in speech)
                     item.Draw(mask, Paint);
@@ -183,16 +185,30 @@ namespace SdfStory.Editor
             return (float)(sum / Math.Max(1, count));
         }
 
-        private static void DrawBurst(CoverageMask mask, Action<Color, float> paint, Pt centre, float rx, float ry, int seed, Color? fill = null)
+        private static Box Bounds(Pt[] points)
         {
-            var outline = StoryLetterLayout.Burst(centre, rx, ry, 15, seed);
+            var left = points.Min(p => p.X);
+            var top = points.Min(p => p.Y);
+            return new Box(left, top, points.Max(p => p.X) - left, points.Max(p => p.Y) - top);
+        }
+
+        /// <summary>A burst: a hard ink shadow (for the SFX ones), the ink edge, the colour and a lighter heart.</summary>
+        private static void DrawBurst(CoverageMask mask, Action<Color, float> paint, Pt centre, Pt[] outline, Color fill, bool shadow)
+        {
+            if (shadow)
+            {
+                var moved = outline.Select(p => p + new Pt(7, 8)).ToArray();
+                mask.Fill(moved);
+                mask.Stroke(moved, OutlineWidth * 2, true);
+                paint(Ink, 0.85f);
+            }
             mask.Fill(outline);
             mask.Stroke(outline, OutlineWidth * 2, true);
             paint(Ink, 1);
-            mask.Fill(Scaled(outline, centre, 0.93f));
-            paint(fill ?? GuiPalette.Gold, 1);
-            mask.Fill(Scaled(outline, centre, 0.62f));
-            paint(Color.Lerp(fill ?? GuiPalette.Gold, Color.white, 0.55f), 1);
+            mask.Fill(Scaled(outline, centre, StoryLetterLayout.BurstFill));
+            paint(fill, 1);
+            mask.Fill(Scaled(outline, centre, 0.7f));
+            paint(Color.Lerp(fill, Color.white, 0.22f), 1);
         }
 
         private static Pt[] Scaled(Pt[] points, Pt centre, float factor) => points.Select(p => centre + (p - centre) * factor).ToArray();
@@ -213,7 +229,6 @@ namespace SdfStory.Editor
             private readonly GameObject root;
             private readonly TMP_FontAsset fredoka, lilita;
             private readonly Material lilitaInk;
-            private readonly Material nameMaterial;
             private readonly List<TextMeshPro> texts = new List<TextMeshPro>();
             private readonly TextMeshPro scratch;
 
@@ -233,15 +248,12 @@ namespace SdfStory.Editor
                 texts.Remove(scratch);
                 // Only for measuring: not on the lettering camera's layer
                 scratch.gameObject.layer = 0;
-                // Names are small: a thinner ink outline and no shadow than the SFX have
-                nameMaterial = new Material(lilitaInk) { hideFlags = HideFlags.HideAndDontSave };
-                nameMaterial.DisableKeyword("UNDERLAY_ON");
-                nameMaterial.SetFloat("_OutlineWidth", 0.16f);
             }
 
             public void Dispose()
             {
-                Object.DestroyImmediate(nameMaterial);
+                foreach (var material in sfxMaterials)
+                    Object.DestroyImmediate(material);
                 Object.DestroyImmediate(root);
             }
 
@@ -281,20 +293,36 @@ namespace SdfStory.Editor
                 tmp.ForceMeshUpdate();
             }
 
-            /// <summary>SFX lettering (Lilita One, ink outline), one line, centred where it will be put; returns its size.</summary>
-            public Pt Sfx(string text, float size, float angle)
+            /// <summary>
+            /// SFX lettering (Lilita One): a light-to-dark gradient down each letter, a thick ink outline and a solid offset ink shadow, one line, centred where it will be
+            /// put; returns the size it covers, outline and shadow included.
+            /// </summary>
+            public Pt Sfx(string text, float size, float angle, SfxLook look)
             {
-                var tmp = Make(text, lilita, lilitaInk, size, GuiPalette.Cream, 4000);
+                var material = new Material(lilitaInk);
+                material.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.42f);
+                material.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(Ink.r, Ink.g, Ink.b, 1));
+                material.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.9f);
+                material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.9f);
+                material.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.6f);
+                sfxMaterials.Add(material);
+                var tmp = Make(text, lilita, material, size, Color.white, 4000);
                 tmp.textWrappingMode = TextWrappingModes.NoWrap;
                 tmp.characterSpacing = 4;
+                tmp.enableVertexGradient = true;
+                tmp.colorGradient = new VertexGradient(look.Top.linear, look.Top.linear, look.Bottom.linear, look.Bottom.linear);
                 tmp.ForceMeshUpdate();
                 var preferred = Preferred(tmp, text, 4000);
+                // The outline and the shadow reach past the letters' boxes
+                var reach = size * 0.14f;
+                var covered = new Pt(preferred.X + reach * 2, preferred.Y + reach * 2);
                 sfx.Add(tmp);
                 sfxSizes.Add(preferred);
                 sfxAngles.Add(angle);
-                return preferred;
+                return covered;
             }
 
+            private readonly List<Material> sfxMaterials = new List<Material>();
             private readonly List<TextMeshPro> sfx = new List<TextMeshPro>();
             private readonly List<Pt> sfxSizes = new List<Pt>();
             private readonly List<float> sfxAngles = new List<float>();
@@ -303,8 +331,8 @@ namespace SdfStory.Editor
             public LetteredSpeech Speech(StoryText text, float scale, Box area, Box safe, List<Box> placed, Func<string, Pt?> actorPoint)
             {
                 var kind = text.Kind;
-                var baseSize = 36f * scale;
-                var maxColumn = Math.Min(safe.W * 0.62f, (kind == StoryTextKind.Caption ? 1000f : 560f) * Math.Max(0.6f, scale));
+                var baseSize = (kind == StoryTextKind.Note ? 27f : 36f) * scale;
+                var maxColumn = Math.Min(safe.W * 0.62f, (kind == StoryTextKind.Caption ? 1000f : kind == StoryTextKind.Note ? 300f : 560f) * Math.Max(0.6f, scale));
                 var body = ToRich(text.Text);
                 var onBlue = kind == StoryTextKind.Sky;
                 var bodyColour = onBlue ? GuiPalette.Cream : Ink;
@@ -317,16 +345,15 @@ namespace SdfStory.Editor
                 }
 
                 var size = StoryLetterLayout.FitSize(Measure, maxColumn, safe.H * 0.32f, 18, baseSize);
+                // A note sets nearly square, a caption wide and low
                 var column = kind == StoryTextKind.Caption
                     ? StoryLetterLayout.ColumnWidth(Measure, size, maxColumn * 0.4f, maxColumn, 0.22f)
-                    : StoryLetterLayout.ColumnWidth(Measure, size, maxColumn * 0.35f, maxColumn, 0.42f);
+                    : kind == StoryTextKind.Note
+                        ? StoryLetterLayout.ColumnWidth(Measure, size, maxColumn * 0.45f, maxColumn, 0.85f)
+                        : StoryLetterLayout.ColumnWidth(Measure, size, maxColumn * 0.35f, maxColumn, 0.42f);
                 var measured = Measure(size, column);
-                var name = kind == StoryTextKind.Caption ? null : SpeakerName(text.Speaker);
-                var nameColour = SpeakerColour(text.Speaker);
-                var nameSize = size * 0.82f;
-                var nameHeight = name != null ? nameSize * 1.05f : 0;
-                var contentW = Math.Max(measured.X, name != null ? nameSize * name.Length * 0.62f : 0);
-                var contentH = nameHeight + measured.Y;
+                var contentW = measured.X;
+                var contentH = measured.Y;
                 var centre = Point(text.Anchor, (int)area.W, (int)area.H);
 
                 Box outline;
@@ -336,6 +363,9 @@ namespace SdfStory.Editor
                 {
                     case StoryTextKind.Caption:
                         outline = Box.Around(centre, contentW + 64, contentH + 40);
+                        break;
+                    case StoryTextKind.Note:
+                        outline = Box.Around(centre, contentW + 36, contentH + 30);
                         break;
                     case StoryTextKind.Sky:
                         jagged = 15;
@@ -350,27 +380,24 @@ namespace SdfStory.Editor
 
                 // The text, centred in the box
                 var top = box.Center.Y - contentH * 0.5f;
-                if (name != null)
-                {
-                    var label = Make(name, lilita, nameMaterial, nameSize, onBlue ? GuiPalette.Gold : nameColour ?? Ink, 600);
-                    label.textWrappingMode = TextWrappingModes.NoWrap;
-                    Put(label, new Pt(box.Center.X, top + nameHeight * 0.5f), new Pt(contentW + 40, nameHeight));
-                }
                 var bodyText = Make(body, fredoka, null, size, bodyColour, column);
-                Put(bodyText, new Pt(box.Center.X, top + nameHeight + measured.Y * 0.5f), new Pt(column, measured.Y + 8));
+                Put(bodyText, new Pt(box.Center.X, top + measured.Y * 0.5f), new Pt(column, measured.Y + 8));
 
                 var edge = OutlineWidth;
                 Pt[] tail = null;
-                if (kind == StoryTextKind.Balloon)
+                if (kind == StoryTextKind.Balloon || kind == StoryTextKind.Note)
                 {
                     Pt? target = text.TailAt.HasValue ? Point(text.TailAt.Value, (int)area.W, (int)area.H) : (text.TailActor != null ? actorPoint(text.TailActor) : null);
                     if (target.HasValue)
                     {
                         // Inside the safe area, so that the tail does not run off the frame
                         var clamped = new Pt(Math.Max(safe.X, Math.Min(safe.Right, target.Value.X)), Math.Max(safe.Y, Math.Min(safe.Bottom, target.Value.Y)));
-                        tail = StoryLetterLayout.Tail(box, clamped, 18, 260 * Math.Max(0.6f, scale));
+                        tail = kind == StoryTextKind.Note
+                            ? StoryLetterLayout.NoteArrow(box, clamped, 24, 110 * Math.Max(0.6f, scale))
+                            : StoryLetterLayout.Tail(box, clamped, 18, 260 * Math.Max(0.6f, scale));
                     }
-                    bodyShape = StoryLetterLayout.BalloonBody(box);
+                    if (kind == StoryTextKind.Balloon)
+                        bodyShape = StoryLetterLayout.BalloonBody(box);
                 }
                 else if (kind == StoryTextKind.Sky)
                 {
@@ -384,6 +411,22 @@ namespace SdfStory.Editor
                     Outline = full,
                     Draw = (mask, paint) =>
                     {
+                        if (kind == StoryTextKind.Note)
+                        {
+                            // A small square of paper with an ink outline and a hard shadow, its arrow pointing at the character
+                            var shadow = new Box(box.X + 5, box.Y + 5, box.W, box.H);
+                            mask.Fill(Rect(shadow));
+                            paint(Ink, 0.8f);
+                            mask.Fill(Rect(box.Grow(edge)));
+                            if (tail != null)
+                                mask.Stroke(tail, edge * 2, true);
+                            paint(Ink, 1);
+                            mask.Fill(Rect(box));
+                            if (tail != null)
+                                mask.Fill(tail);
+                            paint(NotePaper, 1);
+                            return;
+                        }
                         if (kind == StoryTextKind.Caption)
                         {
                             // Cream box, an ink outline and a hard ink shadow
@@ -436,10 +479,10 @@ namespace SdfStory.Editor
             private static string ToRich(string text) => Regex.Replace(text, @"\*(.+?)\*", "<i>$1</i>");
 
             /// <summary>Puts the SFX lettering where its box was placed (called in the order the SFX were measured).</summary>
-            public void PlaceSfx(Box box)
+            public void PlaceSfx(Pt centre)
             {
                 var tmp = sfx[sfxPlaced];
-                Put(tmp, box.Center, new Pt(sfxSizes[sfxPlaced].X + 20, sfxSizes[sfxPlaced].Y + 10), sfxAngles[sfxPlaced]);
+                Put(tmp, centre + new Pt(0, 0), new Pt(sfxSizes[sfxPlaced].X + 20, sfxSizes[sfxPlaced].Y + 10), sfxAngles[sfxPlaced]);
                 sfxPlaced++;
             }
 

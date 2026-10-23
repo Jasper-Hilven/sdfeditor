@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,14 +9,24 @@ using UnityEngine.UI;
 namespace SdfStory
 {
     /// <summary>
-    /// The comic intro (ticket 31.8): the twelve panels full screen, one at a time, letterboxed to 16:9, with music, Next and Skip.
-    /// <see cref="Begin"/> is the only way in and the only way out: it loads the viewer prefab from Resources (so the panels, which the
-    /// prefab holds, are not loaded until then), and when the player plays on or skips it calls <c>onFinished</c> (by default the
-    /// meadow loads) and lets the panels go. The prefab is built by Tools > SDF Story > Build Intro Viewer.
+    /// The comic viewer (tickets 31.8, 34): a comic's panels full screen, one at a time, letterboxed to 16:9, with music, Next and Skip.
+    /// <see cref="Begin"/> (the intro) and <see cref="Play"/> (any comic by name) are the only ways in, and <c>onFinished</c> the only way
+    /// out: when the player plays on or skips it runs, and the panels are let go. The intro's twelve panels are held by its prefab
+    /// (Resources/StoryIntro); every other comic, such as the story beat <c>beat-fungal</c>, is a folder of panels,
+    /// Resources/Comics/&lt;comic&gt;/panel-01 ..., shown in the same screen without panels of its own (Resources/StoryViewer), so a comic is
+    /// data only: rendered panels in its folder. Nothing is loaded until a comic starts. Both prefabs are built by Tools > SDF Story >
+    /// Build Intro Viewer.
     /// </summary>
     public sealed class StoryIntro : MonoBehaviour
     {
         public const string ResourceName = "StoryIntro";
+        /// <summary>The same screen with no panels, for every comic but the intro.</summary>
+        public const string ViewerResourceName = "StoryViewer";
+        /// <summary>The Resources folder of the comics' panel folders.</summary>
+        public const string ComicResources = "Comics";
+        public const string Intro = "intro";
+        /// <summary>A comic has at most this many panels.</summary>
+        public const int MaxPanels = 99;
         public const string DefaultLevel = "Meadow";
         public const float CrossFade = 0.25f;
         public const float MusicFade = 1f;
@@ -70,6 +81,82 @@ namespace SdfStory
 
         public static void LoadDefaultLevel() => SceneManager.LoadScene(DefaultLevel);
 
+        /// <summary>panel-01: a panel's name in its comic's folder, from 1.</summary>
+        public static string PanelName(int number) => $"panel-{number:00}";
+
+        /// <summary>Where a comic's panel is in Resources: Comics/beat-fungal/panel-01.</summary>
+        public static string PanelResource(string comic, int number) => $"{ComicResources}/{comic}/{PanelName(number)}";
+
+        private static readonly Dictionary<string, bool> known = new Dictionary<string, bool>();
+
+        /// <summary>
+        /// Whether a comic can be played as panels: the intro when its viewer is built, any other when its first panel is in its folder. The
+        /// answer is kept (a build's Resources do not change), and the panel looked at is let go again at once.
+        /// </summary>
+        public static bool HasComic(string comic)
+        {
+            if (string.IsNullOrEmpty(comic))
+                return false;
+            if (comic == Intro)
+                return Resources.Load<GameObject>(ResourceName) != null;
+            if (known.TryGetValue(comic, out var has))
+                return has;
+            var first = Resources.Load<Texture2D>(PanelResource(comic, 1));
+            has = first != null;
+            if (has)
+                Resources.UnloadAsset(first);
+            known[comic] = has;
+            return has;
+        }
+
+        /// <summary>
+        /// Plays a comic by name (ticket 34): the intro as <see cref="Begin"/> does, any other from its folder of panels, in order until a
+        /// number is missing. <paramref name="onFinished"/> runs once, after Play on the last panel or Skip, or at once when the comic has no
+        /// panels or there is no viewer. A second call while one is playing is ignored.
+        /// </summary>
+        public static void Play(string comic, Action onFinished)
+        {
+            if (comic == Intro)
+            {
+                Begin(onFinished);
+                return;
+            }
+            if (active != null)
+                return;
+            var loaded = new List<Texture2D>();
+            for (var number = 1; number <= MaxPanels; number++)
+            {
+                var panel = Resources.Load<Texture2D>(PanelResource(comic, number));
+                if (panel == null)
+                    break;
+                loaded.Add(panel);
+            }
+            // The panels' own viewer; a project whose viewer was built before ticket 34 has only the intro's, which then loads its panels too
+            var prefab = Resources.Load<GameObject>(ViewerResourceName);
+            if (prefab == null)
+            {
+                prefab = Resources.Load<GameObject>(ResourceName);
+                if (prefab != null)
+                    Debug.LogWarning($"StoryIntro: no Resources/{ViewerResourceName} yet (run Tools > SDF Story > Build Intro Viewer); showing {comic} in the intro's viewer");
+            }
+            if (loaded.Count == 0 || prefab == null)
+            {
+                Debug.LogWarning(loaded.Count == 0
+                    ? $"StoryIntro: no panels at Resources/{ComicResources}/{comic}/ (render them with Tools > SDF Story > Render Comic...); skipping {comic}"
+                    : $"StoryIntro: no viewer at Resources/{ViewerResourceName} (run Tools > SDF Story > Build Intro Viewer); skipping {comic}");
+                onFinished?.Invoke();
+                return;
+            }
+            var instance = Instantiate(prefab);
+            instance.name = "Story " + comic;
+            active = instance.GetComponent<StoryIntro>();
+            active.panels = loaded.ToArray();
+            active.Run(onFinished ?? (() => { }));
+        }
+
+        /// <summary>The comic on show, if any (for the checks).</summary>
+        public static StoryIntro Active => active;
+
         private void Run(Action finished)
         {
             onFinished = finished;
@@ -81,7 +168,7 @@ namespace SdfStory
             logic = new StoryIntroLogic(count);
             if (count == 0)
             {
-                Debug.LogWarning("StoryIntro: the viewer holds no panels; skipping the intro");
+                Debug.LogWarning("StoryIntro: the viewer holds no panels; skipping the comic");
                 Finish();
                 return;
             }
@@ -157,6 +244,7 @@ namespace SdfStory
 
         private void OnNext()
         {
+            Console.WriteLine("OnNext");
             if (ending || logic == null)
                 return;
             ClearSelection();

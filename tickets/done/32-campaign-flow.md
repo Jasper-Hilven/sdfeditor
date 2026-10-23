@@ -9,6 +9,9 @@ loading architecture. The levels themselves are their own tickets (27-30), as ar
 > It no longer provides a `Cutscene` sequencer, caption box, warp or in-engine hand-over; `Home.unity` is editor-only. The parts
 > below that reuse 31's sequencer (the beats, the ending, "Into the intro") need revisiting: either comic panels through 31's
 > viewer, or a sequencer of 32's own.
+>
+> **Settled (2026-10-23, ticket 34)**: comic panels. Each beat is a comic, `content/story/<step id>.txt`, played through 31's viewer over
+> its battle's held scene, then CLICK TO PLAY; B1 is the pilot. A beat whose panels are not rendered yet still plays as 32's shots.
 
 Depends on: 20-25 (the match, flags, weapons, bots, machines, spores), 26 (level ruleset), 31 (intro, and its cutscene sequencer and
 `Cutscene` screen, which the beats here reuse). Feeds: 27-30 (each level's place, difficulty and twist in the campaign), 33 (the boss
@@ -501,3 +504,4 @@ Left:
 - Levels 27-30 and the boss 33 slot in by data: see 32.9's "Adding a level to the campaign". Until their scenes exist those steps are
   skipped (Level Select shows "Coming soon") and the ending follows the chessboard.
 - The boss step is ticket 33's numbers (BossBattle in CampaignDefinition) and its scene is Arena.unity (33.9).
+- Ticket 34 turns the beats into comic panels: B1 is done; B2-B7 and the ending follow by writing and rendering their story files.

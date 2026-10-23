@@ -182,6 +182,20 @@ namespace SdfStory.Tests
         }
 
         [Test]
+        public void NoteArrowLeavesTheSideFacingTheTargetAndStopsShort()
+        {
+            var box = new Box(400, 300, 200, 200);
+            var arrow = StoryLetterLayout.NoteArrow(box, new Pt(100, 400), 10, 600);
+            Assert.NotNull(arrow);
+            Assert.AreEqual(3, arrow.Length);
+            Assert.AreEqual(10, Pt.Distance(arrow[1], new Pt(100, 400)), 1f);
+            Assert.AreEqual(400, arrow[1].Y, 1f);
+            Assert.IsTrue(box.Contains(arrow[0]));
+            Assert.IsTrue(box.Contains(arrow[2]));
+            Assert.IsNull(StoryLetterLayout.NoteArrow(box, box.Center, 10, 600));
+        }
+
+        [Test]
         public void JaggedBoxStaysWithinItsReach()
         {
             var box = new Box(300, 100, 600, 160);
@@ -204,6 +218,26 @@ namespace SdfStory.Tests
             var outer = points.Where((p, i) => i % 2 == 0).Average(p => Pt.Distance(p, centre) / 200);
             var inner = points.Where((p, i) => i % 2 == 1).Average(p => Pt.Distance(p, centre) / 200);
             Assert.Greater(outer, inner);
+        }
+
+        [Test]
+        public void FittedBurstHoldsTheTurnedTextWithMargin()
+        {
+            foreach (var (w, h, angle) in new[] { (300f, 70f, -8f), (120f, 70f, 8f), (700f, 90f, -4f), (200f, 80f, 25f) })
+            {
+                var centre = new Pt(900, 500);
+                var fill = StoryLetterLayout.FitBurst(centre, new Pt(w, h), angle, 12, 5).Select(p => centre + (p - centre) * StoryLetterLayout.BurstFill).ToArray();
+                var turn = angle * System.Math.PI / 180;
+                var cos = (float)System.Math.Cos(turn);
+                var sin = (float)System.Math.Sin(turn);
+                foreach (var (x, y) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
+                {
+                    var lx = x * (w / 2 + 12);
+                    var ly = y * (h / 2 + 12);
+                    var corner = new Pt(centre.X + lx * cos + ly * sin, centre.Y - lx * sin + ly * cos);
+                    Assert.IsTrue(StoryLetterLayout.Inside(fill, corner), $"{w}x{h} at {angle}: corner {x},{y} outside");
+                }
+            }
         }
 
         [Test]

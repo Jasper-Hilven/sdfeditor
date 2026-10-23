@@ -1,0 +1,60 @@
+# B7 "Second place" (tickets 32 and 34): the story beat before the final boss battle, as four comic panels, 1920 x 1080 each, in the same
+# look and viewer as B1 (content/story/beat-fungal.txt; intro.txt documents the frames of reference, the grammar is in SDFPipeline/Story/StoryFile.cs).
+# The campaign plays it over Arena.unity (the Champion's Arena, content/levels/arena.level, layout boss), loaded and held, then CLICK TO PLAY
+# starts the fight. 42 is "they", Chanterelle Prime is "he". Every speaker was introduced in B1-B6, so the balloons need no notes but one wry one.
+#
+# The stage is the arena as it is: one theme, so the panels add only players. In the scene: the red Champion's Corner at x = -47.5 (spawn
+# at (-50, -18) facing +x), the field 120 x 80 m, and at the east end Prime's Royal Box: a dais with its top at y = 4, its front at x = 41/42,
+# the balcony (x 34..41, 12 m wide, z -6..6, 3.5 m up) hanging over the blue flag stand at (36, 0), the stands and the sun low in the west
+# behind the red side. The giant Prime is NOT in Arena.unity (its "Prime" object is only the boss spot, an empty transform; the body is
+# made at runtime by the boss scripts), so the panels add "Chanterelle Prime" as an actor with scale=3.5 (measured in the capture: at scale 1 his body is about
+# 1.7 m and 2.0 m with the crown, so 3.5 gives about 6 m of body and 7 m with the crown, the boss's 6.5 m, ticket 33.1) standing in panels 2 to 4 on the arena floor at (30, 0, 1), between the pillars (x = 20) and the Royal Box (it is a story beat, not the fight, so
+# he need not stand on the dais: from the field its 4 m wall and the balcony hid all of him but his cap). In panel 1 he stands at the dais's front
+# lip (42, 4, 0). His crown is the capture's. The spore shield and the blue crew are runtime and not in the panels (the blue turrets by the flag
+# stands are in the scene, and a cream boulder stands left of him at about x = 28; both are framed to his sides). 42 is 1.6 m tall. Yaw 0 faces +z
+# and +x is to the left of it, 90 faces +x, 270 faces the red side; pitch is negative looking up; a camera's yaw to look at a point is atan2(dx, dz).
+#
+# Cameras: panels 2 to 4 shoot from the field at x 15 to 24, 6 to 15 m from him, low, so his cap, crown, eyes and stem are in frame. Check the
+# barriers (x = 12 and 26, z +-4) and the boulder before moving a camera: one inside them renders as a dark blur.
+# Actors: "Mushroom 42" (the red amanita scout), "Chanterelle Prime" (the blue chanterelle scout with his crown).
+
+format 1
+
+# 1. The final: low and wide from behind 42 at the red spawn, across the whole arena to Prime small on his dais, the sun at our back
+panel 1 stage=arena
+    camera pos=(-52.94, 3.2, -30) rot=(-2.2, 72.5, 0) fov=34
+    # At the spawn, a little to the right of the line to him (the camera is 3.2 m behind and 1.2 m beside), facing the dais
+    actor "Mushroom 42" pos=(-40.3, 0, -23.7) rot=(0, 72, 0)
+    actor "Chanterelle Prime" pos=(42, 4, 0) rot=(0, 270, 0) scale=3.5
+    caption text="The Champion's Arena. The final." anchor=(0.5, 0.1)
+
+# 2. The confession: low, up at the giant standing on the arena floor in front of the dais, head to stem in frame, smug and loud
+panel 2 stage=arena
+    camera pos=(15, 0.6, -4) rot=(-10.7, 71.6, 0) fov=55
+    # Turned to the camera, one hand up as he gloats
+    actor "Chanterelle Prime" pos=(30, 0, 1) rot=(0, 252, 0) scale=3.5
+    actor "Chanterelle Prime" part=hand-right pos=(0.15, 0.45, 0.3)
+    balloon speaker=Prime text="Last year I lost by *one* capture. One!" anchor=(0.2, 0.12) tail="Chanterelle Prime"
+    balloon speaker=Prime text="So I fixed the results. And the game. And *your house.*" anchor=(0.8, 0.14) tail="Chanterelle Prime"
+    note text="Chanterelle Prime. Second place. Now in large print." anchor=(0.68, 0.56) at="Chanterelle Prime"
+
+# 3. The cutlery: two frames, 42 face on, then Prime from below
+panel 3 stage=arena
+    actor "Mushroom 42" pos=(21, 0, 3.5) rot=(-12, 105.5, 0)
+    actor "Chanterelle Prime" pos=(30, 0, 1) rot=(0, 250, 0) scale=3.5
+    actor "Chanterelle Prime" part=hand-left pos=(-0.15, 0.4, 0.3)
+    frame x=0 y=0 w=0.5 h=1
+        camera pos=(23.9, 0.9, 2.7) rot=(0, 285.5, 0) fov=45
+        balloon speaker=42 text="You can't fix a house." anchor=(0.5, 0.12) tail="Mushroom 42"
+    frame x=0.5 y=0 w=0.5 h=1
+        camera pos=(16, 0.4, -4) rot=(-12.1, 70.3, 0) fov=50
+        balloon speaker=Prime text="I reorganised your *cutlery.*" anchor=(0.5, 0.1) tail="Chanterelle Prime"
+
+# 4. Squaring up: 42 small in the lower left with a fist up, the giant towering over them, a radial of lines on him
+panel 4 stage=arena
+    camera pos=(17, 0.5, -6) rot=(-11.1, 61.7, 0) fov=52
+    actor "Mushroom 42" pos=(22, 0, -4.5) rot=(0, 55, 0)
+    actor "Mushroom 42" part=hand-right pos=(0, 0.3, 0.2)
+    actor "Chanterelle Prime" pos=(30, 0, 1) rot=(0, 242, 0) scale=3.5
+    speedlines radial at=(0.55, 0.4) density=1
+    balloon speaker=42 text="...Now it's *personal.*" anchor=(0.2, 0.14) tail="Mushroom 42"

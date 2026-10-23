@@ -1,0 +1,55 @@
+# B3 "Off the table" (tickets 32 and 34): the story beat before the toy box battle, as four comic panels, 1920 x 1080 each, in the same look
+# and viewer as B1 (content/story/beat-fungal.txt; content/story/intro.txt documents the frames of reference; the grammar is in
+# SDFPipeline/Story/StoryFile.cs). The campaign plays it over Toybox.unity, loaded and held, then CLICK TO PLAY lets the match go. 42 is
+# "they", Chanterelle Prime is "he". Cameras here are placed by geometry alone (no render was possible when this was written): tune by eye.
+#
+# The stage is the toy box level as it is (content/levels/toybox.level): one theme, so the panels add only players. The machines (the toy
+# tanks) are spawned by the match, so none is in the scene: Sergeant Clank, the wind-up tank in blue, is never in a panel. Panel 2 is his
+# point of view (a camera 0.4 m off the felt, looking at 42 and 7) and the caption says who he is.
+# The red block castle stands at x = -62 (corner towers at x = -54.5 and -69.5, z = +-13, roofs 10 m, the keep 12 m), the red spawn is at
+# (-46, 20) facing +x, 7.4 m off its north front corner; the leaning block tower (10.5 m) stands at (-32, 20). 42 stands on the spawn, Mushroom 7
+# at their shoulder (-47.3, 21.3), Prime is simply there, 5 m east of them at (-41, 19), facing them (the pop-in is B1's). Camera yaws are counter-clockwise from above,
+# 0 = +z, 90 = +x; a subject whose bearing from the camera is smaller than the camera's yaw is to the left. The scouts are 1.6 m tall.
+# Actors: "Mushroom 42" and "Mushroom 7" (the red amanita scout), "Chanterelle Prime" (the blue chanterelle scout with his crown).
+# The Ref (Ref Puffball) has no body: a sky box and a note whose arrow points up at it. The balloons carry no names; 42, Prime and 7 were
+# introduced in B1, the Ref is introduced here.
+
+format 1
+
+# 1. Arena four: from the north-east, 42 and Mushroom 7 on the spawn, the red block castle rising behind them; the Ref's box in the sky
+panel 1 stage=toybox
+    camera pos=(-38, 2, 30) rot=(-4, 218.7, 0) fov=55
+    # Half turned to us, looking east, the way the match will come
+    actor "Mushroom 42" pos=(-46, 0, 20) rot=(0, 60, 0)
+    actor "Mushroom 7" pos=(-47.3, 0, 21.3) rot=(0, 40, 0)
+    caption text="Arena four: the toy box." anchor=(0.22, 0.9)
+    sky speaker=Ref text="Please do not *chew* the arena." anchor=(0.7, 0.1)
+    note text="Ref Puffball. The referee. Very fair. Allegedly." anchor=(0.8, 0.3) at=(0.72, 0.14)
+
+# 2. Sergeant Clank's point of view: low on the felt, 42 and 7 up ahead, the castle towering behind; the tank is off panel
+panel 2 stage=toybox
+    camera pos=(-40, 0.4, 19) rot=(-8, 266, 0) fov=50
+    actor "Mushroom 42" pos=(-46, 0, 20) rot=(0, 96, 0)
+    actor "Mushroom 7" pos=(-47.3, 0, 21.3) rot=(0, 110, 0)
+    actor "Mushroom 42" part=eye-left pos=(0, -0.02, 0)
+    actor "Mushroom 42" part=eye-right pos=(0, -0.02, 0)
+    balloon speaker=42 text="Sergeant Clank? You were *mine*." anchor=(0.3, 0.16) tail="Mushroom 42"
+    caption text="Sergeant Clank. 42's best toy. Now wearing blue." anchor=(0.62, 0.92)
+
+# 3. The update: Prime, already standing by the spawn, crown up, from over 42's shoulder, the leaning block tower behind
+panel 3 stage=toybox
+    camera pos=(-44.6, 1.2, 21) rot=(0, 124, 0) fov=50
+    actor "Chanterelle Prime" pos=(-41, 0, 19) rot=(0, 295, 0)
+    actor "Chanterelle Prime" part=hand-left pos=(0, 0.35, 0.1)
+    actor "Chanterelle Prime" part=hand-right pos=(0, 0.3, 0.15)
+    balloon speaker=Prime text="Your toys work for me now. I let them stay up *late*." anchor=(0.5, 0.14) tail="Chanterelle Prime"
+
+# 4. The shot: 7 and 42 from the east, 7 leaning in at the burst, the castle behind
+panel 4 stage=toybox
+    camera pos=(-42.2, 1.3, 17.4) rot=(-1, 306.2, 0) fov=50
+    actor "Mushroom 42" pos=(-46, 0, 20) rot=(0, 115, 0)
+    actor "Mushroom 7" pos=(-47.3, 0, 21.3) rot=(0, 130, 0)
+    actor "Mushroom 7" part=body rot=(0, 0, -6)
+    actor "Mushroom 7" part=hand-right pos=(0, 0.3, 0.15)
+    balloon speaker="Mushroom 7" text="Is a toy tank *allowed* to shoot us?" anchor=(0.6, 0.15) tail="Mushroom 7"
+    burst at=(0.18, 0.45) size=0.9

@@ -132,8 +132,12 @@ namespace SdfCampaign
         }
     }
 
+    /// <summary>How a story beat is told (ticket 34): as comic panels through the story viewer, as shots in the loaded scene, or not at all.</summary>
+    public enum BeatForm { None, Comic, Shots }
+
     /// <summary>The beats of the campaign by step id (ticket 32, section 3). B3-B7 (32.9) are written ahead of their scenes: a beat whose scene is not in the build is skipped
-    /// with its battle. A new beat is one more entry in <see cref="Build"/>.</summary>
+    /// with its battle. A new beat is one more entry in <see cref="Build"/>. A beat whose comic is rendered (content/story/&lt;step id&gt;.txt, ticket 34)
+    /// plays as panels instead (<see cref="FormOf"/>); its shots here stay the way it plays until then.</summary>
     public static class Beats
     {
         public const string Prime = "Chanterelle Prime", Ref = "Ref Puffball";
@@ -154,6 +158,12 @@ namespace SdfCampaign
 
         public static bool Has(string stepId) => Find(stepId) != null;
 
+        /// <summary>
+        /// How a step's beat plays (ticket 34): its comic when its panels exist (<paramref name="hasComic"/>, which the runtime asks the story
+        /// viewer), else its shots when it has some, else nothing. The comic wins, so a beat moves to panels by rendering them, with no code change.
+        /// </summary>
+        public static BeatForm FormOf(string stepId, bool hasComic) => hasComic ? BeatForm.Comic : Has(stepId) ? BeatForm.Shots : BeatForm.None;
+
         private static Dictionary<string, Beat> Build()
         {
             var you = Cast.You;
@@ -163,7 +173,8 @@ namespace SdfCampaign
             var award = Cast.Blue[4];
             var list = new[]
             {
-                // B1: the red castle at night; Prime steps out of a pixel pop and changes the rules
+                // B1: the red castle at night; Prime steps out of a pixel pop and changes the rules. Told as comic panels (content/story/beat-fungal.txt,
+                // ticket 34) once they are rendered; these shots are its in-engine form until then
                 new Beat("beat-fungal", "Nightfall",
                     new[]
                     {
@@ -177,7 +188,7 @@ namespace SdfCampaign
                         new BeatShot(Prime, "Congratulations on winning a meadow. Regulation update: machines.", 6.5f, CameraMove.On(Prime, 170, 200, 3.6f, 3f)),
                         new BeatShot(you, "Machines aren't in the rulebook.", 4.5f, CameraMove.On(you, 160, 185, 3.2f, 2.6f)),
                         new BeatShot(Prime, "They are now. I wrote the rulebook. This morning.", 5.5f, CameraMove.On(Prime, 205, 170, 3f, 3.8f)),
-                        new BeatShot(seven, "Fill your spores and press Q. Trust me.", 5f, CameraMove.On(seven, 165, 190, 3f, 2.5f)),
+                        new BeatShot(seven, "Fill your spores and activate Mycelium Rush. Trust me.", 5f, CameraMove.On(seven, 165, 190, 3f, 2.5f)),
                         new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 9, 14, 3.5f, 5.5f, 2)),
                     }),
                 // B2: the red back rank of the giant chessboard; 42 knows the board
@@ -192,7 +203,7 @@ namespace SdfCampaign
                     new[]
                     {
                         new BeatShot("", "The Chessboard.", 5f, CameraMove.At(Anchor.RedSpawn, 190, 165, 22, 15, 7, 5, 2.5f)),
-                        new BeatShot(you, "That's my chess set. That's the coffee ring I made in March.", 6.5f, CameraMove.On(you, 15, -10, 4.2f, 3.4f, 1.7f, 1.8f)),
+                        new BeatShot(you, "That's my chess set. I glued that king's head back on. Twice.", 6.5f, CameraMove.On(you, 15, -10, 4.2f, 3.4f, 1.7f, 1.8f)),
                         new BeatShot(thirteen, "Is it normal for the tournament to be inside your house?", 5.5f, CameraMove.On(thirteen, 150, 175, 3f, 2.5f)),
                         new BeatShot(Prime, "Board games are a sport now.", 4f, CameraMove.On(Prime, 160, 195, 3.6f, 3f)),
                         new BeatShot(Prime, "The minigun? Banned. Board-game reasons.", 5.5f, CameraMove.On(Prime, 200, 170, 2.6f, 3.4f)),
@@ -211,8 +222,8 @@ namespace SdfCampaign
                         new BeatShot("", "The Toy Box.", 4.5f, CameraMove.At(Anchor.RedSpawn, 190, 160, 20, 14, 6, 4.5f, 2.5f)),
                         new BeatShot(Ref, "Arena four: the toy box. Please do not chew the arena.", 6f, CameraMove.At(Anchor.Centre, 180, 150, 24, 18, 9, 7, 2)),
                         new BeatShot(you, "Sergeant Clank? You were mine.", 5f, CameraMove.On(you, 160, 190, 3.2f, 2.5f, 1.7f)),
-                        new BeatShot(Prime, "Your toys work for me now. Better dental.", 5.5f, CameraMove.On(Prime, 165, 200, 3.4f, 2.8f)),
-                        new BeatShot(seven, "Is a toy tank allowed to do that?", 4.5f, CameraMove.On(seven, 160, 185, 3f, 2.5f)),
+                        new BeatShot(Prime, "Your toys work for me now. I let them stay up late.", 5.5f, CameraMove.On(Prime, 165, 200, 3.4f, 2.8f)),
+                        new BeatShot(seven, "Is a toy tank allowed to shoot us?", 4.5f, CameraMove.On(seven, 160, 185, 3f, 2.5f)),
                         new BeatShot("", "", 3f, CameraMove.At(Anchor.RedSpawn, 200, 160, 8, 13, 3, 5, 2)),
                     }),
                 // B4: the kitchen; everything is big and hot, and the hob is 42's fault

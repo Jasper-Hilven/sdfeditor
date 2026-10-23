@@ -32,14 +32,14 @@ namespace SdfCampaign
             [CampaignDefinition.Chessboard] = new[]
             {
                 "Checkmate. Or the board-game version of it.",
-                "You can't win on your own coffee ring.",
+                "You can't win with a glued-on king.",
                 "Board games are a sport now. You are not.",
                 "A pawn would have played that better.",
                 "That move was banned. For board-game reasons.",
             },
             [CampaignDefinition.ToyBox] = new[]
             {
-                "Your toys work for me now. Better dental.",
+                "Your toys work for me now. I let them stay up late.",
                 "Sergeant Clank sends his thanks.",
                 "Someone should tidy up in here. Not you, apparently.",
                 "Back in the box, champion.",

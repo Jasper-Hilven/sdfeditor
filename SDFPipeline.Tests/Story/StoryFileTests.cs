@@ -5,8 +5,8 @@ using SDFPipeline.Story;
 namespace SDFPipeline.Tests.Story;
 
 /// <summary>
-/// Ticket 31.4: the story intro is data, content/story/intro.txt (twelve comic panels), read by StoryFile, which the Unity editor's capture
-/// compiles from its own copy of the source.
+/// Tickets 31.4 and 34: the comics are data, content/story/&lt;comic&gt;.txt (the intro's twelve panels, a story beat's few), read by StoryFile,
+/// which the Unity editor's capture compiles from its own copy of the source.
 /// </summary>
 public class StoryFileTests
 {
@@ -18,6 +18,14 @@ public class StoryFileTests
     }
 
     private static StoryFile Intro() => StoryFile.Load(StoryFile.PathIn(Content()));
+
+    private static StoryFile Comic(string comic) => StoryFile.Load(StoryFile.PathIn(Content(), comic));
+
+    /// <summary>Every comic of content/story/, for the checks that hold for all of them.</summary>
+    public static IEnumerable<object[]> ComicNames() => StoryFile.Comics(Content()).Select(c => new object[] { c });
+
+    /// <summary>The players a panel in a level or the warp may add: the scouts (red "Mushroom N", Chanterelle Prime, blue's players by their cast names) and the blue hands, never a prop.</summary>
+    private const string Players = "^(Mushroom \\d+|Chanterelle Prime|Chanterelle Hand \\d|Runner-Up|Honourable Mention|Participant|Also-Ran|Participation Award)$";
 
     private static IEnumerable<StoryFrame> Frames(StoryFile file) => file.Panels.SelectMany(p => p.Frames);
 
@@ -43,7 +51,7 @@ public class StoryFileTests
     {
         foreach (var panel in Intro().Panels)
         {
-            Assert.Contains(panel.Stage, StoryFile.Stages);
+            Assert.True(StoryFile.Stages.Contains(panel.Stage) || File.Exists(Path.Combine(Content(), "levels", panel.Stage + ".level")), panel.Stage);
             Assert.NotEmpty(panel.Frames);
             foreach (var frame in panel.Frames)
             {
@@ -96,7 +104,7 @@ public class StoryFileTests
         Assert.NotEmpty(screens);
         foreach (var screen in screens)
             Assert.Contains(screen.Texture, StoryFile.ScreenTextures);
-        Assert.Equal(4, StoryFile.ScreenTextures.Length);
+        Assert.Equal(9, StoryFile.ScreenTextures.Length);
         // Only the room has a monitor
         foreach (var panel in Intro().Panels.Where(p => p.Stage != "home"))
             Assert.Null(panel.Screen);
@@ -107,7 +115,6 @@ public class StoryFileTests
     {
         var texts = Frames(Intro()).SelectMany(f => f.Texts).Select(t => t.Text).ToList();
         Assert.Contains("Mushroom 42. Last year's minigun champion. Still undefeated. (They checked.)", texts);
-        Assert.Contains("TAK TAK TAK", texts);
         Assert.Contains("Still got it. Hi, trophy.", texts);
         Assert.Contains("Hello, champion. Remember me? Second place. *Silver.*", texts);
         Assert.Contains("This year, we play on *my* server.", texts);
@@ -116,7 +123,14 @@ public class StoryFileTests
         Assert.Contains("42! You're here! Prime's rigged the whole tournament. Every level. Also, welcome.", texts);
         Assert.Contains("Win it again, champion. If you can.", texts);
         Assert.Contains("Fine. Bring the minigun.", texts);
-        Assert.Equal(14, texts.Count);
+        Assert.Equal(15, texts.Count);
+        // The balloons carry no names; the narrator's side notes do, short and each pointing at someone
+        foreach (var note in Frames(Intro()).SelectMany(f => f.Texts).Where(t => t.Kind == StoryTextKind.Note))
+        {
+            Assert.InRange(note.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length, 3, 8);
+            Assert.True(note.HasTail);
+        }
+        Assert.Contains("Mushroom 7. Teammate. Talks fast.", texts);
         // 42 is they, Prime is he: nothing in the lettering calls 42 he or she
         foreach (var text in texts)
             Assert.DoesNotMatch(@"\b(he|she|him|his|her)\b", text);
@@ -173,6 +187,100 @@ public class StoryFileTests
         return names;
     }
 
+    // ---- Every comic (ticket 34) ----
+
+    [Fact]
+    public void TheComicsAreTheIntroFirstAndTheBeatsByTheirStepIds()
+    {
+        var comics = StoryFile.Comics(Content());
+        Assert.Equal(StoryFile.Intro, comics[0]);
+        Assert.Contains("beat-fungal", comics);
+        foreach (var comic in comics.Skip(1))
+            Assert.Matches("^(beat-[a-z0-9]+|ending)$", comic);
+        Assert.Equal(StoryFile.PathIn(Content()), StoryFile.PathIn(Content(), StoryFile.Intro));
+        Assert.Equal("beat-fungal", Comic("beat-fungal").Comic);
+    }
+
+    [Theory]
+    [MemberData(nameof(ComicNames))]
+    public void EveryComicHasAKnownStageACameraPerFrameAndShortBalloons(string comic)
+    {
+        var file = Comic(comic);
+        Assert.Equal(Enumerable.Range(1, file.Panels.Count), file.Panels.Select(p => p.Number));
+        foreach (var panel in file.Panels)
+        {
+            // home, warp, or a battle level that has its file
+            Assert.True(StoryFile.Stages.Contains(panel.Stage) || File.Exists(Path.Combine(Content(), "levels", panel.Stage + ".level")), $"{comic} panel {panel.Number}: stage {panel.Stage}");
+            foreach (var frame in panel.Frames)
+            {
+                Assert.NotNull(panel.CameraOf(frame));
+                Assert.True(frame.BalloonCount <= 2, $"{comic} panel {panel.Number} has {frame.BalloonCount} balloons in a frame");
+                foreach (var text in frame.Texts.Where(t => t.Kind is StoryTextKind.Balloon or StoryTextKind.Sky))
+                    Assert.InRange(text.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length, 1, 13);
+                foreach (var note in frame.Texts.Where(t => t.Kind == StoryTextKind.Note))
+                {
+                    Assert.InRange(note.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length, 3, 8);
+                    Assert.True(note.HasTail, $"{comic} line {note.Line}: a note points at someone");
+                }
+                foreach (var text in frame.Texts.Where(t => t.Kind == StoryTextKind.Balloon))
+                    Assert.Contains(text.Speaker, StoryFile.Speakers);
+                Assert.InRange(frame.X + frame.W, 0, 1.0001f);
+                Assert.InRange(frame.Y + frame.H, 0, 1.0001f);
+            }
+        }
+        // 42 is they, Prime is he: nothing in the lettering calls 42 he or she, in any comic
+        foreach (var text in Frames(file).SelectMany(f => f.Texts))
+            Assert.DoesNotMatch(@"\b(he|she|him|his|her)\b", text.Text);
+    }
+
+    [Theory]
+    [MemberData(nameof(ComicNames))]
+    public void ALevelOrTheWarpGetsOnlyPlayersAndNoMonitorOrRoomLights(string comic)
+    {
+        // One theme per scene: a battle level keeps its own, so a panel there adds the scouts and nothing else
+        var home = KnownActors();
+        foreach (var panel in Comic(comic).Panels)
+        {
+            foreach (var pose in panel.Actors)
+                if (panel.Stage == "home")
+                    Assert.Contains(pose.Actor, home);
+                else
+                    Assert.Matches(Players, pose.Actor);
+            foreach (var text in panel.Frames.SelectMany(f => f.Texts).Where(t => t.TailActor != null))
+                Assert.Contains(text.TailActor, panel.Actors.Select(a => a.Actor).Concat(panel.Stage == "home" ? home : new List<string>()));
+            if (panel.Stage != "home")
+            {
+                Assert.Null(panel.Screen);
+                Assert.Empty(panel.Lights);
+            }
+        }
+    }
+
+    [Fact]
+    public void TheFungalBeatIsFourPanelsInFungalWithTheTicketsLinesAndANoteForEachFirstAppearance()
+    {
+        var file = Comic("beat-fungal");
+        Assert.InRange(file.Panels.Count, 3, 4);
+        Assert.All(file.Panels, p => Assert.Equal("fungal", p.Stage));
+        var texts = Frames(file).SelectMany(f => f.Texts).ToList();
+        var lines = texts.Select(t => t.Text).ToList();
+        // B1 "Nightfall" (ticket 32, section 3), tightened for lettering
+        Assert.Contains("Congratulations on winning a *meadow*.", lines);
+        Assert.Contains("Regulation update: *machines.*", lines);
+        Assert.Contains("Machines aren't in the rulebook.", lines);
+        Assert.Contains("They are now. I wrote the rulebook. This morning.", lines);
+        Assert.Contains("Fill your spores. Activate Mycelium Rush. Trust me.", lines);
+        Assert.Equal(new[] { "Prime", "42", "Mushroom 7" }, texts.Where(t => t.Kind == StoryTextKind.Balloon).Select(t => t.Speaker).Distinct());
+        // The balloons carry no names: whoever speaks has a note pointing at them in their first panel
+        foreach (var actor in new[] { "Chanterelle Prime", "Mushroom 42", "Mushroom 7" })
+        {
+            var first = file.Panels.First(p => p.Frames.SelectMany(f => f.Texts).Any(t => t.Kind == StoryTextKind.Balloon && t.TailActor == actor));
+            var noted = file.Panels.TakeWhile(p => p.Number <= first.Number).SelectMany(p => p.Frames).SelectMany(f => f.Texts);
+            Assert.Contains(noted, t => t.Kind == StoryTextKind.Note && t.TailActor == actor);
+        }
+        Assert.Equal(3, texts.Count(t => t.Kind == StoryTextKind.Note));
+    }
+
     // ---- The grammar ----
 
     [Fact]
@@ -196,7 +304,10 @@ public class StoryFileTests
               balloon speaker=42 text="Hi # there, (really)." anchor=(0.2, 0.2) tail="Mushroom 42"
               sky speaker=Prime text="Boo" anchor=(0.5, 0.1)
               caption text="A caption" anchor=(0.5, 0.9)
+              note text="Mushroom 42. Champion." anchor=(0.8, 0.5) at="Mushroom 42"
+              note text="Over there." anchor=(0.2, 0.5) at=(0.4, 0.6)
               sfx text="BOING" anchor=(0.5, 0.5) size=2 angle=-5
+              sfx text="ZAP" anchor=(0.5, 0.5) color=pink
             """);
         var panel = Assert.Single(file.Panels);
         Assert.Equal(4, panel.Number);
@@ -216,6 +327,22 @@ public class StoryFileTests
         Assert.Equal("Mushroom 42", frame.Texts[0].TailActor);
         Assert.Equal(2, frame.BalloonCount);
         Assert.Equal("narrator", frame.Texts[2].Speaker);
+        Assert.Equal(StoryTextKind.Note, frame.Texts[3].Kind);
+        Assert.Equal("Mushroom 42", frame.Texts[3].TailActor);
+        Assert.Equal(0.4f, frame.Texts[4].TailAt!.Value.X);
+        Assert.Equal("narrator", frame.Texts[3].Speaker);
+        Assert.Null(frame.Texts[5].Color);
+        Assert.Equal("pink", frame.Texts[6].Color);
+    }
+
+    [Fact]
+    public void SfxColorIsStableVariedAndKnown()
+    {
+        Assert.Equal(StoryFile.SfxColorFor("POP!"), StoryFile.SfxColorFor(" pop! "));
+        var words = new[] { "POP!", "KRRK KRRK KRRK", "TAK TAK TAK", "BZZRT", "SHLORP", "WHOOOOSH", "BOING", "HMMMMM", "PTANG!", "TSSSS", "CLUNK", "ZAP" };
+        var colours = words.Select(StoryFile.SfxColorFor).ToList();
+        Assert.All(colours, c => Assert.Contains(c, StoryFile.SfxColors));
+        Assert.True(colours.Distinct().Count() >= 4);
     }
 
     [Fact]
@@ -243,7 +370,7 @@ public class StoryFileTests
     {
         Fails("camera pos=(0, 0, 0) rot=(0, 0, 0) fov=50", "test.txt line 1: 'camera' comes after a panel line");
         Fails("panel x stage=home", "panel needs a number");
-        Fails("panel 1 stage=sky", "stage=sky is not one of");
+        Fails("panel 1 stage=Fungal", "stage=Fungal is not a stage name");
         Fails("panel 1", "stage= is missing");
         Fails("panel 1 stage=home\n  camera pos=(0, 0, 0) rot=(0, 0, 0) fov=50\npanel 1 stage=home", "panel 1 is there twice");
         Fails("format 2\npanel 1 stage=home", "format 2 is not known");
@@ -277,13 +404,34 @@ public class StoryFileTests
     [InlineData("balloon speaker=42 text=\"Hi anchor=(0.5, 0.5) tail=(0.5, 0.5)", "a quote is not closed")]
     [InlineData("balloon speaker=42 text=\"\" anchor=(0.5, 0.5) tail=(0.5, 0.5)", "the text is empty")]
     [InlineData("caption text=\"Hi\" anchor=(0.5, 0.5) speaker=42", "has no speaker=")]
+    [InlineData("note text=\"Hi\" anchor=(0.5, 0.5)", "needs at=")]
+    [InlineData("note text=\"Hi\" anchor=(0.5, 0.5) at=\"Mushroom 42\" speaker=42", "has no speaker=")]
     [InlineData("sfx anchor=(0.5, 0.5)", "text= is missing")]
+    [InlineData("sfx text=\"POP!\" anchor=(0.5, 0.5) color=beige", "is not one of")]
+    [InlineData("balloon speaker=42 text=\"Hi\" anchor=(0.5, 0.5) tail=(0.5, 0.5) color=red", "has no color=")]
     [InlineData("zoom 3", "unknown command 'zoom'")]
     public void RejectsBadArguments(string line, string message) => Fails("format 1\npanel 1 stage=home\n  camera pos=(0, 1, 2) rot=(0, 180, 0) fov=50\n  " + line, message);
 
     [Fact]
     public void FrameLinesAfterContentAreRejected() =>
         Fails("panel 1 stage=home\n  camera pos=(0, 0, 0) rot=(0, 0, 0) fov=50\n  burst at=(0.5, 0.5)\n  frame x=0 y=0 w=1 h=1", "frame lines come before any device or lettering");
+
+    [Fact]
+    public void AStageIsHomeWarpOrALevelByItsFileName()
+    {
+        const string text = "format 1\npanel 1 stage={0}\n  camera pos=(0, 1, 2) rot=(0, 180, 0) fov=50\n";
+        Func<string, bool> isLevel = stage => stage is "fungal" or "toybox";
+        Assert.Equal("fungal", StoryFile.Parse(string.Format(text, "fungal"), "test.txt", isLevel).Panels[0].Stage);
+        Assert.Equal("warp", StoryFile.Parse(string.Format(text, "warp"), "test.txt", isLevel).Panels[0].Stage);
+        Assert.True(StoryFile.IsLevelStage("toybox"));
+        Assert.False(StoryFile.IsLevelStage("home"));
+        var exception = Assert.Throws<InvalidDataException>(() => StoryFile.Parse(string.Format(text, "sky"), "test.txt", isLevel));
+        Assert.Contains("test.txt line 2: stage=sky is not home, warp or a level (there is no content/levels/sky.level)", exception.Message);
+        // Without the check any lower-case name is a level; a file read from content/ checks content/levels/
+        Assert.Equal("sky", StoryFile.Parse(string.Format(text, "sky")).Panels[0].Stage);
+        foreach (var level in new[] { "meadow", "fungal", "chessboard", "toybox", "kitchen", "bathroom", "computer", "arena" })
+            Assert.True(File.Exists(Path.Combine(Content(), "levels", level + ".level")), level);
+    }
 
     [Fact]
     public void ASingleScaleNumberScalesAllThreeAxes()

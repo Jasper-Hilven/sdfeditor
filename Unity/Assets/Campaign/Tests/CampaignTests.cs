@@ -538,6 +538,22 @@ namespace SdfCampaign.Tests
         }
 
         [Test]
+        public void Beats_PlayAsTheirComicOnceItsPanelsExist_ElseAsShots()
+        {
+            // Ticket 34: the comic wins, so a beat moves to panels by rendering them; the shots stay its form until then
+            foreach (var step in Def.Steps.Where(s => s.kind == StepKind.Cutscene && s.id.StartsWith("beat-")))
+            {
+                Assert.AreEqual(BeatForm.Comic, Beats.FormOf(step.id, true), step.id);
+                Assert.AreEqual(BeatForm.Shots, Beats.FormOf(step.id, false), step.id);
+            }
+            // The ending too, the day its panels are rendered; a step with neither plays nothing
+            Assert.AreEqual(BeatForm.Comic, Beats.FormOf(CampaignDefinition.Ending, true));
+            Assert.AreEqual(BeatForm.Shots, Beats.FormOf(CampaignDefinition.Ending, false));
+            Assert.AreEqual(BeatForm.None, Beats.FormOf("meadow", false));
+            Assert.AreEqual(BeatForm.None, Beats.FormOf("no-such-step", false));
+        }
+
+        [Test]
         public void Sequencer_RunsTheShotsInOrder_ThenTheArrival_ThenIsDone()
         {
             var beat = Beats.Find("beat-fungal");

@@ -1,0 +1,58 @@
+# B5 "Bath time" (tickets 32 and 34): the story beat before the bathroom battle, as four comic panels, 1920 x 1080 each, in the same look and
+# viewer as B1 (content/story/beat-fungal.txt; content/story/intro.txt documents the frames of reference; the grammar is in
+# SDFPipeline/Story/StoryFile.cs). The campaign plays it over Bathroom.unity, loaded and held, then CLICK TO PLAY lets the match go. 42 is
+# "they", Chanterelle Prime is "he". Participation Award is new here (a blue chanterelle scout, who gets the narrator's note).
+#
+# The stage is the bathroom level as it is (content/levels/bathroom.level, 30x life size): one theme, so the panels add only players. The red
+# spawn is at (-47, -17) facing +x, off the south-east corner of the red soap-dish fort (dish at x = -62; its toothbrush cup further west).
+# The room is lit from the frosted window high in the south wall (z = -50), so a camera looking south-west sees tile, the dish and the window's
+# glow behind the players; the steam fog is nil at these 3 to 8 m. The staging is B1's, carried over by (+3.5, -37.5) so that 42 stands by the
+# spawn (-47, -17), Mushroom 7 at their shoulder (-48.2, -15.7), and Prime simply stands 5 m away to the south-west of them at
+# (-43.5, -21.1), turned to them (an actor faces yaw = atan2(dx, dz) of what it looks at). Participation Award stands at (-45.2, -22.6), left of
+# Prime from where we stand. Cameras are placed by geometry (not yet seen): a camera looking at a point has yaw = atan2(dx, dz), pitch from
+# the drop over the distance. The scouts are 1.6 m tall.
+# Actors: "Mushroom 42" and "Mushroom 7" (the red amanita scout), "Chanterelle Prime" (the blue chanterelle scout with his crown) and
+# "Participation Award" (a blue chanterelle scout). The balloons carry no names: each speaker's first panel has the narrator's note.
+
+format 1
+
+# 1. Bath time: low and wide, 42 and Mushroom 7 by the spawn, Prime simply standing on the tile, the room behind them
+panel 1 stage=bathroom
+    camera pos=(-43, 1.5, -12.9) rot=(-6.8, 208.5, 0) fov=52
+    actor "Mushroom 42" pos=(-47, 0, -17) rot=(0, 88, 0)
+    actor "Mushroom 7" pos=(-48.2, 0, -15.7) rot=(0, 78, 0)
+    actor "Chanterelle Prime" pos=(-43.5, 0, -21.1) rot=(0, 318, 0)
+    actor "Chanterelle Prime" part=hand-left pos=(0, 0.35, 0.1)
+    actor "Chanterelle Prime" part=hand-right pos=(0, 0.35, 0.1)
+    caption text="Arena six: the bathroom." anchor=(0.24, 0.1)
+    balloon speaker=Prime text="You're getting close, champion. Have a *bath*." anchor=(0.56, 0.3) tail="Chanterelle Prime"
+
+# 2. The fifth: Prime (crowned, right) and the new blue player (left), seen from beside 42
+panel 2 stage=bathroom
+    camera pos=(-46.6, 1.2, -19.3) rot=(2, 138.5, 0) fov=60
+    actor "Chanterelle Prime" pos=(-43.5, 0, -21.1) rot=(0, 318, 0)
+    actor "Chanterelle Prime" part=hand-right pos=(0, 0.55, 0.15)
+    actor "Participation Award" pos=(-45.2, 0, -22.6) rot=(0, 342, 0)
+    balloon speaker=Prime text="Meet my *fifth* player." anchor=(0.72, 0.14) tail="Chanterelle Prime"
+    note text="Participation Award. Blue's fifth. Mostly sticker." anchor=(0.24, 0.84) at="Participation Award"
+
+# 3. Hi: the fifth player close and face on, waving
+panel 3 stage=bathroom
+    camera pos=(-45, 1, -20.2) rot=(0, 185, 0) fov=45
+    actor "Participation Award" pos=(-45.2, 0, -22.6) rot=(0, 5, 0)
+    actor "Participation Award" part=hand-right pos=(-0.45, 0.9, 0.3)
+    balloon speaker="Participation Award" text="Hi! I got a *sticker*!" anchor=(0.5, 0.12) tail="Participation Award"
+
+# 4. Rigged: two frames, Mushroom 7 outraged face on, then Prime face on, his crown in sight
+panel 4 stage=bathroom
+    actor "Mushroom 7" pos=(-48.2, 0, -15.7) rot=(0, 125, 0)
+    actor "Mushroom 7" part=hand-left pos=(0, 0.4, 0.2)
+    actor "Mushroom 7" part=hand-right pos=(0, 0.4, 0.2)
+    actor "Chanterelle Prime" pos=(-43.5, 0, -21.1) rot=(0, 318, 0)
+    actor "Chanterelle Prime" part=hand-left pos=(0, 0.3, 0.2)
+    frame x=0 y=0 w=0.5 h=1
+        camera pos=(-46.1, 1.2, -17.2) rot=(11, 305, 0) fov=45
+        balloon speaker="Mushroom 7" text="Five against four? That's *rigged*!" anchor=(0.5, 0.12) tail="Mushroom 7"
+    frame x=0.5 y=0 w=0.5 h=1
+        camera pos=(-45.04, 1.7, -19.39) rot=(12.3, 138, 0) fov=50
+        balloon speaker=Prime text="That's *strategy*." anchor=(0.5, 0.12) tail="Chanterelle Prime"

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SdfStory.Layout
 {
@@ -148,6 +149,32 @@ namespace SdfStory.Layout
             return new[] { baseCentre + side * width, tip, baseCentre - side * width };
         }
 
+        /// <summary>
+        /// The arrow of a side note: a small triangle from the edge of the (rectangular) <paramref name="box"/> towards <paramref name="target"/>,
+        /// stopping <paramref name="gap"/> short of it and at most <paramref name="maxLength"/> long; null when the target is too near to need one.
+        /// </summary>
+        public static Pt[] NoteArrow(Box box, Pt target, float gap, float maxLength)
+        {
+            var centre = box.Center;
+            var toTarget = target - centre;
+            var direction = toTarget.Normalized();
+            // Where the ray from the centre leaves the rectangle
+            var hx = box.W * 0.5f;
+            var hy = box.H * 0.5f;
+            var scale = Math.Min(Math.Abs(direction.X) < 1e-4f ? float.MaxValue : hx / Math.Abs(direction.X), Math.Abs(direction.Y) < 1e-4f ? float.MaxValue : hy / Math.Abs(direction.Y));
+            var edge = centre + direction * scale;
+            var outside = toTarget.Length - scale;
+            if (outside <= gap + 6)
+                return null;
+            var length = Math.Min(outside - gap, maxLength);
+            var tip = edge + direction * length;
+            var side = direction.Perpendicular;
+            var width = Math.Min(Math.Min(hx, hy) * 0.45f, 22f);
+            // The base lies inside the box, so that the joint with the outline is hidden by the fill
+            var baseCentre = edge - direction * 8;
+            return new[] { baseCentre + side * width, tip, baseCentre - side * width };
+        }
+
         /// <summary>A rectangle with a jagged (zigzag) edge: Prime's box in the sky. The teeth point out by up to <paramref name="depth"/>.</summary>
         public static Pt[] JaggedBox(Box box, float tooth, float depth, int seed)
         {
@@ -178,7 +205,7 @@ namespace SdfStory.Layout
         // ------------------------------------------------------------------------------------------------------------ devices
 
         /// <summary>A star-shaped impact burst round a centre, with irregular spikes; <paramref name="rx"/> and <paramref name="ry"/> are the outer reach.</summary>
-        public static Pt[] Burst(Pt centre, float rx, float ry, int spikes, int seed)
+        public static Pt[] Burst(Pt centre, float rx, float ry, int spikes, int seed, float innerLow = 0.58f, float innerHigh = 0.74f)
         {
             var random = new StoryRandom(seed);
             var points = new Pt[spikes * 2];
@@ -187,10 +214,67 @@ namespace SdfStory.Layout
             {
                 var angle = phase + i * Math.PI / spikes;
                 var outer = i % 2 == 0;
-                var k = outer ? random.Range(0.9f, 1.08f) : random.Range(0.58f, 0.74f);
+                var k = outer ? random.Range(0.9f, 1.08f) : random.Range(innerLow, innerHigh);
                 points[i] = new Pt(centre.X + (float)Math.Cos(angle) * rx * k, centre.Y + (float)Math.Sin(angle) * ry * k);
             }
             return points;
+        }
+
+        /// <summary>The share of a burst's outline that its colour fill covers (the rest is the ink edge).</summary>
+        public const float BurstFill = 0.93f;
+
+        /// <summary>
+        /// A burst around lettering: a <see cref="Burst"/> grown until the text's rectangle (<paramref name="textSize"/>, turned by <paramref name="angle"/> degrees,
+        /// counter-clockwise on screen, and widened by <paramref name="margin"/> on every side) lies wholly inside its coloured fill. It is wider than tall when the text is.
+        /// </summary>
+        public static Pt[] FitBurst(Pt centre, Pt textSize, float angle, float margin, int seed)
+        {
+            var halfW = textSize.X * 0.5f + margin;
+            var halfH = textSize.Y * 0.5f + margin;
+            var turn = angle * (float)Math.PI / 180;
+            var cos = (float)Math.Cos(turn);
+            var sin = (float)Math.Sin(turn);
+            var probes = new List<Pt>();
+            var stepsX = Math.Max(1, (int)Math.Ceiling(halfW * 2 / 12));
+            var stepsY = Math.Max(1, (int)Math.Ceiling(halfH * 2 / 12));
+            for (var i = 0; i <= stepsX; i++)
+                for (var j = 0; j <= 1; j++)
+                    probes.Add(new Pt(-halfW + 2 * halfW * i / stepsX, j == 0 ? -halfH : halfH));
+            for (var i = 1; i < stepsY; i++)
+                for (var j = 0; j <= 1; j++)
+                    probes.Add(new Pt(j == 0 ? -halfW : halfW, -halfH + 2 * halfH * i / stepsY));
+            // Screen y is down: a counter-clockwise turn moves +x up
+            var turned = probes.Select(p => new Pt(centre.X + p.X * cos + p.Y * sin, centre.Y - p.X * sin + p.Y * cos)).ToArray();
+
+            // The inner points of this burst sit at about 0.8 of its reach, so it starts small and grows in small steps until the box is inside
+            var rx = halfW * 0.9f;
+            var ry = halfH * 0.9f;
+            var spikes = Math.Max(11, Math.Min(22, (int)Math.Round(Math.Sqrt(rx * ry) / 9)));
+            Pt[] outline = null;
+            for (var attempt = 0; attempt < 120; attempt++)
+            {
+                outline = Burst(centre, rx, ry, spikes, seed, 0.76f, 0.88f);
+                var fill = outline.Select(p => centre + (p - centre) * BurstFill).ToArray();
+                if (turned.All(p => Inside(fill, p)))
+                    return outline;
+                rx *= 1.03f;
+                ry *= 1.03f;
+            }
+            return outline;
+        }
+
+        /// <summary>Whether a point is inside a polygon (even-odd).</summary>
+        public static bool Inside(Pt[] polygon, Pt point)
+        {
+            var inside = false;
+            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+            {
+                var a = polygon[i];
+                var b = polygon[j];
+                if ((a.Y > point.Y) != (b.Y > point.Y) && point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X)
+                    inside = !inside;
+            }
+            return inside;
         }
 
         /// <summary>A rectangle's path with a slight wobble: the panel's border, inset by <paramref name="inset"/> and swaying by up to <paramref name="wobble"/>.</summary>

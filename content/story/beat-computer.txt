@@ -1,0 +1,55 @@
+# B6 "The results file" (tickets 32 and 34): the story beat before the inside-the-computer battle, as five comic panels, 1920 x 1080 each, in
+# the same look and viewer as B1 (content/story/beat-fungal.txt; content/story/intro.txt documents the frames of reference; the grammar is in
+# SDFPipeline/Story/StoryFile.cs). The campaign plays it over Computer.unity, loaded and held, then CLICK TO PLAY lets the match go.
+# 42 is "they", Chanterelle Prime is "he".
+#
+# The stage is the computer level as it is (content/levels/computer.level: the motherboard at 250 times life size, in the closed case): one
+# theme, so the panels add only players, and there is no scoreboard model. The scoreboard is therefore not drawn: the narrator's caption and
+# 42 read out what it says. No sfx in this comic. The red RAM bank fortress is the west wall of every shot (x = -80..-44), its spawn at
+# (-62, 21) facing +x, the LED strip at 3 m up on the walls. The three scouts stand there, 42 in front, Mushroom 99 at their back towards -z and
+# Mushroom 7 towards +z (seen from the east, 99 is on the right and 7 on the left). The scouts are
+# 1.6 m tall. The Ref has no body: he is the sky box.
+# Actors: "Mushroom 42", "Mushroom 7", "Mushroom 99" (the red amanita scouts).
+# Everyone is introduced by their own earlier beat (42 and 7 in B1, 99 in B4, the Ref in B3), so there are no intro notes; the results file is told by a caption and 42.
+#
+# Staging (yaw: 0 faces +z, 90 +x; the cameras look at the faces from the east / north side so that the faces read):
+#   42 (-60.5, 0, 21), 99 (-62.4, 0, 19), 7 (-62.8, 0, 23.2). Each scout is turned to its panel's camera; no body tilts.
+
+format 1
+
+# 1. Inside the computer: low and wide from the east, the three scouts small at the foot of the RAM bank, the case's fan hum
+panel 1 stage=computer
+    camera pos=(-50, 1.6, 26) rot=(-6, 239.9, 0) fov=58
+    actor "Mushroom 42" pos=(-60.5, 0, 21) rot=(0, 66, 0)
+    actor "Mushroom 99" pos=(-62.4, 0, 19) rot=(0, 72, 0)
+    actor "Mushroom 7" pos=(-62.8, 0, 23.2) rot=(0, 60, 0)
+    caption text="Arena seven: inside the computer. 42's own." anchor=(0.26, 0.1)
+
+# 2. The scoreboard: from the ground in front of 42, wide eyes, the RAM bank behind them
+panel 2 stage=computer
+    camera pos=(-57.5, 0.9, 22.3) rot=(-8, 246.6, 0) fov=55
+    actor "Mushroom 42" pos=(-60.5, 0, 21) rot=(0, 66, 0)
+    actor "Mushroom 42" part=eye-left pos=(0, 0.04, 0)
+    actor "Mushroom 42" part=eye-right pos=(0, 0.04, 0)
+    caption text="The scoreboard says: CHAMPION: CHANTERELLE PRIME. Last edited: this morning." anchor=(0.3, 0.1)
+    balloon speaker=42 text="They edited the *results file!*" anchor=(0.74, 0.45) tail="Mushroom 42"
+
+# 3. Delete it: Mushroom 99 close, from the south-east, flat-voiced
+panel 3 stage=computer
+    camera pos=(-59.4, 1.5, 18.2) rot=(3, 285, 0) fov=40
+    actor "Mushroom 99" pos=(-62.4, 0, 19) rot=(0, 105, 0)
+    balloon speaker="Mushroom 99" text="Delete it." anchor=(0.5, 0.14) tail="Mushroom 99"
+
+# 4. The timers: wide from the east, the three scouts side by side low in the frame, looking at the camera, the Ref reading from the sky
+panel 4 stage=computer
+    camera pos=(-51, 1.4, 21.3) rot=(-3, 270, 0) fov=55
+    actor "Mushroom 42" pos=(-60.5, 0, 21) rot=(0, 90, 0)
+    actor "Mushroom 99" pos=(-62.4, 0, 19) rot=(0, 98, 0)
+    actor "Mushroom 7" pos=(-62.8, 0, 23.2) rot=(0, 82, 0)
+    sky speaker=Ref text="Respawn timers: blue, *three* seconds. Red, five. That seems... fine?" anchor=(0.7, 0.3)
+
+# 5. It does not seem fine: Mushroom 7 close, from the east, deadpan
+panel 5 stage=computer
+    camera pos=(-59.85, 1.5, 23.7) rot=(3, 260, 0) fov=40
+    actor "Mushroom 7" pos=(-62.8, 0, 23.2) rot=(0, 80, 0)
+    balloon speaker="Mushroom 7" text="It does *not* seem fine." anchor=(0.5, 0.14) tail="Mushroom 7"

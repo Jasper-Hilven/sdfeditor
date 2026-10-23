@@ -1,0 +1,57 @@
+# B4 "Down the hall" (tickets 32 and 34): the story beat before the kitchen battle, as four comic panels, 1920 x 1080 each, in the same look and
+# viewer as B1 (content/story/beat-fungal.txt; content/story/intro.txt documents the frames of reference, StoryFile.cs the grammar). The campaign
+# plays it over Kitchen.unity, loaded and held, then CLICK TO PLAY lets the match go. 42 is "they".
+#
+# The stage is the kitchen level as it is (content/levels/kitchen.level, the worktop at 60 times life size): one theme, so the panels add only
+# players. The red side: the bread box stands at x = -69.8 .. -54.2, z = -12 .. 12 (open front towards +x), the red spawn is south of it at
+# (-54, -22) facing +x, and the hob (black glass, x -17.5 .. 17.5, z -21.5 .. 9.5) lies 36 m east with the 13 m kettle on it, the four burners round
+# it, a plate stack at (-34, -2) and a pepper mill at (-26, -21) between. The scouts are 1.6 m tall, so everything in view is "big".
+# The group stands by the spawn: 42 at (-54, -22), Mushroom 13 at (-53, -24), Mushroom 99 at (-55.5, -20.5). The cameras stand to the south west
+# of them, low, looking east so that the hob and the kettle are the backdrop (yaw = atan2(dx, dz) towards the target; smaller yaw is screen right,
+# as in B1); the scouts are turned half to us and half to the hob so that their faces read.
+# Mushroom 13 has been introduced in B2: no note. Mushroom 99 is new: the note in panel 4. 42's note was B1's.
+# Actors: "Mushroom 42", "Mushroom 13", "Mushroom 99" (the red amanita scouts). The balloons carry no names.
+
+format 1
+
+# 1. Preheated: low and wide from the south west, the three by the spawn on the right, the hob, the kettle and the pepper mill on the left
+panel 1 stage=kitchen
+    camera pos=(-57, 1.4, -26.5) rot=(-4, 45, 0) fov=75
+    actor "Mushroom 42" pos=(-54, 0, -22) rot=(0, 150, 0)
+    actor "Mushroom 13" pos=(-53, 0, -24) rot=(0, 160, 0)
+    actor "Mushroom 99" pos=(-55.5, 0, -20.5) rot=(0, 140, 0)
+    caption text="Arena five: the kitchen. Preheated." anchor=(0.6, 0.1)
+
+# 2. Big and hot: Mushroom 13 close, chin up, a hand out at the whole worktop, the plates and the hob behind
+panel 2 stage=kitchen
+    camera pos=(-56.2, 1.2, -26) rot=(5, 58, 0) fov=45
+    actor "Mushroom 13" pos=(-53, 0, -24) rot=(0, 232, 0)
+    actor "Mushroom 13" part=body rot=(-12, 0, 0)
+    actor "Mushroom 13" part=hand-right pos=(0, 0.5, 0.25)
+    balloon speaker="Mushroom 13" text="Why is everything so *big* and so *hot*?" anchor=(0.72, 0.16) tail="Mushroom 13"
+
+# 3. The hob: 42 in the middle, guilty, the kettle over their shoulder, 13 and 99 on either side looking at them
+panel 3 stage=kitchen
+    camera pos=(-58.5, 1.9, -24.1) rot=(4, 66, 0) fov=46
+    actor "Mushroom 42" pos=(-54, 0, -22) rot=(0, 235, 0)
+    actor "Mushroom 42" part=body rot=(0, 0, -6)
+    actor "Mushroom 42" part=hand-left pos=(0, 0.45, 0.1)
+    actor "Mushroom 13" pos=(-53, 0, -24) rot=(0, 300, 0)
+    actor "Mushroom 99" pos=(-55.5, 0, -20.5) rot=(0, 175, 0)
+    spores at=(-11, 0.5, -15) count=24 radius=3 style=gold
+    balloon speaker=42 text="Someone left the hob on." anchor=(0.27, 0.1) tail="Mushroom 42"
+    balloon speaker=42 text="That someone was *me*." anchor=(0.74, 0.12) tail="Mushroom 42"
+
+# 4. Hot, and the toaster: two frames, 99 face on and flat, then 13 with a hand up, close and low
+panel 4 stage=kitchen
+    actor "Mushroom 99" pos=(-55.5, 0, -20.5) rot=(0, 225, 0)
+    actor "Mushroom 99" part=hand-right pos=(0, 0.3, 0.2)
+    actor "Mushroom 13" pos=(-53, 0, -24) rot=(0, 235, 0)
+    actor "Mushroom 13" part=hand-right pos=(0, 0.5, 0.45)
+    frame x=0 y=0 w=0.5 h=1
+        camera pos=(-58.55, 1.1, -22.4) rot=(2, 58, 0) fov=40
+        balloon speaker="Mushroom 99" text="Hot." anchor=(0.5, 0.12) tail="Mushroom 99"
+        note text="Mushroom 99. Rations words." anchor=(0.3, 0.86) at="Mushroom 99"
+    frame x=0.5 y=0 w=0.5 h=1
+        camera pos=(-55.3, 0.9, -25.6) rot=(0, 55.2, 0) fov=45
+        balloon speaker="Mushroom 13" text="Nobody touch anything. Especially the *toaster*." anchor=(0.5, 0.12) tail="Mushroom 13"

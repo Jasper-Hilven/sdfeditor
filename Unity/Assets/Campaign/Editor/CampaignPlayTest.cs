@@ -17,7 +17,9 @@ namespace SdfCampaign.Editor
     /// intro (skipped) into the Meadow with its setup, a win recorded by two captures, the end (slow-down, RED WINS! banner, Victory with
     /// the medal, RETRY in place, a second win and MENU; ticket 32.6), back to the title (CONTINUE and LEVEL SELECT now there, NEW CAMPAIGN
     /// asking first), CONTINUE on to Fungal, two losses (Defeat with Prime's taunt, RETRY in place, then RETRY EASIER), a pause and
-    /// QUIT TO MENU, then Level Select, PLAY on the Meadow and a win whose CONTINUE goes back to Level Select. Checks the persistent GUI,
+    /// QUIT TO MENU, then Level Select, PLAY on the Meadow and a win whose CONTINUE goes back to Level Select. B1 plays as its comic when its
+    /// panels are rendered (ticket 34: over the held Fungal scene, Next, Skip, the hand-over; replayed from the gallery over Boot), else as
+    /// shots. Checks the persistent GUI,
     /// the setup being spent, the time scale and the scene names after each step, and fails on any error logged. <c>Unity -batchmode -projectPath Unity -executeMethod
     /// SdfCampaign.Editor.CampaignPlayTest.Run</c> (without -quit: it quits when done, exit code 1 on a failure). It clears the saved
     /// campaign first and again after.
@@ -37,6 +39,7 @@ namespace SdfCampaign.Editor
         private static float skillBefore;
         private static bool warmDone, sawCaption, sawBeatCaption;
         private static int beatPhase, replayPhase, endingPhase;
+        private static bool sawComic;
         private static string replayNext;
 
         static CampaignPlayTest()
@@ -282,10 +285,10 @@ namespace SdfCampaign.Editor
                         var wanted = GuiCampaign.IsAvailable(battles[card].scene) ? "Win the previous arena" : "Coming soon";
                         Expect(!levels.cards[card].play.gameObject.activeSelf && levels.cards[card].coverText.text == wanted, $"{battles[card].title} is locked and says '{wanted}'");
                     }
-                    // Of the later arenas, the kitchen (ticket 28) is the only one with no level file yet
+                    // Every arena has its level file now (the kitchen came last, ticket 28)
                     var levelFiles = Path.Combine(Application.dataPath, "..", "..", "content", "levels");
                     var withoutLevel = battles.Where(b => !File.Exists(Path.Combine(levelFiles, b.scene.ToLowerInvariant() + ".level"))).Select(b => b.scene).ToList();
-                    Expect(withoutLevel.SequenceEqual(new[] { "Kitchen" }), "only the Kitchen has no level file yet: " + string.Join(", ", withoutLevel));
+                    Expect(withoutLevel.Count == 0, "every arena has its level file; missing: " + string.Join(", ", withoutLevel));
                     levels.difficulty.Set((int)Difficulty.Hard, true);
                     Expect(runner.Progress.Difficulty == Difficulty.Hard, "the selector sets the difficulty");
                     flow.Execute(GuiCommandId.PlayLevel, GuiScreen.Hud, CampaignDefinition.Meadow);
@@ -312,9 +315,18 @@ namespace SdfCampaign.Editor
                     Expect(CampaignRunner.CanWatch(runner.Definition.Find("beat-fungal")), "a seen beat can be watched");
                     flow.Execute(GuiCommandId.WatchCutscene, GuiScreen.Hud, "beat-fungal");
                     return true;
-                case 16: // the replay: held scene, the beat plays, a skip ends it, back in the Story gallery, nothing recorded
+                case 16: // the replay: held scene, the beat plays (or its comic, over the gallery), a skip ends it, back in the Story gallery, nothing recorded
                     if (replayPhase == 0)
                     {
+                        if (StoryIntro.Active != null)
+                        {
+                            sawComic = true;
+                            Expect(Active == CampaignRunner.BootScene && !flow.GetComponent<Canvas>().enabled, "a comic replays over the gallery, the GUI hidden, no scene loaded");
+                            replayNext = runner.Progress.NextId;
+                            StoryIntro.Active.skip.onClick.Invoke();
+                            replayPhase = 1;
+                            return false;
+                        }
                         if (Active != "Fungal" || runner.loader.Busy || Match.Current == null || UnityEngine.Object.FindAnyObjectByType<BeatPlayer>() == null)
                             return Waiting(waited, "the replay of B1");
                         Expect(Match.Current.Held && flow.screen == GuiScreen.Cutscene, "the replay holds the match and shows the beat");
@@ -324,9 +336,9 @@ namespace SdfCampaign.Editor
                         replayPhase = 1;
                         return false;
                     }
-                    if (Active != CampaignRunner.BootScene || runner.loader.Busy)
+                    if (Active != CampaignRunner.BootScene || runner.loader.Busy || StoryIntro.Active != null)
                         return Waiting(waited, "Boot after the replay");
-                    Expect(flow.screen == GuiScreen.Story, "a replay ends in the Story gallery, got " + flow.screen);
+                    Expect(flow.screen == GuiScreen.Story && flow.GetComponent<Canvas>().enabled, "a replay ends in the Story gallery, got " + flow.screen);
                     Expect(runner.Progress.NextId == replayNext, "a replay records nothing");
                     flow.Execute(GuiCommandId.Continue, GuiScreen.Hud);
                     return true;
@@ -526,6 +538,11 @@ namespace SdfCampaign.Editor
         private static bool DriveBeat(GuiFlow flow, float waited, string beatId, string battleId)
         {
             var player = UnityEngine.Object.FindAnyObjectByType<BeatPlayer>();
+            // A beat whose panels are rendered (ticket 34) plays as its comic instead
+            if (beatPhase == 0 && UnityEngine.Object.FindAnyObjectByType<ComicBeatPlayer>() != null)
+                beatPhase = 10;
+            if (beatPhase >= 10)
+                return DriveComicBeat(flow, waited, beatId, battleId);
             switch (beatPhase)
             {
                 case 0:
@@ -573,6 +590,51 @@ namespace SdfCampaign.Editor
             }
         }
 
+        // A beat as comic panels over its held battle scene (ticket 34): the GUI hidden under the viewer, Next turns a panel, Skip ends it, then
+        // the hand-over's click (automatic here) lets the match go; true when it has been handed over and checked
+        private static bool DriveComicBeat(GuiFlow flow, float waited, string beatId, string battleId)
+        {
+            var player = UnityEngine.Object.FindAnyObjectByType<ComicBeatPlayer>();
+            var viewer = StoryIntro.Active;
+            switch (beatPhase)
+            {
+                case 10:
+                    sawComic = true;
+                    var m = Match.Current;
+                    Expect(player != null && player.Comic == beatId && viewer != null, beatId + " plays as panels after the load");
+                    Expect(m.Held && !m.YouFree, "the match is held under the panels");
+                    Expect(!flow.GetComponent<Canvas>().enabled, "the GUI is hidden behind the panels");
+                    Expect(runner.Current.id == battleId && MatchSetup.Pending == null, "the battle is the current step, its setup spent");
+                    Expect(!runner.Progress.Seen(beatId), "not seen until it is over");
+                    Expect(viewer.panels.Length >= 3, $"the comic has its panels: {viewer.panels.Length}");
+                    Expect(viewer.current.texture == viewer.panels[0], "the first panel shows");
+                    viewer.next.onClick.Invoke();
+                    Expect(viewer.incoming.texture == viewer.panels[1], "Next brings the second panel");
+                    beatPhase = 11;
+                    return false;
+                case 11: // Skip from the second panel: the hand-over
+                    if (viewer != null)
+                    {
+                        Expect(Match.Current.Held, "the match stays held through the panels");
+                        viewer.skip.onClick.Invoke();
+                    }
+                    beatPhase = 12;
+                    return false;
+                case 12:
+                    if (player != null || StoryIntro.Active != null)
+                        return Waiting(waited, "the hand-over after " + beatId);
+                    var live = Match.Current;
+                    Expect(flow.GetComponent<Canvas>().enabled, "the GUI is back after the panels");
+                    Expect(!live.Held && flow.screen == GuiScreen.Hud, "the hand-over let the match go onto the HUD");
+                    Expect(runner.Progress.Seen(beatId), "the beat is seen once it is over");
+                    Expect(flow.Match.caption.line == "", "the caption is cleared");
+                    beatPhase = 3;
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
         // The match's end as the GUI plays it: the time slows (seen on the way), the banner shows at full speed, then the screen; true on it
         private static bool WaitForEnd(GuiFlow flow, GuiScreen end, float waited, string what)
         {
@@ -607,7 +669,8 @@ namespace SdfCampaign.Editor
             PlayerPrefs.DeleteKey(CampaignProgress.Key);
             foreach (var error in errors)
                 Debug.Log("SDF Campaign play test error: " + error);
-            Debug.Log($"SDF Campaign play test: {errors.Count} errors (the intro viewer {(sawIntro ? "played and was skipped" : "is not built here, so the intro was passed over")})");
+            Debug.Log($"SDF Campaign play test: {errors.Count} errors (the intro viewer {(sawIntro ? "played and was skipped" : "is not built here, so the intro was passed over")}; " +
+                      $"B1 {(sawComic ? "played as comic panels" : "played as shots, its panels not rendered")})");
             EditorApplication.Exit(errors.Count == 0 ? 0 : 1);
         }
     }

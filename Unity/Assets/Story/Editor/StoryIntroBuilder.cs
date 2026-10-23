@@ -14,18 +14,30 @@ namespace SdfStory.Editor
     /// loads: a canvas with the panel in a 16:9 frame over an ink backdrop, and the GUI's own button prefab for Next (bottom right) and
     /// Skip (top right), 5 canvas units from the screen edges. The panels (<c>Assets/Story/Panels/panel-NN.jpg</c>) and the music
     /// (<c>Assets/Story/Audio/intro-music.ogg</c>, provided by the user; run this again after adding it) are references of the prefab,
-    /// which is in Resources so that they are not loaded until the intro starts. Tools > SDF Story > Build Intro Viewer, or in batch:
+    /// which is in Resources so that they are not loaded until the intro starts. The same screen is saved a second time without the intro's
+    /// panels as <c>Assets/Story/Resources/StoryViewer.prefab</c> (ticket 34), the one <see cref="StoryIntro.Play"/> shows every other comic in,
+    /// so that a story beat does not load the intro's panels. Tools > SDF Story > Build Intro Viewer, or in batch:
     /// <c>-executeMethod SdfStory.Editor.StoryIntroBuilder.BuildInBatch</c>.
     /// </summary>
     public static class StoryIntroBuilder
     {
         public const string PrefabPath = "Assets/Story/Resources/StoryIntro.prefab";
+        public const string ViewerPath = "Assets/Story/Resources/StoryViewer.prefab";
         public const string PanelFolder = "Assets/Story/Panels";
         public const string MusicPath = "Assets/Story/Audio/intro-music.ogg";
         public const int PanelCount = 12;
 
         [MenuItem("Tools/SDF Story/Build Intro Viewer")]
         public static void Build()
+        {
+            if (!BuildOne(ViewerPath, false) || !BuildOne(PrefabPath, true))
+                return;
+            AssetDatabase.SaveAssets();
+            Debug.Log($"StoryIntroBuilder: built {PrefabPath} and {ViewerPath}");
+        }
+
+        // The screen, with the intro's panels or (the viewer of the other comics) none; false when the GUI's button is missing
+        private static bool BuildOne(string path, bool introPanels)
         {
             GuiAssets.EnsureTmpEssentials();
             var kit = GuiAssets.Load();
@@ -34,7 +46,7 @@ namespace SdfStory.Editor
             if (buttonPrefab == null)
             {
                 Debug.LogError("StoryIntroBuilder: the GUI's Button prefab is missing; run Tools > SDF GUI > Rebuild Prefabs and Scene first");
-                return;
+                return false;
             }
 
             var root = Object("Story Intro", null);
@@ -80,21 +92,20 @@ namespace SdfStory.Editor
             intro.skip = ButtonOf(buttonPrefab, canvasObject.transform, "Skip Button", "SKIP", GuiPalette.Dusk, TopRight, new Vector2(-5, -5),
                 new Vector2(200, 76), 36, 0);
 
-            intro.panels = new Texture2D[PanelCount];
-            for (var i = 0; i < PanelCount; i++)
+            intro.panels = new Texture2D[introPanels ? PanelCount : 0];
+            for (var i = 0; i < intro.panels.Length; i++)
             {
-                var path = $"{PanelFolder}/panel-{i + 1:00}.jpg";
-                intro.panels[i] = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                var panelPath = $"{PanelFolder}/panel-{i + 1:00}.jpg";
+                intro.panels[i] = AssetDatabase.LoadAssetAtPath<Texture2D>(panelPath);
                 if (intro.panels[i] == null)
-                    Debug.LogWarning($"StoryIntroBuilder: {path} is missing; the viewer will skip that panel");
+                    Debug.LogWarning($"StoryIntroBuilder: {panelPath} is missing; the viewer will skip that panel");
             }
             intro.music = AssetDatabase.LoadAssetAtPath<AudioClip>(MusicPath);
-            if (intro.music == null)
-                Debug.LogWarning($"StoryIntroBuilder: {MusicPath} does not exist yet (the user provides it); the intro will play without music until this is run again");
+            if (intro.music == null && introPanels)
+                Debug.LogWarning($"StoryIntroBuilder: {MusicPath} does not exist yet (the user provides it); the comics will play without music until this is run again");
 
-            Save(root, PrefabPath);
-            AssetDatabase.SaveAssets();
-            Debug.Log($"StoryIntroBuilder: built {PrefabPath}");
+            Save(root, path);
+            return true;
         }
 
         public static void BuildInBatch() => Build();

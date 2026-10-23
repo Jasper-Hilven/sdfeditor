@@ -13,8 +13,9 @@ namespace SdfCampaign
     /// order (<see cref="Continue"/>, <see cref="PlayLevel"/>, <see cref="Next"/>); hands each battle's setup to the match through
     /// <see cref="MatchSetup.Pending"/> and clears it once the match has read it; and records the match's end. Steps whose scene is not
     /// in the build are skipped (the save's <c>NextStep</c> does that, with a log here). The story beats (32.7) play in their battle's
-    /// scene, loaded once for the beat and its match (<see cref="BeatPlayer"/>); the meadow's first play starts with its warm-up
-    /// (<see cref="WarmUpPlayer"/>). The ending (a beat of the same sequencer, the Ending screen) and the credits (<see cref="CreditsPlayer"/>,
+    /// scene, loaded once for the beat and its match: as comic panels through the story viewer when the beat's panels are rendered
+    /// (<see cref="ComicBeatPlayer"/>, ticket 34), else as shots (<see cref="BeatPlayer"/>); see <see cref="Beats.FormOf"/>. The meadow's first play starts with its warm-up
+    /// (<see cref="WarmUpPlayer"/>). The ending (its comic when rendered, else a beat of the same sequencer, the Ending screen) and the credits (<see cref="CreditsPlayer"/>,
     /// the Credits screen) play over Boot's backdrop (ticket 32.8), since Home.unity is editor-only; completing the credits saves the campaign
     /// as complete and goes to the title.
     /// </summary>
@@ -244,9 +245,13 @@ namespace SdfCampaign
         // The ending and the credits play over Boot's backdrop
         private static bool OverBoot(CampaignStep step) => step.id == CampaignDefinition.Ending || step.kind == StepKind.Credits;
 
-        /// <summary>Whether a step can be watched again from the Story gallery: the intro (comic panels), a beat, the ending, the credits or a step with a cutscene player.</summary>
+        /// <summary>Whether a step can be watched again from the Story gallery: the intro (comic panels), a beat (panels or shots), the ending, the credits or a step with a cutscene player.</summary>
         public static bool CanWatch(CampaignStep step) =>
-            step.id == CampaignDefinition.Intro || Beats.Has(step.id) || OverBoot(step) || CutsceneHandler != null && step.kind == StepKind.Cutscene;
+            step.id == CampaignDefinition.Intro || FormOf(step) != BeatForm.None || OverBoot(step) || CutsceneHandler != null && step.kind == StepKind.Cutscene;
+
+        /// <summary>How a cutscene step's beat plays (ticket 34): its comic when the story viewer has its panels, else its shots, else none.</summary>
+        public static BeatForm FormOf(CampaignStep step) =>
+            step.IsBattle || step.id == CampaignDefinition.Intro ? BeatForm.None : Beats.FormOf(step.id, StoryIntro.HasComic(step.id));
 
         /// <summary>A replay from the Story gallery: nothing is recorded, and the way back is the gallery.</summary>
         public void WatchCutscene(string id)
@@ -259,7 +264,7 @@ namespace SdfCampaign
             }
             if (step.id == CampaignDefinition.Intro)
             {
-                PlayIntro(() => flow.Show(GuiScreen.Story));
+                PlayComic(step.id, () => flow.Show(GuiScreen.Story));
                 return;
             }
             if (OverBoot(step))
@@ -267,11 +272,16 @@ namespace SdfCampaign
                 PlayOverBoot(step, () => QuitToTitle(GuiScreen.Story));
                 return;
             }
-            var beat = Beats.Find(step.id);
-            if (beat != null)
+            switch (FormOf(step))
             {
-                PlayBeat(step, beat, replay: true);
-                return;
+                // A beat's panels need no scene behind them: replayed here, over the gallery's backdrop, as the intro is
+                case BeatForm.Comic:
+                    flow.Show(GuiScreen.Cutscene);
+                    PlayComic(step.id, () => flow.Show(GuiScreen.Story));
+                    return;
+                case BeatForm.Shots:
+                    PlayBeat(step, Beats.Find(step.id), replay: true);
+                    return;
             }
             loader.Load(step.scene, null, null, () =>
             {
@@ -321,12 +331,12 @@ namespace SdfCampaign
             }
         }
 
-        // The intro is 31's comic panels over Boot, no scene of its own: the GUI is hidden while they play
-        private void PlayIntro(Action then)
+        // A comic over what is up, no scene of its own (the intro over Boot, a replayed beat over the gallery): the GUI is hidden while it plays
+        private void PlayComic(string comic, Action then)
         {
             var canvas = flow.GetComponent<Canvas>();
             canvas.enabled = false;
-            StoryIntro.Begin(() =>
+            StoryIntro.Play(comic, () =>
             {
                 canvas.enabled = true;
                 then();
@@ -337,7 +347,7 @@ namespace SdfCampaign
         {
             if (step.id == CampaignDefinition.Intro)
             {
-                PlayIntro(() => FinishCutscene(step));
+                PlayComic(step.id, () => FinishCutscene(step));
                 return;
             }
             if (OverBoot(step))
@@ -355,11 +365,14 @@ namespace SdfCampaign
                 });
                 return;
             }
-            var beat = Beats.Find(step.id);
-            if (beat != null)
+            switch (FormOf(step))
             {
-                PlayBeat(step, beat, replay: false);
-                return;
+                case BeatForm.Comic:
+                    PlayBeat(step, null, replay: false);
+                    return;
+                case BeatForm.Shots:
+                    PlayBeat(step, Beats.Find(step.id), replay: false);
+                    return;
             }
             if (CutsceneHandler == null)
             {
@@ -390,15 +403,19 @@ namespace SdfCampaign
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             BeatPlayer ending = null;
+            // The ending's comic, once its panels are rendered (ticket 34), else its captions over the Ending screen
+            var comic = step.kind != StepKind.Credits && StoryIntro.HasComic(step.id);
             void Prepare()
             {
-                if (step.kind != StepKind.Credits)
+                if (step.kind != StepKind.Credits && !comic)
                     ending = BeatPlayer.Prepare(Beats.Find(step.id), BeatWorld.Backdrop(), flow, then, handOver: false, GuiScreen.Ending);
             }
             void Begin()
             {
                 if (step.kind == StepKind.Credits)
                     CreditsPlayer.Begin(flow, then);
+                else if (comic)
+                    PlayComic(step.id, then);
                 else
                     ending.Begin();
             }
@@ -459,8 +476,9 @@ namespace SdfCampaign
 
         /// <summary>
         /// Plays a beat in its battle's scene: the scene is loaded with the battle's setup, held, the beat plays over it, and its
-        /// hand-over (CLICK TO PLAY) lets the match go (or starts the warm-up). A replay (the Story gallery) records nothing and goes back
-        /// to the gallery when done.
+        /// hand-over (CLICK TO PLAY) lets the match go (or starts the warm-up). Without <paramref name="beat"/> the beat is its comic (ticket 34):
+        /// the panels show over the held scene from the moment it is loaded, so the black of the load cuts straight to the first panel. A replay
+        /// (the Story gallery; shots only, a comic replays over the gallery) records nothing and goes back to the gallery when done.
         /// </summary>
         private void PlayBeat(CampaignStep step, Beat beat, bool replay)
         {
@@ -492,6 +510,7 @@ namespace SdfCampaign
             held.warmUp = false;
             MatchSetup.Pending = held;
             BeatPlayer player = null;
+            ComicBeatPlayer panels = null;
             loader.Load(step.scene, null, () =>
             {
                 if (replay)
@@ -504,6 +523,15 @@ namespace SdfCampaign
                 var live = Match.Current;
                 if (live == null)
                     return;
+                if (beat == null)
+                {
+                    panels = ComicBeatPlayer.Play(step.id, live, flow, () =>
+                    {
+                        Progress.CompleteCutscene(step.id);
+                        BeginMatch();
+                    });
+                    return;
+                }
                 player = BeatPlayer.Prepare(beat, BeatWorld.Of(live), flow, () =>
                 {
                     if (replay)
@@ -516,9 +544,10 @@ namespace SdfCampaign
                 }, handOver: !replay);
             }, () =>
             {
+                // A comic is showing since the load; shots start now
                 if (player != null)
                     player.Begin();
-                else
+                else if (panels == null)
                 {
                     // No match in the scene to play over: the beat is passed over
                     Debug.LogWarning($"Campaign: {step.scene} has no match; {step.id} not played");

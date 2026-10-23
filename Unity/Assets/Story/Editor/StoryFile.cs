@@ -79,7 +79,7 @@ namespace SDFPipeline.Story
     }
 
     /// <summary>The kinds of lettering.</summary>
-    public enum StoryTextKind { Balloon, Sky, Caption, Sfx }
+    public enum StoryTextKind { Balloon, Sky, Caption, Note, Sfx }
 
     /// <summary>One piece of lettering in a frame.</summary>
     public sealed class StoryText
@@ -89,10 +89,12 @@ namespace SDFPipeline.Story
         public string Speaker;
         public string Text;
         public StoryVec2 Anchor;
-        /// <summary>A balloon's tail points at a spot in the frame, or at an actor by name (the capture projects it); a sky box has none.</summary>
+        /// <summary>A balloon's tail (or a note's arrow, <c>at=</c>) points at a spot in the frame, or at an actor by name (the capture projects it); a sky box has none.</summary>
         public StoryVec2? TailAt;
         public string TailActor;
         public float Size, Angle;
+        /// <summary>An SFX's burst colour, one of <see cref="StoryFile.SfxColors"/>; null when the file leaves it out (then <see cref="StoryFile.SfxColorFor"/> picks one from the text).</summary>
+        public string Color;
         public int Line;
         public bool HasTail => TailAt.HasValue || TailActor != null;
     }
@@ -124,7 +126,7 @@ namespace SDFPipeline.Story
     public sealed class StoryPanel
     {
         public int Number;
-        /// <summary>One of <see cref="StoryFile.Stages"/>.</summary>
+        /// <summary>One of <see cref="StoryFile.Stages"/>, or a battle level by its name (<see cref="StoryFile.IsLevelStage"/>).</summary>
         public string Stage;
         public StoryCamera Camera;
         public readonly List<StoryActorPose> Actors = new List<StoryActorPose>();
@@ -139,17 +141,18 @@ namespace SDFPipeline.Story
     }
 
     /// <summary>
-    /// content/story/intro.txt, read (ticket 31.4): the twelve panels of the story intro as data, which the editor's capture poses, renders and
-    /// letters. A line is a command with names and name=value arguments; '#' starts a comment; indentation is only for reading; a name or
+    /// A comic of content/story/, read (tickets 31.4, 34): one file per comic, named as the campaign step that plays it: intro.txt, the twelve
+    /// panels of the story intro, and beat-&lt;level&gt;.txt, a story beat between battles (beat-fungal.txt is B1, "Nightfall"). The editor's
+    /// capture poses, renders and letters the panels. A line is a command with names and name=value arguments; '#' starts a comment; indentation is only for reading; a name or
     /// text with spaces is in double quotes (no quote inside). Points are (x, y, z) in the stage's frame (the pipeline's); frame-space points
     /// are (x, y) from 0 to 1 from the frame's top left. Texts may carry *italics* for the lettering.
     /// <code>
     /// format 1
-    /// panel 3 stage=home                       # stage: home (Home.unity), warp (an empty stage) or meadow (Meadow.unity)
+    /// panel 3 stage=home                       # stage: home (Home.unity), warp (an empty stage) or a level: meadow (Meadow.unity), fungal ...
     ///   camera pos=(x, y, z) rot=(pitch, yaw, roll) fov=40
     ///   actor "Mushroom 42" pos=.. rot=.. scale=..                 # an actor as a whole, absolute (scale a number or a point)
     ///   actor "Mushroom 42" part=hand-left pos=.. rot=.. scale=..  # a part of it, as a change on its rest pose
-    ///   screen texture=screen-victory glitch=0 bulge=0             # the monitor's picture (screen-meadow, -victory, -glitch, -prime)
+    ///   screen texture=screen-victory glitch=0 bulge=0             # the monitor's picture (screen-meadow, -cover, -game, -victory, -glitch, -prime, and the ending's -ending-banner, -ending-victory, -ending-title)
     ///   lamp intensity=2.5                                         # the Lamp light; light Monitor intensity=.. color=(r, g, b) for any
     ///   frame x=0 y=0 w=0.5 h=1                                    # an inset frame; devices and lettering below belong to it
     ///     camera ...                                               # a camera after a frame is that frame's own
@@ -160,30 +163,83 @@ namespace SDFPipeline.Story
     ///     balloon speaker=42 text="..." anchor=(x, y) tail=(x, y)   # or tail="Mushroom 42", an actor
     ///     sky speaker=Prime text="..." anchor=(x, y)               # the jagged box in the sky
     ///     caption text="..." anchor=(x, y)
-    ///     sfx text="BOING" anchor=(x, y) size=1 angle=-8
+    ///     note text="..." anchor=(x, y) at=(x, y)                  # the narrator's small side note, an arrow at a spot; or at="Mushroom 42", an actor
+    ///     sfx text="BOING" anchor=(x, y) size=1 angle=-8 color=orange   # color is one of yellow, orange, red, pink, blue, green, purple;
+    ///                                                              # left out, it is picked from the text (the same text always gets the same colour);
+    ///                                                              # the lettering's own colour is chosen to contrast with the burst
     /// </code>
     /// 42 is "they" and Prime "he" in every text. Errors name the file and the line.
     /// </summary>
     public sealed class StoryFile
     {
-        public static readonly string[] Stages = { "home", "warp", "meadow" };
-        public static readonly string[] ScreenTextures = { "screen-meadow", "screen-victory", "screen-glitch", "screen-prime" };
-        public static readonly string[] Speakers = { "42", "Prime", "Mushroom 7", "narrator" };
+        /// <summary>
+        /// The capture's own stages: 42's room and the empty warp stage. Any other stage is a battle level by its file's name
+        /// (content/levels/fungal.level is <c>fungal</c>, rendered in Assets/Scenes/Fungal.unity), so a new beat's comic needs no new stage here.
+        /// </summary>
+        public static readonly string[] Stages = { "home", "warp" };
+        public static readonly string[] ScreenTextures = { "screen-meadow", "screen-cover", "screen-game", "screen-victory", "screen-glitch", "screen-prime", "screen-ending-banner", "screen-ending-victory", "screen-ending-title" };
+        /// <summary>The cast who letter balloons: 42, Prime, red teammates by name, Prime's fifth player, the Ref (Ref Puffball, a voice from the sky box: no actor), the narrator.</summary>
+        public static readonly string[] Speakers = { "42", "Prime", "Mushroom 7", "Mushroom 13", "Mushroom 99", "Participation Award", "Ref", "narrator" };
         public static readonly string[] DeviceKinds = { "speedlines", "motionlines", "burst", "spores" };
         public static readonly string[] SpeedLineStyles = { "radial", "parallel" };
         public static readonly string[] SporeStyles = { "red", "blue", "gold" };
+        /// <summary>The colours of an SFX's burst, by name.</summary>
+        public static readonly string[] SfxColors = { "yellow", "orange", "red", "pink", "blue", "green", "purple" };
+
+        /// <summary>The burst colour an SFX without <c>color=</c> gets: from a stable hash of its text (case and spaces at the ends do not matter).</summary>
+        public static string SfxColorFor(string text)
+        {
+            uint hash = 2166136261;
+            foreach (var c in (text ?? "").Trim().ToUpperInvariant())
+                hash = (hash ^ c) * 16777619;
+            return SfxColors[(int)(hash % (uint)SfxColors.Length)];
+        }
+
         public static readonly string[] LightNames = { "Lamp", "Monitor" };
 
-        public const string FileName = "intro.txt";
+        /// <summary>The intro's comic; its panels are the viewer's own (Assets/Story/Panels), every other comic's are loaded by name.</summary>
+        public const string Intro = "intro";
+        public const string Extension = ".txt";
+        public const string FileName = Intro + Extension;
+
+        /// <summary>The comic's name: its file's name without the extension (intro, beat-fungal), null for parsed text.</summary>
+        public string Comic;
 
         public readonly List<StoryPanel> Panels = new List<StoryPanel>();
 
-        /// <summary>The file in the content folder (the one holding models, levels, ...).</summary>
-        public static string PathIn(string contentFolder) => Path.Combine(contentFolder, "story", FileName);
+        /// <summary>A comic's file in the content folder (the one holding models, levels, ...); the intro's when no comic is named.</summary>
+        public static string PathIn(string contentFolder, string comic = Intro) => Path.Combine(contentFolder, "story", comic + Extension);
 
-        public static StoryFile Load(string path) => Parse(File.ReadAllText(path), path);
+        /// <summary>The comics in the content folder by name, the intro first and then the rest in name order.</summary>
+        public static List<string> Comics(string contentFolder)
+        {
+            var folder = Path.Combine(contentFolder, "story");
+            var names = new List<string>();
+            if (!Directory.Exists(folder))
+                return names;
+            foreach (var path in Directory.GetFiles(folder, "*" + Extension))
+                names.Add(Path.GetFileNameWithoutExtension(path));
+            names.Sort((a, b) => a == Intro ? (b == Intro ? 0 : -1) : b == Intro ? 1 : string.CompareOrdinal(a, b));
+            return names;
+        }
 
-        public static StoryFile Parse(string text, string source = "story")
+        /// <summary>Whether a stage is a battle level's (rendered in its scene) rather than one of the capture's own <see cref="Stages"/>.</summary>
+        public static bool IsLevelStage(string stage) => Array.IndexOf(Stages, stage) < 0;
+
+        /// <summary>A comic's file; its level stages are checked against the level files next to the story folder (content/levels/&lt;stage&gt;.level).</summary>
+        public static StoryFile Load(string path)
+        {
+            var levels = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(path))) ?? "", "levels");
+            var file = Parse(File.ReadAllText(path), path, stage => File.Exists(Path.Combine(levels, stage + ".level")));
+            file.Comic = Path.GetFileNameWithoutExtension(path);
+            return file;
+        }
+
+        /// <summary>
+        /// Reads a comic's text. <paramref name="isLevel"/> says whether a stage other than <see cref="Stages"/> names a battle level; without
+        /// it any lower-case name is taken as one.
+        /// </summary>
+        public static StoryFile Parse(string text, string source = "story", Func<string, bool> isLevel = null)
         {
             var file = new StoryFile();
             var lines = text.Replace("\r\n", "\n").Split('\n');
@@ -219,7 +275,7 @@ namespace SDFPipeline.Story
                         foreach (var other in file.Panels)
                             if (other.Number == number)
                                 throw new InvalidDataException("panel " + number + " is there twice");
-                        panel = new StoryPanel { Number = number, Line = i + 1, Stage = command.OneOf("stage", Stages) };
+                        panel = new StoryPanel { Number = number, Line = i + 1, Stage = Stage(command, isLevel) };
                         frame = new StoryFrame { Line = i + 1 };
                         insets = false;
                         panel.Frames.Add(frame);
@@ -243,6 +299,20 @@ namespace SDFPipeline.Story
             if (file.Panels.Count == 0)
                 throw new InvalidDataException(source + ": no panel in the file");
             return file;
+        }
+
+        // home, warp or a battle level by its file's name
+        private static string Stage(Command command, Func<string, bool> isLevel)
+        {
+            var stage = command.Text("stage", true);
+            if (!IsLevelStage(stage))
+                return stage;
+            foreach (var c in stage)
+                if (!(c >= 'a' && c <= 'z' || c >= '0' && c <= '9'))
+                    throw new InvalidDataException("stage=" + stage + " is not a stage name (lower-case letters and digits: home, warp or a level such as fungal)");
+            if (stage.Length == 0 || isLevel != null && !isLevel(stage))
+                throw new InvalidDataException("stage=" + stage + " is not home, warp or a level (there is no content/levels/" + stage + ".level)");
+            return stage;
         }
 
         // What every panel needs before the next one starts
@@ -388,6 +458,7 @@ namespace SDFPipeline.Story
                 case "balloon":
                 case "sky":
                 case "caption":
+                case "note":
                 case "sfx":
                     frame.Texts.Add(ParseText(command, line));
                     break;
@@ -403,7 +474,8 @@ namespace SDFPipeline.Story
                 case "balloon": command.Allow("speaker", "text", "anchor", "tail"); break;
                 case "sky": command.Allow("speaker", "text", "anchor"); break;
                 case "caption": command.Allow("text", "anchor"); break;
-                default: command.Allow("text", "anchor", "size", "angle"); break;
+                case "note": command.Allow("text", "anchor", "at"); break;
+                default: command.Allow("text", "anchor", "size", "angle", "color"); break;
             }
             var text = new StoryText { Line = line, Text = command.Text("text", true), Anchor = command.Vec2("anchor"), Speaker = "narrator" };
             if (text.Text.Trim().Length == 0)
@@ -427,10 +499,20 @@ namespace SDFPipeline.Story
                 case "caption":
                     text.Kind = StoryTextKind.Caption;
                     break;
+                case "note":
+                    text.Kind = StoryTextKind.Note;
+                    if (!command.Has("at"))
+                        throw new InvalidDataException("a note needs at=(x, y) or at=\"actor\"");
+                    if (command.Value("at").StartsWith("(", StringComparison.Ordinal))
+                        text.TailAt = command.Vec2("at");
+                    else
+                        text.TailActor = command.Text("at", true);
+                    break;
                 default:
                     text.Kind = StoryTextKind.Sfx;
                     text.Size = command.NonNegative("size", 1);
                     text.Angle = command.Number("angle", 0);
+                    text.Color = command.Has("color") ? command.OneOf("color", SfxColors) : null;
                     break;
             }
             return text;

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using SDFPipeline.Story;
 using SdfGui;
+using SdfGui.Editor;
 using SdfLevel.Editor;
 using SdfMushrooms;
 using SdfMushrooms.Editor;
@@ -17,11 +18,19 @@ namespace SdfStory.Editor
 {
     /// <summary>
     /// The pictures on 42's monitor in the story intro's panels (ticket 31.7), written to Assets/Story/Screens/&lt;name&gt;.png at 1024 × 576:
-    /// <c>screen-meadow</c> (the meadow from eye height at the red spawn with a blue scout in the sights and a first-person HUD), <c>screen-victory</c>
-    /// (the same under a VICTORY! burst), <c>screen-glitch</c> (the picture torn into blue pixel blocks) and <c>screen-prime</c> (Chanterelle Prime
+    /// <c>screen-meadow</c> (the meadow from eye height at the red spawn with a blue scout in the sights and a first-person HUD),
+    /// <c>screen-cover</c> (the game's cover art, content/story/screen-cover-source.png, fitted the same way),
+    /// <c>screen-game</c> (a real screenshot of the game, content/story/screen-victory-source.png, letterboxed), <c>screen-victory</c>
+    /// (that screenshot dimmed under a VICTORY! burst), <c>screen-glitch</c> (the picture torn into blue pixel blocks) and <c>screen-prime</c> (Chanterelle Prime
     /// and his too-small crown on a blue backdrop with scanlines, a smug grin drawn on). The meadow is shot through the level's own player camera
     /// (<see cref="MushroomSnapshot.RenderView"/>, as <see cref="LevelSnapshot"/> does); the HUD is drawn here in the GUI's palette, not by
     /// GuiSnapshot, which shoots whole GUI screens, so that the shot does not depend on the game's HUD layout. They are only read by the capture.
+    /// The ending's three (ticket 42): <c>screen-ending-banner</c> and <c>screen-ending-victory</c> are shots of the real boss fight in the Champion's Arena
+    /// (the "PRIME DEFEATED!" banner over the HUD, then the Victory screen with its scores), <c>screen-ending-title</c> the current Title screen once the campaign is
+    /// complete (the gold crown on the logo), shot live here with the GUI scene and <see cref="GuiSnapshot"/> (the test panel hidden). The two boss shots need play mode,
+    /// so they are kept as content/story/screen-ending-banner-source.png and screen-ending-victory-source.png; to bring them up to date run, with Unity closed,
+    /// <c>Unity -batchmode -projectPath Unity -executeMethod SdfBattle.Editor.BossPlayTest.Run -hudShots &lt;folder&gt;</c> (not -quit) and copy hud-7-victory-banner.png and
+    /// hud-9-victory-screen.png over those two files; the next capture notices the newer sources and remakes the pictures (or pass -screens).
     /// </summary>
     public static class StoryScreens
     {
@@ -30,28 +39,50 @@ namespace SdfStory.Editor
 
         public static string PathOf(string name) => $"{StoryCapture.ScreenFolder}/{name}.png";
 
+        /// <summary>The screenshot of the running game that screen-game and screen-victory show.</summary>
+        private static string ShotPath => SourcePath("screen-victory-source.png");
+
+        /// <summary>The game's cover art that screen-cover shows.</summary>
+        private static string CoverPath => SourcePath("screen-cover-source.png");
+
+        private static string SourcePath(string file) => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "content", "story", file));
+
         /// <summary>Whether every screen of the story file has its picture.</summary>
         public static bool AllExist() => StoryFile.ScreenTextures.All(name => File.Exists(PathOf(name)));
 
-        /// <summary>Makes the four pictures (the missing ones only, unless <paramref name="force"/>).</summary>
+        /// <summary>Whether the game's screenshot or cover changed since the pictures made from them.</summary>
+        public static bool ShotChanged() => File.GetLastWriteTimeUtc(ShotPath) > File.GetLastWriteTimeUtc(PathOf("screen-victory"))
+                                            || File.GetLastWriteTimeUtc(CoverPath) > File.GetLastWriteTimeUtc(PathOf("screen-cover"))
+                                            || File.GetLastWriteTimeUtc(SourcePath("screen-ending-banner-source.png")) > File.GetLastWriteTimeUtc(PathOf("screen-ending-banner"))
+                                            || File.GetLastWriteTimeUtc(SourcePath("screen-ending-victory-source.png")) > File.GetLastWriteTimeUtc(PathOf("screen-ending-victory"));
+
+        /// <summary>Makes the pictures (when one is missing or the screenshot changed, or always when <paramref name="force"/>).</summary>
         public static void Make(bool force)
         {
-            if (!force && AllExist())
+            if (!force && AllExist() && !ShotChanged())
                 return;
             Directory.CreateDirectory(StoryCapture.ScreenFolder);
             var meadow = ShootMeadow();
             DrawHud(meadow);
             Save("screen-meadow", meadow);
 
-            var victory = (Color32[])meadow.Clone();
+            Save("screen-cover", Fitted(CoverPath));
+            var game = Fitted(ShotPath);
+            Save("screen-game", game);
+
+            var victory = (Color32[])game.Clone();
             Dim(victory, 0.45f);
             // The banner reuses the lettering: a gold burst with the word in it
             var banner = new StoryFrame();
-            banner.Texts.Add(new StoryText { Kind = StoryTextKind.Sfx, Text = "VICTORY!", Anchor = new StoryVec2(0.5f, 0.46f), Size = 0.75f, Angle = -4 });
+            banner.Texts.Add(new StoryText { Kind = StoryTextKind.Sfx, Text = "VICTORY!", Anchor = new StoryVec2(0.5f, 0.46f), Size = 0.75f / StoryLettering.SfxScale, Angle = -4 });
             Save("screen-victory", Lettered(victory, banner));
 
             Save("screen-glitch", Glitch(meadow));
             Save("screen-prime", ShootPrime());
+
+            Save("screen-ending-banner", WithoutFps(Fitted(SourcePath("screen-ending-banner-source.png"))));
+            Save("screen-ending-victory", Fitted(SourcePath("screen-ending-victory-source.png")));
+            Save("screen-ending-title", ShootTitle());
             AssetDatabase.Refresh();
             foreach (var name in StoryFile.ScreenTextures)
                 ApplyImportSettings(PathOf(name));
@@ -82,6 +113,60 @@ namespace SdfStory.Editor
             var colours = pixels.Select(p => (Color)p).ToArray();
             StoryLettering.Letter(colours, Width, Height, frame, 77, name => null);
             return colours.Select(c => (Color32)c).ToArray();
+        }
+
+        /// <summary>An image of the game (the screenshot, cropped to the game's view with the HUD in, or the cover), fitted to the picture's width with dark bars above and below.</summary>
+        private static Color32[] Fitted(string path)
+        {
+            var source = new Texture2D(2, 2, TextureFormat.RGB24, false);
+            source.LoadImage(File.ReadAllBytes(path));
+            var shownHeight = Mathf.RoundToInt(Width * source.height / (float)source.width);
+            var bar = (Height - shownHeight) / 2;
+            var pixels = new Color32[Width * Height];
+            var backdrop = new Color32(16, 15, 21, 255);
+            for (var y = 0; y < Height; y++)
+            for (var x = 0; x < Width; x++)
+            {
+                var row = y - bar;
+                pixels[y * Width + x] = row < 0 || row >= shownHeight
+                    ? backdrop
+                    : (Color32)source.GetPixelBilinear((x + 0.5f) / Width, (row + 0.5f) / shownHeight);
+            }
+            Object.DestroyImmediate(source);
+            return pixels;
+        }
+
+        /// <summary>The play test's frame-rate counter (top left) painted out with the sky beside it.</summary>
+        private static Color32[] WithoutFps(Color32[] pixels)
+        {
+            for (var y = Height - 30; y < Height; y++)
+            for (var x = 0; x < 100; x++)
+                pixels[y * Width + x] = pixels[y * Width + x + 110];
+            return pixels;
+        }
+
+        /// <summary>The GUI's Title screen as it is once the campaign is complete (the crown on the logo), without the developer's test panel.</summary>
+        private static Color32[] ShootTitle()
+        {
+            var scene = EditorSceneManager.OpenScene(GuiScene.ScenePath, OpenSceneMode.Single);
+            var flow = scene.GetRootGameObjects().Select(g => g.GetComponentInChildren<GuiFlow>(true)).First(f => f != null);
+            var file = Path.Combine(Path.GetTempPath(), "story-screen-title.png");
+            var testPanel = flow.testPanel;
+            try
+            {
+                flow.testPanel = false;
+                GuiCampaign.PreviewComplete = true;
+                flow.Show(GuiScreen.Title);
+                GuiSnapshot.ShootOpen(scene, file);
+            }
+            finally
+            {
+                GuiCampaign.PreviewComplete = false;
+                flow.testPanel = testPanel;
+            }
+            var pixels = Fitted(file);
+            File.Delete(file);
+            return pixels;
         }
 
         // ---------------------------------------------------------------------------------------------------------------- the meadow
@@ -182,16 +267,9 @@ namespace SdfStory.Editor
             // The cap and stem, not the floating eyes and hands
             var body = BoundsOf(scout, r => !IsPartOf(r, scout, "eye") && !IsPartOf(r, scout, "hand"));
 
-            // The crown on the cap, a size too small for it: about two thirds of the cap's width, tipped a little
-            var crownPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/prime-crown.prefab");
-            var crown = (GameObject)PrefabUtility.InstantiatePrefab(crownPrefab, scene);
-            foreach (var group in crown.GetComponentsInChildren<LODGroup>())
-                group.ForceLOD(0);
-            crown.transform.localScale = Vector3.one;
+            var crown = CrownOn(scout, scene);
             var crownSize = BoundsOf(crown).size;
-            var factor = body.size.x * CrownShare / Mathf.Max(crownSize.x, crownSize.z);
-            crown.transform.localScale = Vector3.one * factor;
-            crown.transform.SetPositionAndRotation(new Vector3(body.center.x, body.max.y - CrownSink * factor, body.center.z), Quaternion.Euler(0, 0, 8));
+            var factor = crown.transform.lossyScale.x;
 
             var eyes = BoundsOf(scout, r => IsPartOf(r, scout, "eye"));
             var crownBounds = BoundsOf(crown);
@@ -212,6 +290,34 @@ namespace SdfStory.Editor
             DrawGrin(pixels, mouth.x, mouth.y, Mathf.Abs(span) * 0.34f);
             DrawScanlines(pixels);
             return pixels;
+        }
+
+        /// <summary>
+        /// Chanterelle Prime's crown on a chanterelle scout's cap, a size too small for it: about two thirds of the cap's width, tipped a little.
+        /// It hangs under the scout's body (the child that is neither an eye nor a hand), so it goes where the body goes, squash and stretch
+        /// included; the scout is measured as it stands. Used for the monitor's picture of Prime and for Prime in person in a comic (ticket 34).
+        /// </summary>
+        internal static GameObject CrownOn(GameObject scout, Scene scene)
+        {
+            Physics.SyncTransforms();
+            var body = BoundsOf(scout, r => !IsPartOf(r, scout, "eye") && !IsPartOf(r, scout, "hand"));
+            var crownPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/prime-crown.prefab");
+            if (crownPrefab == null)
+                throw new InvalidOperationException($"{MushroomBuilder.PrefabFolder}/prime-crown.prefab is missing (run the mushroom builder)");
+            var crown = (GameObject)PrefabUtility.InstantiatePrefab(crownPrefab, scene);
+            crown.name = "prime-crown";
+            foreach (var group in crown.GetComponentsInChildren<LODGroup>())
+                group.ForceLOD(0);
+            crown.transform.localScale = Vector3.one;
+            var crownSize = BoundsOf(crown).size;
+            var factor = body.size.x * CrownShare / Mathf.Max(crownSize.x, crownSize.z);
+            crown.transform.localScale = Vector3.one * factor;
+            crown.transform.SetPositionAndRotation(new Vector3(body.center.x, body.max.y - CrownSink * factor, body.center.z),
+                scout.transform.rotation * Quaternion.Euler(0, 0, 8));
+            var bodyPart = scout.transform.Cast<Transform>().FirstOrDefault(c => !c.name.StartsWith("eye", StringComparison.Ordinal) &&
+                                                                                 !c.name.StartsWith("hand", StringComparison.Ordinal) && !c.name.Contains("_LOD") && c.name != "Outline");
+            crown.transform.SetParent(bodyPart != null ? bodyPart : scout.transform, true);
+            return crown;
         }
 
         /// <summary>A world point's pixel in the picture (y up), for a camera that has been placed.</summary>

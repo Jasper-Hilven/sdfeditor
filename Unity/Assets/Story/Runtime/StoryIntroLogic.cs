@@ -42,13 +42,24 @@ namespace SdfStory
     /// </summary>
     public sealed class StoryIntroLogic
     {
+        private int _index;
         public const float PanelAspect = 16f / 9f;
 
         public StoryIntroLogic(int panelCount) => Count = Math.Max(0, panelCount);
 
         public int Count { get; }
+
         /// <summary>The panel on show, from 0.</summary>
-        public int Index { get; private set; }
+        public int Index
+        {
+            get => _index;
+            private set
+            {
+ 
+                _index = value;
+            }
+        }
+
         public bool Finished { get; private set; }
         /// <summary>Whether the intro ended through Skip rather than by reaching the end.</summary>
         public bool Skipped { get; private set; }

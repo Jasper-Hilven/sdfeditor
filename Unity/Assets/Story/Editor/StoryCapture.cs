@@ -19,22 +19,29 @@ using Object = UnityEngine.Object;
 namespace SdfStory.Editor
 {
     /// <summary>
-    /// Renders the story intro's comic panels (ticket 31): for each panel of content/story/intro.txt (<see cref="StoryFile"/>) it opens the
-    /// stage (Home.unity, Meadow.unity, or an empty stage for the warp), poses the camera, actors, props, screen and lights, and renders
+    /// Renders the comics' panels (tickets 31, 34): for each panel of a comic of content/story/ (<see cref="StoryFile"/>: intro.txt, the
+    /// story beats' beat-fungal.txt ...) it opens the stage (Home.unity, an empty stage for the warp, or a battle level's own scene, Meadow.unity,
+    /// Fungal.unity ..., where only players are added), poses the camera, actors, props, screen and lights, and renders
     /// each frame at twice the size, in two passes with the comic look switched on (SdfComic.hlsl: hard bands, a stronger rim, wider
     /// outlines, the room's lamp and monitor as lights): a colour pass and an aux pass that holds the normal, depth and toon band. The
     /// comic post pass (StoryComicPost.shader) draws the ink line, the halftone and the paper over the colour from the aux pass; the result
-    /// is downsampled to 1920 × 1080 and written to Assets/Story/Panels/panel-NN.png. <see cref="StoryLettering"/> draws the comic devices,
+    /// is downsampled to 1920 × 1080 and written as panel-NN.jpg: the intro's to Assets/Story/Panels (the intro viewer holds them), every
+    /// other comic's to Assets/Story/Resources/Comics/&lt;comic&gt;/, where the viewer finds them by the comic's name (<see cref="StoryIntro.Play"/>),
+    /// so a rendered beat plays as panels with no other step. <see cref="StoryLettering"/> draws the comic devices,
     /// balloons, captions, SFX and the ink border over each frame's render (31.6). Nothing of it ships: the comic look is off in the
     /// game, and this, the post shader and the screen shader are in an Editor folder.
     /// <para>
-    /// Tools > SDF Story > Render Panels, or without a window: <c>Unity -batchmode -quit -projectPath Unity -executeMethod
-    /// SdfStory.Editor.StoryCapture.CaptureInBatch [-panel 1[,5,7]] [-panelDir Assets/Story/Panels]</c> (without -nographics, so the GPU renders).
+    /// Tools > SDF Story > Render Panels (every comic), Render Comic... (one), or without a window: <c>Unity -batchmode -quit -projectPath Unity
+    /// -executeMethod SdfStory.Editor.StoryCapture.CaptureInBatch [-comic beat-fungal[,intro]] [-panel 1[,5,7]] [-panelDir Assets/...]</c>
+    /// (without -nographics, so the GPU renders; every comic without -comic).
     /// </para>
     /// </summary>
     public static class StoryCapture
     {
+        /// <summary>The intro's panels, which the intro viewer prefab holds.</summary>
         public const string PanelFolder = "Assets/Story/Panels";
+        /// <summary>Every other comic's panels, in a folder of the comic's name: Resources, so the viewer loads them by name only when one plays.</summary>
+        public const string ComicFolder = "Assets/Story/Resources/" + StoryIntro.ComicResources;
         public const string ScreenFolder = "Assets/Story/Screens";
         public const int Width = 1920;
         public const int Height = 1080;
@@ -60,23 +67,36 @@ namespace SdfStory.Editor
             "SdfStory/Screen", "SdfStory/Flat",
         };
 
+        /// <summary>content/, next to the Unity project.</summary>
+        public static string ContentFolder => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "content"));
+
+        /// <summary>The comics of content/story/ by name, the intro first.</summary>
+        public static List<string> Comics() => StoryFile.Comics(ContentFolder);
+
+        /// <summary>Where a comic's panels are written: the intro's to <see cref="PanelFolder"/>, any other's to its own folder under <see cref="ComicFolder"/>.</summary>
+        public static string FolderOf(string comic) => comic == StoryFile.Intro ? PanelFolder : $"{ComicFolder}/{comic}";
+
         [MenuItem("Tools/SDF Story/Render Panels")]
         public static void RenderFromMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
-            RenderPanels(null, PanelFolder, false);
+            foreach (var comic in Comics())
+                RenderPanels(comic, null, FolderOf(comic), false);
         }
+
+        [MenuItem("Tools/SDF Story/Render Comic...")]
+        public static void RenderComicFromMenu() => StoryComicWindow.Open();
 
         [MenuItem("Tools/SDF Story/Render Panel 1")]
         public static void RenderFirstFromMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
-            RenderPanels(new[] { 1 }, PanelFolder, false);
+            RenderPanels(StoryFile.Intro, new[] { 1 }, PanelFolder, false);
         }
 
-        /// <summary>For batch mode: all panels, or the one of -panel N, into -panelDir (the panel folder by default).</summary>
+        /// <summary>For batch mode: every comic, or those of -comic a,b; all their panels, or those of -panel N; into their folders, or -panelDir.</summary>
         public static void CaptureInBatch()
         {
             var args = Environment.GetCommandLineArgs();
@@ -87,9 +107,15 @@ namespace SdfStory.Editor
             }
             // -panel 3, or several as -panel 3,5,7
             var only = Argument("-panel")?.Split(',').Select(int.Parse).ToArray();
+            var comics = Argument("-comic")?.Split(',').ToList() ?? Comics();
             try
             {
-                RenderPanels(only, Argument("-panelDir") ?? PanelFolder, Array.IndexOf(args, "-screens") >= 0);
+                var remake = Array.IndexOf(args, "-screens") >= 0;
+                foreach (var comic in comics)
+                {
+                    RenderPanels(comic, only, Argument("-panelDir") ?? FolderOf(comic), remake);
+                    remake = false;
+                }
             }
             catch (Exception exception)
             {
@@ -99,29 +125,31 @@ namespace SdfStory.Editor
         }
 
         /// <summary>
-        /// Renders the panels of <paramref name="only"/> (every panel when null) into the folder. The monitor's pictures (<see cref="StoryScreens"/>)
-        /// are made first when they are missing, or again when <paramref name="remakeScreens"/> (batch: -screens).
+        /// Renders a comic's panels of <paramref name="only"/> (every panel when null) into the folder (<see cref="FolderOf"/> for where it
+        /// ships). When a panel shows the monitor, its pictures (<see cref="StoryScreens"/>) are made first when they are missing, or again when
+        /// <paramref name="remakeScreens"/> (batch: -screens).
         /// </summary>
-        public static void RenderPanels(IReadOnlyCollection<int> only, string folder, bool remakeScreens)
+        public static void RenderPanels(string comic, IReadOnlyCollection<int> only, string folder, bool remakeScreens)
         {
             RenderPipelineSetup.Ensure();
             MushroomBuilder.BuildStale();
-            var file = StoryFile.Load(Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "content", "story", StoryFile.FileName)));
+            var file = StoryFile.Load(StoryFile.PathIn(ContentFolder, comic));
             var panels = file.Panels.Where(p => only == null || only.Contains(p.Number)).ToList();
             if (panels.Count == 0)
-                throw new InvalidOperationException($"there is no such panel in the story file");
+                throw new InvalidOperationException($"there is no such panel in content/story/{comic}{StoryFile.Extension}");
             Directory.CreateDirectory(folder);
             var asyncCompilation = ShaderUtil.allowAsyncCompilation;
             ShaderUtil.allowAsyncCompilation = false;
             try
             {
                 // They open the meadow scene to shoot it, so they come before any panel
-                StoryScreens.Make(remakeScreens);
+                if (remakeScreens || panels.Any(p => p.Screen != null))
+                    StoryScreens.Make(remakeScreens);
                 foreach (var panel in panels)
                 {
-                    var path = Path.Combine(folder, $"panel-{panel.Number:00}.{Extension}");
+                    var path = Path.Combine(folder, PanelFileName(panel.Number));
                     RenderPanel(panel, path);
-                    Debug.Log($"SDF story: panel {panel.Number} rendered to {path}");
+                    Debug.Log($"SDF story: {comic} panel {panel.Number} rendered to {path}");
                 }
             }
             finally
@@ -131,8 +159,11 @@ namespace SdfStory.Editor
             }
             AssetDatabase.Refresh();
             foreach (var panel in panels)
-                ApplyImportSettings($"{PanelFolder}/panel-{panel.Number:00}.{Extension}");
+                ApplyImportSettings($"{folder.Replace('\\', '/')}/{PanelFileName(panel.Number)}");
         }
+
+        /// <summary>panel-01.jpg: the same in every comic's folder (the viewer loads Comics/&lt;comic&gt;/panel-01 by that name).</summary>
+        public static string PanelFileName(int number) => $"{StoryIntro.PanelName(number)}.{Extension}";
 
         /// <summary>No mipmaps, crunch compressed, a size for the web: the panels are shown as they are, full screen.</summary>
         public static void ApplyImportSettings(string assetPath)
@@ -166,6 +197,8 @@ namespace SdfStory.Editor
                     stage.PoseActor(pose);
                 foreach (var pose in panel.Actors.Where(a => a.Part != null))
                     stage.PosePart(pose);
+                // Again: the scouts a level stage makes for the panel came after the first
+                stage.ForceTopLevelOfDetail();
                 stage.SetLights(panel.Lights);
                 stage.PublishLights();
                 if (panel.Screen != null)
@@ -224,10 +257,7 @@ namespace SdfStory.Editor
                     if (!File.Exists(HomeBuilder.ScenePath))
                         HomeBuilder.Build();
                     return EditorSceneManager.OpenScene(HomeBuilder.ScenePath, OpenSceneMode.Single);
-                case "meadow":
-                    LevelBuilder.BuildStale();
-                    return EditorSceneManager.OpenScene(MeadowScenePath, OpenSceneMode.Single);
-                default:
+                case "warp":
                 {
                     // The warp: an empty stage with a camera, a light and no room or level
                     var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -241,6 +271,15 @@ namespace SdfStory.Editor
                     camera.clearFlags = CameraClearFlags.SolidColor;
                     camera.backgroundColor = new Color(0.1f, 0.06f, 0.2f);
                     return scene;
+                }
+                default:
+                {
+                    // A battle level's own scene (meadow, fungal ...): its theme as it is, the scouts added by the panel
+                    LevelBuilder.BuildStale();
+                    var path = LevelBuilder.ScenePathOf(stage);
+                    if (!File.Exists(path))
+                        throw new InvalidOperationException($"stage {stage}: there is no {path} (build the level first)");
+                    return EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
                 }
             }
         }
@@ -411,21 +450,40 @@ namespace SdfStory.Editor
                     foreach (var transform in root.GetComponentsInChildren<Transform>(true))
                         if (transform.name == name && transform.parent != null && (transform.parent.name == HomeBuilder.ActorsName || transform.parent.name == HomeBuilder.RoomName))
                             return transform;
-                // Not in the stage: a scout comes with the panel that names it (meadow, warp), made once
+                // Not in the stage: a scout comes with the panel that names it (a level, the warp), made once
                 if (madeActors.TryGetValue(name, out var existing))
                     return existing;
-                var prefabName = name.StartsWith("Chanterelle Hand", StringComparison.Ordinal)
-                    ? (int.Parse(name.Substring(name.Length - 1)) % 2 == 1 ? "chanterelle-scout-hand0" : "chanterelle-scout-hand1")
-                    : "amanita-scout";
+                var prefabName = PrefabOf(name);
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/{prefabName}.prefab");
                 if (prefab == null)
                     throw new InvalidOperationException($"actor '{name}' is not in the stage and there is no prefab {prefabName}");
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
                 instance.name = name;
+                // Prime in person: the chanterelle scout with his crown, as on the monitor
+                if (name == PrimeName)
+                    StoryScreens.CrownOn(instance, scene);
                 made.Add(instance);
                 madeActors[name] = instance.transform;
                 return instance.transform;
             }
+
+            /// <summary>Chanterelle Prime, who comes with his crown.</summary>
+            public const string PrimeName = "Chanterelle Prime";
+
+            /// <summary>
+            /// The prefab of an actor a panel adds, by its name: players only, so that a level keeps its one theme. "Chanterelle Hand 1".."4"
+            /// are the blue hands, "Chanterelle Prime", any other "Chanterelle ..." and blue's players by name ("Participation Award") the blue
+            /// chanterelle scout, everyone else ("Mushroom 42", "Mushroom 7") the red amanita scout.
+            /// </summary>
+            public static string PrefabOf(string name)
+            {
+                if (name.StartsWith("Chanterelle Hand", StringComparison.Ordinal))
+                    return int.Parse(name.Substring(name.Length - 1)) % 2 == 1 ? "chanterelle-scout-hand0" : "chanterelle-scout-hand1";
+                return name.StartsWith("Chanterelle", StringComparison.Ordinal) || Array.IndexOf(BlueNames, name) >= 0 ? "chanterelle-scout" : "amanita-scout";
+            }
+
+            // Blue's players as SdfBattle.Cast names them
+            private static readonly string[] BlueNames = { "Runner-Up", "Honourable Mention", "Participant", "Also-Ran", "Participation Award" };
 
             private void Remember(Transform transform)
             {

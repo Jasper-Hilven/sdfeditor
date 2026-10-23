@@ -3,6 +3,8 @@
 # (the grammar is documented there). 42 (Mushroom 42, the red amanita scout) is "they", Chanterelle Prime is "he".
 #
 # Frames of reference
+#   Lettering: balloon (a character speaks, its tail at a spot or an actor), sky (Prime's jagged box), caption (the narrator, wide and low),
+#   note (the narrator's small square side note beside a character, its arrow at=(x, y) or at="actor"; it names who they are, as the balloons do not), sfx.
 #   Stage coordinates are the pipeline's, in metres, as content/scenes/home.txt (the capture mirrors x for Unity): the room's floor top is
 #   y = 0, x -2..2, z -1.5..1.5, the back wall (z = -1.5) with the window; the meadow is content/levels/meadow.level (red castle at x = -62,
 #   red flag stand (-60.5, 0), red spawn (-52, 20) facing +x). The warp stage is empty: the camera sits at the origin looking along +z.
@@ -22,17 +24,16 @@ format 1
 # 1. The room: from the door corner, the desk and monitor on the left, the trophy shelf on the right, 42 in the chair with their back to us
 panel 1 stage=home
     camera pos=(-1.8, 1.1, 1.4) rot=(1.9, 135, 0) fov=65
-    screen texture=screen-meadow
+    screen texture=screen-cover
     caption text="Mushroom 42. Last year's minigun champion. Still undefeated. (They checked.)" anchor=(0.5, 0.9)
 
 # 2. Playing: over 42's cap at the monitor, their hands a blur on the keyboard
 panel 2 stage=home
     camera pos=(0.4, 1.45, -0.15) rot=(17.9, 217.7, 0) fov=45
-    screen texture=screen-meadow
+    screen texture=screen-game
     actor "Mushroom 42" part=hand-left pos=(0.05, -0.42, 0.75)
     actor "Mushroom 42" part=hand-right pos=(-0.05, -0.42, 0.75)
     speedlines parallel angle=0 density=1.2
-    sfx text="TAK TAK TAK" anchor=(0.72, 0.22) size=1 angle=-6
 
 # 3. The win: the screen on the left, 42 with both hands up on the right
 panel 3 stage=home
@@ -46,6 +47,7 @@ panel 3 stage=home
     frame x=0.5 y=0 w=0.5 h=1
         camera pos=(0.3, 1.35, -1.2) rot=(5.2, 313.2, 0) fov=60
         balloon speaker=42 text="Still got it. Hi, trophy." anchor=(0.5, 0.15) tail="Mushroom 42"
+        note text="Mushroom 42. Champion. Humble about it." anchor=(0.2, 0.68) at="Mushroom 42"
 
 # 4. The glitch: straight at the monitor, the picture tearing into blue blocks, the lamp flickering
 panel 4 stage=home
@@ -53,8 +55,6 @@ panel 4 stage=home
     screen texture=screen-glitch glitch=0.85
     lamp intensity=0.6
     light Monitor intensity=2 color=(0.3, 0.5, 1)
-    sfx text="BZZRT" anchor=(0.7, 0.3) size=1.2 angle=8
-    burst at=(0.7, 0.3) size=1
 
 # 5. Prime: his face fills the monitor
 panel 5 stage=home
@@ -63,6 +63,7 @@ panel 5 stage=home
     light Monitor intensity=2 color=(0.3, 0.5, 1)
     balloon speaker=Prime text="Hello, champion. Remember me? Second place. *Silver.*" anchor=(0.25, 0.14) tail=(0.42, 0.5)
     balloon speaker=Prime text="This year, we play on *my* server." anchor=(0.76, 0.86) tail=(0.58, 0.62)
+    note text="Chanterelle Prime. Second place. Still bitter." anchor=(0.12, 0.62) at=(0.4, 0.5)
 
 # 6. The reply: over the monitor's top edge onto 42, lit blue, a ten degree dutch tilt
 panel 6 stage=home
@@ -70,6 +71,7 @@ panel 6 stage=home
     screen texture=screen-prime glitch=0.2
     light Monitor intensity=4 color=(0.2, 0.45, 1)
     balloon speaker=42 text="That's not how computers wor—" anchor=(0.7, 0.2) tail="Mushroom 42"
+    note text="Mid-correction. Famous last words." anchor=(0.14, 0.7) at="Mushroom 42"
 
 # 7. The hands: the screen bulges like a soap film, four blue hands push out and grab 42's floating hands, the crisps fly
 panel 7 stage=home
@@ -94,15 +96,17 @@ panel 7 stage=home
     spores at=(-0.45, 1.0, -1.1) count=16 radius=0.4 style=blue
     sfx text="SHLORP" anchor=(0.3, 0.2) size=1.3 angle=-10
 
-# 8. The pull-in: behind 42, low; they stretch towards the screen, the chair spins away empty, pixel spores burst
+# 8. The pull-in: behind 42, low; they are half through the screen already, the chair spins away empty, pixel spores burst
 panel 8 stage=home
     camera pos=(0.6, 0.55, 1.35) rot=(-9.1, 206.1, 0) fov=60
     screen texture=screen-glitch glitch=0.9 bulge=0.6
     light Monitor intensity=2.5 color=(0.3, 0.5, 1)
-    actor "Mushroom 42" pos=(-0.5, 1.0, -0.95) rot=(-80, 180, 0)
+    # Half through the screen already: the feet and lower stem behind the glass (its front at z = -1.24, its middle at y = 0.95), the cap out
+    actor "Mushroom 42" pos=(-0.45, 0.9, -1.64) rot=(-80, 180, 0)
     actor "Mushroom 42" part=body scale=(0.7, 1.5, 0.7)
-    actor "Mushroom 42" part=hand-left pos=(0.2, 0.2, 0.3)
-    actor "Mushroom 42" part=hand-right pos=(-0.2, 0.2, 0.3)
+    # No hands: they are gone in first
+    actor "Mushroom 42" part=hand-left scale=0
+    actor "Mushroom 42" part=hand-right scale=0
     actor "chair" part=seat pos=(0.9, 0.2, 0.9) rot=(0, 200, 25)
     motionlines at=(0.3, 0.6) angle=15 length=0.2
     motionlines at=(0.5, 0.45) angle=90 length=0.25
@@ -129,8 +133,6 @@ panel 10 stage=meadow
     actor "Mushroom 42" pos=(-52.9, 0.5, 20.4) rot=(90, 90, 0)
     spores at=(-52.4, 0.5, 20.3) count=26 radius=0.8 style=gold
     motionlines at=(0.5, 0.6) angle=90 length=0.2
-    burst at=(0.5, 0.45) size=1
-    sfx text="BOING" anchor=(0.5, 0.2) size=1.4 angle=5
 
 # 11. The teammate: Mushroom 7 on the left, 42 on the right, the red flag stand behind, Prime's jagged box in the sky
 panel 11 stage=meadow
@@ -138,6 +140,7 @@ panel 11 stage=meadow
     actor "Mushroom 7" pos=(-46.5, 0, 1.1) rot=(0, 110, 0)
     actor "Mushroom 42" pos=(-46.5, 0, -0.9) rot=(0, 70, 0)
     balloon speaker="Mushroom 7" text="42! You're here! Prime's rigged the whole tournament. Every level. Also, welcome." anchor=(0.26, 0.24) tail="Mushroom 7"
+    note text="Mushroom 7. Teammate. Talks fast." anchor=(0.18, 0.74) at="Mushroom 7"
     sky speaker=Prime text="Win it again, champion. If you can." anchor=(0.62, 0.08)
 
 # 12. Ready: close and low, 42 looking up from under their cap, hands clenched, the castle behind

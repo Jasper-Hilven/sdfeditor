@@ -1,0 +1,59 @@
+# B1 "Nightfall" (tickets 32 and 34): the story beat before the fungal battle, as four comic panels, 1920 x 1080 each, in the same look and
+# viewer as the intro (content/story/intro.txt documents the frames of reference; the grammar is in SDFPipeline/Story/StoryFile.cs). The
+# campaign plays it over Fungal.unity, loaded and held, then CLICK TO PLAY lets the match go. The editor's StoryCapture renders it into
+# Assets/Story/Resources/Comics/beat-fungal/panel-NN.jpg (Tools > SDF Story > Render Comic...). 42 is "they", Chanterelle Prime is "he".
+#
+# The stage is the fungal level as it is (content/levels/fungal.level, Eye-Moon Night): one theme, so the panels add only players. The red
+# castle stands at x = -62 facing +x, its flag stand at (-61.5, 0), the red spawn at (-52, 20) facing +x; the eye moon hangs at azimuth 140
+# (towards +x and -z), 28 degrees up. 42 stands by the spawn, Mushroom 7 at their shoulder, and Prime pops out of the night 5 m away,
+# towards the moon, so that the shots on him have the eye over his crown. The scouts are 1.6 m tall.
+# Actors: "Mushroom 42" and "Mushroom 7" (the red amanita scout), "Chanterelle Prime" (the blue chanterelle scout with his crown).
+# The balloons carry no names: each speaker's first panel has the narrator's note pointing at them.
+
+format 1
+
+# 1. Nightfall: low and wide, the red castle under the night, 42 and Mushroom 7 by the spawn, Prime popping out of blue pixels
+panel 1 stage=fungal
+    camera pos=(-46.5, 1.5, 24.6) rot=(-6.8, 212.4, 0) fov=52
+    # Turned half to us, so their faces read, looking his way
+    actor "Mushroom 42" pos=(-50.5, 0, 20.5) rot=(0, 88, 0)
+    actor "Mushroom 7" pos=(-51.7, 0, 21.8) rot=(0, 78, 0)
+    actor "Chanterelle Prime" pos=(-47, 0, 16.4) rot=(0, 318, 0)
+    actor "Chanterelle Prime" part=hand-left pos=(0, 0.35, 0.1)
+    actor "Chanterelle Prime" part=hand-right pos=(0, 0.35, 0.1)
+    spores at=(-47.2, 1.1, 16.2) count=26 radius=1.2 style=blue
+    burst at=(0.82, 0.5) size=0.8
+    sfx text="POP!" anchor=(0.84, 0.24) size=1.1 angle=8
+    caption text="Arena two: Fungal. Nightfall." anchor=(0.24, 0.1)
+    note text="Chanterelle Prime. Second place. Dresses for first." anchor=(0.62, 0.86) at="Chanterelle Prime"
+
+# 2. The update: Prime from the ground, the eye moon over his shoulder, smug
+panel 2 stage=fungal
+    camera pos=(-49.46, 0.9, 18.09) rot=(-13, 116.4, 0) fov=62
+    actor "Chanterelle Prime" pos=(-47, 0, 16.4) rot=(0, 318, 0)
+    actor "Chanterelle Prime" part=hand-right pos=(0, 0.55, 0.15)
+    balloon speaker=Prime text="Congratulations on winning a *meadow*." anchor=(0.73, 0.14) tail="Chanterelle Prime"
+    balloon speaker=Prime text="Regulation update: *machines.*" anchor=(0.76, 0.6) tail="Chanterelle Prime"
+
+# 3. The rulebook: two frames, 42 face on, then Prime face on, his crown in sight
+panel 3 stage=fungal
+    actor "Mushroom 42" pos=(-50.5, 0, 20.5) rot=(0, 140, 0)
+    actor "Chanterelle Prime" pos=(-47, 0, 16.4) rot=(0, 318, 0)
+    actor "Chanterelle Prime" part=hand-left pos=(0, 0.3, 0.2)
+    frame x=0 y=0 w=0.5 h=1
+        camera pos=(-48.96, 1.25, 18.66) rot=(5.9, 320, 0) fov=45
+        balloon speaker=42 text="Machines aren't in the rulebook." anchor=(0.5, 0.1) tail="Mushroom 42"
+        note text="Mushroom 42. Still champion. On paper." anchor=(0.24, 0.84) at="Mushroom 42"
+    frame x=0.5 y=0 w=0.5 h=1
+        camera pos=(-48.54, 1.7, 18.11) rot=(12.3, 138, 0) fov=50
+        balloon speaker=Prime text="They are now. I wrote the rulebook. This morning." anchor=(0.5, 0.12) tail="Chanterelle Prime"
+
+# 4. Trust me: Prime gone, Mushroom 7 leaning in to 42, the castle behind
+panel 4 stage=fungal
+    camera pos=(-46.2, 1.0, 23.6) rot=(-2.8, 238.9, 0) fov=48
+    actor "Mushroom 42" pos=(-50.5, 0, 20.5) rot=(0, 95, 0)
+    actor "Mushroom 7" pos=(-51.3, 0, 21.6) rot=(0, 120, 0)
+    actor "Mushroom 7" part=body rot=(0, 0, -6)
+    actor "Mushroom 7" part=hand-right pos=(0, 0.3, 0.15)
+    balloon speaker="Mushroom 7" text="Fill your spores. Activate Mycelium Rush. Trust me." anchor=(0.26, 0.15) tail="Mushroom 7"
+    note text="Mushroom 7. Teammate. Has read the manual." anchor=(0.16, 0.8) at="Mushroom 7"
