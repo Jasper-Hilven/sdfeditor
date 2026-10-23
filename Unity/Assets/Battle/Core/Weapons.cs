@@ -231,11 +231,11 @@ namespace SdfBattle
                     shotsPerSecond = 14, spinUp = 0.6f, burstSeconds = 3, spinDown = 0.6f, drawSeconds = 0.4f, damage = 7, falloffStart = 35, falloffEnd = 60, falloffMin = 0.4f,
                     range = 120, spread = 0.8f, spreadGrowth = 1.5f, spreadMax = 4.5f,
                 },
-                // Long range, picking off the carrier: zoom in to hit anything
+                // Long range, picking off the carrier: every shot goes exactly where it aims, zoomed in or not
                 new WeaponStats
                 {
                     id = WeaponIds.Sniper, displayName = "Sniper", slot = WeaponSlot.LongRange, mode = FireMode.Hitscan,
-                    shotsPerSecond = 1 / 1.4f, drawSeconds = 0.4f, damage = 85, headDamage = 120, range = 250, spread = 5,
+                    shotsPerSecond = 1 / 1.4f, drawSeconds = 0.4f, damage = 85, headDamage = 120, range = 250, spread = 0,
                     zoomedSpread = 0, zoomFieldOfView = 20,
                 },
                 // Long range, groups

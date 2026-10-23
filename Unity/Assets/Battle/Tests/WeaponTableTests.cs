@@ -72,7 +72,7 @@ namespace SdfBattle.Tests
         }
 
         [Test]
-        public void TheSniper_HasNoFalloff_A120Headshot_AndIsOnlyAccurateZoomed()
+        public void TheSniper_HasNoFalloff_A120Headshot_AndShootsExactlyWhereItAims()
         {
             var sniper = Get(WeaponIds.Sniper);
 
@@ -80,7 +80,7 @@ namespace SdfBattle.Tests
             Assert.AreEqual(85, sniper.DamageAt(200), 1e-4f);
             Assert.AreEqual(120, sniper.DamageAt(150, head: true), 1e-4f);
             Assert.AreEqual(1.4f, sniper.Interval, 1e-4f);
-            Assert.Greater(sniper.SpreadAfter(0), 2, "unzoomed: a wide spread");
+            Assert.AreEqual(0, sniper.SpreadAfter(0), 1e-4f, "unzoomed: no spread either");
             Assert.AreEqual(0, sniper.SpreadAfter(0, zoomed: true), 1e-4f);
             Assert.Greater(sniper.zoomFieldOfView, 0);
         }
