@@ -30,7 +30,7 @@ namespace SdfCampaign
 
         public static readonly IReadOnlyList<CreditsLine> Lines = new[]
         {
-            new CreditsLine(CreditsKind.Title, "MINIGUN MUSHROOMS 2"),
+            new CreditsLine(CreditsKind.Title, "MINIGUN MUSHROOMS: SECOND PLACE"),
             new CreditsLine(CreditsKind.Small, "Last year's champion. Probably still."),
             new CreditsLine(CreditsKind.Gap),
             new CreditsLine(CreditsKind.Heading, "A game by"),

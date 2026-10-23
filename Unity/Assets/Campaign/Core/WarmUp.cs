@@ -27,7 +27,11 @@ namespace SdfCampaign
     /// </summary>
     public sealed class WarmUp
     {
-        public const string Closer = "Now take their flag. Bring it home.";
+        /// <summary>Mushroom 7 after the warm-up, done or skipped: what the game is and how a point is scored.</summary>
+        public const string Closer = "It's capture the flag! Grab blue's flag and bring it to ours. That's a point.";
+
+        /// <summary>The meadow's loading tip: the same, before the first match.</summary>
+        public const string HowToScore = "Grab blue's flag and carry it to your own flag to score.";
         public const string CloserSpeaker = "Mushroom 7";
 
         private readonly IReadOnlyList<WarmUpPrompt> prompts;

@@ -11,6 +11,8 @@ namespace SdfGui
         public string goal = "";
         public string[] red = new string[0];
         public string[] blue = new string[0];
+        /// <summary>A tip of its own (the first meadow explains the game), instead of the next of <see cref="GuiLoading.Tips"/>; empty for those.</summary>
+        public string tip = "";
     }
 
     /// <summary>
@@ -48,7 +50,7 @@ namespace SdfGui
             GuiText.Set(goal, briefing.goal);
             GuiText.Set(redNames, Roster("RED TEAM", GuiPalette.Amanita, briefing.red));
             GuiText.Set(blueNames, Roster("BLUE TEAM", GuiPalette.Sky, briefing.blue));
-            GuiText.Set(tip, "TIP  " + Tips[tipCounter++ % Tips.Length]);
+            GuiText.Set(tip, "TIP  " + (string.IsNullOrEmpty(briefing.tip) ? Tips[tipCounter++ % Tips.Length] : briefing.tip));
             Set(0, false);
         }
 
@@ -59,6 +61,24 @@ namespace SdfGui
             progress?.Set(fraction);
             GuiText.Show(progress, !ready);
             GuiText.Show(clickToPlay, ready);
+        }
+
+        private string clickText;
+
+        /// <summary>Shows a message (a failed download) in place of the click to play, until <see cref="ClearMessage"/>.</summary>
+        public void Message(string text)
+        {
+            if (clickToPlay == null)
+                return;
+            clickText ??= clickToPlay.text;
+            GuiText.Set(clickToPlay, text);
+        }
+
+        public void ClearMessage()
+        {
+            if (clickText != null)
+                GuiText.Set(clickToPlay, clickText);
+            clickText = null;
         }
 
         private static string Roster(string header, Color color, string[] names)

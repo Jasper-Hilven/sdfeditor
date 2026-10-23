@@ -16,7 +16,7 @@ namespace SdfCampaign
     public sealed class WarmUpPlayer : MonoBehaviour
     {
         public const string SkipHint = "Hold SPACE to skip";
-        public const float WalkMetres = 2.5f, LookDegrees = 25, CloserSeconds = 4;
+        public const float WalkMetres = 2.5f, LookDegrees = 25, CloserSeconds = 6;
 
         private Match match;
         private GuiFlow flow;
@@ -144,16 +144,9 @@ namespace SdfCampaign
             var view = flow != null ? flow.Match : null;
             if (view == null)
                 return;
-            if (completed)
-            {
-                view.caption.Set(WarmUp.CloserSpeaker, WarmUp.Closer, 1, 0, "");
-                closing = CloserSeconds;
-            }
-            else
-            {
-                view.caption.Clear();
-                closing = 0;
-            }
+            // Done or skipped, Mushroom 7 says what the game is: skipping the prompts must not skip how a point is scored
+            view.caption.Set(WarmUp.CloserSpeaker, WarmUp.Closer, 1, 0, "");
+            closing = CloserSeconds;
         }
 
         // ---------------------------------------------------------------- The arrow over the minigun pod

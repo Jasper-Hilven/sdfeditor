@@ -89,6 +89,10 @@ namespace SdfStory
 
         private static readonly Dictionary<string, bool> known = new Dictionary<string, bool>();
 
+        /// <summary>Set by the web build's streamed content (ticket 38): whether a comic is streamed, and its panels once fetched. Null elsewhere.</summary>
+        public static Func<string, bool> StreamedHas;
+        public static Func<string, Texture2D[]> StreamedPanels;
+
         /// <summary>
         /// Whether a comic can be played as panels: the intro when its viewer is built, any other when its first panel is in its folder. The
         /// answer is kept (a build's Resources do not change), and the panel looked at is let go again at once.
@@ -99,6 +103,8 @@ namespace SdfStory
                 return false;
             if (comic == Intro)
                 return Resources.Load<GameObject>(ResourceName) != null;
+            if (StreamedHas != null && StreamedHas(comic))
+                return true;
             if (known.TryGetValue(comic, out var has))
                 return has;
             var first = Resources.Load<Texture2D>(PanelResource(comic, 1));
@@ -124,7 +130,10 @@ namespace SdfStory
             if (active != null)
                 return;
             var loaded = new List<Texture2D>();
-            for (var number = 1; number <= MaxPanels; number++)
+            var streamed = StreamedPanels?.Invoke(comic);
+            if (streamed != null)
+                loaded.AddRange(streamed);
+            for (var number = 1; streamed == null && number <= MaxPanels; number++)
             {
                 var panel = Resources.Load<Texture2D>(PanelResource(comic, number));
                 if (panel == null)

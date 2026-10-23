@@ -1,4 +1,5 @@
 using System.Linq;
+using SdfPlatform;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -124,12 +125,16 @@ namespace SdfGui
                 PauseOnLostLock();
                 HoldTime();
                 TickEnd();
+                // Where the player is, for the web portal's gameplayStart / gameplayStop
+                WebPortal.SetPlaying((screen == GuiScreen.Hud || screen == GuiScreen.Scoreboard || screen == GuiScreen.Death) && !ConfirmOpen && !Ending);
             }
             Apply();
         }
 
         private void OnDisable()
         {
+            if (Application.isPlaying)
+                WebPortal.SetPlaying(false);
             CancelEnd();
             Hold(false);
         }
@@ -291,10 +296,24 @@ namespace SdfGui
                     return;
                 }
                 // A win may have something to tell first (the final boss's victory beat, ticket 33.8): it takes the screen and calls back
-                if (Match.end.won && BeforeVictory != null && BeforeVictory(ShowEndScreen))
+                if (Match.end.won && BeforeVictory != null && BeforeVictory(AfterTheLevel))
                     return;
-                ShowEndScreen();
+                AfterTheLevel();
             }
+        }
+
+        /// <summary>
+        /// What comes between a finished level (its banner, and a win's beat) and the Victory or Defeat screen: given what to call next,
+        /// it calls it when it is done (the campaign's ad break, which calls it at once when no ad is shown). Set and cleared by the campaign.
+        /// </summary>
+        public static System.Action<System.Action> AfterLevel;
+
+        private void AfterTheLevel()
+        {
+            if (AfterLevel != null)
+                AfterLevel(ShowEndScreen);
+            else
+                ShowEndScreen();
         }
 
         /// <summary>
@@ -413,8 +432,8 @@ namespace SdfGui
                     Show(argument);
                     break;
                 case GuiCommandId.NewCampaign:
-                    // With a save the story starts again only after a yes (medals and unlocked levels stay)
-                    if (GuiCampaign.ShowsSave)
+                    // With a story to continue (the CONTINUE button is up) it starts again only after a yes (medals and unlocked levels stay)
+                    if (GuiCampaign.CanContinue)
                         Ask("Start the story again?\nYour medals and unlocked levels stay.", () => Show(GuiScreen.Difficulty));
                     else
                         Show(GuiScreen.Difficulty);

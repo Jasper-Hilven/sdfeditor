@@ -1,5 +1,6 @@
 using System;
 using SdfBattle;
+using SdfPlatform;
 using SdfGui;
 using SdfStory;
 using UnityEngine;
@@ -70,6 +71,7 @@ namespace SdfCampaign
             if (loader == null)
                 loader = GetComponent<SceneLoader>();
             loader.flow = flow;
+            ContentStreamer.Install();
             Definition = CampaignDefinition.Default();
             Progress = CampaignProgress.Load(Definition, new PlayerPrefsCampaignStorage(), Available);
             if (Progress.LoadProblem != null)
@@ -79,6 +81,20 @@ namespace SdfCampaign
             // The boss fight's own beats (ticket 33.8) play through this sequencer: its transitions, and the victory before the Victory screen
             Boss.PlayBeat = PlayBossBeat;
             GuiFlow.BeforeVictory = PlayBossVictory;
+            // The ad break (when ads are allowed, WebPortal.AdsAllowed): just after a finished level, before its Victory or Defeat screen
+            GuiFlow.AfterLevel = then => WebPortal.MidgameBreak(then);
+            // The web portal (ticket 36): its SDK starts here, and on the portal the save moves to the portal's data store once it is up
+            WebPortal.Init(OnPortalReady);
+        }
+
+        // On the portal the save is read from its data store (an older local save is found behind it); only before a step has started, so nothing in play changes
+        private void OnPortalReady()
+        {
+            if (this == null || !WebPortal.CloudSave || Current != null)
+                return;
+            Progress = CampaignProgress.Load(Definition, new LayeredCampaignStorage(new PortalCampaignStorage(), new PlayerPrefsCampaignStorage()), Available);
+            if (Progress.LoadProblem != null)
+                Debug.LogWarning($"Campaign: the portal's save was not readable ({Progress.LoadProblem}); kept under {CampaignProgress.BrokenKey}, starting fresh");
         }
 
         private void Start()
@@ -96,13 +112,31 @@ namespace SdfCampaign
             GuiFlow.Campaign = null;
             Boss.PlayBeat = null;
             GuiFlow.BeforeVictory = null;
+            GuiFlow.AfterLevel = null;
             MatchSetup.Pending = null;
         }
 
-        private static bool Available(string scene) => Application.CanStreamedLevelBeLoaded(scene);
+        // A streamed arena (the web build, ticket 38) counts as available: it is fetched when the campaign goes there
+        private static bool Available(string scene) => ContentStreamer.CanLoad(scene);
+
+        // The player is in a battle: fetch the next arena and its comic in the background, so the Loading screen rarely waits
+        private void PrefetchAhead()
+        {
+            if (!ContentStreamer.Enabled || Current == null)
+                return;
+            ContentStreamer.Prefetch(StreamPlan.Upcoming(Definition, Current.id, ContentStreamer.Manifest));
+        }
 
         // The menus' buttons that change what is played (the GUI holds no scene references; it hands them over here)
         private bool OnCommand(GuiCommandId command, string level, int value)
+        {
+            // An ad is up: the buttons wait for it
+            if (WebPortal.AdPlaying)
+                return true;
+            return Command(command, level, value);
+        }
+
+        private bool Command(GuiCommandId command, string level, int value)
         {
             switch (command)
             {
@@ -173,6 +207,22 @@ namespace SdfCampaign
             }
             Skipped(step);
             fromLevelSelect = false;
+            Run(step);
+        }
+
+        /// <summary>
+        /// For checking the streamed web build (ticket 38) in a browser: <c>unityInstance.SendMessage("Campaign", "StreamCheck", "beat-fungal")</c>
+        /// runs that step (a battle or a beat) as if the campaign had reached it. Only on a page whose URL has <c>streamcheck</c> in it.
+        /// </summary>
+        public void StreamCheck(string stepId)
+        {
+            if (!Application.absoluteURL.Contains("streamcheck"))
+                return;
+            var step = Definition.Find(stepId);
+            if (step == null)
+                return;
+            Debug.Log($"Campaign: stream check runs {stepId}");
+            Current = step;
             Run(step);
         }
 
@@ -334,6 +384,18 @@ namespace SdfCampaign
         // A comic over what is up, no scene of its own (the intro over Boot, a replayed beat over the gallery): the GUI is hidden while it plays
         private void PlayComic(string comic, Action then)
         {
+            // A streamed comic (the web build) may still be on its way: the Loading screen waits for it
+            if (ContentStreamer.Needs(StreamManifest.ComicKey(comic)))
+            {
+                loader.Ensure(StreamManifest.ComicKey(comic), "Comic", ok =>
+                {
+                    if (ok)
+                        PlayComic(comic, then);
+                    else
+                        then();
+                });
+                return;
+            }
             var canvas = flow.GetComponent<Canvas>();
             canvas.enabled = false;
             StoryIntro.Play(comic, () =>
@@ -358,6 +420,7 @@ namespace SdfCampaign
                     if (step.kind == StepKind.Credits)
                     {
                         Progress.CompleteCutscene(step.id);
+                        WebPortal.HappyTime();
                         QuitToTitle();
                     }
                     else
@@ -454,6 +517,8 @@ namespace SdfCampaign
                 goal = $"CAPTURE THE FLAG - FIRST TO {setup.capturesToWin}",
                 red = setup.redNames,
                 blue = setup.blueNames,
+                // The first arena says what the game is before it starts: capture the flag, and what capturing is
+                tip = setup.warmUp ? WarmUp.HowToScore : "",
             };
             loader.Load(step.scene, briefing, Bind, () =>
             {
@@ -617,6 +682,7 @@ namespace SdfCampaign
         // The match starts: the meadow's first play begins with its warm-up (the match is held), else it just runs
         private void BeginMatch()
         {
+            PrefetchAhead();
             if (match == null)
                 return;
             if (Setup != null && Setup.warmUp)
@@ -638,6 +704,7 @@ namespace SdfCampaign
             {
                 var state = boss.State;
                 win = Progress.RecordBossWin(step.id, state.LivesLost, state.LivesLostIn(3), state.FightSeconds, Progress.Difficulty, EasierSteps > 0);
+                WebPortal.HappyTime();
                 Debug.Log($"Campaign: won {step.id} with {state.LivesLost} lives lost in {state.FightSeconds:0}s, {win.Value.medal}{(win.Value.newBest ? " (new best)" : "")}");
             }
             else if (boss != null)
@@ -655,6 +722,9 @@ namespace SdfCampaign
                 streak = Progress.RecordLoss(step.id);
                 Debug.Log($"Campaign: lost {step.id} {result.RedScore}-{result.BlueScore}, {streak} in a row");
             }
+            // The portal's ad rule counts real battles only: the warm-up is the player's first minutes, no ad for them
+            if (Setup == null || !Setup.warmUp)
+                WebPortal.BattleFinished(boss != null ? boss.State.FightSeconds : result.Seconds);
             ShowEnd(step, result, win, streak);
             BattleEnded?.Invoke(step, result, win);
         }

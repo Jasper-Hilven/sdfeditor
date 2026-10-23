@@ -30,8 +30,14 @@ namespace SdfGui
         /// <summary>Whether the title offers the save: a real one, or the sample in the editor.</summary>
         public static bool ShowsSave => Live ? Progress.HasSave : !Application.isPlaying;
 
+        /// <summary>
+        /// Whether the title offers CONTINUE: a save with a step left (in the editor's sample, always). Only then does NEW CAMPAIGN ask
+        /// before starting the story again, as there is a story to lose.
+        /// </summary>
+        public static bool CanContinue => ShowsSave && (!Application.isPlaying || Progress.NextStep() != null);
+
         /// <summary>Whether a scene can be played (is in the build); the sample says yes for the arenas built today.</summary>
-        public static bool IsAvailable(string scene) => Live ? Application.CanStreamedLevelBeLoaded(scene) : SampleScenes.Contains(scene);
+        public static bool IsAvailable(string scene) => Live ? SdfCampaign.ContentStreamer.CanLoad(scene) : SampleScenes.Contains(scene);
 
         private static (CampaignDefinition definition, CampaignProgress progress) Sample()
         {

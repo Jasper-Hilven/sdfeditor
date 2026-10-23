@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using SdfGui;
+using SdfPlatform;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -17,6 +18,8 @@ namespace SdfCampaign
     {
         public const float FadeSeconds = 0.35f;
         public const float MinLoadingSeconds = 1.5f;
+        /// <summary>The share of the Loading bar for a download, when there is one.</summary>
+        public const float DownloadShare = 0.7f;
 
         /// <summary>Plays without waiting for the click (the batch-mode checks have no mouse).</summary>
         public static bool AutoPlay;
@@ -44,6 +47,7 @@ namespace SdfCampaign
         private IEnumerator Run(string scene, LoadingBriefing briefing, Action onLoaded, Action onPlay)
         {
             Busy = true;
+            WebPortal.LoadingStart();
             var fade = flow.GetComponentInChildren<GuiFade>(true);
             var loading = flow.GetComponentInChildren<GuiLoading>(true);
             yield return FadeTo(fade, 1);
@@ -57,6 +61,43 @@ namespace SdfCampaign
                 Time.timeScale = 0;
                 yield return FadeTo(fade, 0);
             }
+            // The web build's later arenas are bundles: fetched here (or already, by the prefetch), with the Loading screen's bar
+            var sceneKey = StreamManifest.SceneKey(scene);
+            var streamed = ContentStreamer.Needs(sceneKey);
+            var previous = flow.screen;
+            var shownForDownload = false;
+            if (streamed && !held && loading != null)
+            {
+                // A beat's load has no briefing and is black; a download must not be
+                shownForDownload = true;
+                loading.Begin(new LoadingBriefing { arena = scene });
+                flow.Show(GuiScreen.Loading);
+                yield return FadeTo(fade, 0);
+            }
+            var downloadShare = streamed ? DownloadShare : 0;
+            var cancelled = false;
+            if (streamed)
+                yield return Fetching(sceneKey, loading, downloadShare, ok => cancelled = !ok);
+            if (shownForDownload)
+            {
+                yield return FadeTo(fade, 1);
+                loading.ClearMessage();
+                flow.Show(previous);
+            }
+            if (cancelled)
+            {
+                loading?.ClearMessage();
+                Time.timeScale = 1;
+                if (fade != null)
+                    fade.Alpha = 0;
+                Busy = false;
+                WebPortal.LoadingStop();
+                if (CampaignRunner.Instance != null)
+                    CampaignRunner.Instance.QuitToTitle();
+                else
+                    flow.Show(GuiScreen.Title);
+                yield break;
+            }
             var started = Time.unscaledTime;
 
             var operation = SceneManager.LoadSceneAsync(scene, LoadSceneMode.Single);
@@ -68,13 +109,14 @@ namespace SdfCampaign
                 if (fade != null)
                     fade.Alpha = 0;
                 Busy = false;
+                WebPortal.LoadingStop();
                 yield break;
             }
             while (!operation.isDone)
             {
                 // The operation stops at 0.9 until it activates; the last tenth is the unloading below
                 if (held)
-                    loading.Set(Mathf.Clamp01(operation.progress / 0.9f) * 0.9f, false);
+                    loading.Set(downloadShare + Mathf.Clamp01(operation.progress / 0.9f) * (0.9f - downloadShare), false);
                 yield return null;
             }
             // The scene's Start has run by now (the match reads its setup there)
@@ -82,6 +124,8 @@ namespace SdfCampaign
             yield return null;
             onLoaded?.Invoke();
 
+            // The bundles of the arenas left behind go (the next arena's, being fetched, stay)
+            ContentStreamer.Release(streamed || ContentStreamer.IsReady(sceneKey) ? sceneKey : "");
             yield return Resources.UnloadUnusedAssets();
             GC.Collect();
             LogMemory(scene);
@@ -106,7 +150,85 @@ namespace SdfCampaign
                 yield return FadeTo(fade, 0);
             }
             Busy = false;
+            WebPortal.LoadingStop();
             onPlay?.Invoke();
+        }
+
+        /// <summary>
+        /// Fetches a streamed key with the Loading screen's bar over the first <paramref name="share"/> of it (when the screen is there). A failure
+        /// never freezes: the message replaces the bar, a click tries again, Escape gives up (<paramref name="result"/> false).
+        /// </summary>
+        private static IEnumerator Fetching(string key, GuiLoading loading, float share, Action<bool> result)
+        {
+            while (true)
+            {
+                var request = ContentStreamer.Fetch(key);
+                while (!request.Done)
+                {
+                    if (loading != null)
+                        loading.Set(request.Progress * share, false);
+                    yield return null;
+                }
+                if (!request.Failed)
+                {
+                    result(true);
+                    yield break;
+                }
+                Debug.LogWarning($"SceneLoader: download for {key} failed: {request.Error}");
+                if (loading == null)
+                {
+                    result(false);
+                    yield break;
+                }
+                loading.Message("DOWNLOAD FAILED - CLICK TO RETRY");
+                loading.Set(0, true);
+                while (!Input.GetMouseButtonDown(0) && !Input.GetKeyDown(KeyCode.Escape))
+                    yield return null;
+                if (Input.GetKeyDown(KeyCode.Escape))
+                {
+                    loading.ClearMessage();
+                    result(false);
+                    yield break;
+                }
+                loading.ClearMessage();
+                loading.Set(0, false);
+            }
+        }
+
+        /// <summary>
+        /// Makes sure a streamed key (a comic) is in, behind the Loading screen when it is not; <paramref name="done"/> gets false when the
+        /// player gave up. Already in, it runs at once.
+        /// </summary>
+        public void Ensure(string key, string title, Action<bool> done)
+        {
+            if (!ContentStreamer.Needs(key))
+            {
+                done(true);
+                return;
+            }
+            StartCoroutine(EnsureRun(key, title, done));
+        }
+
+        private IEnumerator EnsureRun(string key, string title, Action<bool> done)
+        {
+            Busy = true;
+            var fade = flow.GetComponentInChildren<GuiFade>(true);
+            var loading = flow.GetComponentInChildren<GuiLoading>(true);
+            var previous = flow.screen;
+            if (loading != null)
+            {
+                loading.Begin(new LoadingBriefing { arena = title });
+                flow.Show(GuiScreen.Loading);
+            }
+            var ok = true;
+            yield return Fetching(key, loading, 1, result => ok = result);
+            if (loading != null)
+            {
+                loading.ClearMessage();
+                flow.Show(previous);
+            }
+            Busy = false;
+            done(ok);
         }
 
         private static IEnumerator FadeTo(GuiFade fade, float target)

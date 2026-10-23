@@ -145,6 +145,9 @@ namespace SdfCampaign.Editor
                     Expect(Mathf.Approximately(Time.timeScale, 1), "time runs");
                     Expect(m.GetComponent<WarmUpPlayer>() != null && m.Held && m.YouFree, "the Meadow's first play starts with the warm-up: held, and you free");
                     Expect(!m.Setup.sporesOn && Spores.Current != null && !Spores.Current.State.Enabled, "spores are off in the Meadow");
+                    var sporeHud = m.Hud != null ? m.Hud.GetComponentInChildren<GuiHud>(true) : null;
+                    Expect(sporeHud != null && sporeHud.sporeMeter != null && !sporeHud.sporeMeter.activeSelf && (sporeHud.sporePower == null || !sporeHud.sporePower.activeSelf),
+                        "no spore meter or power line in the Meadow");
                     Expect(UnityEngine.Object.FindObjectsByType<GuiFlow>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length == 1,
                         "only the persistent GUI, the scene's own is gone");
                     Expect(m.Hud != null && m.Hud.gameObject == flow.gameObject, "the HUD is on the persistent GUI");
