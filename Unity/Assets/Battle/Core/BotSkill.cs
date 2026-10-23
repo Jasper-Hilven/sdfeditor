@@ -23,20 +23,23 @@ namespace SdfBattle
 
         private float L(float atZero, float atOne) => Mathf.Lerp(atZero, atOne, Mathf.Clamp01(level));
 
+        /// <summary>How far off every bot's aim is against the tuned numbers below: 10% more (2026-10-23), so they miss a little more.</summary>
+        public const float AimErrorScale = 1.1f;
+
         /// <summary>Seconds from first seeing a new target until the first shot at it.</summary>
         public float ReactionSeconds => L(0.65f, 0.2f);
 
         /// <summary>Degrees off the target the aim starts at, as the bot starts tracking it.</summary>
-        public float StartError => L(14, 5);
+        public float StartError => L(14, 5) * AimErrorScale;
 
         /// <summary>Degrees off the target the aim settles to after tracking it a while; never 0.</summary>
-        public float SteadyError => L(3.2f, 0.7f);
+        public float SteadyError => L(3.2f, 0.7f) * AimErrorScale;
 
         /// <summary>Seconds of tracking in which the error shrinks by about two thirds of the way to steady.</summary>
         public float SettleSeconds => L(1.6f, 0.55f);
 
         /// <summary>Seconds the aim lags a target crossing the view: its angular speed times this is added to the error.</summary>
-        public float TrackingLag => L(0.14f, 0.04f);
+        public float TrackingLag => L(0.14f, 0.04f) * AimErrorScale;
 
         /// <summary>Degrees a second the bot turns its view at most.</summary>
         public float TurnSpeed => L(240, 540);
