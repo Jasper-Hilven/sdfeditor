@@ -1176,7 +1176,7 @@ namespace SdfLevel.Editor
                 copy.subMeshCount = 1;
                 var bounds = mesh.bounds;
                 bounds.center = new Vector3(-bounds.center.x, bounds.center.y, bounds.center.z);
-                copy.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length) { bounds = bounds },
+                copy.SetSubMesh(0, new SubMeshDescriptor(0, triangles.Length) { bounds = bounds, firstVertex = 0, vertexCount = mesh.vertexCount },
                     MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices);
                 copy.bounds = bounds;
                 copy.UploadMeshData(false);

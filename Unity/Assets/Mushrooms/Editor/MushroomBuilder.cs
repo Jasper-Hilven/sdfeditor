@@ -86,9 +86,9 @@ namespace SdfMushrooms.Editor
         /// Version 11: part instances, a child with its own LOD group per use, and the shadows, outline, cull and collider settings per part.
         /// Version 12: part LODs no earlier than the model's. Version 13: the material patterns per vertex (UV7).
         /// Version 14: LOD distances doubled (<see cref="LodPixelError"/> halved).
-        /// Version 15: and back to one pixel.
+        /// Version 15: and back to one pixel. Version 16: the submesh's vertex range set (it was 0 with the packed vertices).
         /// </summary>
-        public const int BuilderVersion = 15;
+        public const int BuilderVersion = 16;
 
         private static string VersionStamp
         {
@@ -729,9 +729,10 @@ namespace SdfMushrooms.Editor
                 mesh.SetIndexBufferData(narrow, 0, 0, narrow.Length);
             }
             mesh.subMeshCount = 1;
-            // The bounds from the true positions: Unity would work them out from the packed ones, which are fractions
+            // The bounds from the true positions: Unity would work them out from the packed ones, which are fractions. Without the
+            // recalculation the vertex range is not worked out either, so it is given here (the Stats window counts vertices by it)
             const MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices;
-            mesh.SetSubMesh(0, new SubMeshDescriptor(0, cached.Length) { bounds = bounds }, flags);
+            mesh.SetSubMesh(0, new SubMeshDescriptor(0, cached.Length) { bounds = bounds, firstVertex = 0, vertexCount = order.Length }, flags);
             mesh.bounds = bounds;
             mesh.UploadMeshData(false);
         }
