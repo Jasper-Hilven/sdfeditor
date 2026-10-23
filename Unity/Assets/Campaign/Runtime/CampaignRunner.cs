@@ -144,7 +144,7 @@ namespace SdfCampaign
                     Continue();
                     return true;
                 case GuiCommandId.BeginCampaign:
-                    NewCampaign((Difficulty)Mathf.Clamp(value, 0, 2));
+                    NewCampaign((Difficulty)Mathf.Clamp(value, 0, 3));
                     return true;
                 case GuiCommandId.PlayLevel:
                     PlayLevel(level);
@@ -302,6 +302,17 @@ namespace SdfCampaign
         /// <summary>How a cutscene step's beat plays (ticket 34): its comic when the story viewer has its panels, else its shots, else none.</summary>
         public static BeatForm FormOf(CampaignStep step) =>
             step.IsBattle || step.id == CampaignDefinition.Intro ? BeatForm.None : Beats.FormOf(step.id, StoryIntro.HasComic(step.id));
+
+        /// <summary>
+        /// The credits now, seen or not, for looking at them (Tools > SDF Campaign > Play Credits): over Boot's backdrop as after the ending,
+        /// nothing recorded, back to the title when they are over or skipped.
+        /// </summary>
+        public void PlayCredits()
+        {
+            var step = Definition.Find(CampaignDefinition.Credits);
+            if (step != null)
+                PlayOverBoot(step, () => QuitToTitle());
+        }
 
         /// <summary>A replay from the Story gallery: nothing is recorded, and the way back is the gallery.</summary>
         public void WatchCutscene(string id)

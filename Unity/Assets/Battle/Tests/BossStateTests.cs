@@ -490,6 +490,7 @@ namespace SdfBattle.Tests
 
         // ---------------------------------------------------------------- Lives, checkpoints
 
+        [TestCase(BossDifficulty.SuperEasy, 7)]
         [TestCase(BossDifficulty.Easy, 5)]
         [TestCase(BossDifficulty.Normal, 3)]
         [TestCase(BossDifficulty.Hard, 2)]
@@ -633,6 +634,14 @@ namespace SdfBattle.Tests
             Assert.AreEqual(20300, easy.TotalHealth);
             Assert.AreEqual(20300, normal.TotalHealth);
             Assert.AreEqual(25400, hard.TotalHealth);
+
+            var superEasy = BossRules.For(BossDifficulty.SuperEasy);
+            CollectionAssert.AreEqual(normal.bars, superEasy.bars);
+            Assert.AreEqual(3, superEasy.SpecOf(BossAttackKind.SporeMortar).damage, 1e-4f);
+            Assert.AreEqual(1.2f * 1.6f, superEasy.SpecOf(BossAttackKind.SporeMortar).windUp, 1e-4f);
+            Assert.AreEqual(18, superEasy.Window(superEasy.kneelSeconds), 1e-4f);
+            Assert.AreEqual(0.4f, superEasy.crewSkill);
+            CollectionAssert.AreEqual(new[] { 2, 2, 2 }, superEasy.crewSizes);
 
             var mortar = BossAttackKind.SporeMortar;
             Assert.AreEqual(9, easy.SpecOf(mortar).damage, 1e-4f);

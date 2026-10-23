@@ -69,6 +69,12 @@ namespace SdfBattle
 
         // ---------------------------------------------------------------- The API (bots call it; your input feeds it)
 
+        /// <summary>
+        /// Your arsenal is driven by code (a <see cref="Bot"/> brain on you, the preview recorder's autopilot) and not by the mouse and
+        /// keys: the input is not read and the pointer need not be locked to fire. Off for every player but that.
+        /// </summary>
+        [System.NonSerialized] public bool scripted;
+
         /// <summary>Holds the trigger down or lets it go.</summary>
         public void SetTrigger(bool held) => triggerHeld = held;
 
@@ -127,7 +133,7 @@ namespace SdfBattle
             if (combat == null || Player.State == null)
                 return;
             var state = Player.State;
-            if (Player.IsYou)
+            if (Player.IsYou && !scripted)
                 ReadInput();
 
             var inventory = Inventory;
@@ -138,7 +144,7 @@ namespace SdfBattle
                 return;
 
             var alive = state.Alive;
-            var canFire = alive && (combat.Match.State.CanMove || Player.IsYou && combat.Match.YouFree) && (!Player.IsYou || Cursor.lockState == CursorLockMode.Locked);
+            var canFire = alive && (combat.Match.State.CanMove || Player.IsYou && combat.Match.YouFree) && (!Player.IsYou || scripted || Cursor.lockState == CursorLockMode.Locked);
             var held = triggerHeld && canFire;
             UpdateZoom(alive && zoomHeld && stats.zoomFieldOfView > 0);
 

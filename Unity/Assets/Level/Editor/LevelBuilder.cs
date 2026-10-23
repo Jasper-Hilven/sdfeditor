@@ -103,8 +103,9 @@ namespace SdfLevel.Editor
         /// Version 25: the boss arena (ticket 33.3): the placed models tagged with phases under <see cref="PhaseGroup"/> objects, Boss Spots
         /// (<see cref="BossSpots"/>), and the navmeshes per phase layout.
         /// Version 26: the boss's prefabs on Boss Spots (ticket 33.6).
+        /// Version 27: the arena's sounds (<see cref="SdfAudio.ArenaAudio"/>: footstep surface, music clips) on SceneInfo, and an audio listener on the camera.
         /// </summary>
-        public const int BuilderVersion = 26;
+        public const int BuilderVersion = 27;
 
         /// <summary>
         /// The draw group that a placed model's part instances go to when the level has a <c>draw</c> section for it (the castles' walls,
@@ -1375,6 +1376,7 @@ namespace SdfLevel.Editor
             camera.transform.localPosition = new Vector3(0, EyeHeight, 0);
             camera.nearClipPlane = 0.05f;
             camera.farClipPlane = 400;
+            camera.gameObject.AddComponent<AudioListener>();
             if (noSky)
             {
                 // Surrounded by walls: no skybox to clear to, a flat colour the room never shows; far enough for the whole cube
@@ -1611,6 +1613,8 @@ namespace SdfLevel.Editor
                     new Vector2(-area["min"][0].Value<float>(), area["max"][1].Value<float>()));
             sceneInfo.levelName = name;
             sceneInfo.indoor = indoor;
+            // The arena's own sounds: its floor and its music hang off the scene, so the web build bundles them with the arena
+            SdfAudio.Editor.ArenaAudioSetup.Attach(info, name);
             (sceneInfo.playAreaMin, sceneInfo.playAreaMax) = Mirrored(data["play"]);
             (sceneInfo.extentMin, sceneInfo.extentMax) = data["extent"] != null ? Mirrored(data["extent"]) : (sceneInfo.playAreaMin, sceneInfo.playAreaMax);
             var spawn = data["spawn"];

@@ -122,6 +122,9 @@ namespace SdfBattle
 
         public int Count => corpses.Count;
 
+        /// <summary>The corpses counted, oldest first.</summary>
+        public IEnumerable<T> All => corpses;
+
         /// <summary>Adds a corpse; returns the oldest when that made one too many (it is no longer counted), else null.</summary>
         public T Add(T corpse)
         {

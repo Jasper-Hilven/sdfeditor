@@ -10,10 +10,9 @@ namespace SdfGui
     /// here so the scene shows what play does, which the battle's own HUD scripts fill in (SdfBattle's CombatHud, SporeHud, FlagHud):
     /// the weapon slots, the spore meter, power cards and power line, the team score and the flags' statuses, markers and banner.
     /// <para>
-    /// A change of quality level when the frame rate has stayed high (over <see cref="FastFps"/> for <see cref="FastFor"/> seconds, with a
-    /// better level left) or low (under <see cref="SlowFps"/> for <see cref="SlowFor"/> seconds, with a faster level left): two levels at
-    /// once if it stayed over <see cref="VeryFastFps"/> or under <see cref="VerySlowFps"/> the whole time. Its last <see cref="AdjustIn"/>
-    /// seconds count down where the frame rate shows, whether or not the settings show the frame rate, unless the settings dismiss it.
+    /// A change of quality level when the frames have kept coming in time or late (<see cref="GuiQualityRule"/>). Its last
+    /// <see cref="AdjustIn"/> seconds count down where the frame rate shows, whether or not the settings show the frame rate, unless the
+    /// settings dismiss it.
     /// </para>
     /// </summary>
     public sealed class GuiHud : GuiView
@@ -71,15 +70,11 @@ namespace SdfGui
         public ToonShape flagBanner;
         public TMP_Text flagBannerText;
 
-        public const float FastFps = 120, VeryFastFps = 200, FastFor = 6, SlowFps = 40, VerySlowFps = 20, SlowFor = 4;
-        /// <summary>The last seconds before a change of quality level, which the HUD counts down (part of <see cref="FastFor"/> and <see cref="SlowFor"/>).</summary>
+        /// <summary>The last seconds before a change of quality level, which the HUD counts down (part of the rule's windows).</summary>
         public const float AdjustIn = 3;
 
         private float smoothedFrame = 1 / 60f;
-        private float fastTime;
-        private float veryFastTime;
-        private float slowTime;
-        private float verySlowTime;
+        private readonly GuiQualityRule qualityRule = new GuiQualityRule();
 
         protected override void Render(MatchView m)
         {
@@ -157,9 +152,9 @@ namespace SdfGui
                 var rate = 1 / Mathf.Max(smoothedFrame, 1e-4f);
                 string hint = null;
                 if (Application.isPlaying && !GuiSettings.DismissQualityHints)
-                    hint = QualityCountdown(rate);
+                    hint = QualityCountdown();
                 else
-                    ResetQualityTiming();
+                    qualityRule.Reset();
                 GuiText.Show(fps, GuiSettings.ShowFps || hint != null);
                 GuiText.Set(fps, hint ?? $"{Mathf.RoundToInt(rate)} FPS");
                 // The countdown in ink, the frame rate in moss green
@@ -170,34 +165,23 @@ namespace SdfGui
         }
 
         /// <summary>
-        /// The quality countdown for this frame rate, or null: towards a better level (quality levels go best first) after a while fast, a
-        /// faster one after a while slow, two levels if very fast or very slow all that while (as far as there are levels). It shows the
-        /// last <see cref="AdjustIn"/> seconds counting down, then takes that level and starts the timing again; leaving the range first
-        /// stops it.
+        /// The quality countdown, or null: <see cref="GuiQualityRule"/> on this frame. It shows the last <see cref="AdjustIn"/> seconds
+        /// counting down, then takes that level and starts the timing again; leaving the range first stops it.
         /// </summary>
-        private string QualityCountdown(float rate)
+        private string QualityCountdown()
         {
             var level = QualitySettings.GetQualityLevel();
-            var last = QualitySettings.names.Length - 1;
-            var dt = Time.unscaledDeltaTime;
-            fastTime = level > 0 && rate > FastFps ? fastTime + dt : 0;
-            veryFastTime = level > 1 && rate > VeryFastFps ? veryFastTime + dt : 0;
-            slowTime = level < last && rate < SlowFps ? slowTime + dt : 0;
-            verySlowTime = level < last - 1 && rate < VerySlowFps ? verySlowTime + dt : 0;
-            var left = fastTime > 0 ? FastFor - fastTime : slowTime > 0 ? SlowFor - slowTime : float.MaxValue;
+            var (left, step) = qualityRule.Tick(Time.unscaledDeltaTime, level);
             if (left > AdjustIn)
                 return null;
             if (left <= 0)
             {
-                var step = fastTime > 0 ? (veryFastTime >= FastFor ? -2 : -1) : (verySlowTime >= SlowFor ? 2 : 1);
-                QualitySettings.SetQualityLevel(Mathf.Clamp(level + step, 0, last), true);
-                ResetQualityTiming();
+                QualitySettings.SetQualityLevel(Mathf.Clamp(level + step, 0, QualitySettings.names.Length - 1), true);
+                qualityRule.Reset();
                 return null;
             }
             // 3 to 0, each a second but the first and last half a second
             return $"Adjusting quality in {Mathf.RoundToInt(left)}";
         }
-
-        private void ResetQualityTiming() => (fastTime, veryFastTime, slowTime, verySlowTime) = (0, 0, 0, 0);
     }
 }

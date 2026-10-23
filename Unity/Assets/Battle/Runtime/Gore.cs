@@ -77,7 +77,7 @@ namespace SdfBattle
 
         private readonly Dictionary<PlayerState, Vector3> lastFrom = new Dictionary<PlayerState, Vector3>();
         private readonly Dictionary<PlayerState, Corpse> corpseOf = new Dictionary<PlayerState, Corpse>();
-        private readonly CorpseBudget<Corpse> corpses = new CorpseBudget<Corpse>();
+        private CorpseBudget<Corpse> corpses = new CorpseBudget<Corpse>();
         private Match match;
         private Combat combat;
         private WeaponTableAsset assets;
@@ -124,7 +124,9 @@ namespace SdfBattle
             var root = new GameObject("Blood").transform;
             root.SetParent(transform, false);
             gobModels = Pool(root, "Gobs", assets != null ? assets.blobModels : null, GobPool);
-            splatModels = Pool(root, "Splats", assets != null ? assets.splatModels : null, SplatPool);
+            // Epic and up keep more blood and corpses about (SdfMushrooms.QualityExtras), for the match: the pools are made once
+            splatModels = Pool(root, "Splats", assets != null ? assets.splatModels : null, SplatPool * SdfMushrooms.QualityExtras.GoreAmount);
+            corpses = new CorpseBudget<Corpse>(GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount);
             gobs = new Gob[gobModels?.Length ?? 0];
             splats = new Puddle[splatModels?.Length ?? 0];
         }
@@ -203,7 +205,9 @@ namespace SdfBattle
                 GoreRules.Flings(level));
             if (corpse != null)
             {
-                if (corpseOf.TryGetValue(death.Victim, out var earlier) && earlier != null)
+                // Epic and up let a player's earlier corpses lie (as long as they last); below, one corpse each
+                corpse.lifetime *= SdfMushrooms.QualityExtras.GoreStay;
+                if (!CorpsesStay && corpseOf.TryGetValue(death.Victim, out var earlier) && earlier != null)
                     earlier.Sink();
                 corpseOf[death.Victim] = corpse;
                 corpses.Add(corpse)?.Sink();
@@ -226,17 +230,27 @@ namespace SdfBattle
                 corpseOf.Remove(corpse.Victim);
         }
 
-        /// <summary>A player (re)appeared: their old corpse sinks away; the corpses' pieces let the new body through.</summary>
+        /// <summary>
+        /// A player (re)appeared: their old corpse sinks away (on Epic and up it lies on, <see cref="CorpsesStay"/>); every corpse's
+        /// pieces let the new body through.
+        /// </summary>
         private void OnSpawned(PlayerState state)
         {
-            if (corpseOf.TryGetValue(state, out var corpse) && corpse != null)
+            if (!CorpsesStay && corpseOf.TryGetValue(state, out var corpse) && corpse != null)
                 corpse.Sink();
             // A capsule turned off and on again forgets what it ignored
             var player = match.PlayerOf(state);
+            foreach (var each in corpses.All)
+                if (each != null)
+                    each.IgnorePlayer(player);
+            // and the latest of each player, which may be sinking away uncounted
             foreach (var pair in corpseOf)
                 if (pair.Value != null)
                     pair.Value.IgnorePlayer(player);
         }
+
+        /// <summary>Whether corpses outlast their player's respawn and next death (Epic and up), going only by age or the corpse budget.</summary>
+        private static bool CorpsesStay => SdfMushrooms.QualityExtras.GoreAmount > 1;
 
         /// <summary>Gore off: a small puff of cream and cap colour where the scout was.</summary>
         private void Poof(Vector3 at)
@@ -473,7 +487,7 @@ namespace SdfBattle
                 spread = Mathf.Lerp(0.15f, 1, 1 - Mathf.Pow(1 - Mathf.Clamp01(age / s.grow), 3));
             else
                 spread = age < 0.1f ? Mathf.Lerp(0.5f, 1.12f, age / 0.1f) : Mathf.Lerp(1.12f, 1, Mathf.Clamp01((age - 0.1f) / 0.1f));
-            var shrink = 1 - Mathf.SmoothStep(0, 1, (age - splatStay) / splatShrink);
+            var shrink = 1 - Mathf.SmoothStep(0, 1, (age - splatStay * SdfMushrooms.QualityExtras.GoreStay) / splatShrink);
             if (shrink <= 0.02f)
             {
                 s.active = false;

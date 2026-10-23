@@ -10,7 +10,7 @@ namespace SdfBattle
     public sealed class CheatCode
     {
         /// <summary>Your team gets <see cref="SkipPoints"/> captures, which wins a shooter level; in the boss fight, Prime is beaten.</summary>
-        public const string Skip = "skipthisgamecheat";
+        public const string Skip = "cheatcheat";
 
         public const int SkipPoints = 3;
 

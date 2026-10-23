@@ -1,4 +1,5 @@
 using System.Linq;
+using SdfCampaign;
 using TMPro;
 using UnityEngine;
 
@@ -23,16 +24,30 @@ namespace SdfGui
         private static readonly Vector2 Primary = new Vector2(420, 100);
         private static readonly Vector2 Secondary = new Vector2(380, 72);
 
+        // The save the title was last drawn from: the runner may not exist yet when the title first enables, and the portal's save replaces its progress later
+        private CampaignProgress drawnFrom;
+
         private void OnEnable() => Refresh();
+
+        private void OnDisable()
+        {
+            if (Application.isPlaying)
+                GuiStartQuality.Stop();
+        }
 
         private void Update()
         {
-            if (!Application.isPlaying)
+            // The first launch's quality, from the title's frame rate
+            if (Application.isPlaying)
+                GuiStartQuality.Tick();
+            // In play, once more whenever the save in use is a different one (the runner came up, or the portal's save was loaded behind the shown title)
+            if (!Application.isPlaying || GuiCampaign.LiveProgress != drawnFrom)
                 Refresh();
         }
 
         public void Refresh()
         {
+            drawnFrom = GuiCampaign.LiveProgress;
             var save = GuiCampaign.ShowsSave;
             var campaign = GuiCampaign.Progress;
             var firstBattle = GuiCampaign.Definition.Battles().FirstOrDefault();

@@ -30,14 +30,19 @@ namespace SdfGui
 
         public static CampaignDefinition Definition => Live ? CampaignRunner.Instance.Definition : Sample().definition;
 
+        /// <summary>
+        /// The save the menus are reading right now: the running runner's, or null with none (the sample is not counted). The runner swaps it
+        /// when the portal's data store comes up after the title is already shown, and a screen that drew itself from the old one compares this to redraw.
+        /// </summary>
+        public static CampaignProgress LiveProgress => Live ? CampaignRunner.Instance.Progress : null;
+
         public static CampaignProgress Progress => Live ? CampaignRunner.Instance.Progress : PreviewFull ? Full() : Sample().progress;
 
         /// <summary>Whether the title offers the save: a real one, or the sample in the editor.</summary>
         public static bool ShowsSave => Live ? Progress.HasSave : !Application.isPlaying;
 
         /// <summary>
-        /// Whether the title offers CONTINUE: a save with a step left (in the editor's sample, always). Only then does NEW CAMPAIGN ask
-        /// before starting the story again, as there is a story to lose.
+        /// Whether the title offers CONTINUE: a save with a step left (in the editor's sample, always).
         /// </summary>
         public static bool CanContinue => ShowsSave && (!Application.isPlaying || Progress.NextStep() != null);
 

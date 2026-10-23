@@ -13,7 +13,8 @@ namespace SdfLevel
     /// over <see cref="blend"/> metres round their border and the last fades out over its last <see cref="fade"/> metres, by dither in
     /// the shader. <see cref="wind"/> is metres of sway at <see cref="windHeight"/> above the base (0 for none: a static group), and the
     /// lowest <see cref="tintHeight"/> metres take the instance's tint. The integrated GPU / web preset draws <see cref="lowDensity"/> of
-    /// the instances (by their hash, so the same ones each frame) with every distance times <see cref="lowDistance"/>; Epic and Ultra Epic draw every distance further (<see cref="SdfMushrooms.QualityExtras.FoliageDistance"/>).
+    /// the instances (by their hash, so the same ones each frame) with every distance times <see cref="lowDistance"/>; Epic and Ultra Epic draw every distance further (<see cref="SdfMushrooms.QualityExtras.FoliageDistance"/>)
+    /// and the foliage group thicker (<see cref="InstancedScatterRenderer.DenseGroup"/>).
     /// </summary>
     [Serializable]
     public sealed class ScatterDrawGroup
@@ -118,6 +119,8 @@ namespace SdfLevel
 
         /// <summary>The draw group that cheers with the global <c>_CrowdCheer</c> (ticket 33.6): the boss arena's crowd.</summary>
         public const string CheeringGroup = "crowd";
+        /// <summary>The draw group whose instances Epic and up thicken with copies of their own (<see cref="SdfMushrooms.QualityExtras.FoliageCopies"/>).</summary>
+        public const string DenseGroup = "foliage";
 
         [Tooltip("The level's instances.bin (copied as a .bytes asset by LevelBuilder)")]
         public TextAsset instances;
@@ -166,6 +169,7 @@ namespace SdfLevel
         private Material surface;
         private Material outline;
         private bool loaded;
+        private int loadedCopies;
 
         // Per frame, reused: the instances of each prototype in each ring, and what a draw is filled from
         private int[][][] ringInstances;
@@ -199,10 +203,11 @@ namespace SdfLevel
             loaded = false;
         }
 
-        /// <summary>The instances and the prototypes' meshes, once; again after the component changes (OnValidate).</summary>
+        /// <summary>The instances and the prototypes' meshes, once; again after the component changes (OnValidate) or the foliage copies do.</summary>
         private bool Load()
         {
-            if (loaded)
+            // Again when the quality level changes how many copies the foliage gets (also for the fixed sun shadow, which asks first)
+            if (loaded && loadedCopies == SdfMushrooms.QualityExtras.FoliageCopies)
                 return matrices != null;
             Unload();
             loaded = true;
@@ -249,13 +254,6 @@ namespace SdfLevel
             // Every instance: those of the file, then those placed in the scene
             var file = instances != null ? ScatterInstances.Read(instances.bytes) : null;
             var fileCount = file?.Records.Length ?? 0;
-            var count = fileCount + placements.Length;
-            matrices = new Matrix4x4[count];
-            positions = new Vector3[count];
-            scales = new float[count];
-            tints = new Vector4[count];
-            shares = new float[count];
-            instancePrototypes = new int[count];
             var fileToPrototype = new int[file?.Prototypes.Length ?? 0];
             for (var p = 0; p < fileToPrototype.Length; p++)
             {
@@ -263,16 +261,30 @@ namespace SdfLevel
                 if (fileToPrototype[p] < 0)
                     Debug.LogWarning($"SDF scatter: instances.bin scatters {file.Prototypes[p]}, which {name} has no prototype for; it is not drawn");
             }
+            var copies = Copies(file, fileToPrototype);
+            var count = fileCount + copies.Count + placements.Length;
+            matrices = new Matrix4x4[count];
+            positions = new Vector3[count];
+            scales = new float[count];
+            tints = new Vector4[count];
+            shares = new float[count];
+            instancePrototypes = new int[count];
             for (var i = 0; i < fileCount; i++)
             {
                 var record = file.Records[i];
                 Set(i, fileToPrototype[record.Prototype], record.Position, record.Rotation, record.Scale, record.Tint, record.Share);
             }
+            for (var i = 0; i < copies.Count; i++)
+            {
+                var (record, position, rotation, scale) = copies[i];
+                // Never kept by the low preset's thinning (share 1), though it makes no copies anyway
+                Set(fileCount + i, fileToPrototype[file.Records[record].Prototype], position, rotation, scale, file.Records[record].Tint, 1);
+            }
             for (var i = 0; i < placements.Length; i++)
             {
                 var placement = placements[i];
                 // Placed instances take no tint and are never thinned: they are parts of something whole
-                Set(fileCount + i, placement.prototype, placement.position, placement.rotation, placement.scale, new Color32(0, 0, 0, 0), 0);
+                Set(fileCount + copies.Count + i, placement.prototype, placement.position, placement.rotation, placement.scale, new Color32(0, 0, 0, 0), 0);
             }
 
             // Into a grid of cells, the file's when there is one, else one of 12.5 m round the instances
@@ -319,6 +331,43 @@ namespace SdfLevel
                     ringInstances[p][k] = new int[64];
             }
             return true;
+        }
+
+        /// <summary>
+        /// Epic and up: <see cref="SdfMushrooms.QualityExtras.FoliageCopies"/> more of each instance of the <see cref="DenseGroup"/> group,
+        /// each 25 to 60 cm from it in a direction, turn and size (85 to 105 %) its hash picks, on the ground there: dropped onto the
+        /// colliders below, and left out where none is within 25 cm of the original's height or the ground is steeper than about 37°
+        /// (a step, a wall, a rock, a path's raised tiles). Made at load, so nothing more is downloaded or baked.
+        /// </summary>
+        private List<(int record, Vector3 position, Quaternion rotation, float scale)> Copies(ScatterInstances file, int[] fileToPrototype)
+        {
+            var result = new List<(int, Vector3, Quaternion, float)>();
+            loadedCopies = SdfMushrooms.QualityExtras.FoliageCopies;
+            var dense = Array.FindIndex(groups, g => g.name == DenseGroup);
+            if (file == null || loadedCopies == 0 || dense < 0)
+                return result;
+            for (var r = 0; r < file.Records.Length; r++)
+            {
+                var record = file.Records[r];
+                var p = fileToPrototype[record.Prototype];
+                if (p < 0 || prototypeGroups[p] != dense)
+                    continue;
+                var hash = record.Hash;
+                for (var c = 0; c < loadedCopies; c++)
+                {
+                    hash = hash * 747796405u + 2891336453u;
+                    float Next() => (hash = hash * 1664525u + 1013904223u) / 4294967296f;
+                    var angle = Next() * 2 * Mathf.PI;
+                    var distance = Mathf.Lerp(0.25f, 0.6f, Next());
+                    var at = record.Position + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * distance;
+                    if (!Physics.Raycast(at + Vector3.up, Vector3.down, out var hit, 2, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
+                        || Mathf.Abs(hit.point.y - record.Position.y) > 0.25f || hit.normal.y < 0.8f)
+                        continue;
+                    var rotation = record.Rotation * Quaternion.AngleAxis(Next() * 360, Vector3.up);
+                    result.Add((r, hit.point, rotation, record.Scale * Mathf.Lerp(0.85f, 1.05f, Next())));
+                }
+            }
+            return result;
         }
 
         private void Set(int i, int prototype, Vector3 position, Quaternion rotation, float scale, Color32 tint, float share)

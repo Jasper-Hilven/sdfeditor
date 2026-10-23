@@ -360,6 +360,7 @@ namespace SdfBattle.Tests
 
         // ---------------------------------------------------------------- Difficulty and Sore Loser
 
+        [TestCase(BossDifficulty.SuperEasy, 1.2f * 1.6f)]
         [TestCase(BossDifficulty.Easy, 1.2f * 1.3f)]
         [TestCase(BossDifficulty.Normal, 1.2f)]
         [TestCase(BossDifficulty.Hard, 1.2f * 0.8f)]

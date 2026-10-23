@@ -50,7 +50,7 @@ namespace SdfLevel
         private Matrix4x4 worldToMap;
         private float texel;
         private Quaternion renderedRotation;
-        private bool renderedLow;
+        private int renderedSize;
 
         private void OnEnable() => RenderPipelineManager.beginContextRendering += BeforeCameras;
 
@@ -90,7 +90,7 @@ namespace SdfLevel
             if (sun == null || casterMaterial == null)
                 return;
             var low = IsLowPreset();
-            if (map == null || low != renderedLow || sun.transform.rotation != renderedRotation)
+            if (map == null || Size(low) != renderedSize || sun.transform.rotation != renderedRotation)
                 Render(context, low);
             if (map == null)
                 return;
@@ -100,10 +100,15 @@ namespace SdfLevel
             Shader.SetGlobalVector(ParamsId, new Vector4(1, texel, 0, 0));
         }
 
+        /// <summary>The map's texels a side: <see cref="lowResolution"/> on the low preset, else <see cref="resolution"/>, larger on Epic and up
+        /// (<see cref="SdfMushrooms.QualityExtras.SunShadowResolution"/>), as far as the GPU allows.</summary>
+        private int Size(bool low) => low ? lowResolution
+            : Mathf.Min(Mathf.RoundToInt(resolution * SdfMushrooms.QualityExtras.SunShadowResolution), SystemInfo.maxTextureSize);
+
         private void Render(ScriptableRenderContext context, bool low)
         {
             Release();
-            renderedLow = low;
+            renderedSize = Size(low);
             renderedRotation = sun.transform.rotation;
 
             // The casters: the scene's renderers (LOD0's of a LOD group) and the scattered instances, each with its bounding sphere
@@ -154,7 +159,7 @@ namespace SdfLevel
                 max = Vector3.Max(max, p + Vector3.one * radius);
             }
             var projection = Matrix4x4.Ortho(min.x, max.x, min.y, max.y, -max.z - 1, -min.z + 1);
-            var size = low ? lowResolution : resolution;
+            var size = Size(low);
             texel = 1f / size;
 
             map = new RenderTexture(size, size, 24, RenderTextureFormat.Shadowmap)

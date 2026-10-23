@@ -187,6 +187,7 @@ namespace SdfEffects
         {
             var root = piecesRoot;
             var center = root.TransformPoint(origin);
+            SdfAudio.GameAudio.Explode(center, SdfAudio.Cues.ExplosionMedium, SdfAudio.Cues.DebrisMedium);
             // A cel-painted "pow": a glowing disc and a ring of rays out of it, gone in a tenth of a second
             var flashBand = Hdr(new Color(1, 0.8f, 0.45f), 1.3f);
             var flashCore = Hdr(new Color(1, 0.97f, 0.85f), 2.6f);

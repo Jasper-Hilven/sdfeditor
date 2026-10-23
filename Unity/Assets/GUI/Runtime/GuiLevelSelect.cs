@@ -14,7 +14,7 @@ namespace SdfGui
         public GuiLevelCard[] cards = new GuiLevelCard[0];
         public GuiSelector difficulty;
 
-        private static readonly string[] DifficultyNames = { "Easy", "Normal", "Hard" };
+        private static readonly string[] DifficultyNames = { "Super Easy", "Easy", "Normal", "Hard" };
 
         private void Awake()
         {

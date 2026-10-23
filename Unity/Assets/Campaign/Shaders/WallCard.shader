@@ -30,6 +30,8 @@ Shader "SdfCampaign/WallCard"
             #pragma vertex Vert
             #pragma fragment Frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            // The monitor's screen part is a meshed model, whose positions are packed since ticket 37; a card's quad is not (w = 1)
+            #include "Assets/Mushrooms/Shaders/SdfPacked.hlsl"
 
             TEXTURE2D(_MainTex);
             SAMPLER(sampler_MainTex);
@@ -44,7 +46,7 @@ Shader "SdfCampaign/WallCard"
 
             struct Attributes
             {
-                float3 positionOS : POSITION;
+                float4 positionPacked : POSITION;
                 float2 uv : TEXCOORD0;
                 float4 color : COLOR;
             };
@@ -60,10 +62,11 @@ Shader "SdfCampaign/WallCard"
             Varyings Vert(Attributes input)
             {
                 Varyings output;
-                output.positionCS = TransformObjectToHClip(input.positionOS);
+                float3 positionOS = SdfUnpackPosition(input.positionPacked);
+                output.positionCS = TransformObjectToHClip(positionOS);
                 output.uv = input.uv;
                 output.color = input.color;
-                output.positionOS = input.positionOS;
+                output.positionOS = positionOS;
                 return output;
             }
 

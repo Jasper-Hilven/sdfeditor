@@ -30,8 +30,8 @@ namespace SdfBattle
         /// <summary>What wins the match; the boss fight (ticket 33) is its own.</summary>
         public MatchObjective objective;
         public bool sporesOn = true;
-        /// <summary>The boss fight's difficulty, 0 Easy, 1 Normal, 2 Hard (<see cref="BossDifficulty"/>, ticket 33.6); the campaign's difficulty by number.</summary>
-        public int bossDifficulty = 1;
+        /// <summary>The boss fight's difficulty, 0 Super Easy, 1 Easy, 2 Normal, 3 Hard (<see cref="BossDifficulty"/>, ticket 33.6); the campaign's difficulty by number.</summary>
+        public int bossDifficulty = 2;
         /// <summary>RETRY EASIER: the boss fight takes Easy's damage and wind-up rows.</summary>
         public bool retryEasier;
         /// <summary>The boss fight's first phase, 1 to 3 (RETRY PHASE).</summary>

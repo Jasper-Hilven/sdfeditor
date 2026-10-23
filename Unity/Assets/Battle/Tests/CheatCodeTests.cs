@@ -18,22 +18,22 @@ namespace SdfBattle.Tests
         public void TheCodeCompletesOnItsLastLetter()
         {
             var cheat = new CheatCode(CheatCode.Skip);
-            Assert.AreEqual(0, Completions(cheat, "skipthisgamechea"));
+            Assert.AreEqual(0, Completions(cheat, "cheatchea"));
             Assert.IsTrue(cheat.Feed('t'));
         }
 
         [Test]
         public void AnythingTypedBeforeOrInBetween_AndAnyCase()
         {
-            Assert.AreEqual(1, Completions(new CheatCode(CheatCode.Skip), "wasdwasd skipskipthisSKIPTHISGAMECHEATqq"));
+            Assert.AreEqual(1, Completions(new CheatCode(CheatCode.Skip), "wasdwasd chea cheatCHEATqq"));
         }
 
         [Test]
         public void AWrongLetterStartsItOver_AndItWorksAgain()
         {
             var cheat = new CheatCode(CheatCode.Skip);
-            Assert.AreEqual(0, Completions(cheat, "skipthisgamexcheat"));
-            Assert.AreEqual(2, Completions(cheat, "skipthisgamecheatskipthisgamecheat"));
+            Assert.AreEqual(0, Completions(cheat, "cheatxcheat"));
+            Assert.AreEqual(2, Completions(cheat, "qcheatcheatcheatcheat"));
         }
     }
 }

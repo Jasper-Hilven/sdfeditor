@@ -40,6 +40,30 @@ namespace SdfGui
             }
         }
 
+        private static float music = -1, sound = -1;
+
+        /// <summary>The music's volume, 0 to 1, on top of the master <see cref="Volume"/> (SdfAudio.MusicDirector reads it).</summary>
+        public static float MusicVolume
+        {
+            get => music >= 0 ? music : (music = PlayerPrefs.GetFloat("gui.musicVolume", 1));
+            set
+            {
+                music = value;
+                PlayerPrefs.SetFloat("gui.musicVolume", value);
+            }
+        }
+
+        /// <summary>The sound effects' volume, 0 to 1, on top of the master <see cref="Volume"/> (SdfAudio.AudioPlayer applies it to each sound as it starts).</summary>
+        public static float SoundVolume
+        {
+            get => sound >= 0 ? sound : (sound = PlayerPrefs.GetFloat("gui.soundVolume", 1));
+            set
+            {
+                sound = value;
+                PlayerPrefs.SetFloat("gui.soundVolume", value);
+            }
+        }
+
         public static bool ScreenShake
         {
             get => PlayerPrefs.GetInt("gui.shake", 1) == 1;

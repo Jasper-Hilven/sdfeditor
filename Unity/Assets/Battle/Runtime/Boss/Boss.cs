@@ -184,7 +184,7 @@ namespace SdfBattle
             }
 
             var setup = match.Setup;
-            Rules = BossRules.For((BossDifficulty)Mathf.Clamp(setup != null ? setup.bossDifficulty : 1, 0, 2), setup != null && setup.retryEasier);
+            Rules = BossRules.For((BossDifficulty)Mathf.Clamp(setup != null ? setup.bossDifficulty : (int)BossDifficulty.Normal, 0, 3), setup != null && setup.retryEasier);
             startPhase = Mathf.Clamp(setup != null ? setup.bossStartPhase : 1, 1, 3);
             // The match is the boss's, whatever the setup said: captures do not win, the clock does not run
             match.rules.objective = MatchObjective.Boss;

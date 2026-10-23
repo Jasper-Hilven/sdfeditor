@@ -53,7 +53,7 @@ namespace SdfCampaign.Editor
                 // Cards over the title keep its shot
                 Take("Settings", GuiScreen.Title, f => f.Show(GuiScreen.Settings));
                 Take("Difficulty", GuiScreen.Title, f => f.Show(GuiScreen.Difficulty));
-                Take("Confirm", GuiScreen.Title, f => f.Ask("Start the story again?\nYour medals and unlocked levels stay.", null));
+                Take("Confirm", GuiScreen.Title, f => f.Ask("Leave the match?\nThe campaign is saved at the start of this arena.", null));
                 GuiCampaign.PreviewComplete = true;
                 Take("TitleComplete", GuiScreen.Title);
                 GuiCampaign.PreviewComplete = false;

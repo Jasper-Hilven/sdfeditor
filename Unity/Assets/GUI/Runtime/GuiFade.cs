@@ -5,7 +5,7 @@ namespace SdfGui
 {
     /// <summary>
     /// The black that scene changes fade through (ticket 32.4): a full-screen image on top of the GUI's other screens. It draws and
-    /// blocks clicks only while it is not clear; the sound follows it.
+    /// blocks clicks only while it is not clear; the sound follows it (the settings' volume, faded out as the screen goes black).
     /// </summary>
     [RequireComponent(typeof(Image))]
     public sealed class GuiFade : MonoBehaviour
@@ -35,8 +35,9 @@ namespace SdfGui
             image.color = new Color(0, 0, 0, alpha);
             image.enabled = alpha > 0.001f;
             image.raycastTarget = alpha > 0.001f;
+            // The settings' volume, faded with the black
             if (Application.isPlaying)
-                AudioListener.volume = 1 - alpha;
+                AudioListener.volume = GuiSettings.Volume * (1 - alpha);
         }
     }
 }

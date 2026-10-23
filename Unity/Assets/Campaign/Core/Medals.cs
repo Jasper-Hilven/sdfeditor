@@ -12,7 +12,7 @@ namespace SdfCampaign
         {
             if (redCaptures <= blueCaptures) return Medal.None;
             var silver = redCaptures - blueCaptures >= 2;
-            var gold = blueCaptures == 0 && seconds <= timeLimitSeconds * 0.5f && difficulty != Difficulty.Easy && !retriedEasier;
+            var gold = blueCaptures == 0 && seconds <= timeLimitSeconds * 0.5f && difficulty > Difficulty.Easy && !retriedEasier;
             return gold ? Medal.Gold : silver ? Medal.Silver : Medal.Bronze;
         }
 
@@ -29,7 +29,7 @@ namespace SdfCampaign
         /// </summary>
         public static Medal OfBoss(int livesLost, int livesLostInPhase3, float seconds, Difficulty difficulty, bool retriedEasier)
         {
-            var gold = livesLostInPhase3 == 0 && livesLost <= BossGoldLives && seconds <= BossGoldSeconds && difficulty != Difficulty.Easy && !retriedEasier;
+            var gold = livesLostInPhase3 == 0 && livesLost <= BossGoldLives && seconds <= BossGoldSeconds && difficulty > Difficulty.Easy && !retriedEasier;
             return gold ? Medal.Gold : livesLost <= BossSilverLives ? Medal.Silver : Medal.Bronze;
         }
 

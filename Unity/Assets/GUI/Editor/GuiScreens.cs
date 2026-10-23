@@ -226,8 +226,8 @@ namespace SdfGui.Editor
 
             f.Text(t, "Difficulty Label", "DIFFICULTY", TextStyle.BodyInk, 36, GuiPalette.Cream, Top, new Vector2(-300, -150), new Vector2(300, 50), TextAlignmentOptions.Right);
             view.difficulty = Instance<GuiSelector>(p.Selector, t, "Difficulty", Top, new Vector2(110, -143));
-            view.difficulty.options = new[] { "Easy", "Normal", "Hard" };
-            view.difficulty.index = 1;
+            view.difficulty.options = new[] { "Super Easy", "Easy", "Normal", "Hard" };
+            view.difficulty.index = 2;
             view.difficulty.label.text = "Normal";
 
             // Two rows of four, in campaign order
@@ -242,18 +242,19 @@ namespace SdfGui.Editor
             var root = Root("Difficulty", GuiScreen.Difficulty);
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.7f), -0.3f);
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(820, 740)).transform;
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(820, 840)).transform;
             p.BannerInstance(panel, "Header", "NEW CAMPAIGN", GuiPalette.Moss, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
             f.Text(panel, "Question", "How sharp are the blue mushrooms?", TextStyle.Label, 36, GuiPalette.Ink, Top, new Vector2(0, -80), new Vector2(740, 50));
             (string name, Color color, string note)[] levels =
             {
+                ("SUPER EASY", GuiPalette.SporeDeep, "Blue is much clumsier and never plays more than three."),
                 ("EASY", GuiPalette.Moss, "Blue is clumsier and never plays more than four."),
                 ("NORMAL", GuiPalette.Amanita, "The story as it was written."),
                 ("HARD", GuiPalette.AmanitaDark, "Blue is sharper. Much sharper."),
             };
             for (var i = 0; i < levels.Length; i++)
             {
-                var y = -150 - i * 148;
+                var y = -150 - i * 135;
                 var button = p.ButtonInstance(panel, levels[i].name, levels[i].color, GuiCommandId.BeginCampaign, Top, new Vector2(0, y), new Vector2(400, 90), 46, spots: 0.5f);
                 button.GetComponent<GuiCommand>().value = i;
                 f.Text(panel, levels[i].name + " Note", levels[i].note, TextStyle.Body, 28, GuiPalette.Dusk, Top, new Vector2(0, y - 98), new Vector2(760, 36));
@@ -651,17 +652,17 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
             var menu = root.AddComponent<GuiSettingsMenu>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(980, 930)).transform;
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(980, 1010)).transform;
             p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
 
             var y = -104f;
             Transform Row(string label)
             {
                 var row = Object(label, panel);
-                // Nine rows close together, so the last stays clear of the back button
-                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 74));
+                // Eleven rows close together, so the last stays clear of the back button
+                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 66));
                 f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 60), TextAlignmentOptions.Left);
-                y -= 76;
+                y -= 69;
                 return row.transform;
             }
             menu.quality = Instance<GuiSelector>(p.Selector, Row("Quality"), "Quality", Right, Vector2.zero);
@@ -670,8 +671,8 @@ namespace SdfGui.Editor
             menu.gore.index = 1;
             menu.gore.label.text = GuiSettings.GoreLevels[1];
             menu.difficulty = Instance<GuiSelector>(p.Selector, Row("Difficulty"), "Difficulty", Right, Vector2.zero);
-            menu.difficulty.options = new[] { "Easy", "Normal", "Hard" };
-            menu.difficulty.index = 1;
+            menu.difficulty.options = new[] { "Super Easy", "Easy", "Normal", "Hard" };
+            menu.difficulty.index = 2;
             menu.difficulty.label.text = "Normal";
             menu.backdrop = Instance<GuiSelector>(p.Selector, Row("Menu backdrop"), "Backdrop", Right, Vector2.zero);
             menu.backdrop.options = BackdropChoice.Names;
@@ -680,6 +681,10 @@ namespace SdfGui.Editor
             menu.sensitivity = Instance<Slider>(p.Slider, Row("Mouse sensitivity"), "Sensitivity", Right, new Vector2(-10, 0));
             menu.volume = Instance<Slider>(p.Slider, Row("Volume"), "Volume", Right, new Vector2(-10, 0));
             menu.volume.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
+            menu.music = Instance<Slider>(p.Slider, Row("Music"), "Music", Right, new Vector2(-10, 0));
+            menu.music.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
+            menu.sound = Instance<Slider>(p.Slider, Row("Sound"), "Sound", Right, new Vector2(-10, 0));
+            menu.sound.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
             menu.screenShake = Instance<Toggle>(p.Toggle, Row("Screen shake"), "Screen Shake", Right, new Vector2(-180, 0));
             menu.showFps = Instance<Toggle>(p.Toggle, Row("Show FPS"), "Show FPS", Right, new Vector2(-180, 0));
             menu.showFps.isOn = false;

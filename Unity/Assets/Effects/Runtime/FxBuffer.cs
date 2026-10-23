@@ -35,25 +35,31 @@ namespace SdfEffects
         private Mesh mesh;
         private Vertex[] vertices;
         private int quads;
+        /// <summary>The quads the mesh holds: <see cref="capacity"/>, times more on Epic and up for the particles' copies.</summary>
+        private int room;
 
         /// <summary>Quads drawn last frame, for the stats.</summary>
         public int LastQuads { get; private set; }
 
         private void Ensure()
         {
-            if (mesh != null)
+            var wanted = capacity * (1 + SdfMushrooms.QualityExtras.ParticleCopies);
+            if (mesh != null && room == wanted)
                 return;
+            if (mesh != null)
+                DestroyImmediate(mesh);
+            room = wanted;
             mesh = new Mesh { name = "Effects", hideFlags = HideFlags.DontSave };
             mesh.MarkDynamic();
-            vertices = new Vertex[capacity * 4];
+            vertices = new Vertex[room * 4];
             mesh.SetVertexBufferParams(vertices.Length,
                 new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
                 new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
                 new VertexAttributeDescriptor(VertexAttribute.Color, VertexAttributeFormat.Float32, 4),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 4),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float32, 4));
-            var indices = new int[capacity * 6];
-            for (var q = 0; q < capacity; q++)
+            var indices = new int[room * 6];
+            for (var q = 0; q < room; q++)
             {
                 indices[q * 6] = q * 4;
                 indices[q * 6 + 1] = q * 4 + 1;
@@ -101,7 +107,7 @@ namespace SdfEffects
         /// </summary>
         public void Streak(Vector3 from, Vector3 to, float widthFrom, float widthTo, Color band, Color core, float coreShare, float opacity = 1)
         {
-            if (quads >= capacity)
+            if (quads >= room)
                 return;
             var along = to - from;
             if (along.sqrMagnitude < 1e-10f)
@@ -126,7 +132,7 @@ namespace SdfEffects
 
         private void Ball(Vector3 center, float radius, Color band, Vector4 core, float kind, float opacity)
         {
-            if (quads >= capacity || radius <= 0)
+            if (quads >= room || radius <= 0)
                 return;
             band.a = opacity;
             var v = quads * 4;

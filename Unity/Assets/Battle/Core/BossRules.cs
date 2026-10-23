@@ -3,12 +3,13 @@ using UnityEngine;
 
 namespace SdfBattle
 {
-    /// <summary>The difficulties of the boss fight (ticket 32's Easy / Normal / Hard; <c>SdfCampaign.Difficulty</c> converts by number).</summary>
+    /// <summary>The difficulties of the boss fight (ticket 32's Super Easy / Easy / Normal / Hard; <c>SdfCampaign.Difficulty</c> converts by number).</summary>
     public enum BossDifficulty
     {
-        Easy,
-        Normal,
-        Hard,
+        SuperEasy = 0,
+        Easy = 1,
+        Normal = 2,
+        Hard = 3,
     }
 
     /// <summary>The attacks of Chanterelle Prime (ticket 33, section 6).</summary>
@@ -284,6 +285,16 @@ namespace SdfBattle
             var rules = new BossRules { difficulty = difficulty, retryEasier = retryEasier };
             switch (difficulty)
             {
+                case BossDifficulty.SuperEasy:
+                    // Easy's step from Normal once more: the bars stay, the rest goes one step further
+                    rules.bars = new float[] { 1800, 4500, 14000 };
+                    rules.damageScale = 0.2f;
+                    rules.windUpScale = 1.6f;
+                    rules.stunScale = 1.5f;
+                    rules.crewSkill = 0.4f;
+                    rules.crewSizes = new[] { 2, 2, 2 };
+                    rules.lives = 7;
+                    break;
                 case BossDifficulty.Easy:
                     rules.bars = new float[] { 1800, 4500, 14000 };
                     rules.damageScale = 0.6f;
@@ -315,8 +326,8 @@ namespace SdfBattle
         public void MakeEasier()
         {
             retryEasier = true;
-            damageScale = 0.6f;
-            windUpScale = 1.3f;
+            damageScale = Math.Min(damageScale, 0.6f);
+            windUpScale = Math.Max(windUpScale, 1.3f);
         }
     }
 }

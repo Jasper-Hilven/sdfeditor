@@ -432,11 +432,8 @@ namespace SdfGui
                     Show(argument);
                     break;
                 case GuiCommandId.NewCampaign:
-                    // With a story to continue (the CONTINUE button is up) it starts again only after a yes (medals and unlocked levels stay)
-                    if (GuiCampaign.CanContinue)
-                        Ask("Start the story again?\nYour medals and unlocked levels stay.", () => Show(GuiScreen.Difficulty));
-                    else
-                        Show(GuiScreen.Difficulty);
+                    // Straight to the difficulty card, even with a story to continue (medals and unlocked levels stay)
+                    Show(GuiScreen.Difficulty);
                     break;
                 // Without a campaign (the GUI scene played alone) these start the showcase round
                 case GuiCommandId.Continue:

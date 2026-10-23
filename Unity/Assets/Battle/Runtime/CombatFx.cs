@@ -63,6 +63,23 @@ namespace SdfBattle
         private int nextGob;
         private int nextSplat;
 
+        // What the sound listens to (SdfAudio.GameAudio): the shots, as they are drawn
+
+        /// <summary>A bullet weapon fired: the shooter (a player, or a machine's component), the weapon's id, the muzzle, where the shot ended and whether it landed on something.</summary>
+        public event System.Action<Object, string, Transform, Vector3, bool> ShotFired;
+
+        /// <summary>The electro-gun's bolt left a muzzle: the shooter, the muzzle, where it ended.</summary>
+        public event System.Action<Object, Transform, Vector3> BoltFired;
+
+        /// <summary>The bolt jumped on to an enemy: the shooter and where it landed.</summary>
+        public event System.Action<Object, Vector3> BoltJumped;
+
+        /// <summary>A poison ball or blob was lobbed from a muzzle.</summary>
+        public event System.Action<FireMode, Transform> Lobbed;
+
+        /// <summary>A lobbed shot landed: its kind and where.</summary>
+        public event System.Action<FireMode, Vector3> Landed;
+
         /// <summary>The effects of a match's combat: one object at the world's origin (the buffer's bounds are round it).</summary>
         public static CombatFx Create(Combat combat)
         {
@@ -177,6 +194,7 @@ namespace SdfBattle
         {
             if (muzzle == null || owner == null)
                 return;
+            ShotFired?.Invoke(owner, weapon, muzzle, end, landed);
             var shooter = ShooterOf(owner);
             var model = WeaponIds.ModelOf(weapon);
             if (!shooter.tracers.TryGetValue(model, out var gun))
@@ -209,6 +227,7 @@ namespace SdfBattle
         {
             if (muzzle == null || owner == null)
                 return;
+            BoltFired?.Invoke(owner, muzzle, end);
             var shooter = ShooterOf(owner);
             if (shooter.bolt == null)
             {
@@ -225,6 +244,7 @@ namespace SdfBattle
         {
             if (owner == null || index < 0)
                 return;
+            BoltJumped?.Invoke(owner, to);
             var shooter = ShooterOf(owner);
             while (shooter.jumps.Length <= index)
             {
@@ -291,6 +311,7 @@ namespace SdfBattle
         {
             if (muzzle == null)
                 return;
+            Lobbed?.Invoke(mode, muzzle);
             var colour = mode == FireMode.Cloud ? Poison : Goo;
             var glow = mode == FireMode.Cloud ? PoisonGlow : GooGlow;
             for (var i = 0; i < 4; i++)
@@ -301,6 +322,7 @@ namespace SdfBattle
         /// <summary>Where a lobbed shot lands: a splash of drops (the blob) or a burst of poison puffs.</summary>
         public void Burst(FireMode mode, Vector3 at, Vector3 normal)
         {
+            Landed?.Invoke(mode, at);
             if (mode == FireMode.Cloud)
             {
                 for (var i = 0; i < 10; i++)

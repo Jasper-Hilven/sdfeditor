@@ -56,7 +56,7 @@ namespace SdfGui
         public GuiScreen screen;
         [Tooltip("The level (a campaign step id) for PlayLevel and WatchCutscene")]
         public string level = "";
-        [Tooltip("BeginCampaign: the difficulty, 0 Easy, 1 Normal, 2 Hard")]
+        [Tooltip("BeginCampaign: the difficulty, 0 Super Easy, 1 Easy, 2 Normal, 3 Hard")]
         public int value;
         [Tooltip("When set, the yes/no card asks this first and the command runs on yes")]
         public string confirm = "";
@@ -65,6 +65,7 @@ namespace SdfGui
 
         public void Run()
         {
+            SdfAudio.UiSounds.Click(command);
             var flow = GuiFlow.Find(this);
             if (flow == null)
                 return;

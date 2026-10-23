@@ -290,6 +290,7 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(Medal.Silver, Medals.Of(3, 0, 300.1f, limit, Difficulty.Normal, false), "just over half");
             Assert.AreEqual(Medal.Gold, Medals.Of(3, 0, 10, limit, Difficulty.Hard, false));
             Assert.AreEqual(Medal.Silver, Medals.Of(3, 0, 10, limit, Difficulty.Easy, false), "not on Easy");
+            Assert.AreEqual(Medal.Silver, Medals.Of(3, 0, 10, limit, Difficulty.SuperEasy, false), "not on Super Easy");
             Assert.AreEqual(Medal.Silver, Medals.Of(3, 0, 10, limit, Difficulty.Normal, true), "not after RETRY EASIER");
             Assert.AreEqual(Medal.Bronze, Medals.Of(1, 0, 10, limit, Difficulty.Normal, true), "a one-capture win stays bronze");
         }
@@ -306,6 +307,7 @@ namespace SdfCampaign.Tests
             Assert.AreEqual(Medal.Silver, Medals.OfBoss(1, 1, 300, Difficulty.Normal, false), "a life lost in phase 3");
             Assert.AreEqual(Medal.Silver, Medals.OfBoss(2, 0, 300, Difficulty.Normal, false), "2 lives lost in all");
             Assert.AreEqual(Medal.Silver, Medals.OfBoss(0, 0, 300, Difficulty.Easy, false), "not on Easy");
+            Assert.AreEqual(Medal.Silver, Medals.OfBoss(0, 0, 300, Difficulty.SuperEasy, false), "not on Super Easy");
             Assert.AreEqual(Medal.Silver, Medals.OfBoss(0, 0, 300, Difficulty.Normal, true), "not after RETRY EASIER");
         }
 
@@ -377,6 +379,34 @@ namespace SdfCampaign.Tests
             var normal = DifficultyRules.Apply(bathroom, Difficulty.Normal);
             Assert.AreEqual(0.60f, normal.blueSkill, 1e-5f);
             Assert.AreEqual(0.60f, bathroom.blueSkill, "the source setup is untouched");
+        }
+
+        [Test]
+        public void Difficulty_SuperEasy_TakesTwoSteps_AndCapsBlueAtThree()
+        {
+            var bathroom = Def.Find("bathroom").setup;
+            var superEasy = DifficultyRules.Apply(bathroom, Difficulty.SuperEasy);
+            Assert.AreEqual(Difficulty.SuperEasy, superEasy.difficulty);
+            Assert.AreEqual(0.30f, superEasy.blueSkill, 1e-5f);
+            Assert.AreEqual(3, superEasy.blueSize);
+            Assert.AreEqual(3, superEasy.blueNames.Length);
+            Assert.AreEqual(bathroom.redSkill, superEasy.redSkill);
+            Assert.AreEqual(0.20f, DifficultyRules.Apply(bathroom, Difficulty.SuperEasy, 1).blueSkill, 1e-5f, "RETRY EASIER stacks");
+            Assert.AreEqual(0.10f, DifficultyRules.Apply(bathroom, Difficulty.SuperEasy, 2).blueSkill, 1e-5f);
+            var meadow = Def.Find("meadow").setup.Clone();
+            meadow.blueSkill = 0.2f;
+            Assert.AreEqual(0f, DifficultyRules.Apply(meadow, Difficulty.SuperEasy, 2).blueSkill, "never below 0");
+        }
+
+        [Test]
+        public void Difficulty_KeyAndParse_RoundTrip()
+        {
+            foreach (Difficulty d in System.Enum.GetValues(typeof(Difficulty)))
+                Assert.AreEqual(d, DifficultyRules.Parse(DifficultyRules.Key(d)), d.ToString());
+            Assert.AreEqual("supereasy", DifficultyRules.Key(Difficulty.SuperEasy));
+            Assert.AreEqual(Difficulty.Easy, DifficultyRules.Parse("easy"), "old saves");
+            Assert.AreEqual(Difficulty.Normal, DifficultyRules.Parse("nonsense"));
+            Assert.AreEqual(Difficulty.Normal, DifficultyRules.Parse(null));
         }
 
         [Test]
@@ -484,9 +514,13 @@ namespace SdfCampaign.Tests
         public void BossSetup_FollowsTheDifficulty_AndRetryEasier()
         {
             var setup = Def.Find("boss").setup;
+            var superEasy = DifficultyRules.Apply(setup, Difficulty.SuperEasy);
             var easy = DifficultyRules.Apply(setup, Difficulty.Easy);
             var normal = DifficultyRules.Apply(setup, Difficulty.Normal);
             var hard = DifficultyRules.Apply(setup, Difficulty.Hard);
+            Assert.AreEqual(7, superEasy.BossRules().lives);
+            Assert.AreEqual(SdfBattle.BossDifficulty.SuperEasy, superEasy.BossRules().difficulty);
+            Assert.AreEqual(4, superEasy.blueSize, "the crew of four stays");
             Assert.AreEqual(5, easy.BossRules().lives);
             Assert.AreEqual(3, normal.BossRules().lives);
             Assert.AreEqual(2, hard.BossRules().lives);
@@ -501,6 +535,9 @@ namespace SdfCampaign.Tests
             var retry = DifficultyRules.Apply(setup, Difficulty.Hard, 1);
             Assert.AreEqual(0.6f, retry.BossRules().damageScale, "Easy's damage row");
             Assert.AreEqual(1.3f, retry.BossRules().windUpScale, "Easy's wind-up row");
+            var retrySuper = DifficultyRules.Apply(setup, Difficulty.SuperEasy, 1).BossRules();
+            Assert.AreEqual(0.2f, retrySuper.damageScale, "RETRY EASIER never makes Super Easy harder");
+            Assert.AreEqual(1.6f, retrySuper.windUpScale);
             Assert.AreEqual(25400, retry.BossRules().TotalHealth, "on the chosen difficulty's health");
         }
 

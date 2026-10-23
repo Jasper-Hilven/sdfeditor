@@ -6,7 +6,7 @@ namespace SdfGui
 {
     /// <summary>
     /// The settings: the render quality (the project's quality levels: ultra high, high, integrated GPU / web and ultra low), the gore
-    /// level, the campaign's difficulty (ticket 32.5; saved with the campaign, so only where there is one), mouse sensitivity, volume,
+    /// level, the campaign's difficulty (ticket 32.5; saved with the campaign, so only where there is one), mouse sensitivity, the master, music and sound volumes,
     /// screen shake, the FPS counter and dismissing the HUD's frame rate / quality hints. Shows the current values in the editor too.
     /// </summary>
     [ExecuteAlways]
@@ -19,6 +19,10 @@ namespace SdfGui
         public GuiSelector backdrop;
         public Slider sensitivity;
         public Slider volume;
+        [Tooltip("The music's volume, on top of the master volume")]
+        public Slider music;
+        [Tooltip("The sound effects' volume, on top of the master volume")]
+        public Slider sound;
         public Toggle screenShake;
         public Toggle showFps;
         public Toggle dismissQualityHints;
@@ -37,6 +41,8 @@ namespace SdfGui
                 difficulty.Changed += i => GuiCampaign.Progress.SetDifficulty((Difficulty)i);
             sensitivity?.onValueChanged.AddListener(v => GuiSettings.Sensitivity = v);
             volume?.onValueChanged.AddListener(v => GuiSettings.Volume = v);
+            music?.onValueChanged.AddListener(v => GuiSettings.MusicVolume = v);
+            sound?.onValueChanged.AddListener(v => GuiSettings.SoundVolume = v);
             screenShake?.onValueChanged.AddListener(v => GuiSettings.ScreenShake = v);
             showFps?.onValueChanged.AddListener(v => GuiSettings.ShowFps = v);
             dismissQualityHints?.onValueChanged.AddListener(v => GuiSettings.DismissQualityHints = v);
@@ -75,13 +81,15 @@ namespace SdfGui
             }
             if (difficulty != null)
             {
-                difficulty.options = new[] { "Easy", "Normal", "Hard" };
+                difficulty.options = new[] { "Super Easy", "Easy", "Normal", "Hard" };
                 difficulty.Set((int)GuiCampaign.Progress.Difficulty);
                 // A scene played alone has no campaign to keep it in; the editor shows the row
                 GuiText.Show(difficulty.transform.parent, !Application.isPlaying || CampaignRunner.Instance != null);
             }
             sensitivity?.SetValueWithoutNotify(GuiSettings.Sensitivity);
             volume?.SetValueWithoutNotify(GuiSettings.Volume);
+            music?.SetValueWithoutNotify(GuiSettings.MusicVolume);
+            sound?.SetValueWithoutNotify(GuiSettings.SoundVolume);
             screenShake?.SetIsOnWithoutNotify(GuiSettings.ScreenShake);
             showFps?.SetIsOnWithoutNotify(GuiSettings.ShowFps);
             dismissQualityHints?.SetIsOnWithoutNotify(GuiSettings.DismissQualityHints);

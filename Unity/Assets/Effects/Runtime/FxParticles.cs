@@ -7,6 +7,12 @@ namespace SdfEffects
     /// smoke or dust (lit balls that swell and shrink away), drops (lit balls that fall) and spores (glowing motes that drift up and
     /// dissolve). A fixed pool, the oldest reused when it is full; no allocation after the first frame. Simple motion: gravity, drag,
     /// and a bounce off the ground plane at <see cref="groundHeight"/>, no colliders.
+    /// <para>
+    /// Epic and up (<see cref="SdfMushrooms.QualityExtras.ParticleCopies"/>, <see cref="SdfMushrooms.QualityExtras.ParticleLife"/>): each
+    /// small particle comes with one or two scattered copies, puffs, drops and spores live longer, and the pool grows to match; but not
+    /// within <see cref="ClearAround"/> of the camera, so your own weapon (the flamethrower's flame and smoke, a muzzle, a hit right in
+    /// front) hides no more of the view than on the other levels.
+    /// </para>
     /// </summary>
     public sealed class FxParticles : MonoBehaviour
     {
@@ -42,17 +48,25 @@ namespace SdfEffects
         [Tooltip("Height of the ground the particles bounce on and settle")]
         public float groundHeight;
 
+        /// <summary>Particles at least this big (a flash, a steam plume's ball) get no copies on Epic and up: two would read as two.</summary>
+        private const float CopiedBelow = 0.4f;
+        /// <summary>Metres round the camera where particles get none of Epic's extras: the flamethrower's smoke rises up to about 5.5 m out.</summary>
+        private const float ClearAround = 6;
+
         private Particle[] particles;
         private int count;
         private int next;
+        private readonly System.Random scatter = new System.Random(1);
 
         public int Count => count;
 
         private void Ensure()
         {
-            if (particles == null || particles.Length != capacity)
+            // Room for the copies and the longer lives Epic and up add, so they push out no other effect's particles
+            var size = Mathf.CeilToInt(capacity * (1 + SdfMushrooms.QualityExtras.ParticleCopies) * SdfMushrooms.QualityExtras.ParticleLife);
+            if (particles == null || particles.Length != size)
             {
-                particles = new Particle[capacity];
+                particles = new Particle[size];
                 count = 0;
                 next = 0;
             }
@@ -74,6 +88,32 @@ namespace SdfEffects
             float growIn = 0, float growFrom = 1)
         {
             Ensure();
+            var view = Camera.main;
+            if (view != null && (position - view.transform.position).sqrMagnitude < ClearAround * ClearAround)
+            {
+                Add(kind, position, velocity, life, size, band, core, gravity, drag, growIn, growFrom);
+                return;
+            }
+            if (kind != Kind.Spark)
+                life *= SdfMushrooms.QualityExtras.ParticleLife;
+            Add(kind, position, velocity, life, size, band, core, gravity, drag, growIn, growFrom);
+            if (size >= CopiedBelow)
+                return;
+            // Epic and up: copies scattered round it, a little smaller, flying a little differently
+            for (var c = SdfMushrooms.QualityExtras.ParticleCopies; c > 0; c--)
+            {
+                var offset = new Vector3(Next(-1, 1), Next(-1, 1), Next(-1, 1)) * Mathf.Max(size * 1.5f, 0.05f);
+                var turn = new Vector3(Next(-1, 1), Next(-1, 1), Next(-1, 1)) * (velocity.magnitude * 0.2f);
+                Add(kind, position + offset, (velocity + turn) * Next(0.85f, 1.15f), life * Next(0.8f, 1.1f), size * Next(0.7f, 1), band, core,
+                    gravity, drag, growIn, growFrom);
+            }
+        }
+
+        private float Next(float from, float to) => from + (float)scatter.NextDouble() * (to - from);
+
+        private void Add(Kind kind, Vector3 position, Vector3 velocity, float life, float size, Color band, Color core, float gravity, float drag,
+            float growIn, float growFrom)
+        {
             int index;
             if (count < particles.Length)
             {
