@@ -112,6 +112,10 @@ namespace SdfBattle.Editor
             foreach (var turret in new[] { arena.west, arena.east }.SelectMany(side => side.turrets ?? System.Array.Empty<SdfMachines.MachineRig>()))
                 if (turret != null)
                     MarkObstacle(turret.gameObject);
+            // The bake takes the colliders of every open scene: another one open beside the level's ends up in its navmesh
+            if (levelRoot.gameObject.scene.IsValid() && UnityEngine.SceneManagement.SceneManager.sceneCount > 1)
+                Debug.LogWarning($"SDF level: {UnityEngine.SceneManagement.SceneManager.sceneCount} scenes are open while {levelRoot.gameObject.scene.name}'s navmesh is baked; " +
+                                 "the colliders of the others are in it too. Close them and rebuild.");
             // The colliders where they are now (the builder just made them)
             Physics.SyncTransforms();
 
@@ -553,8 +557,10 @@ namespace SdfBattle.Editor
                             joined++;
                     }
                     report.Append($"  {side.Value<string>("side")} castle, upper floors: {joined} of {found} spots joined to the ground\n");
-                    // A level with no castle (the computer) has no upper floors to join
-                    var hasCastle = ((JArray)data["placements"]).Any(p => p.Value<string>("model")?.Contains("castle") == true);
+                    // A side with no castle by its stand (the computer has none; the chessboard's card castles stand off at the edge, 70 m
+                    // from the stands) has no upper floors to join
+                    var hasCastle = ((JArray)data["placements"]).Any(p => p.Value<string>("model")?.Contains("castle") == true &&
+                                                                          Vector2.Distance(new Vector2(stand.x, stand.z), new Vector2(Position(p).x, Position(p).z)) < 30);
                     if ((found == 0 && hasCastle) || joined < found * 0.8f)
                         problems++;
                 }

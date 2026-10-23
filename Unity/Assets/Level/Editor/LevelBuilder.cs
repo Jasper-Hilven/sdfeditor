@@ -462,6 +462,8 @@ namespace SdfLevel.Editor
                 MushroomBuilder.EnsureFolder(SceneFolder);
                 scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NothingWorthKeepingOpen() ? NewSceneMode.Single : NewSceneMode.Additive);
                 openedHere = EditorSceneManager.sceneCount > 1;
+                // The last level built in a scene of its own stays open (Unity keeps one scene); the next build replaces it
+                leftOpenPath = openedHere ? null : scenePath;
             }
 
             var hasRoom = LevelRoom.HasRoom(data);
@@ -589,12 +591,23 @@ namespace SdfLevel.Editor
             return corner == "min" ? -half : half;
         }
 
+        /// <summary>The scene a build left open as the only one (Unity cannot close the last scene), or null.</summary>
+        private static string leftOpenPath;
+
+        /// <summary>
+        /// Whether the only open scene is an empty new one, or the level scene the previous build left open and nobody changed. Anything
+        /// else is kept open and the level is built in a scene added to it, which is closed again after. The navmesh (ticket 23) is baked
+        /// from the colliders of every open scene, so a level scene left open beside the one being built would be baked into its navmesh
+        /// (a batch rebuild of all levels gave every level after the first the first one's walls and floors).
+        /// </summary>
         private static bool NothingWorthKeepingOpen()
         {
             if (EditorSceneManager.sceneCount != 1)
                 return false;
             var active = SceneManager.GetActiveScene();
-            return string.IsNullOrEmpty(active.path) && !active.isDirty;
+            if (active.isDirty)
+                return false;
+            return string.IsNullOrEmpty(active.path) || active.path == leftOpenPath;
         }
 
         /// <summary>
