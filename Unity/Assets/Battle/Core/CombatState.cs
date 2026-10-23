@@ -103,7 +103,7 @@ namespace SdfBattle
         /// The slow heal: a living player under <see cref="RegenCap"/> health gets <see cref="RegenAmount"/> back every
         /// <see cref="RegenSeconds"/>.
         /// </summary>
-        public const float RegenAmount = 1, RegenSeconds = 2, RegenCap = 80;
+        public const float RegenAmount = 1, RegenSeconds = 1, RegenCap = 80;
 
         /// <summary>
         /// Damage over time after a source (the flamethrower's burn, the cloud's afterpoison), on the steps of
@@ -247,7 +247,7 @@ namespace SdfBattle
         /// <summary>
         /// Heals a living player with <paramref name="amount"/> points (a health pod: the table's <see cref="WeaponTable.healthPack"/>):
         /// one health a point up to their most (100), half a health a point above it, up to the table's <see cref="WeaponTable.overheal"/>.
-        /// So 40 points take 80 to 110, and 100 to 120. Returns the health added.
+        /// So 60 points take 80 to 120, and 100 to 130. Returns the health added.
         /// </summary>
         public float Heal(PlayerState player, float amount)
         {

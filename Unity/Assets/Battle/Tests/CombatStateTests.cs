@@ -153,16 +153,16 @@ namespace SdfBattle.Tests
         public void AHealthPod_HealsOneForOneTo100_ThenHalfTo200()
         {
             var pack = combat.Weapons.healthPack;
-            Assert.AreEqual(40, pack);
+            Assert.AreEqual(60, pack);
 
             combat.Hurt(Red, Shot(Blue, 70));
-            Assert.AreEqual(40, combat.Heal(Red, pack), "30 to 70");
-            Assert.AreEqual(70, Red.Health);
-            Assert.AreEqual(35, combat.Heal(Red, pack), 1e-4f, "70 to 105: 30 up to 100, then 5 for the 10 points left");
-            Assert.AreEqual(105, Red.Health, 1e-4f);
-            Assert.AreEqual(20, combat.Heal(Red, pack), 1e-4f, "above 100: half");
+            Assert.AreEqual(60, combat.Heal(Red, pack), "30 to 90");
+            Assert.AreEqual(90, Red.Health);
+            Assert.AreEqual(35, combat.Heal(Red, pack), 1e-4f, "90 to 125: 10 up to 100, then 25 for the 50 points left");
             Assert.AreEqual(125, Red.Health, 1e-4f);
-            for (var i = 0; i < 4; i++)
+            Assert.AreEqual(30, combat.Heal(Red, pack), 1e-4f, "above 100: half");
+            Assert.AreEqual(155, Red.Health, 1e-4f);
+            for (var i = 0; i < 2; i++)
                 combat.Heal(Red, pack);
             Assert.AreEqual(200, Red.Health, 1e-4f, "never past 200");
             Assert.IsFalse(combat.NeedsHealth(Red), "at 200 the pod stays for others");
@@ -201,16 +201,18 @@ namespace SdfBattle.Tests
         }
 
         [Test]
-        public void UnderEighty_TheLivingHealOneEveryTwoSeconds_UpTo80()
+        public void UnderEighty_TheLivingHealOneASecond_UpTo80()
         {
             combat.Hurt(Blue, Shot(Red, 25));
             var healed = 0f;
             combat.Healed += (p, amount) => healed += p == Blue ? amount : 0;
 
-            Run(1.9f);
-            Assert.AreEqual(75, Blue.Health, 1e-4f, "not before two seconds");
+            Run(0.9f);
+            Assert.AreEqual(75, Blue.Health, 1e-4f, "not before a second");
             Run(0.2f);
             Assert.AreEqual(76, Blue.Health, 1e-4f);
+            Run(2);
+            Assert.AreEqual(78, Blue.Health, 1e-4f, "twice as fast as the first 1 every 2 s");
             Run(20);
             Assert.AreEqual(80, Blue.Health, 1e-4f, "stops at 80");
             Assert.AreEqual(5, healed, 1e-4f, "reported as healing");

@@ -200,6 +200,8 @@ int MeshAll(string directory, MeshingOptions options, Func<string, string> outpu
     var stopwatch = Stopwatch.StartNew();
     var failed = 0;
     var console = new Lock();
+    // Every model is meshed again on each run, so the models are the whole of the work: the percentage counts them as they finish
+    var progress = new ProgressCounter(models.Count);
     var memory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
     var running = 0;
     Parallel.ForEach(models, new ParallelOptions { MaxDegreeOfParallelism = parallelMeshes }, model =>
@@ -219,6 +221,8 @@ int MeshAll(string directory, MeshingOptions options, Func<string, string> outpu
         {
             Console.Error.Write(errors);
             Console.Write(output);
+            var lods = $"{options.LodCount} LOD{(options.LodCount == 1 ? "" : "s")}";
+            Console.WriteLine(progress.Finish(meshed ? "meshed" : "FAILED", $"{Path.GetFileNameWithoutExtension(model)} ({lods})"));
         }
         Interlocked.Decrement(ref running);
         if (!meshed)
@@ -345,7 +349,13 @@ int BakeAll(string directory, string into, MaterialLibrary materials)
     }
 
     var stopwatch = Stopwatch.StartNew();
-    var failed = levels.Count(level => !BakeOne(level, Path.Combine(into, LevelFile.NameOf(level)), materials));
+    var progress = new ProgressCounter(levels.Count);
+    var failed = levels.Count(level =>
+    {
+        var baked = BakeOne(level, Path.Combine(into, LevelFile.NameOf(level)), materials);
+        Console.WriteLine(progress.Finish(baked ? "baked" : "FAILED", LevelFile.NameOf(level)));
+        return !baked;
+    });
     Console.WriteLine(failed == 0
         ? $"Baked all {levels.Count} levels in {stopwatch.Elapsed.TotalSeconds:0.0} s"
         : $"{failed} of {levels.Count} levels failed, see above ({stopwatch.Elapsed.TotalSeconds:0.0} s)");

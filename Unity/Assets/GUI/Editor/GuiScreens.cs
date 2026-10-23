@@ -832,7 +832,7 @@ namespace SdfGui.Editor
             caption.box = box.AddComponent<CanvasGroup>();
             f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, new Vector2(1300, 210), 26);
             caption.speaker = f.Text(box.transform, "Speaker", "MUSHROOM 7", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44));
-            caption.line = f.Text(box.transform, "Line", "Fill your spores and press Q. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
+            caption.line = f.Text(box.transform, "Line", "Fill your spores and activate Mycelium Rush. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
             caption.line.textWrappingMode = TextWrappingModes.Normal;
             caption.line.alignment = TextAlignmentOptions.Center;
 

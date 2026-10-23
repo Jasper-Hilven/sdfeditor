@@ -177,12 +177,12 @@ namespace SdfBattle.Tests
             Fill(Red);
             spores.Sporulate(Red, SporePower.Regrowth);
             Run(5);
-            // 40 points in 5 s, and a little of the slow heal (1 every 2 s under 80)
-            Assert.AreEqual(80, Red.Health, 2.5f);
+            // 40 points in 5 s, and 4 of the slow heal (1 a second under 80)
+            Assert.AreEqual(84, Red.Health, 2.5f);
             Run(5.2f);
             Assert.IsFalse(spores.MeterOf(Red).Active);
-            // 80 points in all: 60 to 100, then 20 at half above it
-            Assert.AreEqual(110, Red.Health, 2.5f);
+            // 40 points more: 16 to 100, then 12 for the other 24 at half above it
+            Assert.AreEqual(112, Red.Health, 2.5f);
             var after = Red.Health;
             Run(2);
             Assert.AreEqual(after, Red.Health, 1e-4f, "no more once it ended");

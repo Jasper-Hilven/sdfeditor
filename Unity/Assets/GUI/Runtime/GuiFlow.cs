@@ -370,7 +370,7 @@ namespace SdfGui
             {
                 Match.caption.Clear();
                 if (next == GuiScreen.Caption || next == GuiScreen.Cutscene || next == GuiScreen.Ending)
-                    Match.caption.Set("Mushroom 7", "Fill your spores and press Q. Trust me.", 1, next != GuiScreen.Caption ? 0.4f : 0, "Hold SPACE to skip");
+                    Match.caption.Set("Mushroom 7", "Fill your spores and activate Mycelium Rush. Trust me.", 1, next != GuiScreen.Caption ? 0.4f : 0, "Hold SPACE to skip");
             }
             if (next == GuiScreen.Caption)
                 next = GuiScreen.Hud;

@@ -21,7 +21,7 @@ namespace SdfBattle
     /// <item>The poison- and blob-gun lob projectiles, stepped here with gravity: a cloud where the poison lands, a hit and a slow where a
     /// blob hits, and a slowing splat on the ground under it.</item>
     /// <item>The pods: a weapon pod is not taken by a player who holds its weapon, a health pod not by one at the overheal limit (200)
-    /// (<see cref="WeaponPickup.CanPickUp"/>, <see cref="HealthPickup.CanPickUp"/>); taking one fills the inventory or heals (the table's <see cref="WeaponTable.healthPack"/>, 40, not the pod's own amount: one health a
+    /// (<see cref="WeaponPickup.CanPickUp"/>, <see cref="HealthPickup.CanPickUp"/>); taking one fills the inventory or heals (the table's <see cref="WeaponTable.healthPack"/>, 60, not the pod's own amount: one health a
     /// point to 100, half above, up to 200).</item>
     /// <item>The blob's slow, as the controller's <see cref="SdfLevel.FirstPersonController.slowMultiplier"/>.</item>
     /// </list>

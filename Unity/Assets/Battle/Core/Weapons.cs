@@ -191,7 +191,7 @@ namespace SdfBattle
         [Tooltip("Metres from a player's feet above which a hit on the body counts as the head (the cap)")]
         public float headHeight = 1.2f;
         [Tooltip("What a health pod gives: one health per point up to the most (100), half a health per point above it")]
-        public float healthPack = 40;
+        public float healthPack = 60;
         [Tooltip("The most a health pod heals to, over the most a player spawns with")]
         public float overheal = 200;
         public WeaponStats[] weapons = Array.Empty<WeaponStats>();

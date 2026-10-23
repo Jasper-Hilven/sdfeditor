@@ -43,7 +43,7 @@ namespace SdfGui
         public static readonly string[] Tips =
         {
             "Touch your dropped flag to send it home.",
-            "Fill your spores and press Q, F or C.",
+            "Fill your spores and activate a power.",
             "A sniper settles a stand-off; a minigun holds a doorway.",
             "Hold Tab to see who is winning the flag fight.",
             "Stuck? RETRY EASIER makes blue a little clumsier.",

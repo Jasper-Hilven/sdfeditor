@@ -35,7 +35,7 @@ namespace SdfGui
             "Press E to take what a pod offers.",
             "Press R to reload before the flag fight, not in it.",
             "Carry their flag home while yours is at its base.",
-            "Fill your spores and press Q.",
+            "Fill your spores and activate Mycelium Rush.",
         };
 
         private static int tipCounter;
