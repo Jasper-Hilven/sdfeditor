@@ -58,12 +58,13 @@ namespace SdfMushrooms.Editor
 
         /// <summary>
         /// Between <see cref="UltraHigh"/> and <see cref="UltraEpic"/>: 1.5 times the resolution, LOD0 two and a half times as far as on
-        /// <see cref="High"/>, shadows to 160 m on an 8192 map, the foliage 1.25 times as far, the bloom high-quality filtered.
+        /// <see cref="High"/>, shadows to 160 m on a 4096 map (8192 maps are Ultra Epic's alone: they risk a browser tab's GPU memory, and
+        /// the automatic choice stops at Epic), the foliage 1.25 times as far, the bloom high-quality filtered.
         /// </summary>
         public static readonly Preset Epic = new Preset
         {
             Name = SdfMushrooms.QualityExtras.Epic, AssetPath = SettingsFolder + "/URP Epic.asset",
-            ShadowDistance = 160, ShadowCascades = 1, ShadowResolution = 8192, SoftShadows = SoftShadowQuality.High,
+            ShadowDistance = 160, ShadowCascades = 1, ShadowResolution = 4096, SoftShadows = SoftShadowQuality.High,
             Msaa = 8, RenderScale = 1.5f, Hdr = true, LodBias = 2.5f,
         };
 

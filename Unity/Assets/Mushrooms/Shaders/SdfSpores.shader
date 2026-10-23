@@ -22,6 +22,7 @@ Shader "SdfMushrooms/Spores"
         _SporeDrift("Drift (metres a second)", Float) = 0.3
         _SporeMaxPixels("Largest core radius (pixels at 1080p)", Float) = 6
         _SporeGlow("Brightness of the core", Float) = 2.5
+        _SporeShift("Shift (abyss: x, z metres; near: x, y, z of the box; w: on in the cycle)", Vector) = (0, 0, 0, 0)
     }
 
     SubShader
@@ -57,6 +58,7 @@ Shader "SdfMushrooms/Spores"
                 float _SporeDrift;
                 float _SporeMaxPixels;
                 float _SporeGlow;
+                float4 _SporeShift;
             CBUFFER_END
 
             // The quad reaches this many core radii out, for the halo
@@ -78,7 +80,8 @@ Shader "SdfMushrooms/Spores"
 
             Varyings Vert(Attributes input)
             {
-                float phase = input.uv0.z;
+                // Epic's extra copies of a set move every spore elsewhere and on in its cycle (QualityExtras); zero for the set itself
+                float phase = frac(input.uv0.z + _SporeShift.w);
                 float time = _Time.y;
                 float3 centre;
                 float fade;
@@ -86,7 +89,7 @@ Shader "SdfMushrooms/Spores"
                 {
                     float height = max(_SporeRange.y - _SporeRange.x, 1e-3);
                     float t = frac(phase + time * _SporeRise / height);
-                    centre = float3(input.positionOS.x, _SporeRange.x + t * height, input.positionOS.z);
+                    centre = float3(input.positionOS.x + _SporeShift.x, _SporeRange.x + t * height, input.positionOS.z + _SporeShift.z);
                     centre.xz += 0.8 * float2(sin(time * 0.31 + phase * 41.0), cos(time * 0.27 + phase * 29.0));
                     fade = smoothstep(0.0, 0.12, t) * (1.0 - smoothstep(0.85, 1.0, t));
                 }
@@ -96,7 +99,7 @@ Shader "SdfMushrooms/Spores"
                     float angle = phase * 6.2832;
                     float3 heading = float3(cos(angle), 0.35 * sin(phase * 47.0), sin(angle));
                     float3 wander = 0.6 * float3(sin(time * 0.37 + phase * 23.0), sin(time * 0.29 + phase * 31.0), cos(time * 0.33 + phase * 17.0));
-                    float3 place = input.positionOS * box + heading * _SporeDrift * time + wander;
+                    float3 place = (input.positionOS + _SporeShift.xyz) * box + heading * _SporeDrift * time + wander;
                     float3 relative = frac((place - _WorldSpaceCameraPos) / box + 0.5) - 0.5;
                     centre = _WorldSpaceCameraPos + relative * box;
                     fade = (1.0 - smoothstep(0.3, 0.5, length(relative))) * smoothstep(0.4, 1.5, length(relative * box));
