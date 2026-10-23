@@ -32,8 +32,8 @@ namespace SdfGui
         public static readonly string[] Tips =
         {
             "Hold Tab to see the scoreboard.",
-            "Press E to take what a pod offers.",
-            "Press R to reload before the flag fight, not in it.",
+            "Walk onto a pod to take its weapon.",
+            "Low on health? Walk over a health pod.",
             "Carry their flag home while yours is at its base.",
             "Fill your spores and activate Mycelium Rush.",
         };
