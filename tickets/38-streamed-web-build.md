@@ -108,7 +108,7 @@ connection speed within one match); if it often does not, prefetch earlier (e.g.
 
 ## Next (for the agent that takes this ticket)
 
-After 37's full rebuild and web build:
+37 is done (its full rebuild and web build ran: the streamed player is 26.4 MB, the full build 48.7 MB, see done/37-vertex-compression.md). Then:
 1. Re-measure the initial download (the player's `.data` + `.wasm` + `.framework`/loader in `Unity/Builds/Web/Build`). If it is
    over 50 MB: take the smaller wins listed above (the Story screen PNGs, the Meadow's `regions.png`, the splash logo); if still over,
    give the player a tiny start scene and stream Boot and the Meadow too, which also ends the 81.5 MB of assets duplicated between the

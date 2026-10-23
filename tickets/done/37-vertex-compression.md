@@ -5,8 +5,8 @@ The last release WebGL build was **174.5 MB compressed**; its uncompressed repor
 fewer triangles (a new simplifier in the SDF pipeline), smaller vertices (a compact vertex layout in the Unity builders and shaders), and
 better compression (vertex order, Brotli).
 
-**Status**: code done and tested on a few models and one scene. The full re-mesh, the full Unity rebuild and the release web build are
-**not run**: they wait for ticket 39 (GPU SDF evaluation), see "Left to do".
+**Status**: done. The full re-mesh (default 128 cells, `--lods 3`, GPU where it pays), Update All, the release web builds (full and streamed)
+and the checks were run: see "Full run (measured)" below. The first-download target is met by the streamed build (ticket 38's code): 26.4 MB.
 
 ## Numbers (read these first)
 
@@ -30,6 +30,38 @@ uncompressed meshes go from 536 MB to about 230 MB. The 50 MB first download is 
 
 Measured before and after, with the same glbs (the old layout was rebuilt in the same editor with `-floatMeshes`), on the fungal level
 (68 snapshots, castle courtyard and gate, stairs, eye-level views, the island from below): see "Checked by eye".
+
+## Full run (measured)
+
+All at the default 128 cells, `sdf unity --lods 3` (GPU default), then `SdfLevel.Editor.UpdateAll.UpdateInBatch`, then the web build.
+
+| What | Before (last release build) | After |
+|---|---|---|
+| Full re-mesh, 544 models with LODs + 8 level bakes | about 2 h (CPU) | **7 min 30 s** in all (models 395.7 s, bakes 43 s) |
+| Meshes, uncompressed report (full build, all 9 scenes in the player, `-nostream`) | 536 MB (of 600 MB user assets) | **69.7 MB** (of 134.3 MB; textures 55.0 MB) |
+| Complete build size, full build (Brotli, as the report prints it) | 174.5 MB (gzip) | **48.7 MB** (`Web.data.unityweb` 41.9 MB, wasm 9.0 MB) |
+| Streamed release build (the default `Build`: player = Boot + Meadow, other arenas as bundles) | n/a | player **26.4 MB** (`Web.data` 16.6 + wasm 9.6 + framework and loader), Meshes 14.4 MB uncompressed in the player, complete build size 25.2 MB; bundles 41 MB for 33 bundles (largest: chessboard 6.2, fungal 4.7, kitchen 4.2); everything on disk 66.2 MB |
+| **Initial download** (the player's `Build/` files, streamed build) | 174.5 MB | **about 26.4 MB**, under the 50 MB target |
+
+So the estimate in "Numbers" (75 to 85 MB for the whole build) was pessimistic: the whole game is **48.7 MB**, well under CrazyGames's 250 MB.
+The ticket's measure of the first download is the streamed build's player; ticket 38 owns the rest.
+
+Two models did not mesh at 128 cells: `kitchen/burner-large` and `burner-small` ("no finite surface to mesh": 10.8 m models with a 0.04 m
+coil, so a cell is larger than the coil; the same on `--cpu`, so not the GPU path). They were meshed one by one at `--resolution 256`
+(4,674 and 4,388 triangles at LOD0, 3 LODs) and placed in the Generated folder by hand; `sdf unity` at 128 will fail on them again until the
+models are given a finer `Detail` or a reference size. The command exits with code 1 because of them (the bakes ran anyway).
+
+**Checked by eye** (rendered with `LevelSnapshot.Capture`, 1920 x 1080): fungal (68 snapshots), kitchen (36), chessboard (18), in
+the scratchpad folders `snap-fungal`, `snap-kitchen`, `snap-chessboard` (temporary). Read: fungal castle_courtyard (castle, stairs, flag),
+island_below, kitchen k_above (counter, burners, toasters, bread boxes) and chessboard room_corner_across (pieces, cards, walls): no cracks,
+holes, faceting or outline changes; the ink outlines are intact.
+
+**Tests**: Unity EditMode 612 run, 611 pass. The one failure is `BotAimTests.AtMidSkill_ASteadyAimHitsABodyAtMidRangeMostOfTheTime_NotAtLongRange`
+(0.613 against < 0.6): a pure formula on `BotSkill.SteadyError`, unrelated to meshes; it comes from the bots' aim-error commits (1b1085f, f561e8b), which
+did not move the test's threshold. Not changed here.
+
+Update All regenerated the tracked prefabs and scenes (fileIDs of the mesh sub-assets changed: 630 files, no content change); they were
+not committed (noise; any machine regenerates them).
 
 ## Part A — triangle reduction (SDFPipeline)
 
@@ -228,7 +260,7 @@ rocks) give the **same results both ways**.
 - The pipeline's .glb output differs between runs and core counts even with the greedy simplifier (already so before this ticket);
   only the simplifier itself was made independent of the thread count, and tested.
 
-## Left to do (the user's step, after ticket 39)
+## How the full run goes (done once, see above)
 
 Not run on purpose (the full re-mesh takes about 2 hours; ticket 39 moves SDF evaluation to the GPU first). Then, all at the default 128:
 
@@ -252,11 +284,3 @@ Not run on purpose (the full re-mesh takes about 2 hours; ticket 39 moves SDF ev
   `Mushrooms/Editor/MushroomBuilder.cs` (`Fill`, `FillCollider`, `FillFloats` for comparisons), `PackedMeshTool.cs`, `WebBuild.cs`,
   `Mushrooms/Shaders/SdfPacked.hlsl`, `SdfToon.shader`, `SdfToonFar.shader`, `SdfToonOutline.shader`, `SdfScatter.hlsl`,
   `Level/Editor/LevelBuilder.cs` (`Mirrored`, `MarkStatic`), `CastleChecks.cs`.
-
-## Next (for the agent that takes this ticket)
-
-Ticket 39 (the GPU path) is done, so the full re-mesh may run (the user's rule: no full re-mesh before the GPU path). In the main checkout, Unity closed:
-run "Left to do" steps 1-4 above with `sdf unity` as it is (the GPU where it pays, `--cpu` to turn it off), at the default 128 cells: the full re-mesh (long: run it in the foreground
-and wait), Update All, the release web build. Record the build report's Meshes MB, the complete build size and the initial download
-(the player's files) in "Numbers"; look at a few levels in snapshots for cracks or outline changes; run the EditMode tests; then move
-this ticket to `done/`.
