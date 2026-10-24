@@ -20,7 +20,7 @@ arena and comic is an AssetBundle next to it, fetched when the campaign goes the
 
 - `Tools > SDF Mushrooms > Build Web`, or `Unity -batchmode -quit -projectPath Unity -buildTarget WebGL -executeMethod
   SdfMushrooms.Editor.WebBuild.Build` (through the batch lock when other agents work). One command writes the player and the bundles into
-  `Unity/Builds/Web` (`Build/`, `TemplateData/`, `index.html`, `Bundles/`). Upload that whole folder. `-nostream` builds every release scene
+  `Unity/Builds/Web` (`Build/`, `TemplateData/`, `index.html`, `StreamingAssets/Bundles/`). Upload that whole folder. `-nostream` builds every release scene
   into the player instead (old behaviour); `-scene` builds the named scenes only (also not streamed).
 - `SdfCampaign.Editor.StreamedBundles` (Campaign/Editor) does the work around the player build (`using var`: it moves, writes, and puts back):
   - the scenes after the first battle (`CampaignBuildScenes.StreamedPaths()`) are scene bundles (`fungal`, ...); a bundle holds scenes or
@@ -46,7 +46,8 @@ arena and comic is an AssetBundle next to it, fetched when the campaign goes the
 ## Runtime
 
 - `ContentStreamer` (Campaign/Runtime) is the only thing that touches bundles. `Enabled` = WebGL player with a non-empty manifest.
-  URL = the page's folder + `/Bundles/<file>` (from `Application.absoluteURL`), so it works wherever the folder is hosted. Download by
+  URL = `Application.streamingAssetsPath` + `/Bundles/<file>` (was the page's folder; CrazyGames loads the game from its own page and
+  serves only `StreamingAssets` besides `Build`), so it works wherever the folder is hosted. Download by
   `UnityWebRequestAssetBundle.GetAssetBundle(url, hash)` (cached by Unity's Caching in IndexedDB by hash; plus the browser's HTTP cache), with a
   40 s no-progress stall guard. Loaded bundles are kept until the new scene is live; then `Release` unloads every bundle the current scene and
   the prefetch do not need, so only the current and the next arena are in memory.

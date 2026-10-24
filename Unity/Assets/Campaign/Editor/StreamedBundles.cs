@@ -24,7 +24,7 @@ namespace SdfCampaign.Editor
     /// <item>Assets the player carries as well (used by Boot or the first arena, or in a Resources folder) cannot be shared with a bundle: they
     /// are copied into the bundle that needs them. The log lists the largest.</item>
     /// <item>The bundles are LZ4 chunk-compressed (the only compression WebGL loads), named with their content hash, and written to the
-    /// build's <c>Bundles</c> folder; the list of them (<see cref="StreamManifest"/>) goes into the player as Resources/StreamedContent.</item>
+    /// build's <c>StreamingAssets/Bundles</c> folder; the list of them (<see cref="StreamManifest"/>) goes into the player as Resources/StreamedContent.</item>
     /// <item>A <c>link.xml</c> is written for the build so managed and engine code stripping keeps what the bundled scenes' components use.</item>
     /// </list>
     /// Use as <c>using var streamed = new StreamedBundles(BuildTarget.WebGL);</c> around the player build: it moves, writes and, on dispose, puts back.
@@ -75,18 +75,22 @@ namespace SdfCampaign.Editor
             }
         }
 
-        /// <summary>Copies the bundles to <paramref name="buildFolder"/>/Bundles (emptied first).</summary>
+        /// <summary>Copies the bundles to <paramref name="buildFolder"/>/StreamingAssets/Bundles (emptied first).</summary>
         public void CopyTo(string buildFolder)
         {
             var folder = Path.Combine(buildFolder, StreamedContentFolder);
             if (Directory.Exists(folder))
                 Directory.Delete(folder, true);
+            // The bundles were next to index.html before; CrazyGames serves only StreamingAssets of an upload
+            var old = Path.Combine(buildFolder, "Bundles");
+            if (Directory.Exists(old))
+                Directory.Delete(old, true);
             Directory.CreateDirectory(folder);
             foreach (var bundle in Manifest.bundles)
                 File.Copy(Files[bundle.file], Path.Combine(folder, bundle.file));
         }
 
-        public const string StreamedContentFolder = "Bundles";
+        public const string StreamedContentFolder = "StreamingAssets/" + ContentStreamer.Folder;
 
         private static bool IsCode(string path) =>
             path.EndsWith(".cs") || path.EndsWith(".dll") || path.EndsWith(".asmdef") || path.EndsWith(".asmref") || path.EndsWith(".so") ||

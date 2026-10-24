@@ -20,7 +20,7 @@ namespace SdfMushrooms.Editor
     /// <c>-scene Assets/Scenes/Meadow.unity</c> (repeatable) builds those scenes instead of the release's, the first one starting.</item>
     /// </list>
     /// The release is streamed (ticket 38): the player carries Boot and the first arena only (the initial download), and every later arena
-    /// and comic is an AssetBundle in <c>Builds/Web/Bundles</c> (<see cref="SdfCampaign.Editor.StreamedBundles"/>), fetched as the campaign goes there.
+    /// and comic is an AssetBundle in <c>Builds/Web/StreamingAssets/Bundles</c> (CrazyGames serves only that folder of an upload besides Build) (<see cref="SdfCampaign.Editor.StreamedBundles"/>), fetched as the campaign goes there.
     /// <c>-nostream</c> builds every release scene into the player instead (one big download, as before).
     /// <para>Compressed with Brotli, with the loader able to decompress it itself, so any static file server shows it (e.g.
     /// <c>python3 -m http.server -d Unity/Builds/Web</c>), not only one that sends the Content-Encoding header.</para>

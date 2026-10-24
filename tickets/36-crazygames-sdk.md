@@ -50,8 +50,10 @@ download <= 50 MB until the first gameplay start, total <= 250 MB, <= 1500 files
 
 1. Build WebGL (release, not development) with the project's build entry, `Tools > SDF Mushrooms > Build Web` or
    `Unity -batchmode -quit -projectPath Unity -buildTarget WebGL -executeMethod SdfMushrooms.Editor.WebBuild.Build`. It writes the player
-   (the initial download) and the streamed arenas and comics into `Unity/Builds/Web/Bundles` (ticket 38); upload the whole `Builds/Web`
-   folder, `Bundles` included, with relative paths. (The CrazySDK build window builds every scene into the player, one big download.)
+   (the initial download) and the streamed arenas and comics into `Unity/Builds/Web/StreamingAssets/Bundles` (ticket 38); upload the whole `Builds/Web`
+   folder, `StreamingAssets` included, with relative paths. Use Build Web for CrazyGames (no decompression fallback: the portal refuses
+   `.unityweb` files). CrazyGames loads the game from its own page and serves only `Build` and `StreamingAssets` of the upload, so the
+   bundles must be under `StreamingAssets` (an earlier `Bundles/` next to index.html was reported missing). (The CrazySDK build window builds every scene into the player, one big download.)
 2. Local: serve the build folder from `localhost` (e.g. `python3 -m http.server`): the SDK runs in local mode (ads show a text overlay,
    events are logged in the browser console; `?sdk_debug=true` for more). `?useLocalSdk=true` forces it on another host.
 3. Developer Portal (developer.crazygames.com): create the game, upload the build folder, tick the Progress Save toggle (without it the Data
@@ -71,4 +73,4 @@ After 38's re-measured build (the web build changes with 37 and 38):
    and off it (pause, comics, menus), loading start/stop around a streamed arena, happy time after the boss, the save in the data module
    (reload the page: the campaign continues). Ads stay off (`WebPortal.AdsAllowed = false`): check no ad is requested.
 3. Write the portal checklist for the user (developer.crazygames.com: create the game, Unity engine, upload `Unity/Builds/Web` with
-   `Bundles/`, Progress Save on, the preview tool). Uploading and the portal account are the user's step.
+   `StreamingAssets/`, Progress Save on, the preview tool). Uploading and the portal account are the user's step.

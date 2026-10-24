@@ -180,15 +180,10 @@ namespace SdfCampaign
         private static string Url(StreamedBundle bundle)
         {
             var baseUrl = BaseUrl;
+            // StreamingAssets, wherever the host serves it: next to index.html on itch.io or localhost, the folder CrazyGames keeps from the
+            // upload (its own page loads the game, and it serves no other folder of it)
             if (string.IsNullOrEmpty(baseUrl))
-            {
-                // The page's folder: relative to index.html, wherever the host serves the build from
-                var page = Application.absoluteURL ?? "";
-                var cut = page.IndexOfAny(new[] { '?', '#' });
-                if (cut >= 0)
-                    page = page.Substring(0, cut);
-                baseUrl = page.Substring(0, page.LastIndexOf('/') + 1) + Folder;
-            }
+                baseUrl = Application.streamingAssetsPath.TrimEnd('/') + "/" + Folder;
             return baseUrl + "/" + bundle.file;
         }
 
