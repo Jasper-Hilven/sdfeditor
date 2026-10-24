@@ -5,7 +5,7 @@ namespace SdfGui
     /// <summary>
     /// When the quality level changes by itself, the same in every build (the browser shows at most the display's rate, so frames a second
     /// alone say little; this counts how many frames came in time): one level up when at least <see cref="Share"/> of the frames of
-    /// <see cref="UpFor"/> seconds came at the level above's rate (<see cref="UpFps"/>: 60 a second up to High, 80 for Ultra High and Epic,
+    /// <see cref="UpFor"/> seconds came at the level above's rate (<see cref="UpFps"/>: 60 a second up to Ultra High, 80 for Epic,
     /// 100 for Ultra Epic), one level down when that share of <see cref="DownFor"/> seconds came at <see cref="DownFps"/> or slower, two
     /// down at <see cref="TwoDownFps"/> or slower (as far as there are levels); in between, nothing. A window starts over once it is plain
     /// it cannot make the share. Quality levels go best first.
@@ -27,7 +27,7 @@ namespace SdfGui
             return name switch
             {
                 SdfMushrooms.QualityExtras.UltraEpic => 100,
-                SdfMushrooms.QualityExtras.Epic or "Ultra High" => 80,
+                SdfMushrooms.QualityExtras.Epic => 80,
                 _ => 60,
             };
         }

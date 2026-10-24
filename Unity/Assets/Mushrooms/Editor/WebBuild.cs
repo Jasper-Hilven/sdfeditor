@@ -12,6 +12,9 @@ namespace SdfMushrooms.Editor
     /// web quality level (<see cref="RenderPipelineSetup.Web"/>).
     /// <list type="bullet">
     /// <item>Tools > SDF Mushrooms > Build Web, or Build and Run Web, which serves it locally and opens the browser.</item>
+    /// <item>Tools > SDF Mushrooms > Build Web for CrazyGames (or <c>-crazygames</c> in batch mode): the upload for the portal, without the
+    /// decompression fallback, which the portal refuses (its .unityweb files); its servers send the Brotli files' Content-Encoding themselves.
+    /// That build does not run from a plain local server.</item>
     /// <item>Without a window: <c>Unity -batchmode -quit -projectPath Unity -buildTarget WebGL -executeMethod
     /// SdfMushrooms.Editor.WebBuild.Build</c> (the "Unity Web Build" run configuration), which exits with an error if the build fails.
     /// <c>-scene Assets/Scenes/Meadow.unity</c> (repeatable) builds those scenes instead of the release's, the first one starting.</item>
@@ -32,22 +35,30 @@ namespace SdfMushrooms.Editor
         [MenuItem("Tools/SDF Mushrooms/Build and Run Web")]
         private static void BuildAndRunFromMenu() => Run(BuildOptions.AutoRunPlayer);
 
+        [MenuItem("Tools/SDF Mushrooms/Build Web for CrazyGames")]
+        private static void BuildForCrazyGamesFromMenu() => Run(BuildOptions.None, crazyGames: true);
+
         public static void Build()
         {
-            if (!Run(BuildOptions.None))
+            if (!Run(BuildOptions.None, System.Environment.GetCommandLineArgs().Contains("-crazygames")))
                 EditorApplication.Exit(1);
         }
 
-        private static bool Run(BuildOptions options)
+        private static bool Run(BuildOptions options, bool crazyGames = false)
         {
             RenderPipelineSetup.Ensure();
             MushroomBuilder.BuildStale();
 
-            // WebGL 2 only (WebGPU is still experimental), Brotli (ticket 37; a good tenth smaller than gzip) with the loader's own decompression as a fallback
+            // WebGL 2 only (WebGPU is still experimental), Brotli (ticket 37; a good tenth smaller than gzip) with the loader's own decompression as a
+            // fallback, but for CrazyGames, which refuses the fallback's files
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, false);
             PlayerSettings.SetGraphicsAPIs(BuildTarget.WebGL, new[] { GraphicsDeviceType.OpenGLES3 });
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
-            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.decompressionFallback = !crazyGames;
+            // No .unityweb files of an earlier build with the fallback left in the upload
+            var built = Path.Combine(OutputFolder, "Build");
+            if (crazyGames && Directory.Exists(built))
+                Directory.Delete(built, true);
 
             var args = System.Environment.GetCommandLineArgs();
             var chosen = args.Select((a, i) => a == "-scene" && i + 1 < args.Length ? args[i + 1] : null).Where(a => a != null).ToArray();
@@ -88,7 +99,7 @@ namespace SdfMushrooms.Editor
 
         private static bool Finish(BuildSummary summary, string[] scenes)
         {
-            Debug.Log($"SDF mushrooms: web build of {string.Join(", ", scenes)} written to {Path.GetFullPath(OutputFolder)} " +
+            Debug.Log($"SDF mushrooms: web build{(PlayerSettings.WebGL.decompressionFallback ? "" : " for CrazyGames (no decompression fallback)")} of {string.Join(", ", scenes)} written to {Path.GetFullPath(OutputFolder)} " +
                       $"({summary.totalSize / (1024 * 1024)} MB) in {summary.totalTime.TotalSeconds:0} s");
             return true;
         }

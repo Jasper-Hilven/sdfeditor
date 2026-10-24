@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using SdfBattle;
 using SdfGui;
 using UnityEditor;
@@ -96,6 +97,9 @@ namespace SdfMedia.Editor
         /// <summary>The arenas, in clip order: clip N is arena N-1.</summary>
         public static readonly string[] Arenas = { "Meadow", "Fungal", "Toybox", "Kitchen" };
 
+        /// <summary>The weapon you hold in each arena's clip (never the single pistol), in the order of <see cref="Arenas"/>.</summary>
+        public static readonly string[] Weapons = { WeaponIds.Minigun, WeaponIds.Flamethrower, WeaponIds.BlobGun, WeaponIds.DualPistols };
+
         public const string ScenesFolder = "Assets/Scenes/";
         public const int Fps = PreviewVideoEncoder.Fps;
         public const int ClipFrames = 4 * Fps;
@@ -113,6 +117,15 @@ namespace SdfMedia.Editor
         /// <summary>The share of the damage you take.</summary>
         public const float YourDamage = 0.4f;
 
+        /// <summary>The arenas whose clips keep you on the main road (the first region of the level's region map), where the view is clear.</summary>
+        public static readonly string[] RoadArenas = { "Meadow", "Fungal" };
+
+        /// <summary>How far ahead along the road you walk at a time, in metres: short enough that the way there stays on it.</summary>
+        public const float RoadLead = 6;
+
+        /// <summary>What the damage you deal is multiplied by, for more kills in the clips.</summary>
+        public const float YourHits = 2;
+
         private const string ActiveKey = "SdfMedia.Preview.Active";
         private const string ArenaKey = "SdfMedia.Preview.Arena";
         private const string PhaseKey = "SdfMedia.Preview.Phase";
@@ -120,6 +133,7 @@ namespace SdfMedia.Editor
         private const string ReopenKey = "SdfMedia.Preview.Reopen";
         private const string QualityKey = "SdfMedia.Preview.Quality";
         private const string HintsKey = "SdfMedia.Preview.Hints";
+        private const string GoreKey = "SdfMedia.Preview.Gore";
         private const string CaptureKey = "SdfMedia.Preview.Capture";
 
         private enum Stage { Warm, Search, Record }
@@ -129,6 +143,7 @@ namespace SdfMedia.Editor
         private static bool leaving;
         private static float playStarted = -1;
         private static int lastFrame = -1;
+        private static bool timeReleased;
         private static Stage stage;
         private static float sceneStart;
         private static float searchStart;
@@ -147,6 +162,7 @@ namespace SdfMedia.Editor
         private static readonly Texture2D[] readers = new Texture2D[Shapes.Length];
         private static readonly List<Task> writing = new List<Task>();
         private static Material overlay;
+        private static readonly List<Vector3> road = new List<Vector3>();
 
         /// <summary>Whether a recording is under way (across the domain reloads of entering and leaving Play mode).</summary>
         public static bool Active => active;
@@ -192,6 +208,19 @@ namespace SdfMedia.Editor
                 if (Directory.Exists(folder))
                     Directory.Delete(folder, true);
             }
+            // The locked clips' frames go in as they are; their arenas are not played again
+            for (var clip = 1; clip <= Arenas.Length; clip++)
+                if (Locked(clip))
+                {
+                    foreach (var shape in Shapes)
+                    {
+                        var folder = PreviewVideoEncoder.ClipFolder(shape, clip);
+                        Directory.CreateDirectory(folder);
+                        foreach (var file in Directory.GetFiles(LockedFolder(shape, clip), "*.png"))
+                            File.Copy(file, Path.Combine(folder, Path.GetFileName(file)));
+                    }
+                    Debug.Log($"SDF Media: clip {clip} ({Arenas[clip - 1]}) is locked; its frames are taken from {Path.Combine(videos, "locked")}.");
+                }
             SessionState.SetBool(ActiveKey, true);
             SessionState.SetInt(ArenaKey, 0);
             SessionState.SetInt(PhaseKey, 0);
@@ -199,12 +228,23 @@ namespace SdfMedia.Editor
             SessionState.SetString(ReopenKey, "");
             SessionState.SetInt(QualityKey, QualitySettings.GetQualityLevel());
             SessionState.SetInt(HintsKey, PlayerPrefs.HasKey(HintsPref) ? PlayerPrefs.GetInt(HintsPref) : -1);
+            SessionState.SetInt(GoreKey, GuiSettings.Gore);
             active = true;
             Debug.Log("SDF Media: recording the preview videos; the editor opens each arena and plays it by itself.");
             return true;
         }
 
         private const string HintsPref = "gui.qualityHints.dismissed";
+
+        /// <summary>
+        /// Where a locked clip's frames are kept: Media/Video/locked/&lt;size&gt;/clipN, a clip copied there whole for every shape. A locked
+        /// clip is not recorded again; delete its folder to record it anew.
+        /// </summary>
+        public static string LockedFolder(Shape shape, int clip) =>
+            Path.Combine(PreviewVideoEncoder.MediaFolder, "Video", "locked", $"{shape.width}x{shape.height}", "clip" + clip);
+
+        private static bool Locked(int clip) =>
+            Shapes.All(shape => Directory.Exists(LockedFolder(shape, clip)) && Directory.GetFiles(LockedFolder(shape, clip), "*.png").Length >= ClipFrames);
 
         private static string ActiveScenePath() => UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;
 
@@ -238,6 +278,9 @@ namespace SdfMedia.Editor
                 return;
             }
             var arena = SessionState.GetInt(ArenaKey, 0);
+            while (arena < Arenas.Length && Locked(arena + 1))
+                arena++;
+            SessionState.SetInt(ArenaKey, arena);
             if (arena >= Arenas.Length)
             {
                 Finish();
@@ -273,6 +316,7 @@ namespace SdfMedia.Editor
                 streak = 0;
                 aborts = 0;
                 immortal = false;
+                timeReleased = false;
             }
             else if (change == PlayModeStateChange.EnteredEditMode)
             {
@@ -311,6 +355,8 @@ namespace SdfMedia.Editor
                 return;
             lastFrame = Time.frameCount;
             KeepEpic();
+            KeepTime();
+            KeepWeapon();
             if (Time.captureFramerate != Fps)
                 Time.captureFramerate = Fps;
 
@@ -357,6 +403,7 @@ namespace SdfMedia.Editor
             SessionState.SetBool(CaptureKey, true);
             Cursor.visible = false;
             PlayerPrefs.SetInt(HintsPref, 1);
+            GuiSettings.Gore = GuiSettings.GoreLevels.Length - 1;
             KeepEpic();
 
             // No HUD: the flow (pause, end sequence, quality countdown) off and every canvas hidden; the views still run, the MatchView still fills
@@ -369,18 +416,23 @@ namespace SdfMedia.Editor
                     canvas.enabled = false;
             }
 
-            // A match that never ends, and you who survive more often than not (the other damage rules stay)
+            // A match that never ends, and you who survive more often than not and hit twice as hard (the other damage rules stay)
             match.State.Rules.capturesToWin = 999;
             var combat = Combat.Current.State;
             var previous = combat.DamageTakenOf;
             var yourState = you.State;
             combat.DamageTakenOf = victim => (previous != null ? previous(victim) : 1f) * (victim == yourState ? (immortal ? 0 : YourDamage) : 1f);
+            combat.DamageDealtOf = attacker => attacker == yourState ? YourHits : 1f;
 
             // The autopilot: a hunter's brain on you, the input off
             you.Controller.readsInput = false;
             arsenal.scripted = true;
             var random = new System.Random(2025 + SessionState.GetInt(ArenaKey, 0));
             var bot = you.gameObject.AddComponent<Bot>();
+            bot.keepWeapon = true;
+            LoadRoad(Arenas[SessionState.GetInt(ArenaKey, 0)]);
+            if (road.Count > 1)
+                bot.route = AlongRoad;
             bot.Bind(Bots.Current, you, BotStyle.Hunter, Temperament.Varied(BotStyle.Hunter, random), 7 + SessionState.GetInt(ArenaKey, 0));
 
             landscapeFov = view.fieldOfView;
@@ -390,6 +442,91 @@ namespace SdfMedia.Editor
             action = new PreviewAction();
             action.Attach(match, view, halfH, halfV);
             Debug.Log($"SDF Media: {Arenas[SessionState.GetInt(ArenaKey, 0)]}: autopilot on, field of view {landscapeFov:0.#} (portrait {Shapes[1].VerticalFov(landscapeFov):0.#}, square {Shapes[2].VerticalFov(landscapeFov):0.#}), looking for action");
+        }
+
+        // The game's time keeps going: a pause or a loading hold (time scale 0, the sound paused) would leave the clip a still picture
+        private static void KeepTime()
+        {
+            if (Time.timeScale > 0 && !AudioListener.pause)
+                return;
+            if (!timeReleased)
+                Debug.LogWarning($"SDF Media: the game's time was held (time scale {Time.timeScale}, sound paused {AudioListener.pause}); letting it run.");
+            timeReleased = true;
+            Time.timeScale = 1;
+            AudioListener.pause = false;
+        }
+
+        // The main road's middle, along Unity's x upwards, a point a metre: the deepest texel of each column of the region map's first channel
+        // (a signed distance, negative inside; the map in the pipeline's coordinates, x mirrored in Unity's); the road runs along x, one
+        // stretch a column
+        private static void LoadRoad(string arena)
+        {
+            road.Clear();
+            if (!RoadArenas.Contains(arena))
+                return;
+            var folder = Path.Combine(Application.dataPath, "Level", "Generated", arena.ToLowerInvariant());
+            var regions = JObject.Parse(File.ReadAllText(Path.Combine(folder, "level.json")))["regions"];
+            var texel = (float)regions["texelSize"];
+            var range = (float)regions["range"];
+            var minX = (float)regions["min"][0];
+            var maxZ = (float)regions["max"][1];
+            var map = new Texture2D(2, 2);
+            try
+            {
+                if (!map.LoadImage(File.ReadAllBytes(Path.Combine(folder, (string)regions["texture"]))))
+                    return;
+                var pixels = map.GetPixels32();
+                var step = Mathf.Max(1, Mathf.RoundToInt(1 / texel));
+                for (var x = 0; x < map.width; x += step)
+                {
+                    var best = 0f;
+                    var bestRow = -1;
+                    for (var y = 0; y < map.height; y++)
+                    {
+                        var d = (pixels[y * map.width + x].r / 255f * 2 - 1) * range;
+                        if (d < best)
+                        {
+                            best = d;
+                            bestRow = y;
+                        }
+                    }
+                    // Rows bottom up here, from the highest z down in the file
+                    if (bestRow >= 0)
+                        road.Add(new Vector3(-(minX + (x + 0.5f) * texel), 0, maxZ - (map.height - 1 - bestRow + 0.5f) * texel));
+                }
+                road.Reverse();
+            }
+            finally
+            {
+                Object.DestroyImmediate(map);
+            }
+            Debug.Log(road.Count > 1
+                ? $"SDF Media: {arena}: keeping to the main road, x {road[0].x:0} to {road[^1].x:0}"
+                : $"SDF Media: {arena}: no main road in the region map; walking anywhere");
+        }
+
+        // Where the autopilot walks: up to RoadLead metres on along the road from where you are, towards the goal's place along it
+        private static Vector3 AlongRoad(Vector3 feet, Vector3 goal)
+        {
+            var spacing = (road[^1].x - road[0].x) / (road.Count - 1);
+            int Index(float x) => Mathf.Clamp(Mathf.RoundToInt((x - road[0].x) / spacing), 0, road.Count - 1);
+            var here = Index(feet.x);
+            var lead = Mathf.Max(1, Mathf.RoundToInt(RoadLead / spacing));
+            var point = road[here + Mathf.Clamp(Index(goal.x) - here, -lead, lead)];
+            return new Vector3(point.x, feet.y, point.z);
+        }
+
+        // The clip's weapon stays in hand: every life starts with the single pistol alone, and the autopilot would switch by distance
+        private static void KeepWeapon()
+        {
+            var arsenal = Combat.Current.ArsenalOf(you);
+            var inventory = arsenal != null ? arsenal.Inventory : null;
+            if (inventory == null)
+                return;
+            var id = Weapons[SessionState.GetInt(ArenaKey, 0)];
+            if (!inventory.Holds(id))
+                inventory.Take(WeaponIds.ModelOf(id));
+            arsenal.Select(WeaponIds.SlotOf(id).Value);
         }
 
         // The quality level stays Epic: the HUD and the start-up measurement would change it
@@ -678,6 +815,7 @@ namespace SdfMedia.Editor
                 PlayerPrefs.DeleteKey(HintsPref);
             else
                 PlayerPrefs.SetInt(HintsPref, hints);
+            GuiSettings.Gore = SessionState.GetInt(GoreKey, GuiSettings.Gore);
             PlayerPrefs.Save();
             ReleaseTargets();
         }

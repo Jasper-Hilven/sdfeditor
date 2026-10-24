@@ -30,6 +30,15 @@ namespace SdfBattle
         [Tooltip("What it is doing now (shown for debugging)")]
         public string goalNow;
 
+        /// <summary>The weapon in hand stays as it is (the preview recorder's autopilot holds one weapon a clip); off for every bot.</summary>
+        [System.NonSerialized] public bool keepWeapon;
+
+        /// <summary>
+        /// Where it walks instead of a goal's spot, from its feet and that spot (the preview recorder's autopilot keeps to the main road); null
+        /// for every bot.
+        /// </summary>
+        [System.NonSerialized] public System.Func<Vector3, Vector3, Vector3> route;
+
         private const float SeenRecently = 0.35f;
 
         private Bots owner;
@@ -212,6 +221,8 @@ namespace SdfBattle
                 Think();
             if (!UpdateDestination(now))
                 Think();
+            if (route != null)
+                destination = route(transform.position, destination);
             UpdatePath(dt);
             ChooseWeapon(dt, now);
             Aim(dt, now);
@@ -768,7 +779,7 @@ namespace SdfBattle
         private void ChooseWeapon(float dt, float now)
         {
             weaponIn -= dt;
-            if (weaponIn > 0 || arsenal == null || arsenal.Inventory == null)
+            if (keepWeapon || weaponIn > 0 || arsenal == null || arsenal.Inventory == null)
                 return;
             weaponIn = 0.4f;
             var inventory = arsenal.Inventory;

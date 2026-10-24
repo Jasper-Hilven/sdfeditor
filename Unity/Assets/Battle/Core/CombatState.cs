@@ -182,6 +182,9 @@ namespace SdfBattle
         /// <summary>What the damage a player takes from this hit is multiplied by (ticket 29.7's wet scouts and the electro gun); null: 1.</summary>
         public Func<PlayerState, Damage, float> DamageFactorOf { get; set; }
 
+        /// <summary>What the damage a player deals is multiplied by (the preview recorder's autopilot); null: 1.</summary>
+        public Func<PlayerState, float> DamageDealtOf { get; set; }
+
         /// <summary>The clouds and splats on the ground now.</summary>
         public IReadOnlyList<Area> Areas => areas;
 
@@ -228,7 +231,8 @@ namespace SdfBattle
             if (damage.Amount <= 0 || !Match.CanHurt(victim, damage))
                 return 0;
             var amount = damage.Amount * (DamageTakenOf != null ? Mathf.Max(0, DamageTakenOf(victim)) : 1)
-                * (DamageFactorOf != null ? Mathf.Max(0, DamageFactorOf(victim, damage)) : 1);
+                * (DamageFactorOf != null ? Mathf.Max(0, DamageFactorOf(victim, damage)) : 1)
+                * (DamageDealtOf != null && damage.Attacker != null ? Mathf.Max(0, DamageDealtOf(damage.Attacker)) : 1);
             var taken = Mathf.Min(victim.Health, amount);
             victim.Health -= taken;
             if (taken > 0)

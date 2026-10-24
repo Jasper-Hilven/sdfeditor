@@ -659,10 +659,10 @@ namespace SdfGui.Editor
             Transform Row(string label)
             {
                 var row = Object(label, panel);
-                // Eleven rows close together, so the last stays clear of the back button
-                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 66));
-                f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 60), TextAlignmentOptions.Left);
-                y -= 69;
+                // Twelve rows close together, so the last stays clear of the back button
+                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 60));
+                f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 56), TextAlignmentOptions.Left);
+                y -= 63;
                 return row.transform;
             }
             menu.quality = Instance<GuiSelector>(p.Selector, Row("Quality"), "Quality", Right, Vector2.zero);
@@ -679,16 +679,16 @@ namespace SdfGui.Editor
             menu.backdrop.index = 0;
             menu.backdrop.label.text = BackdropChoice.Names[0];
             menu.sensitivity = Instance<Slider>(p.Slider, Row("Mouse sensitivity"), "Sensitivity", Right, new Vector2(-10, 0));
-            menu.volume = Instance<Slider>(p.Slider, Row("Volume"), "Volume", Right, new Vector2(-10, 0));
+            menu.volume = Instance<Slider>(p.Slider, Row("Master volume"), "Volume", Right, new Vector2(-10, 0));
             menu.volume.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
             menu.music = Instance<Slider>(p.Slider, Row("Music"), "Music", Right, new Vector2(-10, 0));
             menu.music.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
-            menu.sound = Instance<Slider>(p.Slider, Row("Sound"), "Sound", Right, new Vector2(-10, 0));
+            menu.sound = Instance<Slider>(p.Slider, Row("Sound effects"), "Sound", Right, new Vector2(-10, 0));
             menu.sound.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
             menu.screenShake = Instance<Toggle>(p.Toggle, Row("Screen shake"), "Screen Shake", Right, new Vector2(-180, 0));
             menu.showFps = Instance<Toggle>(p.Toggle, Row("Show FPS"), "Show FPS", Right, new Vector2(-180, 0));
             menu.showFps.isOn = false;
-            menu.dismissQualityHints = Instance<Toggle>(p.Toggle, Row("Dismiss FPS/quality tips"), "Dismiss Quality Hints", Right, new Vector2(-180, 0));
+            menu.dismissQualityHints = Instance<Toggle>(p.Toggle, Row("Disable auto quality adjustment"), "Dismiss Quality Hints", Right, new Vector2(-180, 0));
             menu.dismissQualityHints.isOn = false;
             p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(0, 36), new Vector2(320, 86), 42, spots: 0);
             return Save(root);

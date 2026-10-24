@@ -83,7 +83,7 @@ namespace SdfGui
             set => PlayerPrefs.SetInt("gui.menuBackdrop", value);
         }
 
-        /// <summary>Whether the HUD keeps quiet about the frame rate: no hint to change the quality level (off by default).</summary>
+        /// <summary>Whether the quality level stays put: no automatic change of quality level and no hint to change it (off by default).</summary>
         public static bool DismissQualityHints
         {
             get => PlayerPrefs.GetInt("gui.qualityHints.dismissed", 0) == 1;

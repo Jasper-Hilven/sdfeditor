@@ -75,6 +75,20 @@ namespace SdfGui
 
         private float smoothedFrame = 1 / 60f;
         private readonly GuiQualityRule qualityRule = new GuiQualityRule();
+        private readonly SdfMushrooms.QualityHintRule hintRule = new SdfMushrooms.QualityHintRule();
+        /// <summary>Whether the automatic rule is counting towards a step up this frame (then no hint: it will climb by itself).</summary>
+        private bool upDue;
+
+        /// <summary>The key that takes one level up when the HUD offers it.</summary>
+        public const KeyCode IncreaseQualityKey = KeyCode.H;
+        public const string IncreaseQualityHint = "Press H to increase quality";
+
+        // Out of the round (pause, scoreboard, menus): the windows start over
+        private void OnDisable()
+        {
+            qualityRule.Reset();
+            hintRule.Reset();
+        }
 
         protected override void Render(MatchView m)
         {
@@ -152,9 +166,15 @@ namespace SdfGui
                 var rate = 1 / Mathf.Max(smoothedFrame, 1e-4f);
                 string hint = null;
                 if (Application.isPlaying && !GuiSettings.DismissQualityHints)
+                {
                     hint = QualityCountdown();
+                    hint ??= QualityOffer();
+                }
                 else
+                {
                     qualityRule.Reset();
+                    hintRule.Reset();
+                }
                 GuiText.Show(fps, GuiSettings.ShowFps || hint != null);
                 GuiText.Set(fps, hint ?? $"{Mathf.RoundToInt(rate)} FPS");
                 // The countdown in ink, the frame rate in moss green
@@ -172,6 +192,7 @@ namespace SdfGui
         {
             var level = QualitySettings.GetQualityLevel();
             var (left, step) = qualityRule.Tick(Time.unscaledDeltaTime, level);
+            upDue = step < 0;
             if (left > AdjustIn)
                 return null;
             if (left <= 0)
@@ -182,6 +203,28 @@ namespace SdfGui
             }
             // 3 to 0, each a second but the first and last half a second
             return $"Adjusting quality in {Mathf.RoundToInt(left)}";
+        }
+
+        /// <summary>
+        /// "Press H to increase quality", or null: <see cref="SdfMushrooms.QualityHintRule"/> (steady frames the automatic rule's way, on a
+        /// level whose next one up asks for more than a capped 60 a second, which is not the top level), only with auto quality on (the
+        /// caller). H then takes exactly one level up, the way an automatic step does (the same call, so it is saved the same), and starts
+        /// both rules' windows over so it does not step straight back unless the frame rate really drops.
+        /// </summary>
+        private string QualityOffer()
+        {
+            var level = QualitySettings.GetQualityLevel();
+            var eligible = level > 0 && GuiQualityRule.UpFps(level - 1) > SdfMushrooms.QualityHintRule.SteadyFps + 5;
+            if (!hintRule.Tick(Time.unscaledDeltaTime, level, eligible, upDue))
+                return null;
+            if (Input.GetKeyDown(IncreaseQualityKey))
+            {
+                QualitySettings.SetQualityLevel(level - 1, true);
+                qualityRule.Reset();
+                hintRule.Reset();
+                return null;
+            }
+            return IncreaseQualityHint;
         }
     }
 }

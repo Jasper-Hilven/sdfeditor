@@ -90,5 +90,20 @@ namespace SdfAudio.Tests
             Assert.AreEqual(1, HeartbeatRules.Volume(0), 1e-6f);
             Assert.Less(HeartbeatRules.Pitch(0.3f), HeartbeatRules.Pitch(0.05f));
         }
+
+        [Test]
+        public void TheShotSoundLimiter_LetsOneSoundThroughPerInterval_ForEachShooter()
+        {
+            var limiter = new ShotSoundLimiter(0.1f);
+            Assert.IsTrue(limiter.Allow(1, 0));
+            Assert.IsFalse(limiter.Allow(1, 0.07f));
+            Assert.IsTrue(limiter.Allow(2, 0.07f));
+            Assert.IsTrue(limiter.Allow(1, 0.14f));
+            var heard = 0;
+            for (var i = 0; i < 28; i++)
+                if (limiter.Allow(3, 10 + i / 14f))
+                    heard++;
+            Assert.AreEqual(14, heard);
+        }
     }
 }

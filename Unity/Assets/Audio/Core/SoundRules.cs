@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SdfAudio
 {
@@ -31,6 +32,33 @@ namespace SdfAudio
             walked -= Stride;
             return true;
         }
+    }
+
+    /// <summary>
+    /// A wait between the sounds of a rapid-fire weapon, kept for each shooter: the minigun fires 14 shots a second, and a sound for each
+    /// is more than the web player's audio can start and stop. <see cref="Allow"/> says whether a shooter's sound may play now; asking
+    /// about a shooter with a sound it has just had is a no.
+    /// </summary>
+    public sealed class ShotSoundLimiter
+    {
+        /// <summary>The wait, in seconds, between two sounds of one shooter.</summary>
+        public float Interval { get; }
+
+        private readonly Dictionary<int, float> last = new Dictionary<int, float>();
+
+        public ShotSoundLimiter(float interval) => Interval = Math.Max(0, interval);
+
+        /// <summary>True (and the sound counted) when <paramref name="shooter"/> has had none for <see cref="Interval"/> seconds before <paramref name="now"/>.</summary>
+        public bool Allow(int shooter, float now)
+        {
+            if (last.TryGetValue(shooter, out var before) && now - before < Interval)
+                return false;
+            last[shooter] = now;
+            return true;
+        }
+
+        /// <summary>Forgets every shooter (a match is left).</summary>
+        public void Clear() => last.Clear();
     }
 
     /// <summary>The low-health heartbeat: silent while health is above <see cref="Threshold"/>, then louder and faster as it falls to nothing.</summary>

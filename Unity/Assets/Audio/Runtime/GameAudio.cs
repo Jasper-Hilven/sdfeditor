@@ -54,6 +54,8 @@ namespace SdfAudio
         private readonly Dictionary<MachineState, Machine> machineOf = new Dictionary<MachineState, Machine>();
         private readonly Dictionary<Machine, AudioPlayer.Handle> machineLoops = new Dictionary<Machine, AudioPlayer.Handle>();
         private readonly List<float> shares = new List<float>(MusicIntensity.Layers) { 1, 0, 0, 0 };
+        // The minigun's casings: one for every other shot (14 a second is more than the web player can start), for each shooter; the wait is 1.5 shots, so frame jitter keeps it to every other
+        private readonly ShotSoundLimiter minigunCasings = new ShotSoundLimiter(1.5f / 14f);
         private readonly MusicIntensity intensity = new MusicIntensity();
         private Match match;
         private Combat combat;
@@ -348,8 +350,9 @@ namespace SdfAudio
                     Audio.Play(Cues.Sniper, muzzle.position, twoD: you);
                     break;
                 case WeaponIds.Minigun:
-                    // The burst's loop is the sound; only the casings fall per shot
-                    Casing(player);
+                    // The burst's loop is the sound; only the casings fall, for every other shot
+                    if (minigunCasings.Allow(player.GetInstanceID(), Now))
+                        Casing(player);
                     break;
             }
         }
