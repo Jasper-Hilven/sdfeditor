@@ -98,6 +98,7 @@ namespace SdfCampaign
                 return;
             }
             Watch();
+            rules.Tick(Time.deltaTime);
             if (rules.Finished)
             {
                 Finish(true);

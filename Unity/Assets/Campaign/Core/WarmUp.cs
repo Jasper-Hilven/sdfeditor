@@ -7,16 +7,18 @@ namespace SdfCampaign
     [Flags]
     public enum WarmUpAction { None = 0, Walk = 1, Look = 2, Jump = 4, TakeMinigun = 8, Fire = 16 }
 
-    /// <summary>One prompt of the warm-up: its words and what clears it.</summary>
+    /// <summary>One prompt of the warm-up: its words, what clears it and, when above 0, the seconds after which it goes by itself.</summary>
     public sealed class WarmUpPrompt
     {
         public readonly string text;
         public readonly WarmUpAction needs;
+        public readonly float seconds;
 
-        public WarmUpPrompt(string text, WarmUpAction needs)
+        public WarmUpPrompt(string text, WarmUpAction needs, float seconds = 0)
         {
             this.text = text;
             this.needs = needs;
+            this.seconds = seconds;
         }
     }
 
@@ -34,9 +36,13 @@ namespace SdfCampaign
         public const string HowToScore = "Grab blue's flag and carry it to your own flag to score.";
         public const string CloserSpeaker = "Mushroom 7";
 
+        /// <summary>The jump prompt goes by itself after this long.</summary>
+        public const float JumpSeconds = 10;
+
         private readonly IReadOnlyList<WarmUpPrompt> prompts;
         private WarmUpAction seen;
         private bool tookMinigun;
+        private float shown;
 
         public WarmUp(IReadOnlyList<WarmUpPrompt> prompts) => this.prompts = prompts;
 
@@ -46,7 +52,7 @@ namespace SdfCampaign
             var list = new List<WarmUpPrompt>
             {
                 new WarmUpPrompt("WASD to walk, mouse to look", WarmUpAction.Walk | WarmUpAction.Look),
-                new WarmUpPrompt("SPACE to jump", WarmUpAction.Jump),
+                new WarmUpPrompt("SPACE to jump", WarmUpAction.Jump, JumpSeconds),
             };
             if (minigunPod)
             {
@@ -76,6 +82,26 @@ namespace SdfCampaign
             Settle();
         }
 
+        /// <summary>Time passes. Clears the current prompt once it has been on screen for its seconds, if it has any.</summary>
+        public void Tick(float seconds)
+        {
+            if (Finished)
+                return;
+            shown += seconds;
+            var limit = prompts[Index].seconds;
+            if (limit <= 0 || shown < limit)
+                return;
+            Advance();
+            Settle();
+        }
+
+        private void Advance()
+        {
+            Index++;
+            seen = WarmUpAction.None;
+            shown = 0;
+        }
+
         private void Settle()
         {
             while (!Finished)
@@ -84,8 +110,7 @@ namespace SdfCampaign
                 var done = seen | (tookMinigun ? WarmUpAction.TakeMinigun : WarmUpAction.None);
                 if ((done & needs) != needs)
                     return;
-                Index++;
-                seen = WarmUpAction.None;
+                Advance();
             }
         }
     }

@@ -814,6 +814,21 @@ namespace SdfCampaign.Tests
         }
 
         [Test]
+        public void WarmUp_TheJumpPromptGoesByItselfAfterTenSeconds_TheOthersWait()
+        {
+            var warm = WarmUp.Default(true);
+            warm.Tick(60);
+            Assert.AreEqual(0, warm.Index, "walk and look waits");
+            warm.Report(WarmUpAction.Walk | WarmUpAction.Look);
+            warm.Tick(WarmUp.JumpSeconds - 1);
+            Assert.AreEqual(1, warm.Index);
+            warm.Tick(1);
+            StringAssert.Contains("MINIGUN", warm.Prompt.text);
+            warm.Tick(60);
+            StringAssert.Contains("MINIGUN", warm.Prompt.text, "the pod prompt waits");
+        }
+
+        [Test]
         public void TheMeadowAsksForTheWarmUp_OnlyOnAFirstPlay()
         {
             Assert.IsTrue(Def.Find("meadow").setup.warmUp);
