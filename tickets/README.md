@@ -48,6 +48,16 @@ ticket's Status says.
 | 38 | [Streamed web build](38-streamed-web-build.md) | The web player is only Boot, the GUI, the menu backdrop, the intro comic and the Meadow (the initial download); every later arena and comic is an AssetBundle in `Builds/Web/Bundles`, fetched when the campaign goes there and prefetched in the background during the previous arena, with a retry on the Loading screen. Plain AssetBundles (LZ4), no Addressables; one command builds both |
 | 39 | [GPU SDF evaluation](done/39-gpu-sdf-evaluation.md) | SDF evaluation on the GPU from the pipeline (WebGPU over wgpu-native, Metal on the Mac, the WebGL 2 generator's GLSL as compute shaders): contouring's samples, the simplifier's sign-bracket tests and facing gradients, with CPU parity tests; `--gpu`/`--cpu` on `sdf mesh` and `sdf unity`, the GPU by default for meshes with big SDFs. Done: the kitchen room 24.9 s to 11.2 s, a third off the kitchen and games directories, the small models unchanged; meshes match the CPU's up to float rounding (about 1 % of triangles). 37's full re-mesh is next |
 | 40 | [Sound](40-sound.md) | A sound bank of named cues (empty ones wired and silent), a pooled player, every game event wired, adaptive layered battle music (orchestral or electronic per arena, the boss theme), footsteps by surface, heartbeat, UI sounds; arena music hangs off the arena scenes so the web build bundles it per arena. Done in code; left: a Play-mode listen, the empty cues' clips, a web build |
+| 41 | [Remove the story, boss and campaign](41-remove-story-boss-campaign.md) | Minigun Monsters, part 1: the intro, beats, comics, ending, desk backdrop, the Champion's Arena and Prime, the campaign flow and the level select removed; credits kept. Not started |
+| 42 | [Endless rotation and automatic difficulty](42-endless-rotation-and-auto-difficulty.md) | Boot straight into a Meadow match on a random team; then a random level, never one of the last 3; difficulty one step easier after a loss, harder after a win with the enemy on 0, the same otherwise, applied to the enemy side; the new save. Not started. After 41 |
+| 43 | [The body: BattleRoyale's soldier](43-soldier-body-from-battleroyale.md) | The rigging pipeline, the Synty skeleton and the soldier ported from `../BattleRoyale`, the soldier without its head, red and blue team skins, sockets for the head, weapon and flag, hit capsules. Not started |
+| 44 | [Body animations](44-body-animations.md) | BattleRoyale's Mixamo clips, Animator builders and `SoldierAnimator` wired to the player and bots (locomotion, jump, fire, hit, directional deaths); missing clips (pistol, jump, heavy weapon, roar, victory) from Mixamo by the user, with stand-ins. Not started. After 43 |
+| 45 | [Twelve monster heads](45-monster-heads.md) | One SDF head per month (Yeti to Evil Santa) on the soldier's head socket, its own eyes and colours, glowing parts emissive, head capsules sized fairly; Yeti and Jack-o'-Lantern first. Not started. After 43 |
+| 46 | [Monster explosions](46-monster-explosions.md) | `ExplodingMonster` with a profile per head (ice, bats, shamrocks, mud, eyeball, tentacles, acid, bandages, fur, seeds, sparks, candy canes), at every gore level. Not started. After 45 |
+| 47 | [Head unlocks and selection](47-head-unlocks-and-selection.md) | The head of the month plus every head unlocked before; each win unlocks the next head in calendar order; a ◀ head ▶ cycle in Settings; random heads on bots. Not started. After 42, 45 |
+| 48 | [The next-level countdown](48-next-level-countdown.md) | The end card counts down from 10 to the next level, win or lose; A and D (by key position) switch heads; the unlock reveal, the difficulty line, the midgame ad. Not started. After 42, 47 |
+| 49 | [Monster powers](49-monster-powers.md) | The spore powers renamed: Rage meter, Frenzy, Regenerate, Thick Hide; HUD and effects; rules unchanged. Not started |
+| 50 | [Rebrand: GUI, description and media](50-rebrand-gui-and-description.md) | Minigun Monsters: logo, GUI, scoreboard with head icons, `description.md`, `control.html`, covers and videos; never called multiplayer. Not started. Last |
 
 ## Running the open tickets
 
@@ -59,9 +69,24 @@ section says what is left.
 | 1 | [35 Menu backdrop](35-menu-backdrop.md) | — | Unity batch (snapshots) |
 | 2 | [38 Streamed web build](38-streamed-web-build.md): under 50 MB initial | — | 37 done |
 | 3 | [36 CrazyGames SDK](36-crazygames-sdk.md): tests, build, browser check, portal checklist | — | after 38; the upload is the user's |
+| 4 | [41 Remove the story, boss and campaign](41-remove-story-boss-campaign.md) | 43, 49 | — |
+| 5 | [42 Endless rotation and automatic difficulty](42-endless-rotation-and-auto-difficulty.md) | 43, 44, 49 | 41 |
+| 6 | [43 The body](43-soldier-body-from-battleroyale.md) | 41, 42 | `../BattleRoyale` at a named commit |
+| 7 | [44 Body animations](44-body-animations.md) | 45 | 43; the Mixamo downloads are the user's |
+| 8 | [45 Monster heads](45-monster-heads.md) | 44 | 43; the user looks at Yeti and Jack-o'-Lantern before the other 10 |
+| 9 | [46 Monster explosions](46-monster-explosions.md) | 47 | 45 |
+| 10 | [47 Head unlocks and selection](47-head-unlocks-and-selection.md) | 46 | 42, 45 |
+| 11 | [48 The next-level countdown](48-next-level-countdown.md) | — | 42, 47 |
+| 12 | [49 Monster powers](49-monster-powers.md) | anything | — |
+| 13 | [50 Rebrand](50-rebrand-gui-and-description.md) | — | all of 41-49 |
 
 Rules for every agent:
-- Model `sonnet` for every subagent; one ticket per agent; it commits its ticket's work when done (the user pushes or asks to).
+- One ticket per agent; it commits its ticket's work when done (the user pushes or asks to). Model per ticket: `haiku` for the
+  plain-code tickets (41, 42, 48), `sonnet` for modelling, rigging, GUI and visual tickets (43-47, 49, 50). The lead reviews each
+  diff against the ticket's "Done when" before starting the next ticket.
+- At most two tickets at once, and only pairs from the "Runs alongside" column. With two at once in the one checkout: stage only your
+  own ticket's paths (never `git add -A` or `git commit -a`), and a compile error in the other ticket's files is not yours to fix:
+  wait and retry.
 - Work in the main checkout, not a worktree: the generated meshes and level bakes are git-ignored and only exist here.
 - Mesh at the default 128 cells, never 256 or 512. No full re-mesh except ticket 37's last step, after ticket 39; test with a few models.
 - Batch Unity only through `tools/unity-batch.sh` (one at a time, with a lock), and only with the editor closed; if it is open,
