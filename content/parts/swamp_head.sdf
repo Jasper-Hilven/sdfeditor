@@ -1,0 +1,96 @@
+# The Swamp Thing's head shape (ticket 45), a part so the model (content/models/characters/monsters/swamp.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size.
+Translate translation=(0, -0.0096, 0)
+    Scale scale=(1.2652, 1.2652, 1.2652)
+        Union
+            # The mud head: a lumpy mass with a heavy brow, a wide flat nose and a mouth slit, the eye sockets and mouth cut into it
+            Material material=swamp_mud
+                Subtraction
+                    Distort amount=0.012 frequency=7
+                        Union
+                            Translate translation=(0, 0.0, -0.02)
+                                Ellipsoid radii=(0.225, 0.2, 0.22)
+                            Translate translation=(0, -0.1, 0.06)
+                                Ellipsoid radii=(0.19, 0.12, 0.17)
+                            # Brow ridge
+                            SymmetryX
+                                Capsule a=(0.17, 0.1, 0.1) b=(0.02, 0.07, 0.21) radius=0.05
+                            # The flat nose, wide nostrils
+                            Translate translation=(0, -0.045, 0.235)
+                                Ellipsoid radii=(0.07, 0.05, 0.055)
+                            # Cheek lumps
+                            SymmetryX
+                                Translate translation=(0.15, -0.07, 0.08)
+                                    Ellipsoid radii=(0.07, 0.07, 0.08)
+                    Union
+                        # The sockets the eyes glow in
+                        SymmetryX
+                            Translate translation=(0.085, 0.03, 0.19)
+                                Ellipsoid radii=(0.055, 0.05, 0.06)
+                        # The mouth slit
+                        Translate translation=(0, -0.125, 0.19)
+                            Ellipsoid radii=(0.13, 0.03, 0.1)
+                        # Nostrils
+                        SymmetryX
+                            Translate translation=(0.03, -0.05, 0.285)
+                                Ellipsoid radii=(0.016, 0.012, 0.02)
+            Material material=swamp_mouth
+                Union
+                    Intersection
+                        Translate translation=(0, -0.125, 0.19)
+                            Ellipsoid radii=(0.13, 0.03, 0.1)
+                        Plane normal=(0, 0, 1) height=-0.13
+                    SymmetryX
+                        Intersection
+                            Translate translation=(0.085, 0.03, 0.19)
+                                Ellipsoid radii=(0.055, 0.05, 0.06)
+                            Plane normal=(0, 0, 1) height=-0.15
+            # The glowing eyes (emission), deep in the sockets
+            Material material=swamp_eye
+                SymmetryX
+                    Translate translation=(0.085, 0.03, 0.17)
+                        Ellipsoid radii=(0.043, 0.04, 0.035)
+            # Stumps of teeth in the slit
+            Material material=swamp_tooth
+                SymmetryX
+                    Union
+                        ArbitraryRoundCone a=(0.03, -0.1, 0.25) b=(0.03, -0.14, 0.255) radiusA=0.012 radiusB=0.006
+                        ArbitraryRoundCone a=(0.075, -0.1, 0.235) b=(0.075, -0.135, 0.24) radiusA=0.012 radiusB=0.005
+                        ArbitraryRoundCone a=(0.05, -0.15, 0.245) b=(0.05, -0.118, 0.25) radiusA=0.012 radiusB=0.005
+            # Moss: clumps on the crown, one side and the back, strands hanging, two reeds growing from the top
+            Material material=swamp_moss
+                Union
+                    Translate translation=(0, 0.17, -0.04)
+                        Ellipsoid radii=(0.13, 0.07, 0.12)
+                    Translate translation=(0.1, 0.13, 0.06)
+                        Ellipsoid radii=(0.08, 0.06, 0.07)
+                    Translate translation=(-0.14, 0.06, -0.06)
+                        Ellipsoid radii=(0.09, 0.09, 0.1)
+                    Translate translation=(0.05, 0.0, -0.2)
+                        Ellipsoid radii=(0.12, 0.1, 0.07)
+                    Translate translation=(-0.09, -0.1, 0.17)
+                        Ellipsoid radii=(0.05, 0.04, 0.04)
+                    # Hanging strands
+                    ArbitraryRoundCone a=(-0.14, 0.0, -0.06) b=(-0.19, -0.24, -0.02) radiusA=0.03 radiusB=0.005
+                    ArbitraryRoundCone a=(0.05, -0.05, -0.2) b=(0.06, -0.3, -0.22) radiusA=0.035 radiusB=0.005
+                    ArbitraryRoundCone a=(-0.02, -0.04, -0.21) b=(-0.08, -0.27, -0.2) radiusA=0.03 radiusB=0.005
+                    # Reeds
+                    ArbitraryRoundCone a=(0.04, 0.2, -0.05) b=(0.1, 0.3, -0.08) radiusA=0.018 radiusB=0.005
+                    ArbitraryRoundCone a=(-0.04, 0.2, -0.02) b=(-0.08, 0.27, 0.03) radiusA=0.016 radiusB=0.005
+            # Drips of slime: from the brow, the nose and the chin
+            Material material=swamp_slime
+                Union
+                    ArbitraryRoundCone a=(0.1, 0.0, 0.215) b=(0.1, -0.1, 0.225) radiusA=0.014 radiusB=0.008
+                    Translate translation=(0.1, -0.11, 0.225)
+                        Sphere radius=0.016
+                    ArbitraryRoundCone a=(-0.04, -0.19, 0.25) b=(-0.04, -0.3, 0.25) radiusA=0.016 radiusB=0.01
+                    Translate translation=(-0.04, -0.31, 0.25)
+                        Sphere radius=0.018
+                    ArbitraryRoundCone a=(0.06, -0.2, 0.22) b=(0.06, -0.26, 0.22) radiusA=0.014 radiusB=0.009
+                    Translate translation=(0.06, -0.27, 0.22)
+                        Sphere radius=0.015
+                    ArbitraryRoundCone a=(0, -0.05, 0.29) b=(0, -0.11, 0.3) radiusA=0.01 radiusB=0.007

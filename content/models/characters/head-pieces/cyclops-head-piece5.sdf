@@ -1,0 +1,18 @@
+# The cyclops head, bursting: the chin piece (6 of 7). Made by tools/make-head-pieces.py (do not edit by hand): the head
+# (the cyclops_head part, so the pieces follow its edits) intersected with the Voronoi cell of one seed; the cells split all of space with
+# no gap or overlap, so the pieces together are the head. The cut faces are the head_inner material. Low detail: debris lives seconds.
+format 1
+collider none
+surface part=cyclops_head
+
+Detail detail=0.5
+    Intersection
+        Part part=cyclops_head
+        Material material=head_inner
+            Intersection
+                Plane normal=(0.0000, 0.9377, -0.3473) height=0.0221
+                Plane normal=(0.6707, 0.7317, 0.1219) height=0.0082
+                Plane normal=(-0.6707, 0.7317, 0.1219) height=0.0082
+                Plane normal=(0.4019, 0.4385, -0.8039) height=0.0049
+                Plane normal=(-0.4019, 0.4385, -0.8039) height=0.0049
+                Plane normal=(0.0000, -0.1644, -0.9864) height=-0.0156

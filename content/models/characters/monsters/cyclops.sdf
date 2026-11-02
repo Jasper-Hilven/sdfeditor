@@ -1,0 +1,15 @@
+# Raging Cyclops, the May head (ticket 45): a broad ochre head with ONE big eye in a deep socket under a single angry brow, bristles on the
+# crown, a bulb of a nose, an underbite jaw thrust forward with a snarling mouth and ONE big protruding lower tusk curling up past the lip
+# (a small stub on the other side).
+# Frame (the soldier's head_top socket, ticket 43): the origin is the socket, 1.815 m over the soles; the head faces +Z, +Y is up. The
+# size and the height come from the head part (content/parts/cyclops_head.sdf): normalized to the common size, the chin 4 cm lower than
+# phase 1's (at 1.525 m, over the neck's top at 1.569 whose stub is inside it). The head turns on the Head bone, 0.25 m under the origin.
+# The eye is the machines' eye part (eye_machine), meshed once.
+format 1
+
+# No collider (the hit shape of the head is a number in the registry), and never culled before 200 m: the head is what reads at range
+collider none
+cull 200
+
+Detail detail=0.691
+    Part part=cyclops_head

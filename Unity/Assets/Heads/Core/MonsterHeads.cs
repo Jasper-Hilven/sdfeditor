@@ -58,8 +58,8 @@ namespace SdfHeads
             new MonsterHead("yeti", 1, "Abominable Snowman", Rgb(0.70f, 0.88f, 1.00f), true),          // pale ice blue
             new MonsterHead("vampire", 2, "Vampire Count", Rgb(0.38f, 0.08f, 0.52f), true),            // deep purple
             new MonsterHead("leprechaun", 3, "Leprechaun Mutant", Rgb(0.07f, 0.72f, 0.35f), true),     // emerald green
-            new MonsterHead("swamp", 4, "Swamp Thing", Rgb(0.30f, 0.26f, 0.08f), false),                // dark olive brown
-            new MonsterHead("cyclops", 5, "Raging Cyclops", Rgb(0.80f, 0.55f, 0.10f), false),           // ochre
+            new MonsterHead("swamp", 4, "Swamp Thing", Rgb(0.30f, 0.26f, 0.08f), true),                // dark olive brown
+            new MonsterHead("cyclops", 5, "Raging Cyclops", Rgb(0.80f, 0.55f, 0.10f), true),           // ochre
             new MonsterHead("cthulhu", 6, "Deep-Sea Cthulhu", Rgb(0.00f, 0.50f, 0.55f), false),         // ocean teal
             new MonsterHead("alien", 7, "Acid Alien", Rgb(0.85f, 1.00f, 0.10f), false),                 // glowing acid yellow
             new MonsterHead("mummy", 8, "Ancient Mummy", Rgb(0.74f, 0.70f, 0.60f), false),              // sand-grey dust

@@ -1,0 +1,70 @@
+# The Raging Cyclops's head shape (ticket 45), a part so the model (content/models/characters/monsters/cyclops.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size.
+Translate translation=(0, -0.0272, 0)
+    Scale scale=(1.1585, 1.1585, 1.1585)
+        Union
+            # The hide: a broad skull, an underbite jaw thrust forward, a bulb of a nose, one deep socket in the middle of the brow
+            Material material=cyclops_skin
+                Subtraction
+                    Union
+                        Translate translation=(0, 0.02, -0.03)
+                            Ellipsoid radii=(0.26, 0.21, 0.21)
+                        # The jaw, thrust forward
+                        Translate translation=(0, -0.13, 0.05)
+                            Ellipsoid radii=(0.19, 0.095, 0.16)
+                        Translate translation=(0, -0.2, 0.14)
+                            Ellipsoid radii=(0.1, 0.045, 0.07)
+                        # The nose
+                        Translate translation=(0, -0.055, 0.225)
+                            Ellipsoid radii=(0.065, 0.055, 0.06)
+                        # Ears and cheeks
+                        SymmetryX
+                            Translate translation=(0.225, 0.0, -0.03)
+                                Ellipsoid radii=(0.03, 0.065, 0.045)
+                        SymmetryX
+                            Translate translation=(0.14, -0.06, 0.13)
+                                Ellipsoid radii=(0.07, 0.06, 0.06)
+                        # Warts
+                        Translate translation=(0.11, 0.0, 0.2)
+                            Sphere radius=0.02
+                        Translate translation=(-0.14, -0.1, 0.17)
+                            Sphere radius=0.016
+                    Union
+                        # The eye socket and the snarling mouth
+                        Translate translation=(0, 0.06, 0.19)
+                            Ellipsoid radii=(0.12, 0.1, 0.07)
+                        Translate translation=(0, -0.145, 0.22)
+                            Ellipsoid radii=(0.12, 0.04, 0.09)
+            Material material=cyclops_mouth
+                Intersection
+                    Translate translation=(0, -0.145, 0.22)
+                        Ellipsoid radii=(0.12, 0.04, 0.09)
+                    Plane normal=(0, 0, 1) height=-0.17
+            # One angry brow in two halves, slanting down to the middle, and bristles on the crown
+            Material material=cyclops_brow
+                Union
+                    SymmetryX
+                        Capsule a=(0.19, 0.185, 0.1) b=(0.02, 0.145, 0.21) radius=0.05
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.04, 0.2, -0.04) b=(0.05, 0.28, -0.03) radiusA=0.02 radiusB=0.003
+                    ArbitraryRoundCone a=(0, 0.21, -0.06) b=(0, 0.3, -0.07) radiusA=0.022 radiusB=0.003
+                    ArbitraryRoundCone a=(0.1, 0.18, -0.12) b=(0.13, 0.25, -0.14) radiusA=0.02 radiusB=0.003
+                    ArbitraryRoundCone a=(-0.1, 0.18, -0.12) b=(-0.13, 0.25, -0.14) radiusA=0.02 radiusB=0.003
+            # The one big protruding lower tusk, curving up past the lip, and a stub on the other side; blunt teeth
+            Material material=cyclops_tusk
+                Union
+                    ArbitraryRoundCone a=(0.085, -0.19, 0.2) b=(0.1, -0.08, 0.3) radiusA=0.035 radiusB=0.027
+                    ArbitraryRoundCone a=(0.1, -0.08, 0.3) b=(0.085, 0.02, 0.29) radiusA=0.027 radiusB=0.004
+                    ArbitraryRoundCone a=(-0.085, -0.19, 0.2) b=(-0.09, -0.15, 0.26) radiusA=0.025 radiusB=0.006
+                    Translate translation=(0.0, -0.12, 0.27)
+                        RoundBox size=(0.03, 0.03, 0.02) roundness=0.005
+                    Translate translation=(-0.035, -0.115, 0.265)
+                        RoundBox size=(0.025, 0.028, 0.02) roundness=0.005
+            # The eye: one big eye, lids, in the socket
+            Translate translation=(0, 0.06, 0.16)
+                Scale scale=(1.1, 1.1, 1.1)
+                    Part part=eye_machine
