@@ -33,6 +33,8 @@ namespace SdfCampaign
         private string current, upcoming;
         private Team currentTeam;
         private bool begun;
+        // The end card's next-level step runs once per match end (ticket 48)
+        private readonly OncePerMatch nextShot = new OncePerMatch();
 
         // The loop lives across every scene load (with the GUI and the loader under it), so Boot is loaded once; a second copy gives way
         private void Awake()
@@ -101,6 +103,9 @@ namespace SdfCampaign
 
         /// <summary>The heads you can wear, in calendar order.</summary>
         public System.Collections.Generic.List<string> AvailableHeads => HeadUnlocks.Available(Now, save.heads);
+
+        /// <summary>The difficulty the match just ended was made for (the end card's line says whether the next one is tougher or easier).</summary>
+        public Difficulty DifficultyBefore { get; private set; } = Difficulty.Normal;
 
         /// <summary>The unlocked head before / after the current one (wrapping).</summary>
         public string PreviousHead() => HeadUnlocks.Previous(Now, save.heads, CurrentHead);
@@ -172,6 +177,7 @@ namespace SdfCampaign
             current = level;
             currentTeam = team;
             begun = true;
+            nextShot.Arm();
             if (record)
             {
                 HeadUnlocks.RecordPlayed(Now, save.heads);
@@ -200,12 +206,39 @@ namespace SdfCampaign
             if (yours > enemy)
             {
                 LastUnlockedHead = HeadUnlocks.OnMatchWon(Now, save.heads);
+                // The new head is the one you wear from now on (the end card shows it; you can switch back there)
                 if (LastUnlockedHead != null)
+                {
+                    HeadUnlocks.SetCurrent(Now, save.heads, LastUnlockedHead);
                     WebPortal.HappyTime();
+                }
             }
+            DifficultyBefore = save.Difficulty;
             save.Difficulty = AutoDifficulty.Next(save.Difficulty, new CaptureResult(yours, enemy));
             save.Save(storage);
+            WebPortal.BattleFinished(result.Seconds);
             Debug.Log($"GameLoop: {current} ended {yours}-{enemy} for {currentTeam}; next difficulty {DifficultyRules.Key(save.Difficulty)}");
+        }
+
+        /// <summary>
+        /// The end card's countdown is over (ticket 48): the midgame ad when <see cref="AdBreakPolicy"/> earns one, then the next level. Once
+        /// per match end; false when it was already asked for.
+        /// </summary>
+        public bool ContinueAfterCountdown()
+        {
+            if (!nextShot.Take())
+                return false;
+            WebPortal.MidgameBreak(() => Next());
+            return true;
+        }
+
+        /// <summary>The head before / after the current one, picked and saved (the end card's ◀ and ▶, and its A and D keys).</summary>
+        public void StepHead(int by)
+        {
+            if (by < 0)
+                SetHead(PreviousHead());
+            else
+                SetHead(NextHead());
         }
 
         // Every command that starts a match goes to the next one; RESTART goes back to this one; CREDITS plays the credits over the pause menu
@@ -227,6 +260,14 @@ namespace SdfCampaign
                     return Next();
                 case GuiCommandId.Credits:
                     CreditsPlayer.Begin(flow, () => flow.Show(GuiScreen.Pause));
+                    return true;
+                case GuiCommandId.NextLevel:
+                    return ContinueAfterCountdown();
+                case GuiCommandId.HeadPrevious:
+                    StepHead(-1);
+                    return true;
+                case GuiCommandId.HeadNext:
+                    StepHead(1);
                     return true;
                 default:
                     return false;

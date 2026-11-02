@@ -27,11 +27,21 @@ namespace SdfLevel
     /// </summary>
     public static class GameKeys
     {
+        /// <summary>
+        /// The keyboard the keys are read from: the machine's current one unless a check sets another (the play tests read a keyboard of their
+        /// own, fed the way the Input System feeds a real one). Null means the machine's.
+        /// </summary>
+        public static System.Func<Keyboard> Source;
+
+#if ENABLE_INPUT_SYSTEM
+        private static Keyboard Board => Source != null ? Source() : Keyboard.current;
+#endif
+
         /// <summary>Whether the key is held now.</summary>
         public static bool Held(KeyPlace place)
         {
 #if ENABLE_INPUT_SYSTEM
-            var keyboard = Keyboard.current;
+            var keyboard = Board;
             return keyboard != null && keyboard[InputKeyOf(place)].isPressed;
 #else
             return Input.GetKey(KeyCodeOf(place));
@@ -42,10 +52,21 @@ namespace SdfLevel
         public static bool Pressed(KeyPlace place)
         {
 #if ENABLE_INPUT_SYSTEM
-            var keyboard = Keyboard.current;
+            var keyboard = Board;
             return keyboard != null && keyboard[InputKeyOf(place)].wasPressedThisFrame;
 #else
             return Input.GetKeyDown(KeyCodeOf(place));
+#endif
+        }
+
+        /// <summary>Whether Space or Enter is held now (the end card's skip). Space and Enter are the same keys on every layout.</summary>
+        public static bool SkipHeld()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var keyboard = Board;
+            return keyboard != null && (keyboard.spaceKey.isPressed || keyboard.enterKey.isPressed || keyboard.numpadEnterKey.isPressed);
+#else
+            return Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter);
 #endif
         }
 
@@ -53,7 +74,7 @@ namespace SdfLevel
         public static string Label(KeyPlace place)
         {
 #if ENABLE_INPUT_SYSTEM
-            var keyboard = Keyboard.current;
+            var keyboard = Board;
             var name = keyboard != null ? keyboard[InputKeyOf(place)].displayName : null;
             if (!string.IsNullOrEmpty(name))
                 return name.ToUpperInvariant();
@@ -68,7 +89,7 @@ namespace SdfLevel
         public static Vector2 Walk()
         {
 #if ENABLE_INPUT_SYSTEM
-            var keyboard = Keyboard.current;
+            var keyboard = Board;
             if (keyboard == null)
                 return Vector2.zero;
             var x = (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1 : 0);

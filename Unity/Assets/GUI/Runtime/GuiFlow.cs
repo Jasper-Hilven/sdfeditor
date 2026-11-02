@@ -433,9 +433,14 @@ namespace SdfGui
                 case GuiCommandId.RetryEasier:
                 case GuiCommandId.RestartFight:
                 case GuiCommandId.Next:
+                case GuiCommandId.NextLevel:
                 case GuiCommandId.NewRound:
                     m?.StartPlaying();
                     Show(GuiScreen.Hud);
+                    break;
+                // The end card's head steps: only the campaign has heads to pick
+                case GuiCommandId.HeadPrevious:
+                case GuiCommandId.HeadNext:
                     break;
                 case GuiCommandId.WatchCutscene:
                     break;

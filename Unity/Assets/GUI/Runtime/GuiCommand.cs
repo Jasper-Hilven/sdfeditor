@@ -45,6 +45,11 @@ namespace SdfGui
 
         // The pause menu's CREDITS (ticket 42): the credits roll over the paused match and come back to the pause menu. Appended, so the saved values stay
         Credits,
+
+        // The end card (ticket 48): its countdown is over (the next level, after the midgame ad), and the head before / after the current one
+        NextLevel,
+        HeadPrevious,
+        HeadNext,
     }
 
     /// <summary>

@@ -4,9 +4,14 @@ using System.IO;
 using System.Linq;
 using SdfBattle;
 using SdfGui;
+using SdfHeads;
+using SdfLevel;
+using SdfPlatform;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 
 namespace SdfCampaign.Editor
@@ -15,8 +20,10 @@ namespace SdfCampaign.Editor
     /// The endless game's play test (ticket 42; the campaign play test was removed in 41): Boot in Play mode, five matches driven through the
     /// GUI's own commands. Match 1 starts on the rotation's first pick with the warm-up (cleared here); the others are the rotation's picks. Match 2 is
     /// restarted from the pause menu (same level and team, nothing recorded). Match 3 opens CREDITS from the pause menu, waits for the
-    /// credits, and comes back to the pause menu. Each match ends by captures (you 3-0, 1-3, 0-3, 3-0, 3-2), then CONTINUE after a win or
-    /// RETRY after a loss. It checks the team, the enemy side's skill for the difficulty the match was made for, the difficulty after each
+    /// credits, and comes back to the pause menu. Each match ends by captures (you 3-0, 1-3, 0-3, 3-0, 3-2), then the end card's countdown
+    /// (ticket 48) runs out by itself, or Space skips it on match 4. The card is checked: the countdown runs from 10, the NEW reveal and the
+    /// difficulty line are right, A and D (by physical key, through the Input System's virtual keyboard) switch the head and the head is worn
+    /// in the next match, and the midgame ad hook (<c>WebPortal.MidgameBreaks</c>) goes up once per match end. It checks the team, the enemy side's skill for the difficulty the match was made for, the difficulty after each
     /// result, that no level is among the last three, the warm-up on the first match only, and that the save holds the result.
     /// <para>
     /// <c>Run</c> plays the five matches from a clean save and writes the trace to <c>sdf-playtest-42-trace.txt</c> in the temporary folder.
@@ -50,6 +57,14 @@ namespace SdfCampaign.Editor
         private static string restartLevel;
         private static Team restartTeam;
         private static Match match, ended;
+
+        // The end card (ticket 48): the midgame ad hook's count at the match end (-1 when no check is pending), the card's steps and the head
+        private static int adsAtEnd = -1;
+        private static int cardStep;
+        private static float cardSince, cardStart;
+        private static string headBeforeKeys, expectedWorn;
+        private static bool keysChecked;
+        private static GuiEndScreen shownCard;
 
         static GameLoopPlayTest()
         {
@@ -161,13 +176,16 @@ namespace SdfCampaign.Editor
                     }
                     Captures(flow, now);
                     return;
-                case 2: // the end screen: the difficulty has moved; CONTINUE after a win, RETRY after a loss
+                case 2: // the end screen: the difficulty has moved; the card counts down by itself
                     if (flow.Ending || (flow.screen != GuiScreen.Victory && flow.screen != GuiScreen.Defeat))
                     {
                         Wait(now, "the end screen");
                         return;
                     }
                     Ended(loop, flow, now);
+                    return;
+                case 4: // the end card: its checks, then the countdown (or Space) and the next level
+                    Card(loop, flow, now);
                     return;
                 case 3: // the credits roll over the paused match and come back to the pause menu
                     if (UnityEngine.Object.FindAnyObjectByType<CreditsPlayer>() != null)
@@ -203,6 +221,20 @@ namespace SdfCampaign.Editor
             Expect(Mathf.Approximately(setup.SkillOf(yours), 0.5f), $"your side keeps its skill ({setup.SkillOf(yours)})");
             Expect(setup.yourTeam == yours, "the setup names the team you play");
             var difficulty = DifficultyOf(setup.SkillOf(enemy));
+            // The midgame ad hook is called once per match end: the count taken at the end is one more now, before this match
+            if (adsAtEnd >= 0)
+            {
+                Expect(WebPortal.MidgameBreaks == adsAtEnd + 1, $"the midgame ad hook was called once for the match end ({WebPortal.MidgameBreaks - adsAtEnd} calls)");
+                adsAtEnd = -1;
+            }
+            // The head the card left on is the one worn in this match
+            if (expectedWorn != null && match.You != null && match.You.WornHead != null)
+            {
+                var worn = HeadStandIn.Of(expectedWorn);
+                if (worn != null)
+                    Expect(match.You.WornHead.Id == worn, $"the next match wears {worn} (was {match.You.WornHead.Id})");
+                expectedWorn = null;
+            }
             if (index == 0)
             {
                 Expect(System.Array.IndexOf(LevelRotation.Levels, level) >= 0, $"boot starts on one of the seven levels ({level})");
@@ -285,18 +317,175 @@ namespace SdfCampaign.Editor
             var expected = Expected(before, yoursScore, enemyScore);
             Expect(loop.Difficulty == expected, $"after {yoursScore}-{enemyScore} from {before} the difficulty is {expected} (was {loop.Difficulty})");
             Expect(GameSave.Load(new GameStorage()).Difficulty == expected, "the save holds the difficulty after the match");
+            Expect(loop.DifficultyBefore == before, $"the card's 'before' is the difficulty the match was made for ({loop.DifficultyBefore})");
             after.Add(loop.Difficulty);
             trace.Add($"  result {yoursScore}-{enemyScore} ({(won ? "won" : "lost")}): difficulty {before} -> {loop.Difficulty}");
-            index++;
-            if (index == Matches)
+            adsAtEnd = WebPortal.MidgameBreaks;
+            cardStep = 0;
+            shownCard = null;
+            phase = 4;
+            since = now;
+        }
+
+        // The end card: opened (its countdown, NEW and the difficulty line), the head keys on the first match, the skip on the fourth,
+        // the countdown running on the rest; then the next match goes live (checked in Live), or on the last match the run is done (phase 5).
+        private static void Card(GameLoop loop, GuiFlow flow, float now)
+        {
+            // The card goes away once the next level is asked for, so its last state is kept from the frame it was seen
+            var visible = VisibleCard(flow);
+            if (visible != null)
+                shownCard = visible;
+            var card = shownCard;
+            if (card == null || (visible == null && !card.CountdownDone))
             {
-                Done(loop);
+                Wait(now, "the end card");
                 return;
             }
-            ended = match;
-            flow.Execute(won ? GuiCommandId.Next : GuiCommandId.Retry, GuiScreen.Hud);
-            phase = 0;
-            since = now;
+            switch (cardStep)
+            {
+                case 0:
+                {
+                    cardStart = card.CountdownRemaining;
+                    Expect(!card.CountdownDone && cardStart > 8.5f && cardStart <= NextLevelCountdown.Seconds + 0.05f, $"the countdown starts at 10 ({cardStart:0.00})");
+                    var newHead = loop.LastUnlockedHead;
+                    var winWithReveal = YoursWanted[index] > EnemyWanted[index] && newHead != null;
+                    Expect(card.NewHeadShown == winWithReveal, $"NEW shows on an unlocking win only (shown {card.NewHeadShown}, unlocked {newHead ?? "none"})");
+                    if (winWithReveal)
+                        Expect(card.NewHeadText.Contains(HeadStandIn.Label(newHead).ToUpperInvariant()), $"the reveal names the new head ({card.NewHeadText})");
+                    var change = NextLevelCard.DifficultyLine(loop.DifficultyBefore, loop.Difficulty);
+                    Expect(card.DifficultyShown == (change != null), $"the difficulty line shows only on a change (shown {card.DifficultyShown})");
+                    if (change != null)
+                        Expect(card.DifficultyText == change, $"the difficulty line says '{change}' (was '{card.DifficultyText}')");
+                    trace.Add($"  card: countdown from {cardStart:0.0}s, NEW {(card.NewHeadShown ? card.NewHeadText : "no")}, difficulty line {(change ?? "none")}");
+                    headBeforeKeys = loop.CurrentHead;
+                    cardStep = index == 0 ? 1 : index == 3 ? 5 : 6;
+                    cardSince = now;
+                    return;
+                }
+                case 1: // A: the head before the current one, by physical key
+                    if (now - cardSince < 1)
+                        return;
+                    expectedWorn = loop.PreviousHead();
+                    Press(Key.A, true);
+                    cardStep = 2;
+                    cardSince = now;
+                    return;
+                case 2:
+                    if (now - cardSince < 0.3f)
+                        return;
+                    Press(Key.A, false);
+                    Expect(loop.CurrentHead == expectedWorn, $"A switches to the previous head {expectedWorn} (is {loop.CurrentHead}; keyboard {Keyboard.current?.name}, A {Keyboard.current?.aKey.wasPressedThisFrame})");
+                    cardStep = 3;
+                    cardSince = now;
+                    return;
+                case 3: // D: back to the head the card opened on
+                    if (now - cardSince < 1)
+                        return;
+                    Press(Key.D, true);
+                    cardStep = 4;
+                    cardSince = now;
+                    return;
+                case 4:
+                    if (now - cardSince < 0.3f)
+                        return;
+                    Press(Key.D, false);
+                    Expect(loop.CurrentHead == headBeforeKeys, $"D switches to the next head {headBeforeKeys} (is {loop.CurrentHead})");
+                    keysChecked = true;
+                    expectedWorn = loop.CurrentHead;
+                    trace.Add($"  keys: A then D on the card: {headBeforeKeys} -> {expectedWorn}, worn from the next match");
+                    cardStep = 6;
+                    cardSince = now;
+                    return;
+                case 5: // Space skips the rest of the countdown
+                    if (now - cardSince < 1)
+                        return;
+                    Press(Key.Space, true);
+                    cardStep = 7;
+                    cardSince = now;
+                    return;
+                case 6: // the countdown runs on its own: it has gone down by now
+                    if (now - cardSince < 2)
+                        return;
+                    Expect(card.CountdownRemaining <= cardStart - 1.5f, $"the countdown runs ({card.CountdownRemaining:0.00} from {cardStart:0.00})");
+                    cardStep = 8;
+                    cardSince = now;
+                    return;
+                case 7:
+                    if (now - cardSince < 0.3f)
+                        return;
+                    Press(Key.Space, false);
+                    Expect(card.CountdownDone, "Space skips the countdown");
+                    trace.Add($"  Space skipped the countdown with {card.CountdownRemaining:0.0}s left (started at {cardStart:0.0}s)");
+                    cardStep = 8;
+                    cardSince = now;
+                    return;
+                case 8: // the card has nothing more to show: the next match goes live, or on the last match the run is done
+                    if (!card.CountdownDone)
+                    {
+                        Wait(now, "the countdown to run out");
+                        return;
+                    }
+                    // The head this card left on is the one the next match wears
+                    expectedWorn = loop.CurrentHead;
+                    index++;
+                    ended = match;
+                    if (index == Matches)
+                    {
+                        // The last countdown has asked for its ad; the next level is not loaded for the check, so the run is done here
+                        Expect(WebPortal.MidgameBreaks == adsAtEnd + 1, $"the midgame ad hook was called once for the last match end ({WebPortal.MidgameBreaks - adsAtEnd} calls)");
+                        Done(loop);
+                        return;
+                    }
+                    phase = 0;
+                    since = now;
+                    return;
+            }
+        }
+
+        // The end card that is up for this screen (the card objects are inactive until their screen shows)
+        private static GuiEndScreen VisibleCard(GuiFlow flow)
+        {
+            foreach (var card in UnityEngine.Object.FindObjectsByType<GuiEndScreen>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (card.isActiveAndEnabled && card.victory == (flow.screen == GuiScreen.Victory))
+                    return card;
+            return null;
+        }
+
+        private static Keyboard virtualKeyboard;
+        private static InputSettings.BackgroundBehavior behaviourBefore;
+
+        // A key by its place, pressed or let go on the Input System's virtual keyboard: queued, and applied from a player-loop update (see KeyDriver)
+        private static void Press(Key key, bool down)
+        {
+            if (virtualKeyboard == null)
+            {
+                // The batch editor is never focused: the Input System would reset the keys then, so the test's keyboard ignores the focus
+                behaviourBefore = InputSystem.settings.backgroundBehavior;
+                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                virtualKeyboard = InputSystem.AddDevice<Keyboard>("SdfPlayTestKeyboard");
+                // The game's keys are read from this keyboard (the machine's keyboard takes no part in the check)
+                GameKeys.Source = () => virtualKeyboard;
+                new GameObject("Play test keys") { hideFlags = HideFlags.HideAndDontSave }.AddComponent<KeyDriver>().keyboard = virtualKeyboard;
+            }
+            KeyDriver.Set(key, down);
+        }
+
+        // The keyboard as a real one reports it: its whole state, every frame. A key set down stays down until it is let go here.
+        [DefaultExecutionOrder(-1000)]
+        private sealed class KeyDriver : MonoBehaviour
+        {
+            public Keyboard keyboard;
+            private static Key? held;
+
+            public static void Set(Key key, bool down) => held = down ? key : (Key?)null;
+
+            private void Update()
+            {
+                if (!keyboard.enabled)
+                    InputSystem.EnableDevice(keyboard);
+                InputSystem.QueueStateEvent(keyboard, held is Key key ? new KeyboardState(key) : new KeyboardState());
+                InputSystem.Update();
+            }
         }
 
         private static void Done(GameLoop loop)
@@ -304,22 +493,30 @@ namespace SdfCampaign.Editor
             var saved = GameSave.Load(new GameStorage());
             if (checking)
             {
+                // The reload: the first match is the rotation's pick, not one of the saved last three, and the save keeps the three before it
+                // (the first two of them, then this match's level)
                 var walk = File.ReadAllLines(TracePath);
-                var walkLevels = walk.First(line => line.StartsWith("levels=")).Substring("levels=".Length).Split(',');
                 var walkDifficulty = walk.First(line => line.StartsWith("difficulty=")).Substring("difficulty=".Length);
+                var before = walk.First(line => line.StartsWith("saved=")).Substring("saved=".Length).Split(',');
                 Expect(DifficultyRules.Key(made[0]) == walkDifficulty, $"the reload is made for {walkDifficulty} (was {made[0]})");
-                Expect(!walkLevels.Skip(2).Contains(levels[0]), $"the reload's first level {levels[0]} is not among the save's last three ({string.Join(", ", walkLevels.Skip(2))})");
-                Same(new[] { walkLevels[3], walkLevels[4], levels[0] }, saved.lastLevels, "the save's last three levels after the boot");
+                Expect(!before.Contains(levels[0]), $"the reload's first level {levels[0]} is not among the save's last three ({string.Join(", ", before)})");
+                Same(new[] { before[1], before[2], levels[0] }, saved.lastLevels, "the save's last three levels after the boot");
                 trace.Add($"reload: first match {levels[0]} made {made[0]}; saved last three {string.Join(", ", saved.lastLevels)}");
                 Finish();
                 return;
             }
+            Expect(keysChecked, "A and D switched the head on the first card");
             Expect(saved.Difficulty == after[Matches - 1], "the save holds the last difficulty");
-            Same(levels.Skip(levels.Count - 3), saved.lastLevels, "the save holds the last three levels");
+            // The last countdown has loaded the next level already, which is recorded as played when it goes live: the save holds it too
+            var played = levels.ToList();
+            if (loop.Current != played.Last())
+                played.Add(loop.Current);
+            Same(played.Skip(played.Count - 3), saved.lastLevels, "the save holds the last three levels");
             File.WriteAllLines(TracePath, new[]
             {
                 "levels=" + string.Join(",", levels),
                 "difficulty=" + DifficultyRules.Key(after[Matches - 1]),
+                "saved=" + string.Join(",", saved.lastLevels),
             }.Concat(trace));
             Finish();
         }
@@ -375,6 +572,11 @@ namespace SdfCampaign.Editor
             finished = true;
             EditorApplication.update -= Update;
             SessionState.EraseBool(ActiveKey);
+            if (virtualKeyboard != null)
+            {
+                GameKeys.Source = null;
+                InputSystem.settings.backgroundBehavior = behaviourBefore;
+            }
             foreach (var line in trace)
                 Debug.Log("GameLoop play test: " + line);
             foreach (var error in errors)

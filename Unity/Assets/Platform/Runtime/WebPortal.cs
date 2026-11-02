@@ -24,6 +24,9 @@ namespace SdfPlatform
         /// <summary>A midgame ad is being requested or shown; the game's UI must not act meanwhile.</summary>
         public static bool AdPlaying { get; private set; }
 
+        /// <summary>How many times the game has reached a natural break (<see cref="MidgameBreak"/> was called), shown or not: a check's count.</summary>
+        public static int MidgameBreaks { get; private set; }
+
         /// <summary>The save goes through the portal's data store: a web build with the SDK up (on CrazyGames or localhost).</summary>
         public static bool CloudSave => Active && Application.platform == RuntimePlatform.WebGLPlayer;
 
@@ -167,6 +170,7 @@ namespace SdfPlatform
         /// </summary>
         public static void MidgameBreak(Action then)
         {
+            MidgameBreaks++;
             if (!Active || !AdsEnabled || AdPlaying || !ads.ShouldAsk(Time.realtimeSinceStartup))
             {
                 then?.Invoke();

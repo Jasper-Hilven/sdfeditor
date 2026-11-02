@@ -535,10 +535,7 @@ namespace SdfGui.Editor
             f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Gold, 0.4f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
             p.BannerInstance(t, "Title", "VICTORY!", GuiPalette.Moss, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
             EndNumbers(t, end, 160, -300);
-
-            p.ButtonInstance(t, "CONTINUE", GuiPalette.Moss, GuiCommandId.Next, Centre, new Vector2(-400, -430), new Vector2(380, 96), 46, spots: 0.5f);
-            p.ButtonInstance(t, "RETRY", GuiPalette.Chanterelle, GuiCommandId.Retry, Centre, new Vector2(0, -430), new Vector2(300, 86), 42, spots: 0.4f);
-            p.ButtonInstance(t, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, new Vector2(400, -430), new Vector2(300, 86), 42, spots: 0);
+            CountdownCard(t, end);
             return Save(root);
         }
 
@@ -552,20 +549,50 @@ namespace SdfGui.Editor
             f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiEndScreen.Blue, 0.35f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
             p.BannerInstance(t, "Title", "DEFEATED", GuiEndScreen.Blue, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
             EndNumbers(t, end, 160, -230);
-
-            end.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -365), new Vector2(1500, 50));
-
-            var row = Object("Buttons", t);
-            Place(row.transform, Centre, new Vector2(0, -450), new Vector2(1800, 90));
-            var layout = row.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 30;
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = layout.childControlHeight = false;
-            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
-            var retry = p.ButtonInstance(row.transform, "RETRY", GuiPalette.Moss, GuiCommandId.Retry, Centre, Vector2.zero, new Vector2(320, 86), 42, spots: 0.5f);
-            end.retryLabel = retry.GetComponentInChildren<TMP_Text>();
-            p.ButtonInstance(row.transform, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, Vector2.zero, new Vector2(300, 86), 42, spots: 0);
+            end.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -345), new Vector2(1100, 50));
+            CountdownCard(t, end);
             return Save(root);
+        }
+
+        // The end card's countdown (ticket 48): the next level and the difficulty line under the stats, the countdown at the bottom, and
+        // your head on the left with its ◀ ▶ and the NEW reveal above it. The keys (A and D) are read by GuiEndScreen.
+        private void CountdownCard(Transform t, GuiEndScreen end)
+        {
+            end.nextLevel = f.Text(t, "Next Level", "NEXT  KITCHEN", TextStyle.Title, 46, GuiPalette.Gold, Centre, new Vector2(0, -405), new Vector2(1200, 56));
+            end.difficultyLine = f.Text(t, "Difficulty", "Tougher opponents next", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -452), new Vector2(1200, 46));
+            end.countdownLine = f.Text(t, "Countdown", "Next level in 10…", TextStyle.Title, 52, GuiPalette.Cream, Centre, new Vector2(0, -505), new Vector2(1000, 60));
+
+            var head = Object("Head Preview", t);
+            Place(head.transform, Centre, new Vector2(-760, 0), new Vector2(240, 300));
+            head.AddComponent<UnityEngine.UI.RawImage>().raycastTarget = false;
+            end.headPreview = head.AddComponent<GuiHeadPreview>();
+            HeadArrow(t, "Previous Head", new Vector2(-840, -200), 180, GuiCommandId.HeadPrevious);
+            HeadArrow(t, "Next Head", new Vector2(-680, -200), 0, GuiCommandId.HeadNext);
+            end.headCaption = f.Text(t, "Head Caption", "PUMPKIN", TextStyle.Label, 36, GuiPalette.Cream, Centre, new Vector2(-760, -262), new Vector2(360, 50));
+            end.keyHint = f.Text(t, "Head Keys", "A and D change head", TextStyle.BodyInk, 26, GuiPalette.Cream, Centre, new Vector2(-760, -312), new Vector2(360, 40));
+            end.newHead = f.Text(t, "New Head", "NEW HEAD!", TextStyle.Title, 34, GuiPalette.Gold, Centre, new Vector2(-760, 215), new Vector2(420, 50));
+        }
+
+        // A head's ◀ or ▶: the selector's arrow, a button running a command (the head before or after the current one)
+        private void HeadArrow(Transform parent, string name, Vector2 position, float angle, GuiCommandId command)
+        {
+            var holder = Object(name, parent);
+            Place(holder.transform, Centre, position, new Vector2(58, 58), Centre);
+            var arrow = f.Shape(holder.transform, "Arrow", ToonShapeKind.Arrow, GuiPalette.Chanterelle, Centre, Vector2.zero, new Vector2(40, 46), s =>
+            {
+                s.CornerRadius = 6;
+                s.Outline = 4.5f;
+                s.Shadow = 0;
+                s.raycastTarget = true;
+            });
+            arrow.rectTransform.localRotation = Quaternion.Euler(0, 0, angle);
+            var button = holder.AddComponent<UnityEngine.UI.Button>();
+            button.transition = UnityEngine.UI.Selectable.Transition.None;
+            button.targetGraphic = arrow;
+            holder.AddComponent<ToonButton>().shape = arrow;
+            var click = holder.AddComponent<GuiCommand>();
+            click.command = command;
+            click.screen = GuiScreen.Hud;
         }
 
         // ---------------------------------------------------------------- Loading: the briefing
