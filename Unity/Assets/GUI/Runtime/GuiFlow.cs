@@ -82,6 +82,8 @@ namespace SdfGui
         private bool wasLocked;
         private bool paused;
         private float timeScaleBefore = 1;
+        // Where the credits go back to (the pause menu, when they were opened from it)
+        private GuiScreen creditsReturn = GuiScreen.Hud;
         private bool slowing, bannering;
         private float endTime;
 
@@ -155,8 +157,9 @@ namespace SdfGui
             Apply();
         }
 
-        /// <summary>Whether the pause screen, or the settings opened from it, is up.</summary>
-        public bool IsPaused => screen == GuiScreen.Pause || (screen == GuiScreen.Settings && settingsReturn == GuiScreen.Pause);
+        /// <summary>Whether the pause screen, or the settings or the credits opened from it, is up.</summary>
+        public bool IsPaused => screen == GuiScreen.Pause || (screen == GuiScreen.Settings && settingsReturn == GuiScreen.Pause) ||
+                                (screen == GuiScreen.Credits && creditsReturn == GuiScreen.Pause);
 
         private void HoldTime() => Hold(IsPaused);
 
@@ -388,6 +391,8 @@ namespace SdfGui
                 Match.SampleEnd(next == GuiScreen.Victory);
             if (next == GuiScreen.Settings && screen != GuiScreen.Settings)
                 settingsReturn = screen == GuiScreen.Pause ? GuiScreen.Pause : GuiScreen.Hud;
+            if (next == GuiScreen.Credits && screen != GuiScreen.Credits)
+                creditsReturn = screen == GuiScreen.Pause ? GuiScreen.Pause : GuiScreen.Hud;
             screen = next;
             Apply();
         }
@@ -455,6 +460,9 @@ namespace SdfGui
                     break;
                 case GuiCommandId.Spectate:
                     Show(GuiScreen.Hud);
+                    break;
+                // Without a campaign there is no credits player; the campaign's Command plays them
+                case GuiCommandId.Credits:
                     break;
                 case GuiCommandId.Quit:
 #if UNITY_EDITOR

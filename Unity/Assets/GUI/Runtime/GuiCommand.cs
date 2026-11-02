@@ -42,6 +42,9 @@ namespace SdfGui
 
         // After the test panel's, so the saved values of the others stay: the boss's Defeat screen's second retry (ticket 33.7); RETRY there is RETRY PHASE
         RestartFight,
+
+        // The pause menu's CREDITS (ticket 42): the credits roll over the paused match and come back to the pause menu. Appended, so the saved values stay
+        Credits,
     }
 
     /// <summary>

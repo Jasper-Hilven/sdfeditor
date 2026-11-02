@@ -50,7 +50,7 @@ namespace SdfCampaign.Editor
         /// </summary>
         public static IEnumerable<string> PlayerPaths()
         {
-            var first = BootFlow.Level;
+            var first = GameLoop.FirstLevel;
             return Paths(false).Where(path => Path.GetFileNameWithoutExtension(path) is var name && (name == "Boot" || name == first));
         }
 

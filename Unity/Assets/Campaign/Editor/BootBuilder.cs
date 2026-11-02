@@ -11,9 +11,9 @@ using UnityEngine.SceneManagement;
 namespace SdfCampaign.Editor
 {
     /// <summary>
-    /// Builds Assets/Scenes/Boot.unity, the first scene of the game (ticket 41, temporary until 42): a plain camera, the persistent Campaign
-    /// object with the <see cref="BootFlow"/> and the <see cref="SceneLoader"/>, an event system and the GUI prefab. Boot goes straight into the
-    /// Meadow. Nothing is placed by hand; run again after the GUI prefab is rebuilt. Then it writes the build's scene list.
+    /// Builds Assets/Scenes/Boot.unity, the first scene of the game: a plain camera, the persistent Campaign object with the
+    /// <see cref="GameLoop"/> and the <see cref="SceneLoader"/>, an event system and the GUI prefab. Boot goes straight into a match on the
+    /// Meadow (ticket 42). Nothing is placed by hand; run again after the GUI prefab is rebuilt. Then it writes the build's scene list.
     /// <c>Unity -batchmode -quit -projectPath Unity -executeMethod SdfCampaign.Editor.BootBuilder.BuildInBatch</c>.
     /// </summary>
     public static class BootBuilder
@@ -46,7 +46,7 @@ namespace SdfCampaign.Editor
 
             var campaign = new GameObject("Campaign");
             SceneManager.MoveGameObjectToScene(campaign, scene);
-            var flowRunner = campaign.AddComponent<BootFlow>();
+            var loop = campaign.AddComponent<GameLoop>();
             var loader = campaign.AddComponent<SceneLoader>();
 
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(gui, scene);
@@ -60,8 +60,8 @@ namespace SdfCampaign.Editor
             var events = new GameObject("Event System", typeof(EventSystem), typeof(StandaloneInputModule));
             events.transform.SetParent(campaign.transform, false);
 
-            flowRunner.flow = flow;
-            flowRunner.loader = loader;
+            loop.flow = flow;
+            loop.loader = loader;
             loader.flow = flow;
 
             EditorSceneManager.SaveScene(scene, ScenePath);

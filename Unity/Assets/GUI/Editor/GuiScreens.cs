@@ -414,15 +414,17 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
             // The match stops while this is up (GuiFlow)
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 540)).transform;
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 640)).transform;
             p.BannerInstance(panel, "Header", "PAUSED", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
             p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -90), new Vector2(420, 96), 46, spots: 0.5f);
             // The two that throw the match away ask first
             p.ButtonInstance(panel, "RESTART", GuiPalette.Amanita, GuiCommandId.Restart, Top, new Vector2(0, -210), new Vector2(420, 86), 40, spots: 0.4f)
                 .GetComponent<GuiCommand>().confirm = "Restart this match?";
             p.ButtonInstance(panel, "SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, Top, new Vector2(0, -312), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
-            p.ButtonInstance(panel, "QUIT TO MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Top, new Vector2(0, -414), new Vector2(420, 86), 40, spots: 0)
-                .GetComponent<GuiCommand>().confirm = "Leave the match?\nThe campaign is saved at the start of this arena.";
+            // The credits roll over the paused match and come back here (ticket 42)
+            p.ButtonInstance(panel, "CREDITS", GuiPalette.Moss, GuiCommandId.Credits, Top, new Vector2(0, -414), new Vector2(420, 86), 40, spots: 0.3f);
+            p.ButtonInstance(panel, "QUIT TO MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Top, new Vector2(0, -516), new Vector2(420, 86), 40, spots: 0)
+                .GetComponent<GuiCommand>().confirm = "Leave the match?";
             return Save(root);
         }
 

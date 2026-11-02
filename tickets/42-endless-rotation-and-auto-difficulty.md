@@ -44,4 +44,42 @@ Depends on: 41. Blocks: 47, 48.
 
 ## Status
 
-Not started.
+Done in code; EditMode green, the five-match play test passes in Play mode, the reload check passes in a new process.
+
+**Done**
+- **Boot and loop**: `GameLoop` (replaces `BootFlow`) is on the persistent Campaign object: Boot starts the Meadow with the loading tip and
+  the click to play, on a random team; the warm-up runs on that first match only. A match's level is recorded when it goes live; the next
+  level is picked then and prefetched (`ContentStreamer.Prefetch`). The match's end moves the difficulty and writes the save. CONTINUE,
+  RETRY and MENU start the next match; RESTART in the pause menu reloads this one without recording it. The HUD comes back after each load
+  (the Loading screen used to stay up on a boot match).
+- **Rotation**: `LevelRotation`, the seven scene names, never one of the last three. `AutoDifficulty` (ladder, clamps, the three branches).
+- **Difficulty**: `DifficultyRules.Apply(setup, difficulty, enemySide)`: skill and size of the enemy side only; `BattleSetup` and
+  `MatchSetup` carry `yourTeam`, and `Match.Start` takes it.
+- **Save**: `GameSave` (JSON, version 1, key `minigun.save`; difficulty and the last three levels; another version or a broken save reads
+  as the default; the old campaign save is ignored). `GameStorage`: the portal first, PlayerPrefs behind it, writes to both.
+  `WebPortal.Init` is called again (nothing called it since 41), and the save is written to the portal once the portal is up.
+- **Credits**: a CREDITS button in the pause menu (`GuiCommandId.Credits`, appended); the credits roll over the paused match and return to
+  the pause menu.
+- **Tests**: `LevelRotationTests` (9), `AutoDifficultyTests` (7), `DifficultyRulesTests` (10), `GameSaveTests` (9), all green.
+- **Play test**: `GameLoopPlayTest` (replaces `CampaignPlayTest`, which 41 removed): `Run` plays five matches in Play mode, `CheckReload` in a
+  new process. `tools/unity-batch.sh` runs it with `SDF_NO_QUIT=1` (another agent added that switch).
+
+**Verified**
+- EditMode (`tools/unity-batch.sh tests42 -runTests -testPlatform EditMode`): 656 passed, 0 failed, 0 skipped (656 total); 35 of them new.
+- Play test, five matches (`SDF_NO_QUIT=1 tools/unity-batch.sh playtest42 -executeMethod SdfCampaign.Editor.GameLoopPlayTest.Run`): 0 errors.
+  Levels: Meadow, Toybox, Computer, Fungal, Kitchen (Toybox was restarted once, from the pause menu). Teams: Blue, Red, Blue, Red, Blue.
+  Difficulty: Normal, then after 3-0 Hard, after 1-3 Normal, after 0-3 Easy, after 3-0 Normal, after 3-2 Normal. The enemy side's skill
+  matched each (0.50, 0.65, 0.50, 0.35, 0.50). The warm-up ran on match 1 only. CREDITS rolled over the paused match and came back to the pause menu.
+- Reload (`... -executeMethod SdfCampaign.Editor.GameLoopPlayTest.CheckReload`, a new process): 0 errors. The Meadow was made for Normal,
+  and the saved last three levels were Fungal, Kitchen, Meadow.
+- GUI prefab and `Boot.unity` rebuilt in batch (`GuiScene.BuildInBatch`, `BootBuilder.BuildInBatch`).
+
+**Left for a person or a later ticket**
+- A Play-mode look at the pause menu with CREDITS, the Loading screen's click on the first match, and the end screens.
+- The web build: the CrazyGames SDK init and the save in its Data module are unverified (no portal here). A cross-device save is not merged:
+  the first write from this device overwrites the portal's copy.
+- The end screens still say CONTINUE, RETRY and MENU; each starts the next match. Ticket 48 replaces them with the countdown.
+- Across sessions the first match is always the Meadow (the Boot rule), even if the Meadow is among the last three in the save.
+- Ticket 47 adds its head fields to `GameSave` with a new `CurrentVersion`.
+- `GuiCommandId.RetryEasier` is still in the enum (removing it would shift the saved values of the other commands); nothing sends it now.
+

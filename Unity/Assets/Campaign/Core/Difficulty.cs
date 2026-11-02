@@ -1,43 +1,76 @@
 using System;
+using SdfBattle;
 
 namespace SdfCampaign
 {
     public enum Difficulty { SuperEasy = 0, Easy = 1, Normal = 2, Hard = 3 }
 
     /// <summary>
-    /// What the difficulty does to a setup (ticket 32, section 2): Super Easy takes 0.30 off blue's skill and caps blue at three players, Easy takes 0.15 off blue's skill and caps blue at four players, Hard
-    /// adds 0.15 (at most 0.95). The red bots never change. (Ticket 42 turns this into the automatic difficulty of the enemy side.)
+    /// What the difficulty does to the enemy side of a setup (ticket 42): Super Easy takes 0.30 off the enemy's skill and caps the enemy at three
+    /// players, Easy takes 0.15 off and caps it at four, Hard adds 0.15 (at most 0.95). Your own side never changes, whichever side you are on.
+    /// The difficulty is set by <see cref="AutoDifficulty"/> after each match.
     /// </summary>
     public static class DifficultyRules
     {
         public const float Step = 0.15f;
         public const float HardMaxSkill = 0.95f;
-        public const int EasyMaxBlue = 4;
-        public const int SuperEasyMaxBlue = 3;
+        public const int EasyMaxSize = 4;
+        public const int SuperEasyMaxSize = 3;
 
-        /// <summary>A copy of <paramref name="setup"/> with the difficulty applied.</summary>
-        public static BattleSetup Apply(BattleSetup setup, Difficulty difficulty)
+        /// <summary>A copy of <paramref name="setup"/> with the difficulty applied to <paramref name="enemySide"/>.</summary>
+        public static BattleSetup Apply(BattleSetup setup, Difficulty difficulty, Team enemySide)
         {
             var result = setup.Clone();
             result.difficulty = difficulty;
-            var skill = setup.blueSkill;
+            var skill = SkillOf(setup, enemySide);
+            var size = SizeOf(setup, enemySide);
             if (difficulty == Difficulty.Easy || difficulty == Difficulty.SuperEasy)
             {
                 var superEasy = difficulty == Difficulty.SuperEasy;
-                var maxBlue = superEasy ? SuperEasyMaxBlue : EasyMaxBlue;
+                var maxSize = superEasy ? SuperEasyMaxSize : EasyMaxSize;
                 skill -= superEasy ? 2 * Step : Step;
-                if (result.blueSize > maxBlue)
+                if (size > maxSize)
                 {
-                    result.blueSize = maxBlue;
-                    Array.Resize(ref result.blueNames, Math.Min(result.blueNames.Length, maxBlue));
+                    size = maxSize;
+                    CutNames(result, enemySide, maxSize);
                 }
             }
             else if (difficulty == Difficulty.Hard)
             {
-                skill = Math.Min(skill + Step, Math.Max(HardMaxSkill, setup.blueSkill));
+                skill = Math.Min(skill + Step, Math.Max(HardMaxSkill, skill));
             }
-            result.blueSkill = Math.Max(0f, Math.Min(1f, skill));
+            skill = Math.Max(0f, Math.Min(1f, skill));
+            SetSkill(result, enemySide, skill);
+            SetSize(result, enemySide, size);
             return result;
+        }
+
+        private static float SkillOf(BattleSetup setup, Team team) => team == Team.Red ? setup.redSkill : setup.blueSkill;
+
+        private static int SizeOf(BattleSetup setup, Team team) => team == Team.Red ? setup.redSize : setup.blueSize;
+
+        private static void SetSkill(BattleSetup setup, Team team, float skill)
+        {
+            if (team == Team.Red)
+                setup.redSkill = skill;
+            else
+                setup.blueSkill = skill;
+        }
+
+        private static void SetSize(BattleSetup setup, Team team, int size)
+        {
+            if (team == Team.Red)
+                setup.redSize = size;
+            else
+                setup.blueSize = size;
+        }
+
+        private static void CutNames(BattleSetup setup, Team team, int size)
+        {
+            if (team == Team.Red)
+                Array.Resize(ref setup.redNames, Math.Min(setup.redNames.Length, size));
+            else
+                Array.Resize(ref setup.blueNames, Math.Min(setup.blueNames.Length, size));
         }
 
         public static string Key(Difficulty d) => d.ToString().ToLowerInvariant();

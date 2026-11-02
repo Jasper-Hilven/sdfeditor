@@ -1,9 +1,10 @@
 using System;
+using SdfBattle;
 
 namespace SdfCampaign
 {
     /// <summary>
-    /// The numbers of one battle (ticket 32, section 2) at Normal difficulty: team sizes, the bots' skill per team, the names, the win
+    /// The numbers of one battle (ticket 32, section 2) before the difficulty (ticket 42): team sizes, the bots' skill per team, the names, the win
     /// condition and the mutators. Weapons, machines and hazards come from the scene, not from here. Plain data.
     /// </summary>
     [Serializable]
@@ -35,6 +36,8 @@ namespace SdfCampaign
         public float blueRespawnSeconds = 5;
         /// <summary>The difficulty this setup was made for (<see cref="DifficultyRules.Apply"/> sets it).</summary>
         public Difficulty difficulty = Difficulty.Normal;
+        /// <summary>The team you play in (ticket 42: random at every match); the other is the enemy.</summary>
+        public Team yourTeam = Team.Red;
         /// <summary>The numbers the match plays by (SdfBattle.Core cannot see this assembly, so it has its own plain copy).</summary>
         public SdfBattle.MatchSetup ToMatchSetup() => new SdfBattle.MatchSetup
         {
@@ -50,6 +53,7 @@ namespace SdfCampaign
             sporesOn = sporesOn,
             blueRespawnSeconds = blueRespawnSeconds,
             warmUp = warmUp,
+            yourTeam = yourTeam,
         };
 
         public BattleSetup Clone()
