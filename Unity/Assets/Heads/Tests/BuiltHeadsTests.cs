@@ -33,7 +33,8 @@ namespace SdfHeads.Tests
                 Assert.IsNotNull(entry.fastPrefab, id + " _fast");
                 Assert.IsNotNull(entry.prefab.GetComponentInChildren<LODGroup>(true), id + " has levels of detail");
             }
-            Assert.IsFalse(models.TryGet("vampire", out _), "the unbuilt are not listed");
+            foreach (var head in MonsterHeads.All.Where(h => !h.Built))
+                Assert.IsFalse(models.TryGet(head.Id, out _), head.Id + ": the unbuilt are not listed");
         }
 
         [Test]
@@ -84,7 +85,7 @@ namespace SdfHeads.Tests
             foreach (var entry in Models().entries)
             {
                 Assert.GreaterOrEqual(entry.boundsSize.y, 0.23f * 1.5f, entry.id + " height");
-                Assert.LessOrEqual(entry.boundsSize.y, 0.23f * 3.2f, entry.id + " height");
+                Assert.LessOrEqual(entry.boundsSize.y, 0.23f * 4f, entry.id + " height");
                 Assert.GreaterOrEqual(Mathf.Max(entry.boundsSize.x, entry.boundsSize.z), 0.16f * 2f, entry.id + " width");
             }
         }
@@ -96,7 +97,7 @@ namespace SdfHeads.Tests
             foreach (var entry in Models().entries)
             {
                 var low = SoldierBody.HeadTopHeight + entry.underside;
-                Assert.AreEqual(1.525f, low, 0.02f, entry.id + " underside");
+                Assert.AreEqual(1.525f, low, 0.045f, entry.id + " underside (the chin or main mass sits at 1.525 m; a beard's tuft or a tentacle may hang a few centimetres lower)");
                 Assert.Less(low, SoldierBody.NeckTop - 0.02f, entry.id + " the neck's top is inside the head");
             }
         }

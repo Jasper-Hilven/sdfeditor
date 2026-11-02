@@ -1,0 +1,89 @@
+# The Vampire Count's head shape (ticket 45), a part so the model (content/models/characters/monsters/vampire.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size, a skull about 0.4 m across.
+Translate translation=(0, 0.0869, 0)
+    Scale scale=(1.2158, 1.2158, 1.2158)
+        Union
+            # Pale skin: a long narrow skull, a gaunt jaw and a pointed chin, a sharp hooked nose, heavy cheekbones
+            Material material=vampire_skin
+                Subtraction
+                    Union
+                        Translate translation=(0, 0.0, -0.02)
+                            Ellipsoid radii=(0.235, 0.15, 0.235)
+                        # The gaunt jaw and chin
+                        Translate translation=(0, -0.09, 0.04)
+                            Ellipsoid radii=(0.13, 0.09, 0.13)
+                        ArbitraryRoundCone a=(0, -0.15, 0.06) b=(0, -0.22, 0.1) radiusA=0.06 radiusB=0.02
+                        # The nose, long and sharp
+                        ArbitraryRoundCone a=(0, 0.01, 0.17) b=(0, -0.075, 0.285) radiusA=0.03 radiusB=0.008
+                        # Cheekbones, high and hollow under
+                        SymmetryX
+                            Translate translation=(0.1, -0.04, 0.1)
+                                Ellipsoid radii=(0.06, 0.05, 0.07)
+                        # Pointed ears
+                        SymmetryX
+                            ArbitraryRoundCone a=(0.15, 0.0, -0.03) b=(0.3, 0.12, -0.06) radiusA=0.045 radiusB=0.006
+                    # The open sneer
+                    Translate translation=(0, -0.135, 0.15)
+                        Ellipsoid radii=(0.115, 0.055, 0.09)
+            # The mouth's dark inside
+            Material material=vampire_mouth
+                Intersection
+                    Translate translation=(0, -0.135, 0.15)
+                        Ellipsoid radii=(0.115, 0.055, 0.09)
+                    Plane normal=(0, 0, 1) height=-0.1
+            # Hair: slicked back over the crown to a point at the nape, a widow's peak, long sideburns
+            Material material=vampire_hair
+                Union
+                    Intersection
+                        Translate translation=(0, 0.02, -0.035)
+                            Ellipsoid radii=(0.245, 0.175, 0.25)
+                        Plane normal=(0, -1, 0.55) height=0.0
+                    ArbitraryRoundCone a=(0, 0.04, -0.17) b=(0, -0.1, -0.27) radiusA=0.07 radiusB=0.012
+                    ArbitraryRoundCone a=(0, 0.17, 0.11) b=(0, 0.075, 0.185) radiusA=0.05 radiusB=0.01
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.15, 0.06, 0.0) b=(0.16, -0.1, 0.1) radiusA=0.03 radiusB=0.012
+                    # Slanted angry brows
+                    SymmetryX
+                        Capsule a=(0.1, 0.075, 0.17) b=(0.03, 0.04, 0.2) radius=0.018
+            # Fangs: two giant ones from the upper lip, small teeth between them, small teeth below
+            Material material=vampire_fang
+                Union
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.05, -0.09, 0.15) b=(0.05, -0.27, 0.185) radiusA=0.032 radiusB=0.002
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.015, -0.095, 0.17) b=(0.015, -0.14, 0.175) radiusA=0.011 radiusB=0.002
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.075, -0.185, 0.12) b=(0.075, -0.145, 0.125) radiusA=0.014 radiusB=0.002
+            # The high collar of the cape: a shell standing up behind and beside the head with pointed tips, red inside
+            Material material=vampire_cape
+                Intersection
+                    Subtraction
+                        Translate translation=(0, -0.16, -0.06)
+                            Ellipsoid radii=(0.25, 0.22, 0.22)
+                        Translate translation=(0, -0.11, -0.04)
+                            Ellipsoid radii=(0.21, 0.23, 0.18)
+                    Plane normal=(0, 0, 1) height=-0.04
+                    Plane normal=(0, -1, 0) height=-0.31
+                    Plane normal=(0, 1, 0) height=-0.03
+            Material material=vampire_lining
+                Intersection
+                    Subtraction
+                        Translate translation=(0, -0.11, -0.04)
+                            Ellipsoid radii=(0.215, 0.235, 0.185)
+                        Translate translation=(0, -0.11, -0.04)
+                            Ellipsoid radii=(0.2, 0.22, 0.17)
+                    Plane normal=(0, 0, 1) height=-0.04
+                    Plane normal=(0, -1, 0) height=-0.31
+                    Plane normal=(0, 1, 0) height=-0.03
+            Material material=vampire_cape
+                SymmetryX
+                    ArbitraryRoundCone a=(0.22, -0.08, -0.07) b=(0.26, 0.09, -0.1) radiusA=0.04 radiusB=0.005
+            # Eyes: small, red, under the brow
+            SymmetryX
+                Translate translation=(0.08, 0.035, 0.175)
+                    Scale scale=(0.4, 0.4, 0.4)
+                        Part part=monster_eye_red

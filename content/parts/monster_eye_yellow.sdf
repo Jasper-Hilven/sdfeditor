@@ -1,0 +1,39 @@
+# Yellow slit eye (ticket 45): the machines' small eye (content/parts/machines/eye_machine.sdf) with another iris and a slit pupil. 12 cm
+# in radius, centred on the origin and looking along +z, meshed coarse (a few hundred triangles).
+format 1
+
+Detail detail=0.26
+    Union
+        Material material=eye_white
+            Subtraction
+                Sphere radius=0.12
+                Intersection
+                    Plane normal=(0, 0, -1) height=0.05
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.066
+        Material material=eye_limbus
+            Subtraction
+                Intersection
+                    Sphere radius=0.12
+                    Plane normal=(0, 0, -1) height=0.05
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.066
+                Rotate rotation=(1.5707964, 0, 0)
+                    InfiniteCylinder center=(0, 0) radius=0.06
+        Material material=monster_iris_yellow
+            Subtraction
+                Intersection
+                    Sphere radius=0.12
+                    Plane normal=(0, 0, -1) height=0.05
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.06
+                Scale scale=(0.28, 1, 1)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.05
+        Material material=eye_pupil
+            Intersection
+                Sphere radius=0.12
+                Plane normal=(0, 0, -1) height=0.05
+                Scale scale=(0.28, 1, 1)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        InfiniteCylinder center=(0, 0) radius=0.05

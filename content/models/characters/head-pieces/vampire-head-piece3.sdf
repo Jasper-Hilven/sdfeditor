@@ -1,0 +1,18 @@
+# The vampire head, bursting: the back left piece (4 of 7). Made by tools/make-head-pieces.py (do not edit by hand): the head
+# (the vampire_head part, so the pieces follow its edits) intersected with the Voronoi cell of one seed; the cells split all of space with
+# no gap or overlap, so the pieces together are the head. The cut faces are the head_inner material. Low detail: debris lives seconds.
+format 1
+collider none
+surface part=vampire_head
+
+Detail detail=0.5
+    Intersection
+        Part part=vampire_head
+        Material material=head_inner
+            Intersection
+                Plane normal=(-0.4969, 0.6776, 0.5421) height=0.0226
+                Plane normal=(0.0000, 0.0000, 1.0000) height=-0.0000
+                Plane normal=(-0.6757, 0.0000, 0.7372) height=-0.0000
+                Plane normal=(-1.0000, 0.0000, 0.0000) height=-0.0000
+                Plane normal=(-0.4019, -0.4385, 0.8039) height=-0.0049
+                Plane normal=(-0.5781, -0.7884, 0.2102) height=-0.0221

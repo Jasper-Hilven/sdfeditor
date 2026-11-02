@@ -1,0 +1,110 @@
+# The Leprechaun Mutant's head shape (ticket 45), a part so the model (content/models/characters/monsters/leprechaun.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size.
+Translate translation=(0, 0.0032, 0)
+    Scale scale=(1.1730, 1.1730, 1.1730)
+        Union
+            # Sickly green skin: a wide chubby head, puffed cheeks, a big hooked nose, long pointed ears, a bumpy brow
+            Material material=leprechaun_skin
+                Subtraction
+                    Union
+                        Translate translation=(0, 0.0, -0.01)
+                            Ellipsoid radii=(0.255, 0.19, 0.24)
+                        SymmetryX
+                            Translate translation=(0.11, -0.07, 0.1)
+                                Ellipsoid radii=(0.085, 0.075, 0.08)
+                        # The hooked nose
+                        ArbitraryRoundCone a=(0, 0.0, 0.17) b=(0, -0.04, 0.28) radiusA=0.04 radiusB=0.03
+                        ArbitraryRoundCone a=(0, -0.04, 0.28) b=(0, -0.09, 0.265) radiusA=0.03 radiusB=0.012
+                        # Warts
+                        Translate translation=(0.1, 0.1, 0.14)
+                            Sphere radius=0.02
+                        Translate translation=(-0.07, 0.12, 0.15)
+                            Sphere radius=0.015
+                        # Ears, long and pointed, swept up
+                        SymmetryX
+                            ArbitraryRoundCone a=(0.17, 0.0, -0.02) b=(0.36, 0.1, -0.04) radiusA=0.05 radiusB=0.006
+                        # The chin
+                        Translate translation=(0, -0.14, 0.09)
+                            Ellipsoid radii=(0.1, 0.07, 0.1)
+                    # The wide mouth, a crescent grin
+                    Translate translation=(0, -0.105, 0.19)
+                        Ellipsoid radii=(0.115, 0.045, 0.1)
+            Material material=leprechaun_mouth
+                Intersection
+                    Translate translation=(0, -0.105, 0.19)
+                        Ellipsoid radii=(0.115, 0.045, 0.1)
+                    Plane normal=(0, 0, 1) height=-0.15
+            # Sharp teeth, many and small, top and bottom, and two longer ones
+            Material material=leprechaun_teeth
+                Union
+                    SymmetryX
+                        Union
+                            ArbitraryRoundCone a=(0.02, -0.07, 0.235) b=(0.02, -0.115, 0.235) radiusA=0.011 radiusB=0.002
+                            ArbitraryRoundCone a=(0.055, -0.072, 0.225) b=(0.055, -0.135, 0.225) radiusA=0.014 radiusB=0.002
+                            ArbitraryRoundCone a=(0.09, -0.075, 0.2) b=(0.09, -0.115, 0.2) radiusA=0.012 radiusB=0.002
+                            ArbitraryRoundCone a=(0.035, -0.14, 0.235) b=(0.035, -0.1, 0.235) radiusA=0.011 radiusB=0.002
+                            ArbitraryRoundCone a=(0.075, -0.14, 0.215) b=(0.075, -0.095, 0.215) radiusA=0.012 radiusB=0.002
+                            ArbitraryRoundCone a=(0.105, -0.135, 0.185) b=(0.105, -0.1, 0.185) radiusA=0.01 radiusB=0.002
+            # The ginger beard: a wiry ruff round the jaw and a long tuft from the chin, bushy sideburns, a moustache
+            Material material=leprechaun_beard
+                Union
+                    SymmetryX
+                        Union
+                            Translate translation=(0.15, -0.15, 0.03)
+                                Ellipsoid radii=(0.085, 0.09, 0.11)
+                            Translate translation=(0.065, -0.2, 0.13)
+                                Ellipsoid radii=(0.06, 0.05, 0.05)
+                            ArbitraryRoundCone a=(0.07, -0.19, 0.12) b=(0.12, -0.3, 0.12) radiusA=0.035 radiusB=0.004
+                            # Moustache
+                            Capsule a=(0.01, -0.058, 0.25) b=(0.12, -0.07, 0.19) radius=0.022
+                    ArbitraryRoundCone a=(0, -0.2, 0.12) b=(0, -0.34, 0.15) radiusA=0.05 radiusB=0.004
+                    ArbitraryRoundCone a=(0, -0.17, 0.0) b=(0, -0.27, -0.06) radiusA=0.06 radiusB=0.004
+                    # Bushy brows
+                    SymmetryX
+                        Capsule a=(0.11, 0.085, 0.16) b=(0.025, 0.05, 0.185) radius=0.03
+            # The tattered green top hat, tipped back: a brim, a tall crown with a black band and a gold buckle; the crown top is torn
+            Rotate rotation=(-0.18, 0, 0.1)
+                Translate translation=(0, 0.12, -0.03)
+                    Union
+                        Material material=leprechaun_hat
+                            Union
+                                CappedCylinder radius=0.24 height=0.035
+                                Subtraction
+                                    Translate translation=(0, 0.07, 0)
+                                        CappedCylinder radius=0.15 height=0.12
+                                    Union
+                                        # Torn notches at the crown's top rim
+                                        Translate translation=(0.12, 0.12, 0.05)
+                                            Rotate rotation=(0, 0.5, 0.5)
+                                                Box size=(0.09, 0.09, 0.09)
+                                        Translate translation=(-0.08, 0.12, -0.1)
+                                            Rotate rotation=(0.4, 0.2, 0.7)
+                                                Box size=(0.08, 0.08, 0.08)
+                                        Translate translation=(0.0, 0.12, 0.15)
+                                            Rotate rotation=(0.6, 0.0, 0.2)
+                                                Box size=(0.07, 0.07, 0.07)
+                                        # A rip in the brim
+                                        Translate translation=(-0.22, 0.0, 0.14)
+                                            Box size=(0.08, 0.08, 0.06)
+                        Material material=leprechaun_band
+                            Translate translation=(0, 0.025, 0)
+                                Subtraction
+                                    CappedCylinder radius=0.158 height=0.06
+                                    CappedCylinder radius=0.1 height=0.1
+                        Material material=leprechaun_gold
+                            Translate translation=(0, 0.025, 0.157)
+                                Box size=(0.05, 0.05, 0.016)
+            # Eyes: yellow slits, narrowed, under heavy lids
+            SymmetryX
+                Translate translation=(0.082, 0.03, 0.17)
+                    Scale scale=(0.43, 0.43, 0.43)
+                        Part part=monster_eye_yellow
+            Material material=leprechaun_skin
+                SymmetryX
+                    Rotate rotation=(0, 0, 0.3)
+                        Translate translation=(0.08, 0.075, 0.17)
+                            Ellipsoid radii=(0.06, 0.02, 0.05)

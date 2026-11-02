@@ -88,9 +88,13 @@ namespace SdfHeads.Tests
         // ---------------------------------------------------------------- what is built
 
         [Test]
-        public void TheYetiAndTheJackOLanternAreTheBuiltOnesInPhaseOne()
+        public void TheBuiltHeadsAreInCalendarOrderAndStartWithThePhaseOnePair()
         {
-            CollectionAssert.AreEqual(new[] { "yeti", "pumpkin" }, MonsterHeads.BuiltIds().ToArray());
+            var built = MonsterHeads.BuiltIds().ToArray();
+            CollectionAssert.Contains(built, "yeti");
+            CollectionAssert.Contains(built, "pumpkin");
+            var months = built.Select(id => MonsterHeads.ById(id).Value.Month).ToArray();
+            CollectionAssert.AreEqual(months.OrderBy(m => m).ToArray(), months);
         }
 
         [Test]

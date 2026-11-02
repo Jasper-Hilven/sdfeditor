@@ -208,12 +208,14 @@ namespace SdfHeads
         }
 
         /// <summary>The name for the Settings cycle: the head's, with "(placeholder)" while its model is a stand-in.</summary>
-        public static string Label(string id)
+        public static string Label(string id) => Label(id, h => h.Built);
+
+        public static string Label(string id, Func<MonsterHead, bool> isBuilt)
         {
             var head = MonsterHeads.ById(id);
             if (head == null)
                 return "";
-            return head.Value.Built ? head.Value.DisplayName : head.Value.DisplayName + " (placeholder)";
+            return isBuilt(head.Value) ? head.Value.DisplayName : head.Value.DisplayName + " (placeholder)";
         }
     }
 }

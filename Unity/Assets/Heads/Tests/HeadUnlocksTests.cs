@@ -211,13 +211,15 @@ namespace SdfHeads.Tests
         [Test]
         public void AnUnbuiltHeadShowsAsTheNearestBuiltOne()
         {
-            Assert.AreEqual("yeti", HeadStandIn.Of("yeti"));
-            Assert.AreEqual("pumpkin", HeadStandIn.Of("pumpkin"));
-            Assert.AreEqual("yeti", HeadStandIn.Of("vampire"));
-            Assert.AreEqual("yeti", HeadStandIn.Of("santa"));
-            Assert.AreEqual("pumpkin", HeadStandIn.Of("werewolf"));
-            Assert.AreEqual("pumpkin", HeadStandIn.Of("frankenstein"));
-            Assert.IsNull(HeadStandIn.Of("nonsense"));
+            // With only the phase-1 pair modelled (the table's Built flags move on as the heads are made)
+            Func<MonsterHead, bool> phaseOne = h => h.Id == "yeti" || h.Id == "pumpkin";
+            Assert.AreEqual("yeti", HeadStandIn.Of("yeti", phaseOne));
+            Assert.AreEqual("pumpkin", HeadStandIn.Of("pumpkin", phaseOne));
+            Assert.AreEqual("yeti", HeadStandIn.Of("vampire", phaseOne));
+            Assert.AreEqual("yeti", HeadStandIn.Of("santa", phaseOne));
+            Assert.AreEqual("pumpkin", HeadStandIn.Of("werewolf", phaseOne));
+            Assert.AreEqual("pumpkin", HeadStandIn.Of("frankenstein", phaseOne));
+            Assert.IsNull(HeadStandIn.Of("nonsense", phaseOne));
         }
 
         [Test]
@@ -233,7 +235,7 @@ namespace SdfHeads.Tests
         public void ThePlaceholderIsSaidInTheCycleLabel()
         {
             Assert.AreEqual("Abominable Snowman", HeadStandIn.Label("yeti"));
-            StringAssert.EndsWith("(placeholder)", HeadStandIn.Label("vampire"));
+            StringAssert.EndsWith("(placeholder)", HeadStandIn.Label("vampire", h => h.Id == "yeti"));
             Assert.AreEqual("", HeadStandIn.Label("zzz"));
         }
     }
