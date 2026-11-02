@@ -35,13 +35,13 @@ namespace SdfGui
             if (tank != null)
             {
                 tank.FillAmount = m.reload > 0 ? m.reload : fraction;
-                tank.SetColor(fraction < 0.2f && m.reload <= 0 ? GuiPalette.Amanita : GuiPalette.Spore);
+                tank.SetColor(fraction < 0.2f && m.reload <= 0 ? GuiPalette.Red : GuiPalette.Cyan);
             }
             GuiText.Set(tankLabel, m.reload > 0 ? "..." : m.ammo.ToString());
 
             var health = m.health / Mathf.Max(1, m.maxHealth);
             var pulse = health < 0.3f && Application.isPlaying ? 0.5f + 0.5f * Mathf.Sin(Time.time * 8) : 1;
-            var glowColour = Color.Lerp(GuiPalette.Amanita, GuiPalette.Spore, health);
+            var glowColour = Color.Lerp(GuiPalette.Red, GuiPalette.Cyan, health);
             foreach (var glow in handGlows)
                 glow?.SetColor(GuiPalette.WithAlpha(glowColour, (0.35f + 0.55f * health) * pulse * (m.YouAreAlive ? 1 : 0)));
 

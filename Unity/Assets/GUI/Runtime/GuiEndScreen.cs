@@ -120,7 +120,7 @@ namespace SdfGui
         {
             var end = m.end;
             GuiText.Set(arena, (m.arena ?? "").ToUpperInvariant());
-            GuiText.Set(score, $"<color=#{GuiPalette.HexOf(GuiPalette.Amanita)}>{end.redScore}</color>  –  <color=#{GuiPalette.HexOf(Blue)}>{end.blueScore}</color>");
+            GuiText.Set(score, $"<color=#{GuiPalette.HexOf(GuiPalette.Red)}>{end.redScore}</color>  –  <color=#{GuiPalette.HexOf(Blue)}>{end.blueScore}</color>");
             GuiText.Set(captures, end.captures.ToString());
             GuiText.Set(kills, end.kills.ToString());
             GuiText.Set(deaths, end.deaths.ToString());

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace SdfGui
 {
-    /// <summary>What the Loading screen tells about the battle coming: the briefing that the lobby used to be.</summary>
+    /// <summary>What the Loading screen tells about the battle coming: the arena, the goal and both teams by name.</summary>
     public sealed class LoadingBriefing
     {
         public string arena = "";
@@ -38,6 +38,8 @@ namespace SdfGui
             "Low on health? Walk over a health pod.",
             "Carry their flag home while yours is at its base.",
             "Fill your rage and activate Frenzy.",
+            "Every win unlocks a new monster head.",
+            "On the end card, A and D change your head.",
         };
 
         private static int tipCounter;
@@ -48,7 +50,7 @@ namespace SdfGui
         {
             GuiText.Set(arena, briefing.arena.ToUpperInvariant());
             GuiText.Set(goal, briefing.goal);
-            GuiText.Set(redNames, Roster("RED TEAM", GuiPalette.Amanita, briefing.red));
+            GuiText.Set(redNames, Roster("RED TEAM", GuiPalette.Red, briefing.red));
             GuiText.Set(blueNames, Roster("BLUE TEAM", GuiPalette.Sky, briefing.blue));
             GuiText.Set(tip, "TIP  " + (string.IsNullOrEmpty(briefing.tip) ? Tips[tipCounter++ % Tips.Length] : briefing.tip));
             Set(0, false);

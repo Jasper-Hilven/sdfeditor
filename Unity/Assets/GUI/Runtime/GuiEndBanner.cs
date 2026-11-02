@@ -16,7 +16,7 @@ namespace SdfGui
             var team = blue ? "BLUE" : "RED";
             // A win on kills says so, smaller to fit the banner
             GuiText.Set(label, m.end.onKills ? $"<size=70%>{team} WINS ON KILLS!</size>" : $"{team} WINS!");
-            var colour = blue ? GuiEndScreen.Blue : GuiPalette.Amanita;
+            var colour = blue ? GuiEndScreen.Blue : GuiPalette.Red;
             if (shape != null && shape.color != colour)
                 shape.color = colour;
         }

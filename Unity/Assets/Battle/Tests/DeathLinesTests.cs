@@ -120,7 +120,7 @@ namespace SdfBattle.Tests
             foreach (var (kind, text, line) in All())
             {
                 CollectionAssert.IsEmpty(DeathLines.UnknownPlaceholders(line.Text).ToList(), $"{kind} {text}: {line}");
-                var formatted = DeathLines.Format(line.Text, "Mushroom 7", "Red 2", "flamethrower", 5).Replace("{icon}", "");
+                var formatted = DeathLines.Format(line.Text, "ToastyMage", "Red 2", "flamethrower", 5).Replace("{icon}", "");
                 StringAssert.DoesNotContain("{", formatted, $"{kind} {text}: {line}");
                 StringAssert.DoesNotContain("}", formatted, $"{kind} {text}: {line}");
             }
@@ -139,7 +139,7 @@ namespace SdfBattle.Tests
                 {
                     StringAssert.Contains("{killer}", line, $"{kind}");
                     Assert.AreEqual(1, icons, $"{kind}: {line}");
-                    var (before, after) = DeathLines.SplitAtIcon(DeathLines.Format(line, "Mushroom 7", "Red 2"));
+                    var (before, after) = DeathLines.SplitAtIcon(DeathLines.Format(line, "ToastyMage", "Red 2"));
                     Assert.IsTrue(before.Length > 0 && after.Length > 0, $"{kind}: {line} has words on both sides of the icon");
                 }
                 else
@@ -177,7 +177,7 @@ namespace SdfBattle.Tests
             foreach (var kind in Kinds)
             foreach (var detail in DeathLines.Lines(kind, DeathText.Detail).Select(l => l.Text))
             {
-                var lines = DeathLines.Format(detail, "Mushroom 7", weapon: "flamethrower", streak: 10).Split('\n');
+                var lines = DeathLines.Format(detail, "ToastyMage", weapon: "flamethrower", streak: 10).Split('\n');
                 Assert.LessOrEqual(lines.Length, 2, $"{kind}: {detail}");
                 foreach (var line in lines)
                     Assert.LessOrEqual(line.Length, DeathLines.MaxDetailLine, $"{kind}: {detail}");
@@ -191,8 +191,8 @@ namespace SdfBattle.Tests
         [Test]
         public void Format_FillsTheNames_AndSplitsAtTheIcon()
         {
-            var line = DeathLines.Format("{killer} sautéed {icon} {victim}", "Mushroom 7", "Red 2");
-            Assert.AreEqual(("Mushroom 7 sautéed", "Red 2"), DeathLines.SplitAtIcon(line));
+            var line = DeathLines.Format("{killer} sautéed {icon} {victim}", "ToastyMage", "Red 2");
+            Assert.AreEqual(("ToastyMage sautéed", "Red 2"), DeathLines.SplitAtIcon(line));
             Assert.AreEqual(("Red 2 fell", ""), DeathLines.SplitAtIcon(DeathLines.Format(DeathLines.PlainFallFeed, victim: "Red 2")));
             Assert.AreEqual("number 5", DeathLines.Format("number {streak}", streak: 5));
             Assert.AreEqual("poison gun", DeathLines.WeaponName(WeaponIds.PoisonGun));

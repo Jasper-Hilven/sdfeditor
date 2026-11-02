@@ -105,7 +105,7 @@ namespace SdfBattle
                 else if (weapon.burstSeconds > 0 && trigger.BurstFraction > 0)
                     text += $"  {Mathf.CeilToInt((1 - trigger.BurstFraction) * weapon.burstSeconds * 10) / 10f:0.0}s";
                 GuiText.Set(weaponLabel, text);
-                weaponLabel.color = trigger.Overheated ? GuiPalette.Amanita : GuiPalette.Paper;
+                weaponLabel.color = trigger.Overheated ? GuiPalette.Red : GuiPalette.Paper;
             }
             if (slots == null)
                 return;

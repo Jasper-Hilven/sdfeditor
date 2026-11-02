@@ -6,12 +6,12 @@ namespace SdfBattle.Tests
     public sealed class CastTests
     {
         [Test]
-        public void RedStartsWithYou_AndBlueWithTheRunnerUp()
+        public void RedStartsWithYou_AndBlueWithBigGerald()
         {
-            Assert.AreEqual("Mushroom 42", Cast.Name(Team.Red, 1));
-            Assert.AreEqual("Mushroom 99", Cast.Name(Team.Red, 4));
-            Assert.AreEqual("Runner-Up", Cast.Name(Team.Blue, 1));
-            Assert.AreEqual("Participation Award", Cast.Name(Team.Blue, 5));
+            Assert.AreEqual("Nightowl42", Cast.Name(Team.Red, 1));
+            Assert.AreEqual("Pixelpuss", Cast.Name(Team.Red, 4));
+            Assert.AreEqual("Big Gerald", Cast.Name(Team.Blue, 1));
+            Assert.AreEqual("Grandma Gunner", Cast.Name(Team.Blue, 5));
         }
 
         [Test]

@@ -1,16 +1,15 @@
 namespace SdfBattle
 {
     /// <summary>
-    /// The names of the players (ticket 32): red is Mushroom 42 (you) and the numbered amanitas, blue is Prime's crew. Plain names for
-    /// now; the campaign's setups (ticket 32.3) will bring their own. Past the lists a player is "Red 5" and the like.
+    /// The names of the players (ticket 32): red starts with you, then three team mates; blue has five. They are players' handles, each with a monster head (ticket 50). Past the lists a player is "Red 5" and the like.
     /// </summary>
     public static class Cast
     {
-        public const string You = "Mushroom 42";
+        public const string You = "Nightowl42";
 
-        public static readonly string[] Red = { You, "Mushroom 7", "Mushroom 13", "Mushroom 99" };
+        public static readonly string[] Red = { You, "ToastyMage", "Zed_13", "Pixelpuss" };
 
-        public static readonly string[] Blue = { "Runner-Up", "Honourable Mention", "Participant", "Also-Ran", "Participation Award" };
+        public static readonly string[] Blue = { "Big Gerald", "SuzyTwoShoes", "Captain Nope", "xX_Vlad_Xx", "Grandma Gunner" };
 
         /// <summary>The name of a team's <paramref name="number"/>th player, counting from 1 (red's first is you).</summary>
         public static string Name(Team team, int number)

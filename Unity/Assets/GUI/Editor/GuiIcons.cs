@@ -23,7 +23,7 @@ namespace SdfGui.Editor
         public const string SetPath = Folder + "/Icons.asset";
         private const int Size = 384;
 
-        public static IEnumerable<string> Models => new[] { "amanita-scout", "chanterelle-scout" }.Concat(MatchView.Weapons);
+        public static IEnumerable<string> Models => SdfHeads.MonsterHeads.All.Select(h => h.Id).Concat(MatchView.Weapons);
 
         [MenuItem("Tools/SDF GUI/Render Icons")]
         public static void RenderFromMenu()
@@ -193,6 +193,7 @@ namespace SdfGui.Editor
                 set = ScriptableObject.CreateInstance<GuiIconSet>();
                 AssetDatabase.CreateAsset(set, SetPath);
             }
+            set.avatars = SdfHeads.MonsterHeads.All.Select(h => h.Id).ToArray();
             set.icons = Models
                 .Select(m => new GuiIconSet.Icon { name = m, sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{Folder}/{m}.png") })
                 .Where(i => i.sprite != null)

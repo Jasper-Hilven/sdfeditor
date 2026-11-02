@@ -20,7 +20,11 @@ namespace SdfGui
         public Color color;
         [Tooltip("Index into the avatar icons")]
         public int avatar;
+        [Tooltip("The monster head the player wears (SdfHeads.MonsterHeads id); the scoreboard and the death screen draw its icon")]
+        public string head;
         public int kills;
+        public int deaths;
+        public int captures;
         public bool alive = true;
         public bool you;
         [Tooltip("Place at the end of the round, 1 for the winner; 0 while alive")]
@@ -174,6 +178,8 @@ namespace SdfGui
             {
                 roster[i].color = GuiPalette.Players[i % GuiPalette.Players.Length];
                 roster[i].avatar = i < RosterSize / 2 ? 0 : 1;
+                // Distinct heads (5 steps round the twelve never repeat within a roster)
+                roster[i].head = SdfHeads.MonsterHeads.All[(i * 5) % SdfHeads.MonsterHeads.Count].Id;
             }
             return roster;
         }

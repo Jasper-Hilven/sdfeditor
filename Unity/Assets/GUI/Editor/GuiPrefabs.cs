@@ -51,7 +51,7 @@ namespace SdfGui.Editor
 
         private GameObject BuildButton()
         {
-            var shape = f.Shape(null, "Button", ToonShapeKind.Box, GuiPalette.Amanita, Centre, Vector2.zero, new Vector2(380, 86), s =>
+            var shape = f.Shape(null, "Button", ToonShapeKind.Box, GuiPalette.Red, Centre, Vector2.zero, new Vector2(380, 86), s =>
             {
                 s.CornerRadius = 22;
                 s.Outline = 5;
@@ -152,7 +152,7 @@ namespace SdfGui.Editor
             {
                 var holder = Object(name, background.transform);
                 Place(holder.transform, anchor, new Vector2(x, 0), new Vector2(58, 58), Centre);
-                var arrow = f.Shape(holder.transform, "Arrow", ToonShapeKind.Arrow, GuiPalette.Chanterelle, Centre, Vector2.zero, new Vector2(40, 46), s =>
+                var arrow = f.Shape(holder.transform, "Arrow", ToonShapeKind.Arrow, GuiPalette.Amber, Centre, Vector2.zero, new Vector2(40, 46), s =>
                 {
                     s.CornerRadius = 6;
                     s.Outline = 4.5f;
@@ -178,7 +178,7 @@ namespace SdfGui.Editor
 
         private GameObject BuildAvatar()
         {
-            var disc = f.Shape(null, "Avatar", ToonShapeKind.Pill, GuiPalette.Amanita, Centre, Vector2.zero, new Vector2(72, 72), s =>
+            var disc = f.Shape(null, "Avatar", ToonShapeKind.Pill, GuiPalette.Red, Centre, Vector2.zero, new Vector2(72, 72), s =>
             {
                 s.Outline = 5;
                 s.Shadow = 4;
@@ -186,7 +186,7 @@ namespace SdfGui.Editor
             var avatar = disc.gameObject.AddComponent<GuiAvatar>();
             avatar.disc = disc;
             avatar.icons = f.Kit.icons;
-            avatar.icon = f.Icon(disc.transform, "Icon", "amanita-scout", Centre, new Vector2(0, 2), Vector2.zero);
+            avatar.icon = f.Icon(disc.transform, "Icon", "yeti", Centre, new Vector2(0, 2), Vector2.zero);
             Stretch(avatar.icon, 5);
             return Save(disc.gameObject, PathOf("Avatar"));
         }
@@ -209,7 +209,7 @@ namespace SdfGui.Editor
 
         private GameObject BuildBanner()
         {
-            var banner = f.Shape(null, "Banner", ToonShapeKind.Box, GuiPalette.Amanita, Centre, Vector2.zero, new Vector2(760, 100), s =>
+            var banner = f.Shape(null, "Banner", ToonShapeKind.Box, GuiPalette.Red, Centre, Vector2.zero, new Vector2(760, 100), s =>
             {
                 s.CornerRadius = 26;
                 s.Outline = 6;
@@ -223,7 +223,7 @@ namespace SdfGui.Editor
 
         private GameObject BuildPlayerRow()
         {
-            var background = f.Shape(null, "Player Row", ToonShapeKind.Box, GuiPalette.Paper, Centre, Vector2.zero, new Vector2(540, 60), s =>
+            var background = f.Shape(null, "Player Row", ToonShapeKind.Box, GuiPalette.Paper, Centre, Vector2.zero, new Vector2(760, 60), s =>
             {
                 s.CornerRadius = 18;
                 s.Outline = 4;
@@ -234,9 +234,11 @@ namespace SdfGui.Editor
             var t = background.transform;
             row.rank = f.Text(t, "Rank", "1", TextStyle.Label, 28, GuiPalette.Dusk, Left, new Vector2(12, 0), new Vector2(40, 50));
             row.avatar = Instance<GuiAvatar>(Avatar, t, "Avatar", Left, new Vector2(58, 0), new Vector2(50, 50));
-            row.playerName = f.Text(t, "Name", "Player", TextStyle.Body, 28, GuiPalette.Ink, Left, new Vector2(122, 0), new Vector2(250, 50), TextAlignmentOptions.Left);
-            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-124, 0), new Vector2(60, 50));
-            row.status = f.Text(t, "Status", "ALIVE", TextStyle.Label, 24, GuiPalette.MossDark, Right, new Vector2(-14, 0), new Vector2(110, 50));
+            row.playerName = f.Text(t, "Name", "Player", TextStyle.Body, 28, GuiPalette.Ink, Left, new Vector2(122, 0), new Vector2(260, 50), TextAlignmentOptions.Left);
+            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-250, 0), new Vector2(80, 50));
+            row.deaths = f.Text(t, "Deaths", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-150, 0), new Vector2(80, 50));
+            row.captures = f.Text(t, "Captures", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-30, 0), new Vector2(80, 50));
+            row.status = f.Text(t, "Status", "", TextStyle.Label, 24, GuiPalette.Gold, Right, new Vector2(-340, 0), new Vector2(110, 50));
             return Save(background.gameObject, PathOf("Player Row"));
         }
 
@@ -265,7 +267,7 @@ namespace SdfGui.Editor
             entry.killer = f.Text(t, "Killer", "Killer", TextStyle.BodyInk, 27, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(100, 40));
             entry.weapon = f.Icon(t, "Weapon", "minigun", Centre, Vector2.zero, new Vector2(110, 44));
             Fixed(entry.weapon, 110, 44);
-            entry.headshot = f.Shape(t, "Headshot", ToonShapeKind.Cap, GuiPalette.Amanita, Centre, Vector2.zero, new Vector2(38, 28), s =>
+            entry.headshot = f.Shape(t, "Headshot", ToonShapeKind.Cap, GuiPalette.Red, Centre, Vector2.zero, new Vector2(38, 28), s =>
             {
                 s.Outline = 3.5f;
                 s.Shadow = 0;

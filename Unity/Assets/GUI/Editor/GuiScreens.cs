@@ -92,15 +92,15 @@ namespace SdfGui.Editor
             var hud = root.AddComponent<GuiHud>();
 
             // Behind everything: the red of being hit, and the splats from where it came
-            hud.vignette = f.Shape(t, "Damage Vignette", ToonShapeKind.Vignette, GuiPalette.WithAlpha(GuiPalette.AmanitaDark, 0), Centre, Vector2.zero, Vector2.zero, s => s.FillAmount = 0.35f);
+            hud.vignette = f.Shape(t, "Damage Vignette", ToonShapeKind.Vignette, GuiPalette.WithAlpha(GuiPalette.RedDark, 0), Centre, Vector2.zero, Vector2.zero, s => s.FillAmount = 0.35f);
             Stretch(hud.vignette);
             var direction = Object("Damage Direction", t);
             hud.damageDirection = Place(direction.transform, Centre, Vector2.zero, new Vector2(10, 10));
             hud.damageSplats = new[]
             {
-                f.Shape(direction.transform, "Splat", ToonShapeKind.Splat, GuiPalette.WithAlpha(GuiPalette.Amanita, 0), Centre, new Vector2(0, 360), new Vector2(240, 200), s => { s.Seed = 0.3f; s.Shadow = 0; s.Outline = 4; }),
-                f.Shape(direction.transform, "Splat Left", ToonShapeKind.Splat, GuiPalette.WithAlpha(GuiPalette.AmanitaDark, 0), Centre, new Vector2(-150, 330), new Vector2(120, 110), s => { s.Seed = 0.7f; s.Shadow = 0; s.Outline = 3; }),
-                f.Shape(direction.transform, "Splat Right", ToonShapeKind.Splat, GuiPalette.WithAlpha(GuiPalette.AmanitaDark, 0), Centre, new Vector2(150, 340), new Vector2(100, 90), s => { s.Seed = 0.9f; s.Shadow = 0; s.Outline = 3; }),
+                f.Shape(direction.transform, "Splat", ToonShapeKind.Splat, GuiPalette.WithAlpha(GuiPalette.Red, 0), Centre, new Vector2(0, 360), new Vector2(240, 200), s => { s.Seed = 0.3f; s.Shadow = 0; s.Outline = 4; }),
+                f.Shape(direction.transform, "Splat Left", ToonShapeKind.Splat, GuiPalette.WithAlpha(GuiPalette.RedDark, 0), Centre, new Vector2(-150, 330), new Vector2(120, 110), s => { s.Seed = 0.7f; s.Shadow = 0; s.Outline = 3; }),
+                f.Shape(direction.transform, "Splat Right", ToonShapeKind.Splat, GuiPalette.WithAlpha(GuiPalette.RedDark, 0), Centre, new Vector2(150, 340), new Vector2(100, 90), s => { s.Seed = 0.9f; s.Shadow = 0; s.Outline = 3; }),
             };
 
             // Crosshair: four arms and a dot, and the hit marker over them
@@ -160,7 +160,7 @@ namespace SdfGui.Editor
             var popup = Object("Eliminated", t);
             Place(popup.transform, Centre, new Vector2(0, -170), new Vector2(700, 140));
             hud.eliminatedTitle = f.Text(popup.transform, "Title", "SAUTÉED!", TextStyle.Title, 62, GuiPalette.Gold, Top, Vector2.zero, new Vector2(700, 76));
-            hud.eliminatedName = f.Text(popup.transform, "Name", "Runner-Up", TextStyle.BodyInk, 40, GuiPalette.Cream, Bottom, new Vector2(0, 6), new Vector2(700, 56));
+            hud.eliminatedName = f.Text(popup.transform, "Name", "Big Gerald", TextStyle.BodyInk, 40, GuiPalette.Cream, Bottom, new Vector2(0, 6), new Vector2(700, 56));
             hud.eliminatedPopup = popup;
 
             var pickup = f.Panel(t, "Pick Up", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), Bottom, new Vector2(0, 220), new Vector2(520, 76), 20);
@@ -377,7 +377,7 @@ namespace SdfGui.Editor
 
             // Under the row, where FlagHud puts it for the screen's width
             var bottom = centreY - clock.sizeDelta.y * 0.5f;
-            hud.flagBanner = p.BannerInstance(t, "Flag Banner", "YOU HAVE THE FLAG!", GuiPalette.Amanita, Top, new Vector2(0, bottom - 18), new Vector2(900, 92), 46);
+            hud.flagBanner = p.BannerInstance(t, "Flag Banner", "YOU HAVE THE FLAG!", GuiPalette.Red, Top, new Vector2(0, bottom - 18), new Vector2(900, 92), 46);
             hud.flagBannerText = hud.flagBanner.GetComponentInChildren<TMP_Text>();
             hud.flagBanner.gameObject.SetActive(false);
         }
@@ -390,13 +390,14 @@ namespace SdfGui.Editor
             var t = root.transform;
             var board = root.AddComponent<GuiScoreboard>();
             var panel = p.PanelInstance(t, "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, -10), new Vector2(980, 840)).transform;
-            p.BannerInstance(panel, "Header", "SCOREBOARD", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
+            p.BannerInstance(panel, "Header", "SCOREBOARD", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
             board.subtitle = f.Text(panel, "Subtitle", "MEADOW  ·  FIRST TO 3 CAPTURES  ·  10:00", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -66), new Vector2(900, 40));
             var columns = Object("Columns", panel);
             Place(columns.transform, Top, new Vector2(0, -110), new Vector2(900, 30));
             f.Text(columns.transform, "Player", "PLAYER", TextStyle.Label, 22, GuiPalette.Dusk, Left, new Vector2(122, 0), new Vector2(200, 30), TextAlignmentOptions.Left);
-            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-124, 0), new Vector2(80, 30));
-            f.Text(columns.transform, "Status", "STATUS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-14, 0), new Vector2(110, 30));
+            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-240, 0), new Vector2(100, 30));
+            f.Text(columns.transform, "Deaths", "DEATHS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-135, 0), new Vector2(110, 30));
+            f.Text(columns.transform, "Captures", "CAPTURES", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-10, 0), new Vector2(120, 30));
             var rows = Object("Players", panel);
             Place(rows.transform, Top, new Vector2(0, -146), new Vector2(900, MatchView.ScoreboardRows * 60));
             board.rows = Enumerable.Range(0, MatchView.ScoreboardRows)
@@ -415,12 +416,12 @@ namespace SdfGui.Editor
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
             // The match stops while this is up (GuiFlow)
             var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 640)).transform;
-            p.BannerInstance(panel, "Header", "PAUSED", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
+            p.BannerInstance(panel, "Header", "PAUSED", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
             p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -90), new Vector2(420, 96), 46, spots: 0.5f);
             // The two that throw the match away ask first
-            p.ButtonInstance(panel, "RESTART", GuiPalette.Amanita, GuiCommandId.Restart, Top, new Vector2(0, -210), new Vector2(420, 86), 40, spots: 0.4f)
+            p.ButtonInstance(panel, "RESTART", GuiPalette.Red, GuiCommandId.Restart, Top, new Vector2(0, -210), new Vector2(420, 86), 40, spots: 0.4f)
                 .GetComponent<GuiCommand>().confirm = "Restart this match?";
-            p.ButtonInstance(panel, "SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, Top, new Vector2(0, -312), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
+            p.ButtonInstance(panel, "SETTINGS", GuiPalette.Amber, GuiCommandId.Show, Top, new Vector2(0, -312), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
             // The credits roll over the paused match and come back here (ticket 42)
             p.ButtonInstance(panel, "CREDITS", GuiPalette.Moss, GuiCommandId.Credits, Top, new Vector2(0, -414), new Vector2(420, 86), 40, spots: 0.3f);
             p.ButtonInstance(panel, "QUIT TO MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Top, new Vector2(0, -516), new Vector2(420, 86), 40, spots: 0)
@@ -435,7 +436,7 @@ namespace SdfGui.Editor
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
             var menu = root.AddComponent<GuiSettingsMenu>();
             var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(980, 1010)).transform;
-            p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Chanterelle, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
+            p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
 
             var y = -104f;
             Transform Row(string label)
@@ -481,12 +482,12 @@ namespace SdfGui.Editor
         {
             var root = Root("Death", GuiScreen.Death);
             var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.AmanitaDark, 0.6f), 0.45f);
+            Dim(t, GuiPalette.WithAlpha(GuiPalette.RedDark, 0.6f), 0.45f);
             var result = root.AddComponent<GuiRoundResult>();
             result.icons = f.Kit.icons;
             result.title = f.Text(t, "Title", "SPLATTERED!", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, 340), new Vector2(1200, 170));
             result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Killer", Centre, new Vector2(-300, 70), new Vector2(120, 120));
-            result.detail = f.Text(t, "Detail", "by Runner-Up\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
+            result.detail = f.Text(t, "Detail", "by Big Gerald\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
             result.weapon = f.Icon(t, "Weapon", "sniper", Centre, new Vector2(330, 70), new Vector2(200, 110));
             result.back = f.Text(t, "Back", "Back in 5", TextStyle.Title, 56, GuiPalette.Gold, Centre, new Vector2(0, -90), new Vector2(600, 70));
             // No stats: the battle has no places (you respawn), and your kills are on the scoreboard
@@ -501,7 +502,7 @@ namespace SdfGui.Editor
             var root = Root("Match End", GuiScreen.MatchEnd);
             var t = root.transform;
             var end = root.AddComponent<GuiEndBanner>();
-            var banner = p.BannerInstance(t, "Banner", "RED WINS!", GuiPalette.Amanita, Centre, new Vector2(0, -110), new Vector2(1000, 160), 100);
+            var banner = p.BannerInstance(t, "Banner", "RED WINS!", GuiPalette.Red, Centre, new Vector2(0, -110), new Vector2(1000, 160), 100);
             end.shape = banner;
             end.label = banner.GetComponentInChildren<TMP_Text>();
             return Save(root);
@@ -578,7 +579,7 @@ namespace SdfGui.Editor
         {
             var holder = Object(name, parent);
             Place(holder.transform, Centre, position, new Vector2(58, 58), Centre);
-            var arrow = f.Shape(holder.transform, "Arrow", ToonShapeKind.Arrow, GuiPalette.Chanterelle, Centre, Vector2.zero, new Vector2(40, 46), s =>
+            var arrow = f.Shape(holder.transform, "Arrow", ToonShapeKind.Arrow, GuiPalette.Amber, Centre, Vector2.zero, new Vector2(40, 46), s =>
             {
                 s.CornerRadius = 6;
                 s.Outline = 4.5f;
@@ -593,6 +594,44 @@ namespace SdfGui.Editor
             var click = holder.AddComponent<GuiCommand>();
             click.command = command;
             click.screen = GuiScreen.Hud;
+        }
+
+        // ---------------------------------------------------------------- The logo
+
+        /// <summary>
+        /// The game's logo (ticket 50): MINIGUN over MONSTERS on a rage-red splat with a violet halo, glints on the letters and a plate
+        /// with the tagline. Named "Logo" so the covers can lift it by name; <paramref name="scale"/> shrinks it from its top edge.
+        /// </summary>
+        private GameObject Logo(Transform parent, Vector2 position, float scale)
+        {
+            var logo = Object("Logo", parent);
+            Place(logo.transform, Top, position, new Vector2(1100, 430));
+            f.Shape(logo.transform, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Violet, 0.4f), Centre, new Vector2(0, -10), new Vector2(1300, 520));
+            f.Shape(logo.transform, "Splat", ToonShapeKind.Burst, GuiPalette.Rage, Centre, new Vector2(0, 20), new Vector2(1040, 360), s =>
+            {
+                s.Outline = 9;
+                s.Shadow = 14;
+                s.Seed = 3.3f;
+            });
+            f.LogoWord(logo.transform, "Minigun", "MINIGUN", 128, GuiPalette.Hex(0xFFFAEA), GuiPalette.Hex(0xFFDB7A), new Vector2(0, 66), new Vector2(980, 150), 22, 6, 6);
+            f.LogoWord(logo.transform, "Monsters", "MONSTERS", 112, GuiPalette.Hex(0xB6F36B), GuiPalette.Hex(0x3FA34D), new Vector2(0, -56), new Vector2(980, 135), 16, 5, 5);
+            f.Shape(logo.transform, "Glint 1", ToonShapeKind.Burst, Color.white, Centre, new Vector2(-292, 118), new Vector2(34, 34), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 1.4f; });
+            f.Shape(logo.transform, "Glint 2", ToonShapeKind.Burst, Color.white, Centre, new Vector2(352, 0), new Vector2(26, 26), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 2.7f; });
+            f.Shape(logo.transform, "Glint 3", ToonShapeKind.Burst, Color.white, Centre, new Vector2(-396, -40), new Vector2(22, 22), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 0.6f; });
+            logo.transform.localRotation = Quaternion.Euler(0, 0, 1.5f);
+            var plate = f.Shape(logo.transform, "Tagline Plate", ToonShapeKind.Pill, GuiPalette.Night, Centre, new Vector2(0, -200), new Vector2(640, 56), s =>
+            {
+                s.Outline = 5;
+                s.Shadow = 8;
+                s.Shading = 0;
+            });
+            plate.rectTransform.localRotation = Quaternion.Euler(0, 0, 1);
+            var tagline = f.FillText(plate.transform, "Tagline", "A head for every month.", TextStyle.Title, 34, Color.white);
+            tagline.fontStyle = FontStyles.Italic;
+            tagline.characterSpacing = 2;
+            GuiFactory.Gradient(tagline, GuiPalette.Cream, GuiPalette.Hex(0xFFD98A));
+            logo.transform.localScale = Vector3.one * scale;
+            return logo;
         }
 
         // ---------------------------------------------------------------- Loading: the briefing
@@ -611,16 +650,17 @@ namespace SdfGui.Editor
                 s.raycastTarget = true;
             });
             Stretch(backdrop);
-            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.18f), Centre, new Vector2(0, 80), new Vector2(1500, 900));
-            var banner = p.BannerInstance(t, "Arena Banner", "ARENA", GuiPalette.Amanita, Top, new Vector2(0, -60), new Vector2(1000, 130), 76);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Cyan, 0.18f), Centre, new Vector2(0, 80), new Vector2(1500, 900));
+            Logo(t, new Vector2(0, -8), 0.42f);
+            var banner = p.BannerInstance(t, "Arena Banner", "ARENA", GuiPalette.Red, Top, new Vector2(0, -232), new Vector2(900, 104), 64);
             loading.arena = banner.GetComponentInChildren<TMP_Text>();
-            loading.goal = f.Text(t, "Goal", "CAPTURE THE FLAG", TextStyle.BodyInk, 46, GuiPalette.Gold, Top, new Vector2(0, -220), new Vector2(1400, 64));
+            loading.goal = f.Text(t, "Goal", "CAPTURE THE FLAG", TextStyle.BodyInk, 42, GuiPalette.Gold, Top, new Vector2(0, -352), new Vector2(1400, 58));
 
-            var red = p.PanelInstance(t, "Red Roster", GuiPalette.Cream, Centre, new Vector2(-340, -10), new Vector2(520, 400));
-            loading.redNames = f.Text(red.transform, "Names", "RED TEAM", TextStyle.Body, 40, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 340), TextAlignmentOptions.Top);
-            var blue = p.PanelInstance(t, "Blue Roster", GuiPalette.Cream, Centre, new Vector2(340, -10), new Vector2(520, 400));
-            loading.blueNames = f.Text(blue.transform, "Names", "BLUE TEAM", TextStyle.Body, 40, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 340), TextAlignmentOptions.Top);
-            f.Text(t, "Versus", "VS", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(140, 90));
+            var red = p.PanelInstance(t, "Red Roster", GuiPalette.Cream, Centre, new Vector2(-340, -62), new Vector2(520, 360));
+            loading.redNames = f.Text(red.transform, "Names", "RED TEAM", TextStyle.Body, 38, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 320), TextAlignmentOptions.Top);
+            var blue = p.PanelInstance(t, "Blue Roster", GuiPalette.Cream, Centre, new Vector2(340, -62), new Vector2(520, 360));
+            loading.blueNames = f.Text(blue.transform, "Names", "BLUE TEAM", TextStyle.Body, 38, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 320), TextAlignmentOptions.Top);
+            f.Text(t, "Versus", "VS", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(0, -62), new Vector2(140, 90));
 
             loading.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Bottom, new Vector2(0, 190), new Vector2(1500, 50));
             loading.progress = p.BarInstance(t, "Progress", GuiPalette.Moss, 0, Bottom, new Vector2(0, 110), new Vector2(900, 56), 30);
@@ -666,7 +706,7 @@ namespace SdfGui.Editor
             Place(box.transform, Bottom, new Vector2(0, letterbox ? 150 : 300), new Vector2(1300, 210));
             caption.box = box.AddComponent<CanvasGroup>();
             f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, new Vector2(1300, 210), 26);
-            caption.speaker = f.Text(box.transform, "Speaker", "MUSHROOM 7", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44));
+            caption.speaker = f.Text(box.transform, "Speaker", "TOASTYMAGE", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44));
             caption.line = f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
             caption.line.textWrappingMode = TextWrappingModes.Normal;
             caption.line.alignment = TextAlignmentOptions.Center;
@@ -733,10 +773,10 @@ namespace SdfGui.Editor
             var shapes = Section("Shapes", new Vector2(300, -150), new Vector2(760, 330));
             (ToonShapeKind kind, Color color)[] kinds =
             {
-                (ToonShapeKind.Box, GuiPalette.Amanita), (ToonShapeKind.Pill, GuiPalette.Chanterelle), (ToonShapeKind.Ring, GuiPalette.Spore),
-                (ToonShapeKind.Cap, GuiPalette.Amanita), (ToonShapeKind.Splat, GuiPalette.AmanitaDark), (ToonShapeKind.Burst, GuiPalette.Gold),
-                (ToonShapeKind.Glow, GuiPalette.Spore), (ToonShapeKind.Arrow, GuiPalette.Chanterelle), (ToonShapeKind.Cross, GuiPalette.Cream),
-                (ToonShapeKind.Check, GuiPalette.Moss), (ToonShapeKind.Vignette, GuiPalette.AmanitaDark),
+                (ToonShapeKind.Box, GuiPalette.Red), (ToonShapeKind.Pill, GuiPalette.Amber), (ToonShapeKind.Ring, GuiPalette.Cyan),
+                (ToonShapeKind.Cap, GuiPalette.Red), (ToonShapeKind.Splat, GuiPalette.RedDark), (ToonShapeKind.Burst, GuiPalette.Gold),
+                (ToonShapeKind.Glow, GuiPalette.Cyan), (ToonShapeKind.Arrow, GuiPalette.Amber), (ToonShapeKind.Cross, GuiPalette.Cream),
+                (ToonShapeKind.Check, GuiPalette.Moss), (ToonShapeKind.Vignette, GuiPalette.RedDark),
             };
             for (var i = 0; i < kinds.Length; i++)
             {
@@ -770,12 +810,12 @@ namespace SdfGui.Editor
 
             // Buttons
             var buttons = Section("Buttons", new Vector2(1090, -150), new Vector2(780, 330));
-            p.ButtonInstance(buttons, "PRIMARY", GuiPalette.Amanita, GuiCommandId.Show, TopLeft, new Vector2(30, -70), new Vector2(340, 86), 40, GuiScreen.Gallery);
-            p.ButtonInstance(buttons, "SECONDARY", GuiPalette.Chanterelle, GuiCommandId.Show, TopLeft, new Vector2(400, -70), new Vector2(340, 86), 40, GuiScreen.Gallery, 0.4f);
+            p.ButtonInstance(buttons, "PRIMARY", GuiPalette.Red, GuiCommandId.Show, TopLeft, new Vector2(30, -70), new Vector2(340, 86), 40, GuiScreen.Gallery);
+            p.ButtonInstance(buttons, "SECONDARY", GuiPalette.Amber, GuiCommandId.Show, TopLeft, new Vector2(400, -70), new Vector2(340, 86), 40, GuiScreen.Gallery, 0.4f);
             p.ButtonInstance(buttons, "CONFIRM", GuiPalette.Moss, GuiCommandId.Show, TopLeft, new Vector2(30, -180), new Vector2(340, 86), 40, GuiScreen.Gallery, 0.4f);
             p.ButtonInstance(buttons, "QUIET", GuiPalette.Dusk, GuiCommandId.Show, TopLeft, new Vector2(400, -180), new Vector2(340, 86), 40, GuiScreen.Gallery, 0);
             p.ButtonInstance(buttons, "SMALL", GuiPalette.Violet, GuiCommandId.Show, TopLeft, new Vector2(30, -284), new Vector2(150, 40), 22, GuiScreen.Gallery, 0);
-            p.ButtonInstance(buttons, "SMALL", GuiPalette.SporeDeep, GuiCommandId.Show, TopLeft, new Vector2(200, -284), new Vector2(150, 40), 22, GuiScreen.Gallery, 0);
+            p.ButtonInstance(buttons, "SMALL", GuiPalette.CyanDeep, GuiCommandId.Show, TopLeft, new Vector2(200, -284), new Vector2(150, 40), 22, GuiScreen.Gallery, 0);
             f.Text(buttons, "Hint", "hover, press: they squish", TextStyle.Body, 24, GuiPalette.Dusk, TopLeft, new Vector2(400, -288), new Vector2(340, 34), TextAlignmentOptions.Left);
 
             // Controls
@@ -788,24 +828,24 @@ namespace SdfGui.Editor
             // Bars and meters
             var bars = Section("Bars", new Vector2(1090, -510), new Vector2(780, 250));
             p.BarInstance(bars, "Health", GuiPalette.Moss, 0.72f, TopLeft, new Vector2(30, -70), new Vector2(330, 46), 30);
-            p.BarInstance(bars, "Low Health", GuiPalette.Amanita, 0.18f, TopLeft, new Vector2(30, -134), new Vector2(330, 46), 30);
-            var spores = p.BarInstance(bars, "Spores", GuiPalette.Spore, 0.56f, TopLeft, new Vector2(30, -198), new Vector2(330, 22), 0);
+            p.BarInstance(bars, "Low Health", GuiPalette.Red, 0.18f, TopLeft, new Vector2(30, -134), new Vector2(330, 46), 30);
+            var spores = p.BarInstance(bars, "Spores", GuiPalette.Cyan, 0.56f, TopLeft, new Vector2(30, -198), new Vector2(330, 22), 0);
             spores.bar.Glow = 8;
-            f.Shape(bars, "Reload Ring", ToonShapeKind.Ring, GuiPalette.Spore, TopLeft, new Vector2(400, -70), new Vector2(150, 150), s =>
+            f.Shape(bars, "Reload Ring", ToonShapeKind.Ring, GuiPalette.Cyan, TopLeft, new Vector2(400, -70), new Vector2(150, 150), s =>
             {
                 s.Thickness = 22;
                 s.FillMode = ToonFillMode.Radial;
                 s.FillAmount = 0.4f;
                 s.Glow = 12;
             });
-            f.Shape(bars, "Tank", ToonShapeKind.Pill, GuiPalette.Spore, TopLeft, new Vector2(600, -66), new Vector2(64, 160), s =>
+            f.Shape(bars, "Tank", ToonShapeKind.Pill, GuiPalette.Cyan, TopLeft, new Vector2(600, -66), new Vector2(64, 160), s =>
             {
                 s.FillMode = ToonFillMode.Vertical;
                 s.FillAmount = 0.6f;
                 s.Glow = 14;
                 s.Outline = 5;
             });
-            f.Shape(bars, "Low Tank", ToonShapeKind.Pill, GuiPalette.Amanita, TopLeft, new Vector2(690, -66), new Vector2(64, 160), s =>
+            f.Shape(bars, "Low Tank", ToonShapeKind.Pill, GuiPalette.Red, TopLeft, new Vector2(690, -66), new Vector2(64, 160), s =>
             {
                 s.FillMode = ToonFillMode.Vertical;
                 s.FillAmount = 0.15f;
@@ -820,21 +860,20 @@ namespace SdfGui.Editor
             {
                 var avatar = Instance<GuiAvatar>(p.Avatar, people, $"Avatar {i + 1}", TopLeft, new Vector2(30 + i * 86, -64));
                 avatar.color = roster[i].color;
-                avatar.avatar = i % 2;
+                avatar.head = roster[i].head;
                 avatar.dimmed = i == 5;
                 avatar.disc.color = i == 5 ? Color.Lerp(roster[i].color, GuiPalette.Dusk, 0.75f) : roster[i].color;
             }
-            var row = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row", TopLeft, new Vector2(560, -64), new Vector2(470, 60));
+            var row = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row", TopLeft, new Vector2(560, -64), new Vector2(760, 60));
             row.background.color = GuiPalette.Gold;
             row.playerName.text = SdfBattle.Cast.You;
             row.rank.text = "1";
             row.status.text = "YOU";
-            var row2 = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row Out", TopLeft, new Vector2(560, -140), new Vector2(470, 60));
+            var row2 = Instance<GuiPlayerRow>(p.PlayerRow, people, "Player Row Out", TopLeft, new Vector2(560, -140), new Vector2(760, 60));
             row2.background.color = Color.Lerp(GuiPalette.Paper, GuiPalette.Dusk, 0.55f);
             row2.playerName.text = SdfBattle.Cast.Blue[0];
             row2.rank.text = "8";
-            row2.status.text = "OUT";
-            row2.status.color = GuiPalette.Amanita;
+            row2.status.text = "";
             var entry = Instance<GuiKillFeedEntry>(p.KillFeedEntry, people, "Kill Feed Entry", TopRight, new Vector2(-24, -70), new Vector2(410, 52));
             entry.killer.text = GuiText.Name(roster[2]);
             entry.victim.text = GuiText.Name(roster[3]);
@@ -851,8 +890,8 @@ namespace SdfGui.Editor
             var palette = Section("Palette", new Vector2(40, -150), new Vector2(230, 900));
             (string name, Color color)[] swatches =
             {
-                ("Ink", GuiPalette.Ink), ("Cream", GuiPalette.Cream), ("Paper", GuiPalette.Paper), ("Amanita", GuiPalette.Amanita),
-                ("Chanterelle", GuiPalette.Chanterelle), ("Gold", GuiPalette.Gold), ("Moss", GuiPalette.Moss), ("Spore", GuiPalette.Spore),
+                ("Ink", GuiPalette.Ink), ("Cream", GuiPalette.Cream), ("Paper", GuiPalette.Paper), ("Red", GuiPalette.Red),
+                ("Amber", GuiPalette.Amber), ("Gold", GuiPalette.Gold), ("Moss", GuiPalette.Moss), ("Cyan", GuiPalette.Cyan),
                 ("Violet", GuiPalette.Violet), ("Sky", GuiPalette.Sky), ("Night", GuiPalette.Night), ("Dusk", GuiPalette.Dusk),
             };
             for (var i = 0; i < swatches.Length; i++)
@@ -865,7 +904,7 @@ namespace SdfGui.Editor
                 });
                 f.Text(palette, swatches[i].name + " Label", swatches[i].name, TextStyle.Body, 24, GuiPalette.Ink, TopLeft, new Vector2(80, -64 - i * 50), new Vector2(140, 36), TextAlignmentOptions.Left);
             }
-            f.Text(palette, "Title Sample", "Title", TextStyle.Title, 56, GuiPalette.Amanita, TopLeft, new Vector2(20, -670), new Vector2(200, 70), TextAlignmentOptions.Left);
+            f.Text(palette, "Title Sample", "Title", TextStyle.Title, 56, GuiPalette.Red, TopLeft, new Vector2(20, -670), new Vector2(200, 70), TextAlignmentOptions.Left);
             f.Text(palette, "Label Sample", "Label", TextStyle.Label, 40, GuiPalette.Ink, TopLeft, new Vector2(20, -740), new Vector2(200, 50), TextAlignmentOptions.Left);
             f.Text(palette, "Body Sample", "Body text", TextStyle.Body, 30, GuiPalette.Ink, TopLeft, new Vector2(20, -796), new Vector2(200, 40), TextAlignmentOptions.Left);
             var inked = f.Shape(palette, "Ink Sample Backdrop", ToonShapeKind.Box, GuiPalette.Night, TopLeft, new Vector2(14, -842), new Vector2(200, 44), s =>
@@ -888,7 +927,7 @@ namespace SdfGui.Editor
             var t = root.transform;
             var credits = root.AddComponent<GuiCredits>();
             Backdrop(t, 0.72f);
-            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.12f), Centre, new Vector2(0, 0), new Vector2(1500, 1000));
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Cyan, 0.12f), Centre, new Vector2(0, 0), new Vector2(1500, 1000));
 
             var viewport = Object("Viewport", t);
             Stretch(viewport.transform);
@@ -970,16 +1009,16 @@ namespace SdfGui.Editor
             EndRow();
             Heading("Round");
             Add("NEW ROUND", GuiPalette.MossDark, GuiCommandId.NewRound);
-            Add("BOTS ON/OFF", GuiPalette.MossDark, GuiCommandId.ToggleAutoEvents);
-            Add("HIT ME", GuiPalette.AmanitaDark, GuiCommandId.Damage);
+            Add("AI ON/OFF", GuiPalette.MossDark, GuiCommandId.ToggleAutoEvents);
+            Add("HIT ME", GuiPalette.RedDark, GuiCommandId.Damage);
             Add("HEAL", GuiPalette.MossDark, GuiCommandId.Heal);
-            Add("MY KILL", GuiPalette.AmanitaDark, GuiCommandId.YouKill);
-            Add("HEADSHOT", GuiPalette.AmanitaDark, GuiCommandId.YouHeadshot);
-            Add("BOT KILL", GuiPalette.Violet, GuiCommandId.BotKill);
-            Add("PICK UP", GuiPalette.SporeDeep, GuiCommandId.TogglePickup);
-            Add("RELOAD", GuiPalette.SporeDeep, GuiCommandId.Reload);
-            Add("DIE", GuiPalette.AmanitaDark, GuiCommandId.Die);
-            Add("WIN", GuiPalette.Chanterelle, GuiCommandId.Win);
+            Add("MY KILL", GuiPalette.RedDark, GuiCommandId.YouKill);
+            Add("HEADSHOT", GuiPalette.RedDark, GuiCommandId.YouHeadshot);
+            Add("AI KILL", GuiPalette.Violet, GuiCommandId.BotKill);
+            Add("PICK UP", GuiPalette.CyanDeep, GuiCommandId.TogglePickup);
+            Add("RELOAD", GuiPalette.CyanDeep, GuiCommandId.Reload);
+            Add("DIE", GuiPalette.RedDark, GuiCommandId.Die);
+            Add("WIN", GuiPalette.Amber, GuiCommandId.Win);
             EndRow();
 
             var state = f.Text(t, "State", "Playing", TextStyle.Body, 18, GuiPalette.Paper, TopLeft, new Vector2(14, y), new Vector2(234, 70), TextAlignmentOptions.TopLeft);

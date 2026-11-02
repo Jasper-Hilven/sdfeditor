@@ -1,23 +1,25 @@
 ## Game name
 
-**Minigun Mushrooms: Second Place**
+**Minigun Monsters**
 
-(The title screen logo reads MINIGUN / MUSHROOMS on a spotted red cap, with a "Second Place" ribbon across its foot. There is no "2" in the name; the 2 on the ribbon is the silver second-place rosette.)
+(The logo reads MINIGUN / MONSTERS in big lettering on a rage-red splat.)
 
 ## Description
 
-You are a mushroom with a minigun, and someone just pulled you into a computer.
+Put a monster head on a soldier and give him a minigun.
 
-Minigun Mushrooms: Second Place is a first-person capture-the-flag shooter with a story. Each battle is a team match: you and your bots against a team of bots, red against blue, over a field full of weapon and health pods. Grab the enemy flag, carry it home while your own flag is safe, and shoot whoever gets in the way. Match end is by score or the clock, with sudden death if it is tied. Then it's on to the next arena.
+Minigun Monsters is a first-person capture-the-flag shooter in endless matches. You are dropped on a random team, red or blue, in one of seven arenas, with a field full of weapon and health pods. Grab the enemy flag, carry it home while your own flag is safe, and shoot whoever gets in the way. A match ends on score or the clock, with sudden death if it is tied. Then a 10 second countdown starts the next match on another arena. Everyone on the field has a name and a monster head of their own.
 
-The single-player campaign runs from a comic-book intro through eight arenas to a three-phase boss fight against Chanterelle Prime, with comics between battles and an ending. There is no online multiplayer; every opponent is a bot.
+Win a match and you unlock another monster head. The head of the month is always yours, and a win unlocks the next head in the calendar, from the Abominable Snowman in January to the Crazed Evil Santa in December. Pick your head on the end card between matches. The game watches how you do: lose and the next opponents are easier, win clean and they get tougher.
 
-- Eight arenas, each with its own theme, scale and weapons: a meadow, a fungal island, a chessboard, a toy box, a kitchen worktop, a bathroom, the inside of a computer, and the boss's Champion's Arena.
+- Seven arenas, each with its own theme, scale and weapons: a meadow, a fungal island, a chessboard, a toy box, a kitchen worktop, a bathroom and the inside of a computer.
+- Twelve monster heads, one for every month: Abominable Snowman, Vampire Count, Leprechaun Mutant, Swamp Thing, Raging Cyclops, Deep-Sea Cthulhu, Acid Alien, Ancient Mummy, Feral Werewolf, Glowing Jack-o'-Lantern, Frankenstein's Monster and Crazed Evil Santa.
 - Weapons by range: pistols, minigun, sniper, electro-gun, flamethrower, poison-gun and blob-gun, in four slots.
 - Monster powers: fight well to fill the rage meter, then spend it on Frenzy (speed), Regenerate (healing) or Thick Hide (less damage).
-- Enemy machines to fight: helicopters, tanks and turrets that shoot at you and respawn.
-- Four difficulties, Super Easy, Easy, Normal and Hard, and an easier retry after a defeat.
-- Adjustable gore (off, splatty, extra splatty, ultra gore) and quality levels from ultra low up to Epic and Ultra Epic, with an automatic setting.
+- Machines to fight: helicopters, tanks and turrets that shoot at you and respawn.
+- A scoreboard on Tab with each player's monster head, kills, deaths and captures.
+- Adaptive difficulty, from Super Easy to Hard, that follows how you play.
+- Adjustable gore (off, splatty, extra splatty, ultra gore): only the monster heads burst, each in its own colour, and the soldiers fall like ragdolls. Quality levels from ultra low up to Epic and Ultra Epic, with an automatic setting.
 - A toon-shaded look with floating eyes and hands.
 
 ## Controls
@@ -32,12 +34,13 @@ Keyboard and mouse
 | Fire | Left mouse button (hold) |
 | Zoom (sniper) | Right mouse button |
 | Switch weapon | 1 to 4, or the mouse wheel |
-| Monster powers (when the meter is full) | Q: Frenzy, F: Regenerate, C: Thick Hide (by key position, so AZERTY uses A, F, C; the HUD shows your own letters) |
-| Scoreboard | Hold Tab |
+| Monster powers (when the rage meter is full) | Q: Frenzy, F: Regenerate, C: Thick Hide (by key position, so AZERTY uses A, F, C; the HUD shows your own letters) |
+| Scoreboard (names, heads, kills, deaths, captures) | Hold Tab |
+| Change your monster head on the end card | A and D (by key position, so AZERTY uses Q and D), or click the arrows |
+| Skip the end card's countdown | Space or Enter |
 | Pause / menu / back | Escape |
-| Skip comics and credits | Hold Space or Escape |
-| Next comic panel | Click, Space, Enter or Right arrow |
+| Skip the credits | Hold Space or Escape |
 
 Gamepad
 
-There is no gamepad support for playing. Only the Start button (joystick button 7) is recognised, for skipping comics and credits.
+There is no gamepad support for playing. Only the Start button (joystick button 7) is recognised, for skipping the credits.

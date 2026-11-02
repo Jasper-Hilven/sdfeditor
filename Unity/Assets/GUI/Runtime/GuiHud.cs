@@ -108,7 +108,7 @@ namespace SdfGui
             }
             if (hitMarker != null)
             {
-                hitMarker.SetColor(GuiPalette.WithAlpha(m.hitMarkerKill ? GuiPalette.Amanita : GuiPalette.Cream, m.hitMarker));
+                hitMarker.SetColor(GuiPalette.WithAlpha(m.hitMarkerKill ? GuiPalette.Red : GuiPalette.Cream, m.hitMarker));
                 var scale = Vector3.one * (1 + 0.35f * m.hitMarker);
                 if (hitMarker.rectTransform.localScale != scale)
                     hitMarker.rectTransform.localScale = scale;
@@ -117,13 +117,13 @@ namespace SdfGui
             // Health
             health?.Set(m.health / Mathf.Max(1, m.maxHealth));
             if (health != null && health.bar != null)
-                health.bar.SetColor(m.health < 30 ? GuiPalette.Amanita : GuiPalette.Moss);
+                health.bar.SetColor(m.health < 30 ? GuiPalette.Red : GuiPalette.Moss);
 
             // Round
             // Sudden death has no time left to show: the clock says what decides it instead
             GuiText.Set(clock, m.suddenDeath ? (m.suddenDeathOnKills ? "NEXT KILL WINS" : "SUDDEN DEATH") : GuiText.Clock(m.timeLeft));
             if (clock != null)
-                clock.color = m.suddenDeath || m.timeLeft < 30 ? GuiPalette.Amanita : GuiPalette.Cream;
+                clock.color = m.suddenDeath || m.timeLeft < 30 ? GuiPalette.Red : GuiPalette.Cream;
 
             // Moments
             GuiText.Show(eliminatedPopup, m.eliminated > 0);
@@ -148,7 +148,7 @@ namespace SdfGui
             if (vignette != null)
             {
                 var low = aliveYou && m.health < 30 ? 0.35f + 0.25f * Mathf.Sin(Time.realtimeSinceStartup * 6) : 0;
-                vignette.SetColor(GuiPalette.WithAlpha(GuiPalette.AmanitaDark, Mathf.Max(m.damage * 0.85f, low)));
+                vignette.SetColor(GuiPalette.WithAlpha(GuiPalette.RedDark, Mathf.Max(m.damage * 0.85f, low)));
             }
             var offered = aliveYou && !string.IsNullOrEmpty(m.pickup);
             GuiText.Show(pickupPrompt, offered);

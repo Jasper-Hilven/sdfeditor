@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SdfGui
 {
     /// <summary>
-    /// The GUI's icons by name: renders of the models (characters, weapons) in their toon look, made by GuiIcons in the editor
+    /// The GUI's icons by name: renders of the models (monster heads, weapons) in their toon look, made by GuiIcons in the editor
     /// (Tools > SDF GUI > Render Icons), so they always match the game.
     /// </summary>
     [CreateAssetMenu(menuName = "SDF GUI/Icon Set")]
@@ -19,8 +19,8 @@ namespace SdfGui
 
         public Icon[] icons = Array.Empty<Icon>();
 
-        /// <summary>The avatars the players are drawn with, by <see cref="ViewPlayer.avatar"/>.</summary>
-        public string[] avatars = { "amanita-scout", "chanterelle-scout" };
+        /// <summary>The monster heads' icons, which a player without a head of their own falls back on, by <see cref="ViewPlayer.avatar"/>.</summary>
+        public string[] avatars = { "yeti", "vampire", "leprechaun", "swamp", "cyclops", "cthulhu", "alien", "mummy", "werewolf", "pumpkin", "frankenstein", "santa" };
 
         public Sprite Get(string iconName)
         {

@@ -156,7 +156,7 @@ namespace SdfBattle
 
         // ---------------------------------------------------------------- Every frame
 
-        public static Color Colour(Team team) => team == Team.Red ? GuiPalette.Amanita : GuiPalette.Hex(0x3D7BEA);
+        public static Color Colour(Team team) => team == Team.Red ? GuiPalette.Red : GuiPalette.Hex(0x3D7BEA);
 
         private static string Hex(Team team) => GuiPalette.HexOf(Colour(team));
 

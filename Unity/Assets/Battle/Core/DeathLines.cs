@@ -16,7 +16,7 @@ namespace SdfBattle
         Flamethrower,
         PoisonGun,
         BlobGun,
-        /// <summary>The killing shot hit the cap.</summary>
+        /// <summary>The killing shot hit the head.</summary>
         Headshot,
         Tank,
         Helicopter,
@@ -259,10 +259,10 @@ namespace SdfBattle
             [(DeathKind.Pistol, DeathText.Feed)] = new[]
             {
                 L("{killer} plinked {icon} {victim}"),
-                L("{killer} {icon} tapped {victim}'s cap"),
+                L("{killer} {icon} tapped {victim}'s head"),
                 L("{victim} got pew-pewed {icon} by {killer}"),
                 L("{killer} {icon} popped {victim}"),
-                L("{killer} {icon} button-mushroomed {victim}"),
+                L("{killer} {icon} dinged {victim}"),
                 L("{killer} picked off {icon} {victim}"),
                 L("{victim} got peppered {icon} by {killer}"),
                 L("{killer} {icon} sent {victim} home"),
@@ -280,7 +280,7 @@ namespace SdfBattle
                 L("by {killer}'s\npea shooter"),
                 L("{killer} only\nneeded a pistol"),
                 L("by {killer}\nwith the pistol"),
-                L("{killer} put\nholes in your cap", Gory),
+                L("{killer} put\nholes in your head", Gory),
             },
 
             // Dual pistols
@@ -371,7 +371,7 @@ namespace SdfBattle
             [(DeathKind.ElectroGun, DeathText.Feed)] = new[]
             {
                 L("{killer} {icon} zapped {victim}"),
-                L("{killer} {icon} frizzled {victim}'s gills"),
+                L("{killer} {icon} frizzled {victim}'s hair"),
                 L("{victim} got sparked {icon} by {killer}"),
                 L("{killer} {icon} jolted {victim}"),
                 L("{killer} {icon} rewired {victim}"),
@@ -388,10 +388,10 @@ namespace SdfBattle
             [(DeathKind.ElectroGun, DeathText.Detail)] = new[]
             {
                 L("by {killer}'s\nelectro-gun"),
-                L("{killer} put volts\nin your gills"),
+                L("{killer} put volts\nin your hair"),
                 L("you conducted\n{killer}'s bolt"),
                 L("{killer} zapped\nyour fur"),
-                L("gills: frizzy.\nby: {killer}"),
+                L("hair: frizzy.\nby: {killer}"),
                 L("{killer} gave\nyou a big buzz"),
             },
 
@@ -480,29 +480,29 @@ namespace SdfBattle
             // Headshot
             [(DeathKind.Headshot, DeathText.Feed)] = new[]
             {
-                L("{killer} {icon} popped {victim}'s cap"),
-                L("{killer} {icon} capped {victim}"),
-                L("{victim} lost their cap {icon} to {killer}"),
+                L("{killer} {icon} popped {victim}'s head"),
+                L("{killer} {icon} head-tapped {victim}"),
+                L("{victim} lost their head {icon} to {killer}"),
                 L("{killer} {icon} decapped {victim}"),
-                L("{killer} {icon} knocked {victim}'s cap off"),
-                L("{killer} {icon} tipped {victim}'s cap"),
+                L("{killer} {icon} knocked {victim}'s head off"),
+                L("{killer} {icon} rang {victim}'s bell"),
                 L("{killer} {icon} topped {victim}"),
-                L("{killer} {icon} went cap-first on {victim}"),
-                L("{killer} {icon} split {victim}'s cap", Gory),
-                L("{killer} {icon} burst {victim}'s cap open", Ultra),
+                L("{killer} {icon} went for {victim}'s head"),
+                L("{killer} {icon} split {victim}'s head", Gory),
+                L("{killer} {icon} burst {victim}'s head open", Ultra),
             },
             [(DeathKind.Headshot, DeathText.Title)] = new[]
             {
-                L("CAP POPPED!"), L("DECAPPED!"), L("CAPPED!"), L("TOP OFF!"), L("HATS OFF!"), L("CAP TIPPED!"), L("CAP SPLIT!", Gory),
+                L("HEAD POPPED!"), L("DECAPPED!"), L("HEADSHOT!"), L("TOP OFF!"), L("HATS OFF!"), L("BELL RUNG!"), L("HEAD SPLIT!", Gory),
             },
             [(DeathKind.Headshot, DeathText.Detail)] = new[]
             {
-                L("{killer} popped\nyour cap"),
-                L("right in the cap,\nby {killer}"),
-                L("{killer} knocked\nyour cap clean off"),
-                L("by {killer}\nwith a cap shot"),
+                L("{killer} popped\nyour head"),
+                L("right in the head,\nby {killer}"),
+                L("{killer} knocked\nyour head clean off"),
+                L("by {killer}\nwith a head shot"),
                 L("{killer} aimed\nfor the top"),
-                L("{killer} split\nyour cap in two", Gory),
+                L("{killer} split\nyour head in two", Gory),
             },
 
             // Tank
@@ -552,7 +552,7 @@ namespace SdfBattle
                 L("by the {killer}"),
                 L("the {killer}\nsaw you from above"),
                 L("the {killer}\nhad the high ground"),
-                L("the {killer}\nbuzzed your cap"),
+                L("the {killer}\nbuzzed your head"),
                 L("look up next time:\nthe {killer}"),
             },
 
@@ -744,7 +744,7 @@ namespace SdfBattle
                 L("{killer} {icon} pruned {victim}"),
                 L("{killer} {icon} sent {victim} to the soil"),
                 L("{killer} {icon} outgrew {victim}"),
-                L("{killer} {icon} out-funged {victim}"),
+                L("{killer} {icon} out-monstered {victim}"),
                 L("{killer} {icon} eliminated {victim}"),
                 L("{killer} {icon} trimmed {victim}"),
                 L("{killer} {icon} splattered {victim}", Gory),
@@ -752,7 +752,7 @@ namespace SdfBattle
             },
             [(DeathKind.Generic, DeathText.Title)] = new[]
             {
-                L("COMPOSTED"), L("ELIMINATED"), L("UPROOTED!"), L("WEEDED OUT!"), L("PRUNED!"), L("PICKED!"), L("MUSHED!"),
+                L("COMPOSTED"), L("ELIMINATED"), L("UPROOTED!"), L("WEEDED OUT!"), L("PRUNED!"), L("PICKED!"), L("SMASHED!"),
                 L("SPLATTERED!", Gory), L("GOOPSPLOSION", Ultra),
             },
             [(DeathKind.Generic, DeathText.Detail)] = new[]
@@ -761,7 +761,7 @@ namespace SdfBattle
                 L("{killer} and the\n{weapon} say hi"),
                 L("{killer} picked\nyou fair and square"),
                 L("back to the soil,\ncourtesy of {killer}"),
-                L("{killer} out-funged\nyou this time"),
+                L("{killer} out-\nmonstered you"),
                 L("{killer} splattered\nyou all over", Gory),
             },
         };

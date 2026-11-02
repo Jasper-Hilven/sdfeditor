@@ -754,7 +754,7 @@ namespace SdfMedia.Editor
             }
             if (hit > 0.01f)
             {
-                var marker = kill ? GuiPalette.Amanita.linear : cream;
+                var marker = kill ? GuiPalette.Red.linear : cream;
                 marker.a = Mathf.Clamp01(hit);
                 var size = scale * (1 + 0.35f * hit);
                 for (var cross = 0; cross < 2; cross++)

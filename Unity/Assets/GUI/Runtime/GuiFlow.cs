@@ -380,7 +380,7 @@ namespace SdfGui
             {
                 Match.caption.Clear();
                 if (next == GuiScreen.Caption)
-                    Match.caption.Set("Mushroom 7", "Fill your rage and activate Frenzy. Trust me.", 1, 0, "Hold SPACE to skip");
+                    Match.caption.Set("ToastyMage", "Fill your rage and activate Frenzy. Trust me.", 1, 0, "Hold SPACE to skip");
             }
             if (next == GuiScreen.Caption)
                 next = GuiScreen.Hud;

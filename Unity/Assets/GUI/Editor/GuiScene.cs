@@ -190,7 +190,7 @@ namespace SdfGui.Editor
             rect.localPosition = new Vector3(gunBounds.min.x + 0.01f, gunBounds.max.y + 0.06f, gunBounds.center.z - gunBounds.size.z * 0.1f);
             rect.localRotation = Quaternion.Euler(0, -20, 0);
 
-            view.tank = f.Shape(card.transform, "Spore Tank", ToonShapeKind.Pill, GuiPalette.Spore, Centre, new Vector2(0, 30), new Vector2(110, 260), s =>
+            view.tank = f.Shape(card.transform, "Spore Tank", ToonShapeKind.Pill, GuiPalette.Cyan, Centre, new Vector2(0, 30), new Vector2(110, 260), s =>
             {
                 s.FillMode = ToonFillMode.Vertical;
                 s.FillAmount = 0.656f;
@@ -214,7 +214,7 @@ namespace SdfGui.Editor
                 glowRect.sizeDelta = new Vector2(400, 400);
                 glowRect.localScale = Vector3.one * handBounds.size.y * 1.8f / 400;
                 glowRect.localPosition = new Vector3(x, handBounds.center.y, handBounds.max.z);
-                glows.Add(f.Shape(glowCard.transform, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.75f), Centre, Vector2.zero, new Vector2(400, 400)));
+                glows.Add(f.Shape(glowCard.transform, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Cyan, 0.75f), Centre, Vector2.zero, new Vector2(400, 400)));
             }
             view.handGlows = glows.ToArray();
             foreach (var t in root.GetComponentsInChildren<Transform>(true))

@@ -10,7 +10,7 @@ namespace SdfGui
 
         protected override void Render(MatchView m)
         {
-            GuiText.Set(label, $"{m.phase}  ·  {m.Alive} alive  ·  bots {(m.autoEvents ? "on" : "off")}\nF1 hides  ·  Tab scores  ·  Esc pause  ·  hold LMB fire  ·  R reload");
+            GuiText.Set(label, $"{m.phase}  ·  {m.Alive} alive  ·  AI {(m.autoEvents ? "on" : "off")}\nF1 hides  ·  Tab scores  ·  Esc pause  ·  hold LMB fire  ·  R reload");
         }
     }
 }

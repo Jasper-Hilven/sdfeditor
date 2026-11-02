@@ -35,7 +35,7 @@ namespace SdfGui
                 weapon.sprite = sprite;
             GuiText.Show(weapon, sprite != null);
             if (killer != null)
-                avatar?.Set(killer.color, killer.avatar, false);
+                avatar?.Set(killer.color, killer.avatar, false, killer.head);
             GuiText.Show(avatar, killer != null);
             GuiText.Show(back, m.respawnIn > 0);
             if (m.respawnIn > 0)

@@ -245,6 +245,9 @@ namespace SdfBattle
                 shown.color = BattleSide.ColorOf(BattleSide.SideOf(p.Team));
                 shown.avatar = (int)p.Team;
                 shown.kills = p.Kills;
+                shown.deaths = p.Deaths;
+                shown.captures = p.Captures;
+                shown.head = match.PlayerOf(p)?.WornHead?.Id;
                 shown.alive = p.Alive;
                 shown.you = !p.IsBot;
                 var won = state.Winner == p.Team && !winnerShown;
