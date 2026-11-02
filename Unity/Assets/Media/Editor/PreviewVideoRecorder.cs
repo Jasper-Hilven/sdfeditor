@@ -179,6 +179,22 @@ namespace SdfMedia.Editor
         [MenuItem("Tools/SDF Media/Record Preview Videos")]
         public static void Record() => Start();
 
+        /// <summary>
+        /// Records the videos in a batch editor with the GPU and exits it (0 when the videos are written, 1 on the first error):
+        /// <c>SDF_NO_QUIT=1 tools/unity-batch.sh previews -executeMethod SdfMedia.Editor.PreviewVideoRecorder.RecordInBatch</c> (no -quit, no -nographics).
+        /// </summary>
+        public static void RecordInBatch()
+        {
+            if (!Start())
+                EditorApplication.Exit(1);
+        }
+
+        private static void ExitIfBatch(bool ok)
+        {
+            if (Application.isBatchMode)
+                EditorApplication.Exit(ok ? 0 : 1);
+        }
+
         [MenuItem("Tools/SDF Media/Cancel Preview Recording")]
         public static void CancelFromMenu()
         {
@@ -199,7 +215,7 @@ namespace SdfMedia.Editor
                 EditorUtility.DisplayDialog("Record Preview Videos", "Stop Play mode and wait for the compile to finish first.", "OK");
                 return false;
             }
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return false;
             var videos = Path.Combine(PreviewVideoEncoder.MediaFolder, "Video");
             foreach (var shape in Shapes)
@@ -778,6 +794,7 @@ namespace SdfMedia.Editor
                 ? $"SDF Media: preview videos written to {PreviewVideoEncoder.MediaFolder} (preview-landscape.mp4, preview-portrait.mp4, preview-square.mp4)."
                 : "SDF Media: encoding failed, see the errors above; the frames are still in Media/Video.");
             PreviewPromo.RecorderFinished(ok);
+            ExitIfBatch(ok);
         }
 
         /// <summary>Stops the recording where it is (Play mode left, settings put back, the scene from before opened again), with a message.</summary>
@@ -800,6 +817,7 @@ namespace SdfMedia.Editor
             else
                 Reopen(back);
             PreviewPromo.RecorderFinished(false);
+            ExitIfBatch(false);
         }
 
         private static void Deactivate()

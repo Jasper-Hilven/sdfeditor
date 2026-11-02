@@ -47,10 +47,10 @@ namespace SdfMedia.Editor
     /// <summary>
     /// Renders the three CrazyGames cover images of the game into the repository's Media/Covers folder (next to Unity/):
     /// <c>cover-landscape.png</c> 1920 × 1080, <c>cover-portrait.png</c> 800 × 1200 and <c>cover-square.png</c> 800 × 800. They are
-    /// staged pictures, not screenshots: <see cref="CoverStage"/> builds one scene, "mid-air minigun" (the red amanita scout leaping at
-    /// the camera with his minigun blazing, two blue chanterelle scouts diving aside and a toon explosion behind them) on the Meadow
+    /// staged pictures, not screenshots: <see cref="CoverStage"/> builds one scene, "mid-air minigun" (a red soldier with a Jack-o'-Lantern
+    /// head leaping at the camera with his minigun blazing, two blue soldiers with werewolf and Cthulhu heads diving aside and a blue soldier's Frankenstein head bursting behind them) on the Meadow
     /// level's own ground and sky, each format gets its own camera framing of that same scene so that the three read as one game, and
-    /// <see cref="CoverLogo"/> lays the real logo of the title screen (the spotted cap, MINIGUN MUSHROOMS and the Second Place ribbon;
+    /// <see cref="CoverLogo"/> lays the real logo of the Loading screen (MINIGUN MONSTERS;
     /// the title and nothing else: CrazyGames allows no other text) over the render. No other text, no buttons, no borders.
     /// <para>
     /// The scene is rendered at the Epic quality level (the preset of <see cref="RenderPipelineSetup.Epic"/>: up to eight samples a pixel, as many as the GPU gives a render texture, LOD0
@@ -79,7 +79,7 @@ namespace SdfMedia.Editor
 
         /// <summary>
         /// The three formats of one picture, "mid-air minigun" (see <see cref="CoverStage"/>): the camera is low, a few metres in front of
-        /// the red hero (in <see cref="CoverStage"/>'s space he leaps at the origin, the two blue scouts dive aside about 3.5 m behind him and
+        /// the red hero (in <see cref="CoverStage"/>'s space he leaps at the origin, the two blue soldiers dive aside about 3.5 m behind him and
         /// the explosion is 9 m back), turned up a little and rolled for a dynamic tilt. <see cref="CoverFormat.Anchor"/> puts his middle
         /// right of the middle in the landscape (the logo is upper left), low in the portrait and the square (the logo is on top).
         /// </summary>
@@ -89,7 +89,7 @@ namespace SdfMedia.Editor
             {
                 FileName = "cover-landscape.png", Width = 1920, Height = 1080,
                 CameraPosition = new Vector3(-0.6f, 0.5f, -4.2f), Anchor = new Vector2(0.66f, 0.50f), FieldOfView = 42, Roll = -4,
-                LogoCentre = new Vector2(0.265f, 0.27f), LogoShare = 0.47f,
+                LogoCentre = new Vector2(0.265f, 0.2f), LogoShare = 0.47f,
             },
             new CoverFormat
             {
@@ -442,8 +442,14 @@ namespace SdfMedia.Editor
             previousActive = SceneManager.GetActiveScene();
             backdrop = SceneManager.GetSceneByPath(path);
             openedBackdrop = !backdrop.IsValid() || !backdrop.isLoaded;
+            // A batch editor starts with one untitled scene, which cannot have another new scene added next to it: the level replaces it
+            var untitled = SceneManager.sceneCount == 1 && string.IsNullOrEmpty(SceneManager.GetActiveScene().path);
             if (openedBackdrop)
-                backdrop = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+            {
+                backdrop = EditorSceneManager.OpenScene(path, untitled ? OpenSceneMode.Single : OpenSceneMode.Additive);
+                if (untitled)
+                    openedBackdrop = false;
+            }
             StageScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             // The sky and the ambient light are the active scene's
             SceneManager.SetActiveScene(backdrop);

@@ -1,3 +1,4 @@
+using System.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -8,8 +9,8 @@ using Object = UnityEngine.Object;
 namespace SdfMedia.Editor
 {
     /// <summary>
-    /// The game's real logo for a cover: the Logo object of the title screen prefab (Assets/GUI/Prefabs/Screens/Title.prefab: the spotted
-    /// cap, MINIGUN and MUSHROOMS on arches and the Second Place ribbon, but not the tagline plate under it) taken out of that prefab, with everything else of the screen (the
+    /// The game's real logo for a cover: the Logo object of the Loading screen prefab (Assets/GUI/Prefabs/Screens/Loading.prefab: MINIGUN and
+    /// MONSTERS on the rage-red splat, but not the tagline plate under it) taken out of that prefab, with everything else of the screen (the
     /// buttons, the progress line, the version, the dim) left behind, sized and placed per format, and rendered on its own. It sits on a
     /// world-space canvas of the cover's own size (one canvas unit a pixel) far below the stage, drawn by an orthographic camera that sees
     /// only the UI layer, at <see cref="CoverCapture.Super"/> times the size, once over black and once over white; the two give the logo's
@@ -21,7 +22,7 @@ namespace SdfMedia.Editor
     {
         /// <summary>The UI layer, which the logo's objects are on and only its camera sees.</summary>
         public const int UiLayer = 5;
-        public const string TitlePrefab = "Assets/GUI/Prefabs/Screens/Title.prefab";
+        public const string TitlePrefab = "Assets/GUI/Prefabs/Screens/Loading.prefab";
         /// <summary>Where the canvas hangs, far from anything else in the scenes.</summary>
         private static readonly Vector3 CanvasPosition = new Vector3(0, -5000, 0);
 
@@ -54,9 +55,9 @@ namespace SdfMedia.Editor
                 holder.SetActive(false);
                 var title = (GameObject)PrefabUtility.InstantiatePrefab(prefab, holder.transform);
                 PrefabUtility.UnpackPrefabInstance(title, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-                var logo = title.transform.Find("Logo") as RectTransform;
+                var logo = title.GetComponentsInChildren<RectTransform>(true).FirstOrDefault(r => r.name == "Logo");
                 if (logo == null)
-                    throw new System.InvalidOperationException($"{TitlePrefab} has no Logo (GuiScreens.Title builds it)");
+                    throw new System.InvalidOperationException($"{TitlePrefab} has no Logo (GuiScreens.Loading builds it)");
                 var design = logo.sizeDelta;
                 logo.SetParent(canvasRect, false);
                 Object.DestroyImmediate(holder);

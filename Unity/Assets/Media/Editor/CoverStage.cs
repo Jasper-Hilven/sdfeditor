@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using SdfBattle;
 using SdfEffects;
-using SdfMushrooms.Editor;
+using SdfHeads;
+using SdfRig;
+using SdfRig.Editor;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -46,21 +48,20 @@ namespace SdfMedia.Editor
         private static readonly Vector3 RedPosition = new Vector3(0, 0, 0);
         private const float RedLift = 0.6f, RedLean = 18, RedRoll = -9;
         /// <summary>The way he faces (a direction in the stage's space); his gun aims at <see cref="RedAimAt"/>.</summary>
-        private static readonly Vector3 RedFacing = new Vector3(-0.1f, 0, -1);
+        private static readonly Vector3 RedFacing = new Vector3(-0.45f, 0, -1);
         /// <summary>Left of the lens and a little low: the minigun points past the camera, so its tracers streak across the foreground.</summary>
-        private static readonly Vector3 RedAimAt = new Vector3(-2.2f, 0.7f, -6.5f);
+        private static readonly Vector3 RedAimAt = new Vector3(-6f, 0.4f, -3.5f);
         /// <summary>The hero's middle: the point of him the formats' cameras place on the picture (<see cref="CoverFormat.Anchor"/>).</summary>
         public static readonly Vector3 HeroCentre = new Vector3(0, 1.4f, 0);
 
         // The two blue scouts dive aside, one each way, looking back at the camera, hands flung out
         private static readonly Vector3 BlueLeftPosition = new Vector3(-2.0f, 0, 3.8f);
         private static readonly Vector3 BlueRightPosition = new Vector3(1.9f, 0, 3.4f);
-        private const float BlueLeftLift = 0.55f, BlueLeftLean = 10, BlueLeftRoll = -38;
-        private const float BlueRightLift = 0.35f, BlueRightLean = 8, BlueRightRoll = 34;
+        private const float BlueLeftLift = 0.9f, BlueLeftLean = 10, BlueLeftRoll = -38;
+        private const float BlueRightLift = 1.0f, BlueRightLean = 8, BlueRightRoll = 34;
 
         // The explosion behind them: where its middle is (in the stage's space), its radius in metres, and the pieces of a blue scout
         // blown out of it (their size on top of the game's)
-        private static readonly Vector3 ExplosionCentre = new Vector3(1.9f, 4.8f, 9.0f);
         private const float ExplosionRadius = 2.8f;
         private const float DebrisScale = 1.3f;
 
@@ -69,9 +70,13 @@ namespace SdfMedia.Editor
 
         // ------------------------------------------------------------------------------------------------------------ The stage
 
-        private const string RedScoutPrefab = MushroomBuilder.PrefabFolder + "/amanita-scout.prefab";
-        private const string BlueScoutPrefab = MushroomBuilder.PrefabFolder + "/chanterelle-scout.prefab";
-        private const string BluePiecePrefix = "chanterelle-scout-";
+        // The three heads in the picture: the hero's, the two diving soldiers', and the one that bursts (its colours colour the explosion)
+        private const string HeroHead = "pumpkin", LeftHead = "werewolf", RightHead = "cthulhu", BurstHead = "frankenstein";
+        private const string AimClip = "Assets/Battle/Body/Animations/Locomotion/soldier_loco_aim_idle.anim";
+        private const string RunClip = "Assets/Battle/Body/Animations/Locomotion/soldier_loco_run_f.anim";
+        // The headless soldier behind them, lifted and tipped back by the burst
+        private static readonly Vector3 VictimPosition = new Vector3(2.6f, 0, 6.5f);
+        private const float VictimLift = 2.6f, VictimLean = -25, VictimRoll = 15;
         private const string EffectMaterialPath = "Assets/Effects/Materials/Effect.mat";
 
         private readonly Scene scene;
@@ -174,25 +179,26 @@ namespace SdfMedia.Editor
 
         private void Build()
         {
-            var cameraPoint = ToWorld(CoverCapture.Formats[0].CameraPosition);
             var fx = CreateEffects();
             fx.Begin();
 
-            // Red: leaping at the camera, eyes on it, the minigun firing past it
-            var red = Spawn(RedScoutPrefab, "Red Hero");
+            // Red: a pumpkin-headed soldier leaping at the camera, the minigun firing past it
+            var red = Soldier(SoldierModels.RedSkin, HeroHead, "Red Hero", AimClip, 0.2f);
             Stand(red.transform, RedPosition, RedFacing, RedLift, RedLean, RedRoll, 1, out var redFeet, out var redNormal);
-            LookAtPoint(Eyes(red.transform), cameraPoint);
             var redLook = weapons.LookOf(WeaponIds.Minigun);
-            var redGun = Hold(red.transform, Hands(red.transform), redLook, redLook.model, ToWorld(RedAimAt), 1, true);
+            var redGun = Hold(red.transform, redLook, ToWorld(RedAimAt));
             Shade(redFeet, redNormal, 1);
             Shots(fx, redGun.transform, redLook);
 
-            // Blue: two scouts diving aside, looking back, hands flung out
-            Dive(BlueScoutPrefab, "Blue Scout Left", BlueLeftPosition, new Vector3(0.3f, 0, -1), BlueLeftLift, BlueLeftLean, BlueLeftRoll, cameraPoint);
-            Dive(BlueScoutPrefab, "Blue Scout Right", BlueRightPosition, new Vector3(-0.3f, 0, -1), BlueRightLift, BlueRightLean, BlueRightRoll, cameraPoint);
+            // Blue: two soldiers diving aside, one each way
+            Dive(LeftHead, "Blue Soldier Left", BlueLeftPosition, new Vector3(0.3f, 0, -1), BlueLeftLift, BlueLeftLean, BlueLeftRoll, 0.15f);
+            Dive(RightHead, "Blue Soldier Right", BlueRightPosition, new Vector3(-0.3f, 0, -1), BlueRightLift, BlueRightLean, BlueRightRoll, 0.55f);
 
-            // The explosion behind them
-            Explosion(fx, ToWorld(ExplosionCentre));
+            // Behind them a blue soldier's head bursts
+            var victim = Soldier(SoldierModels.BlueSkin, null, "Blue Soldier Headless", RunClip, 0.35f);
+            Stand(victim.transform, VictimPosition, new Vector3(-0.2f, 0, -1), VictimLift, VictimLean, VictimRoll, 1, out _, out _);
+            var socket = SoldierBody.FindSocket(victim.transform, "head_top");
+            Explosion(fx, socket.position + Vector3.up * 0.1f);
 
             fx.End();
             // A capture shows the finest level of every model, whatever the distance
@@ -200,19 +206,25 @@ namespace SdfMedia.Editor
                 group.ForceLOD(0);
         }
 
-        /// <summary>A scout in the air, leaning and rolled to one side, looking at a point, his hands thrown out to his sides and up.</summary>
-        private void Dive(string prefab, string name, Vector3 position, Vector3 facing, float lift, float lean, float roll, Vector3 lookAt)
+        /// <summary>A soldier in the air, leaning and rolled to one side, in a stride, with a head on.</summary>
+        private void Dive(string head, string name, Vector3 position, Vector3 facing, float lift, float lean, float roll, float phase)
         {
-            var scout = Spawn(prefab, name);
-            Stand(scout.transform, position, facing, lift, lean, roll, 1, out var feet, out var normal);
-            LookAtPoint(Eyes(scout.transform), lookAt);
-            foreach (var hand in Hands(scout.transform))
-            {
-                var rest = scout.transform.InverseTransformPoint(hand.position);
-                var side = rest.x >= 0 ? 1 : -1;
-                hand.position = scout.transform.TransformPoint(rest + new Vector3(side * 0.4f, 0.35f, 0.1f));
-            }
+            var soldier = Soldier(SoldierModels.BlueSkin, head, name, RunClip, phase);
+            Stand(soldier.transform, position, facing, lift, lean, roll, 1, out var feet, out var normal);
             Shade(feet, normal, 0.85f);
+        }
+
+        /// <summary>The team's soldier prefab, with a monster head (none when null), in a pose sampled from a clip.</summary>
+        private GameObject Soldier(string skin, string head, string name, string clipPath, float phase)
+        {
+            var path = SoldierSkins.SkinPrefab(skin);
+            var instance = Spawn(path, name);
+            if (head != null && HeadWear.Attach(instance.transform, head) == null)
+                throw new InvalidOperationException($"the head {head} did not attach (build the heads first)");
+            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+            if (clip != null)
+                clip.SampleAnimation(instance, clip.length * phase);
+            return instance;
         }
 
         private GameObject Spawn(string path, string name)
@@ -229,7 +241,7 @@ namespace SdfMedia.Editor
         }
 
         /// <summary>
-        /// Stands a character on the ground at a stage position, facing a direction (stage space), its body leaned forward (cap towards
+        /// Stands a character on the ground at a stage position, facing a direction (stage space), its body leaned forward (head towards
         /// the camera, for a positive <paramref name="lean"/>) and rolled sideways, lifted off the ground. Returns the ground's height.
         /// </summary>
         private float Stand(Transform body, Vector3 stagePosition, Vector3 facing, float lift, float lean, float roll, float scale,
@@ -244,65 +256,24 @@ namespace SdfMedia.Editor
             return ground;
         }
 
-        // ------------------------------------------------------------------------------------------------------------ Eyes, hands, guns
-
-        /// <summary>A part of a character by its name in the prefab (eye.0, hand.1 ...), whichever level of detail it is under.</summary>
-        private static Transform Part(Transform body, string name) =>
-            body.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == name);
-
-        private static Transform[] Eyes(Transform body) => new[] { Part(body, "eye.0"), Part(body, "eye.1") }.Where(t => t != null).ToArray();
-
-        private static Transform[] Hands(Transform body) => new[] { Part(body, "hand.0"), Part(body, "hand.1") }.Where(t => t != null).ToArray();
-
-        /// <summary>The floating eyes turned to a world point; they look along their +z at rest.</summary>
-        private static void LookAtPoint(Transform[] eyes, Vector3 point)
-        {
-            foreach (var eye in eyes)
-                eye.rotation = Quaternion.LookRotation((point - eye.position).normalized, Vector3.up);
-        }
+        // ------------------------------------------------------------------------------------------------------------ Guns
 
         /// <summary>
-        /// A weapon in a character's hands as <see cref="WeaponView"/> holds it in a scout's: the grip a little in front of the hand,
-        /// the weapon pointing along the aim, at the size the weapon table gives times <paramref name="scale"/> (Prime's). A two-handed
-        /// weapon has the other hand brought up to its fore-end. The hands are first moved forward of where they rest, as when aiming.
+        /// A weapon in a soldier's right hand as <see cref="WeaponView"/> holds it: the model's grip on the grip socket, pointing along the aim.
         /// Returns the weapon's model.
         /// </summary>
-        private GameObject Hold(Transform body, Transform[] hands, WeaponTableAsset.Look look, GameObject model, Vector3 aimAt, float scale, bool twoHanded)
+        private GameObject Hold(Transform body, WeaponTableAsset.Look look, Vector3 aimAt)
         {
-            // The hand on the body's +x side holds the grip
-            var ordered = hands.OrderByDescending(h => body.InverseTransformPoint(h.position).x).ToArray();
-            var grip = ordered[0];
-            var rest = body.InverseTransformPoint(grip.position);
-            grip.position = body.TransformPoint(rest + new Vector3(0, 0.12f, 0.4f));
-
+            var grip = SoldierBody.FindSocket(body, "grip");
+            if (grip == null)
+                throw new InvalidOperationException("the soldier has no grip socket");
             var aim = Quaternion.LookRotation((aimAt - grip.position).normalized, Vector3.up);
-            var reach = Reach(grip);
-            var gun = (GameObject)PrefabUtility.InstantiatePrefab(model, root);
-            gun.name = "Gun " + model.name;
+            var gun = (GameObject)PrefabUtility.InstantiatePrefab(look.model, root);
+            gun.name = "Gun " + look.model.name;
             foreach (var collider in gun.GetComponentsInChildren<Collider>(true))
                 collider.enabled = false;
-            var size = look.handScale * scale;
-            gun.transform.SetPositionAndRotation(grip.position + aim * Vector3.forward * reach - aim * (look.grip * size), aim);
-            gun.transform.localScale = Vector3.one * size;
-            grip.rotation = aim;
-            if (twoHanded && ordered.Length > 1)
-            {
-                ordered[1].position = gun.transform.TransformPoint(look.grip + new Vector3(0, -0.02f, 0.3f));
-                ordered[1].rotation = aim;
-            }
+            gun.transform.SetPositionAndRotation(grip.position - aim * look.grip, aim);
             return gun;
-        }
-
-        /// <summary>How far in front of a hand's middle a grip goes, as in the game: most of the way to the front of the hand.</summary>
-        private static float Reach(Transform hand)
-        {
-            var renderers = hand.GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0)
-                return 0.12f * hand.lossyScale.x;
-            var bounds = renderers[0].bounds;
-            foreach (var renderer in renderers)
-                bounds.Encapsulate(renderer.bounds);
-            return (bounds.extents.x + bounds.extents.y + bounds.extents.z) / 3 * 0.8f;
         }
 
         private static Bounds BoundsOf(GameObject target)
@@ -406,8 +377,8 @@ namespace SdfMedia.Editor
             var random = new FxRandom(11);
             var size = ExplosionRadius;
             var cream = new Color(0.95f, 0.9f, 0.78f);
-            var capRed = new Color(0.85f, 0.18f, 0.08f);
-            var spore = new Color(0.85f, 1f, 0.5f);
+            var capRed = MonsterHeads.ById(BurstHead).Value.Blood;
+            var spore = Color.Lerp(MonsterHeads.ById(BurstHead).Value.Blood, Color.white, 0.5f);
             var flashBand = Hdr(new Color(1, 0.8f, 0.45f), 1.3f);
             var flashCore = Hdr(new Color(1, 0.97f, 0.85f), 2.6f);
 
@@ -421,7 +392,7 @@ namespace SdfMedia.Editor
                 direction.z *= 0.5f;
                 var at = centre + ToWorldDirection(Vector3.Scale(direction, new Vector3(0.62f, 0.62f, 0.62f))) * size;
                 var radius = size * random.Range(0.17f, 0.3f);
-                fx.Lit(at, radius, i % 3 == 0 ? capRed : cream, i % 3 == 0 ? new Color(0.25f, 0.03f, 0) : new Color(0.2f, 0.16f, 0.08f));
+                fx.Lit(at, radius, i % 3 == 0 ? capRed : cream, i % 3 == 0 ? capRed * 0.3f : new Color(0.2f, 0.16f, 0.08f));
             }
             // The rays out of the disc, mostly across the picture
             for (var i = 0; i < 18; i++)
@@ -449,30 +420,27 @@ namespace SdfMedia.Editor
         /// <summary>The pieces of a blue scout, the game's own exploding-model pieces, each moved out from where it fits in the model and turned.</summary>
         private void Debris(Vector3 centre, FxRandom random)
         {
-            var paths = AssetDatabase.FindAssets(BluePiecePrefix + " t:Prefab", new[] { MushroomBuilder.PrefabFolder })
-                .Select(AssetDatabase.GUIDToAssetPath)
-                .Where(p =>
-                {
-                    var name = System.IO.Path.GetFileNameWithoutExtension(p);
-                    return name.StartsWith(BluePiecePrefix) && name.IndexOf('_') < 0;
-                })
-                .OrderBy(p => p, StringComparer.Ordinal)
-                .ToArray();
-            // A scout's origin is at his feet, his middle about 0.8 m up
-            var modelOrigin = centre - Vector3.up * 0.8f * DebrisScale;
-            foreach (var path in paths)
+            var models = MonsterHeadModels.Load();
+            if (models == null || !models.TryGet(BurstHead, out var entry) || entry.pieces == null)
+                throw new InvalidOperationException($"the head pieces of {BurstHead} are missing (build the heads first)");
+            // The pieces are in the head's own frame, whose origin is the head socket: the burst's centre
+            foreach (var source in entry.pieces)
             {
-                var piece = Spawn(path, System.IO.Path.GetFileNameWithoutExtension(path));
-                piece.transform.SetPositionAndRotation(modelOrigin, Quaternion.identity);
+                if (source == null)
+                    continue;
+                var piece = (GameObject)PrefabUtility.InstantiatePrefab(source, root);
+                piece.name = source.name;
+                foreach (var collider in piece.GetComponentsInChildren<Collider>(true))
+                    collider.enabled = false;
+                piece.transform.SetPositionAndRotation(centre, Quaternion.identity);
                 piece.transform.localScale = Vector3.one * DebrisScale;
                 var middle = BoundsOf(piece).center;
-                var fromModel = middle - modelOrigin;
+                var fromModel = middle - centre;
                 var away = middle - centre;
                 var outward = away.sqrMagnitude > 1e-4f ? away.normalized : random.OnUnitSphere;
-                // Mostly across the picture, less towards or away from the camera
-                var local = Quaternion.Inverse(rotation) * (outward + random.OnUnitSphere * 0.4f).normalized;
+                var local = Quaternion.Inverse(rotation) * (outward + random.OnUnitSphere * 0.5f).normalized;
                 local.z *= 0.5f;
-                var target = centre + rotation * local.normalized * ExplosionRadius * random.Range(0.55f, 1.15f);
+                var target = centre + rotation * local.normalized * ExplosionRadius * random.Range(0.45f, 1.0f);
                 var turn = Quaternion.Euler(random.Range(-60f, 60f), random.Range(0f, 360f), random.Range(-60f, 60f));
                 piece.transform.rotation = turn;
                 piece.transform.position = target - turn * fromModel;
