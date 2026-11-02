@@ -8,6 +8,7 @@ using SDFPipeline.ProgramFiles;
 using SDFProject.ProgramDefinition;
 using SDFPipeline.Rendering;
 using SDFPipeline.Skies;
+using Kk.Rigging;
 
 // Set by --timings: print where simplification spent its time
 var showTimings = false;
@@ -32,6 +33,7 @@ const string usage = """
       Options: --resolution <cells>   grid cells along the longest side of a 2 m model, 16 to 1024 (default 128); smaller
                                       models and parts get fewer cells, so fewer triangles
                --reference-size <m>   the size that gets --resolution cells (default 2)
+               --rigs-into <folder>   put the skinned .glb of a rigged (format 2) model here instead (sdf unity: Unity/Assets/Rig/Generated)
                --into <folder>        write the .glb files into this folder instead of next to each model, keeping the
                                       subfolders they are in below the directory, e.g. <folder>/weapons/pistol.glb
                --suffix <text>        add this to each .glb's name, e.g. --suffix _512 for chanterelle-scout_512.glb
@@ -60,6 +62,8 @@ const string usage = """
 
 // Where `sdf unity` puts what it makes, below the folder that holds content/
 const string unityModelsFolder = "Unity/Assets/Mushrooms/Generated";
+// Rigged (format 2) models, skinned .glb files that Unity's rig import turns into prefabs (ticket 43)
+const string unityRigsFolder = "Unity/Assets/Rig/Generated";
 const string unityLevelsFolder = "Unity/Assets/Level/Generated";
 
 // Each render runs its own headless Chrome; a few at a time keeps the machine responsive.
@@ -129,6 +133,7 @@ int Mesh(string[] arguments)
     var resolution = MeshingOptions.DefaultResolution;
     var referenceSize = MeshingOptions.DefaultReferenceSize;
     string? into = null;
+    string? rigsInto = null;
     var suffix = "";
     var lods = MeshingOptions.DefaultLodCount;
     float? maxError = null;
@@ -141,6 +146,11 @@ int Mesh(string[] arguments)
         if (arguments[i] == "--into" && i + 1 < arguments.Length)
         {
             into = arguments[++i];
+            continue;
+        }
+        if (arguments[i] == "--rigs-into" && i + 1 < arguments.Length)
+        {
+            rigsInto = arguments[++i];
             continue;
         }
         if (arguments[i] is "--gpu" or "--cpu")
@@ -219,6 +229,9 @@ int Mesh(string[] arguments)
         var target = into is null ? folder
             : directory is null ? into
             : Path.GetRelativePath(directory, folder) is var below && below != "." ? Path.Combine(into, below) : into;
+        // A rigged (format 2) model goes to --rigs-into when given, which Unity's rig import reads, not the toon model importer
+        if (rigsInto is not null && RigFiles.IsRigged(model))
+            target = directory is null ? rigsInto : Path.GetRelativePath(directory, folder) is var rigBelow && rigBelow != "." ? Path.Combine(rigsInto, rigBelow) : rigsInto;
         return Path.Combine(target, Path.GetFileNameWithoutExtension(model) + suffix + GlbWriter.Extension);
     };
     switch (paths)
@@ -294,6 +307,14 @@ bool MeshOne(string input, string output, MeshingOptions options, TextWriter? lo
     try
     {
         var stopwatch = Stopwatch.StartNew();
+        if (RigFiles.IsRigged(input))
+        {
+            var (glb, summary) = RigFiles.MeshToGlb(input, options, errors);
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
+            File.WriteAllBytes(output, glb);
+            log.WriteLine($"Meshed {output} (rigged, skinned) in {stopwatch.Elapsed.TotalSeconds:0.0} s: {summary}");
+            return true;
+        }
         var program = SdfProgramFile.Load(input);
         var missing = ModelFiles.MaterialNames(program).Where(name => !options.Materials.Contains(name)).ToArray();
         if (missing.Length > 0)
@@ -487,11 +508,11 @@ int Unity(string[] arguments)
     if (content is null)
         return Usage($"No '{ModelFiles.ContentFolderName}' folder was found here or in a folder above");
     var root = Path.GetDirectoryName(content)!;
-    if (arguments.FirstOrDefault(a => a.StartsWith("--") && a is not ("--resolution" or "--lods" or "--max-error" or "--simplifier" or "--timings" or "--gpu" or "--cpu")) is { } unknown)
+    if (arguments.FirstOrDefault(a => a.StartsWith("--") && a is not ("--resolution" or "--lods" or "--max-error" or "--simplifier" or "--timings" or "--gpu" or "--cpu" or "--rigs-into")) is { } unknown)
         return Usage($"sdf unity takes --resolution, --lods, --max-error, --simplifier and --gpu or --cpu, not {unknown}");
 
     // Models first: the levels place model prefabs, which Unity builds from the meshes before it builds the level scenes
-    var models = Mesh([Path.Combine(content, "models"), "--into", Path.Combine(root, unityModelsFolder), .. arguments]);
+    var models = Mesh([Path.Combine(content, "models"), "--into", Path.Combine(root, unityModelsFolder), "--rigs-into", Path.Combine(root, unityRigsFolder), .. arguments]);
     var levels = Level([Path.Combine(content, LevelFile.FolderName), "--into", Path.Combine(root, unityLevelsFolder)]);
     return models != 0 ? models : levels;
 }
@@ -616,7 +637,7 @@ async Task<bool> RenderOne(string input, string output, RenderOptions options)
     try
     {
         var stopwatch = Stopwatch.StartNew();
-        var program = SdfProgramFile.Load(input);
+        var program = RigFiles.IsRigged(input) ? RigFiles.LoadRestProgram(input) : SdfProgramFile.Load(input);
         var missing = ModelFiles.MaterialNames(program).Where(name => !options.Materials.Contains(name)).ToArray();
         if (missing.Length > 0)
             Console.Error.WriteLine($"{input}: no material file for {string.Join(", ", missing)}, rendered magenta");

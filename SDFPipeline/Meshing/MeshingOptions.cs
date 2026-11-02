@@ -159,5 +159,20 @@ public sealed record MeshingOptions
     /// </summary>
     public SDFProgram? SurfaceOf { get; init; }
 
+    /// <summary>
+    /// Places where the mesh keeps the density contouring gave it: no vertex of the contour inside any of these spheres is folded away
+    /// by simplification (a neighbour may fold into it). A rigged model's joints use this, since heavy reduction across a joint makes
+    /// it bend badly: a flat patch of a few big triangles cannot follow the bend. Spheres are in the model's space and apply to the
+    /// model's own mesh and to parts meshed in place, not to a part meshed once for several uses (which is in its own space).
+    /// (Ported from BattleRoyale, ticket 43.)
+    /// </summary>
+    public IReadOnlyList<DensityRegion> KeepDensity { get; init; } = [];
+
     public static readonly MeshingOptions Default = new();
+}
+
+/// <summary>A sphere (centre and radius in metres) where <see cref="MeshingOptions.KeepDensity"/> keeps the mesh dense.</summary>
+public readonly record struct DensityRegion(System.Numerics.Vector3 Centre, float Radius)
+{
+    public bool Contains(System.Numerics.Vector3 point) => System.Numerics.Vector3.DistanceSquared(point, Centre) <= Radius * Radius;
 }

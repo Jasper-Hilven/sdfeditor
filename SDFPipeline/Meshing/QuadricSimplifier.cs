@@ -87,9 +87,10 @@ public static class QuadricSimplifier
     /// </summary>
     /// <param name="maxErrors">The error limit of each level, in metres, growing.</param>
     public static IEnumerable<TriangleMesh> SimplifyInSteps(ContouredMesh mesh, Func<Vector3, float> sdf, IReadOnlyList<float> maxErrors,
-        float cellSize, float creaseAngleDegrees, int[]? regions = null, bool batched = false, float[]? attributes = null, GpuSdf? gpu = null)
+        float cellSize, float creaseAngleDegrees, int[]? regions = null, bool batched = false, float[]? attributes = null, GpuSdf? gpu = null,
+        bool[]? locked = null)
     {
-        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked: null, batched, attributes) { Gpu = gpu };
+        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked, batched, attributes) { Gpu = gpu };
         for (var level = 0; level < maxErrors.Count; level++)
             yield return simplification.Run(maxErrors[level], coarse: level > 0);
     }

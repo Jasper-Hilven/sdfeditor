@@ -194,7 +194,11 @@ public static class ModelMesher
         // How far each vertex has blended into a second material: a fold that changes it much is dearer (batched simplification)
         var batched = options.Simplifier == Simplifier.Batched;
         var blends = batched ? Evaluate(contoured.Mesh.Positions, p => Blend(shape.Surface(p))) : null;
-        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees, regions, batched, blends, gpu))
+        // Where the model asks to keep its density (a rigged model's joints), the contour's vertices stay
+        var kept = options.KeepDensity.Count > 0 && source.Instances.Count == 0
+            ? contoured.Mesh.Positions.Select(p => options.KeepDensity.Any(region => region.Contains(p))).ToArray()
+            : null;
+        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees, regions, batched, blends, gpu, kept))
         {
             var level = levels.Count;
             var shaded = CreaseNormals.Split(simplified, shape.Distance, cellSize, options.CreaseAngleDegrees);

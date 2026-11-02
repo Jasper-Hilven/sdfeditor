@@ -1,0 +1,15 @@
+# Test worm: three yellow capsules lying along +Z, smooth-unioned, with a bone each. Bends in the YZ plane about the bones' X axes.
+format 2
+collider bones
+
+Bone name=a head=(0, 0.3, -0.6) tail=(0, 0.3, -0.2)
+    SmoothUnion smoothness=0.05
+        Material material=bath_rubber_yellow
+            Capsule a=(0, 0.3, -0.6) b=(0, 0.3, -0.2) radius=0.15
+        Bone name=b head=(0, 0.3, -0.2) tail=(0, 0.3, 0.2)
+            SmoothUnion smoothness=0.05
+                Material material=bath_rubber_yellow
+                    Capsule a=(0, 0.3, -0.2) b=(0, 0.3, 0.2) radius=0.15
+                Bone name=c head=(0, 0.3, 0.2) tail=(0, 0.3, 0.6)
+                    Material material=bath_rubber_yellow
+                        Capsule a=(0, 0.3, 0.2) b=(0, 0.3, 0.6) radius=0.15

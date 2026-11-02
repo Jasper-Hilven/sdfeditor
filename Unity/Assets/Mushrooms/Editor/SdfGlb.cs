@@ -210,7 +210,12 @@ namespace SdfMushrooms.Editor
                 var primitives = (JArray)mesh["primitives"];
                 var attributes = (JObject)primitives[0]["attributes"];
                 foreach (var attribute in attributes.Properties())
+                {
+                    // A skinned file also has JOINTS_0 (integers), which the rig import reads, not this one (ticket 43)
+                    if (accessors[attribute.Value.Value<int>()].Value<int>("componentType") != 5126)
+                        continue;
                     data.Attributes[attribute.Name] = Floats(attribute.Value.Value<int>());
+                }
                 data.VertexCount = data.Attributes["POSITION"].Length / 3;
                 foreach (var primitive in primitives)
                 {

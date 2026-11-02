@@ -567,7 +567,7 @@ namespace SdfMushrooms.Editor
         /// the pattern (UV7, see <see cref="Patterns"/>). The toon look takes nothing from the material, so the material regions are drawn
         /// as one submesh.
         /// </summary>
-        private static void Fill(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName)
+        private static void Fill(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName, BoneWeight[] skin = null)
         {
             var n = data.VertexCount;
             var position = data.Get("POSITION", 3);
@@ -604,7 +604,7 @@ namespace SdfMushrooms.Editor
             // Packed (see SdfPackedMesh) unless a coordinate is too large for the 16-bit scale; then positions and UV1 stay floats
             short positionCode = 0, localCode = 0;
             float positionScale = 1, localScale = 1;
-            var packed = SdfPackedMesh.TryScale(largestPosition, out positionCode, out positionScale)
+            var packed = skin == null && SdfPackedMesh.TryScale(largestPosition, out positionCode, out positionScale)
                          && SdfPackedMesh.TryScale(largestLocal, out localCode, out localScale);
 
             const VertexAttributeFormat F32 = VertexAttributeFormat.Float32, F16 = VertexAttributeFormat.Float16,
@@ -734,7 +734,51 @@ namespace SdfMushrooms.Editor
             const MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices;
             mesh.SetSubMesh(0, new SubMeshDescriptor(0, cached.Length) { bounds = bounds, firstVertex = 0, vertexCount = order.Length }, flags);
             mesh.bounds = bounds;
+            if (skin != null)
+                SetBoneWeights(mesh, skin, order, n, modelName);
             mesh.UploadMeshData(false);
+        }
+
+        /// <summary>
+        /// The same packed mesh for a skinned model (the <see cref="SdfGlb.MeshData"/> of a rigged .glb; <paramref name="skin"/> holds the
+        /// bones of each vertex in the file's order, ticket 43): the position and UV1 stay floats, because the GPU skins the position as the
+        /// float it reads (a packed position would be skinned with its scale left out); the shader reads a position with w = 1 as it is.
+        /// Every other channel is the shared layout. The bone weights go in with the vertices put in cache order.
+        /// </summary>
+        public static void FillSkinned(Mesh mesh, SdfGlb.MeshData data, IReadOnlyList<SdfGlb.Material> materials, string modelName, BoneWeight[] skin) =>
+            Fill(mesh, data, materials, modelName, skin ?? throw new ArgumentNullException(nameof(skin)));
+
+        private static void SetBoneWeights(Mesh mesh, BoneWeight[] skin, int[] order, int vertexCount, string modelName)
+        {
+            if (skin.Length != vertexCount)
+                throw new InvalidDataException($"{modelName}: {skin.Length} bone weights for {vertexCount} vertices");
+            var perVertex = new Unity.Collections.NativeArray<byte>(order.Length, Unity.Collections.Allocator.Temp);
+            var weights = new List<BoneWeight1>(order.Length * 4);
+            for (var v = 0; v < order.Length; v++)
+            {
+                var w = skin[order[v]];
+                var count = 0;
+                void Add1(int bone, float weight)
+                {
+                    if (weight <= 0) return;
+                    weights.Add(new BoneWeight1 { boneIndex = bone, weight = weight });
+                    count++;
+                }
+                Add1(w.boneIndex0, w.weight0); Add1(w.boneIndex1, w.weight1); Add1(w.boneIndex2, w.weight2); Add1(w.boneIndex3, w.weight3);
+                if (count == 0) { weights.Add(new BoneWeight1 { boneIndex = 0, weight = 1 }); count = 1; }
+                perVertex[v] = (byte)count;
+            }
+            var flat = new Unity.Collections.NativeArray<BoneWeight1>(weights.ToArray(), Unity.Collections.Allocator.Temp);
+            mesh.SetBoneWeights(perVertex, flat);
+            perVertex.Dispose();
+            flat.Dispose();
+        }
+
+        /// <summary>The shared toon material and the ink outline material (null when the style has no outline); what a skinned model gets too.</summary>
+        public static (Material Toon, Material Outline) SharedMaterials()
+        {
+            var style = MushroomStyle.Load();
+            return (ToonMaterial(style), style.outlineWidth > 0 ? ToonOutlineMaterial(style) : null);
         }
 
         /// <summary>

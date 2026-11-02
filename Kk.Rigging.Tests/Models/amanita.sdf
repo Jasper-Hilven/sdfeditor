@@ -1,0 +1,46 @@
+# The reference humanoid: the amanita scout of content/parts/amanita_scout.sdf (a fly agaric on a stem with floating eyes and hands; it
+# already faces +Z) rigged in format 2: a body (stem and bulb), a cap that can nod on a soft joint, and rigid eyes and hands.
+format 2
+collider bones
+
+Union
+    Bone name=body head=(0, 0.3, 0) tail=(0, 1.0, 0)
+        Union
+            SmoothUnion smoothness=0.04
+                # Stem and bulb grow into each other
+                Material material=amanita_scout_stem
+                    SmoothUnion smoothness=0.1
+                        Translate translation=(0, 0.62, 0)
+                            CappedCone height=0.56 bottomRadius=0.2 topRadius=0.15
+                        Translate translation=(0, 0.15, 0)
+                            Ellipsoid radii=(0.28, 0.16, 0.28)
+                # The ring
+                Material material=amanita_scout_stem
+                    Translate translation=(0, 1.04, 0)
+                        Round radius=0.012
+                            CappedCone height=0.035 bottomRadius=0.23 topRadius=0.165
+                # Cap and gills nod on the top of the stem
+                Bone name=cap head=(0, 1.1, 0) tail=(0, 1.5, 0) hinge=x limit=(-0.4, 0.5)
+                    SmoothUnion smoothness=0.02
+                        Material material=amanita_cap
+                            Round radius=0.025
+                                Intersection
+                                    Translate translation=(0, 1.16, 0)
+                                        Ellipsoid radii=(0.62, 0.42, 0.62)
+                                    Translate translation=(0, 1.62, 0)
+                                        Box size=(0.8, 0.4, 0.8)
+                        Material material=amanita_gills
+                            Translate translation=(0, 1.215, 0)
+                                CappedCylinder radius=0.58 height=0.02
+            # Eyes and hands float a few centimetres clear of the stem, rigid on the body
+            SymmetryX
+                Bone name=eye head=(0.13, 0.86, 0.3) tail=(0.13, 0.86, 0.45) falloff=0
+                    Translate translation=(0.13, 0.86, 0.3)
+                        Part part=eye
+                    Socket name=gaze at=(0.13, 0.86, 0.42) dir=(0, 0, 1)
+            SymmetryX
+                Bone name=hand head=(0.29, 0.55, 0.1) tail=(0.29, 0.55, 0.25) falloff=0
+                    Translate translation=(0.29, 0.55, 0.1)
+                        Material material=amanita_scout_stem
+                            Part part=hand
+                    Socket name=grip at=(0.29, 0.55, 0.2) dir=(0, 0, 1)

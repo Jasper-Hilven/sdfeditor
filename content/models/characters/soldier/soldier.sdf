@@ -1,0 +1,425 @@
+# Soldier (ticket 43, from BattleRoyale ticket 04 at 80df274): a plain modern soldier, toon and chunky, rigged on the Synty skeleton in its T-pose rest.
+# HEADLESS: no skull, hair, ears, nose, eyes, brows or jaw (the monster head of ticket 45 goes on head_top and the Head bone); the collar and neck stay. No helmet,
+# no backpack part; the pack straps over the shoulders are part of the body. The skins are a vertex-colour remap of the olive base set (red and blue). Faces +Z, +X is the left. Built at real size, the soles on y = 0.
+# Contracts: head_top at (0,1.815,0.015); vest back flat at z=-0.19; sockets head_top, back, chest, grip (hand_R), support (hand_L).
+format 2
+skeleton=synty
+collider bones
+
+Bone name=hips head=(0, 0.87628, 0) tail=(0, 0.97904, -0.01553)
+    Union
+        SmoothUnion smoothness=0.012
+            Material material=soldier_fatigues
+                Translate translation=(0, 0.93, -0.02)
+                    Ellipsoid radii=(0.19, 0.14, 0.14)
+            Bone name=spine_01 head=(0, 0.97904, -0.01553) tail=(0, 1.16033, -0.00651)
+                SmoothUnion smoothness=0.012
+                    Material material=soldier_fatigues
+                        Translate translation=(0, 1.07, -0.012)
+                            Ellipsoid radii=(0.175, 0.13, 0.125)
+                    Bone name=spine_02 head=(0, 1.16033, -0.00651) tail=(0, 1.33745, -0.03266)
+                        Union
+                            SmoothUnion smoothness=0.012
+                                Material material=soldier_fatigues
+                                    Translate translation=(0, 1.22, -0.02)
+                                        Ellipsoid radii=(0.195, 0.14, 0.145)
+                                Bone name=spine_03 head=(0, 1.33745, -0.03266) tail=(0.07447, 1.39211, 0.01354)
+                                    Union
+                                        SmoothUnion smoothness=0.012
+                                            Material material=soldier_fatigues
+                                                SmoothUnion smoothness=0.012
+                                                    Translate translation=(0, 1.33, -0.035)
+                                                        Ellipsoid radii=(0.195, 0.12, 0.125)
+                                                    Translate translation=(0, 1.375, -0.03)
+                                                        Ellipsoid radii=(0.17, 0.07, 0.11)
+                                                    Translate translation=(0.1, 1.385, 0.01)
+                                                        Ellipsoid radii=(0.075, 0.05, 0.085)
+                                                    Translate translation=(-0.1, 1.385, 0.01)
+                                                        Ellipsoid radii=(0.075, 0.05, 0.085)
+                                            Bone name=clavicle_L head=(0.07447, 1.39211, 0.01354) tail=(0.19099, 1.39039, -0.04842) hit=none
+                                                SmoothUnion smoothness=0.012
+                                                    Material material=soldier_fatigues
+                                                        Capsule a=(0.07447, 1.39211, 0.01354) b=(0.19099, 1.39039, -0.04842) radius=0.066
+                                                    Bone name=shoulder_L head=(0.19099, 1.39039, -0.04842) tail=(0.52916, 1.36094, -0.05321)
+                                                        SmoothUnion smoothness=0.012
+                                                            Material material=soldier_fatigues
+                                                                Union
+                                                                    ArbitraryRoundCone a=(0.19099, 1.39039, -0.04842) b=(0.52916, 1.36094, -0.05321) radiusA=0.07 radiusB=0.06
+                                                                    Translate translation=(0.19099, 1.39039, -0.04842)
+                                                                        Sphere radius=0.07
+                                                                    Translate translation=(0.52916, 1.36094, -0.05321)
+                                                                        Sphere radius=0.06
+                                                            Bone name=elbow_L head=(0.52916, 1.36094, -0.05321) tail=(0.79963, 1.36094, -0.03417)
+                                                                Union
+                                                                    Material material=soldier_fatigues
+                                                                        Union
+                                                                            ArbitraryRoundCone a=(0.52916, 1.36094, -0.05321) b=(0.775, 1.3609, -0.036) radiusA=0.058 radiusB=0.05
+                                                                            ArbitraryRoundCone a=(0.755, 1.3609, -0.037) b=(0.806, 1.3609, -0.034) radiusA=0.054 radiusB=0.054
+                                                                    Bone name=hand_L head=(0.79963, 1.36094, -0.03417) tail=(0.89946, 1.35978, -0.06701) falloff=0.03
+                                                                        Union
+                                                                            Material material=soldier_gloves
+                                                                                Union
+                                                                                    Translate translation=(0.86, 1.357, -0.036)
+                                                                                        Ellipsoid radii=(0.063, 0.031, 0.056)
+                                                                                    Capsule a=(0.79963, 1.36094, -0.03417) b=(0.845, 1.358, -0.04) radius=0.044
+                                                                            Bone name=finger_01_L head=(0.89946, 1.35978, -0.06701) tail=(0.94151, 1.35498, -0.07071) hit=none
+                                                                                Union
+                                                                                    Material material=soldier_gloves
+                                                                                        ArbitraryRoundCone a=(0.89946, 1.35978, -0.06701) b=(0.94151, 1.35498, -0.07071) radiusA=0.026 radiusB=0.024
+                                                                                    Bone name=finger_02_L head=(0.94151, 1.35498, -0.07071) tail=(0.97618, 1.34953, -0.0724) hit=none
+                                                                                        Union
+                                                                                            Material material=soldier_gloves
+                                                                                                ArbitraryRoundCone a=(0.94151, 1.35498, -0.07071) b=(0.97618, 1.34953, -0.0724) radiusA=0.024 radiusB=0.022
+                                                                                            Bone name=finger_03_L head=(0.97618, 1.34953, -0.0724) tail=(1.00393, 1.33947, -0.07792) hit=none
+                                                                                                Union
+                                                                                                    Material material=soldier_gloves
+                                                                                                        ArbitraryRoundCone a=(0.97618, 1.34953, -0.0724) b=(1.00393, 1.33947, -0.07792) radiusA=0.022 radiusB=0.02
+                                                                                                    Bone name=finger_04_L head=(1.00393, 1.33947, -0.07792) tail=(1.02242, 1.33277, -0.08159) hit=none
+                                                                                                        Union
+                                                                                                            Material material=soldier_gloves
+                                                                                                                ArbitraryRoundCone a=(1.00393, 1.33947, -0.07792) b=(1.02242, 1.33277, -0.08159) radiusA=0.02 radiusB=0.01615
+                                                                                                            Material material=soldier_gloves
+                                                                                                                Translate translation=(1.02242, 1.33277, -0.08159)
+                                                                                                                    Sphere radius=0.01615
+                                                                            Bone name=index_finger_01_L head=(0.9036, 1.36493, -0.00745) tail=(0.94418, 1.36458, -0.00207) hit=none
+                                                                                Union
+                                                                                    Material material=soldier_gloves
+                                                                                        ArbitraryRoundCone a=(0.9036, 1.36493, -0.00745) b=(0.94418, 1.36458, -0.00207) radiusA=0.0165 radiusB=0.0155
+                                                                                    Bone name=index_finger_02_L head=(0.94418, 1.36458, -0.00207) tail=(0.98107, 1.35684, 0.002) hit=none
+                                                                                        Union
+                                                                                            Material material=soldier_gloves
+                                                                                                ArbitraryRoundCone a=(0.94418, 1.36458, -0.00207) b=(0.98107, 1.35684, 0.002) radiusA=0.0155 radiusB=0.0145
+                                                                                            Bone name=index_finger_03_L head=(0.98107, 1.35684, 0.002) tail=(1.01689, 1.34497, 0.00404) hit=none
+                                                                                                Union
+                                                                                                    Material material=soldier_gloves
+                                                                                                        ArbitraryRoundCone a=(0.98107, 1.35684, 0.002) b=(1.01689, 1.34497, 0.00404) radiusA=0.0145 radiusB=0.0135
+                                                                                                    Bone name=index_finger_04_L head=(1.01689, 1.34497, 0.00404) tail=(1.03585, 1.33868, 0.00512) hit=none
+                                                                                                        Union
+                                                                                                            Material material=soldier_gloves
+                                                                                                                ArbitraryRoundCone a=(1.01689, 1.34497, 0.00404) b=(1.03585, 1.33868, 0.00512) radiusA=0.0135 radiusB=0.0114
+                                                                                                            Material material=soldier_gloves
+                                                                                                                Translate translation=(1.03585, 1.33868, 0.00512)
+                                                                                                                    Sphere radius=0.0114
+                                                                            Bone name=thumb_01_L head=(0.83477, 1.34923, 0.01088) tail=(0.88772, 1.33761, 0.04433) hit=none
+                                                                                Union
+                                                                                    Material material=soldier_gloves
+                                                                                        ArbitraryRoundCone a=(0.83477, 1.34923, 0.01088) b=(0.88772, 1.33761, 0.04433) radiusA=0.021 radiusB=0.0185
+                                                                                    Bone name=thumb_02_L head=(0.88772, 1.33761, 0.04433) tail=(0.93577, 1.31195, 0.05993) hit=none
+                                                                                        Union
+                                                                                            Material material=soldier_gloves
+                                                                                                ArbitraryRoundCone a=(0.88772, 1.33761, 0.04433) b=(0.93577, 1.31195, 0.05993) radiusA=0.0185 radiusB=0.0165
+                                                                                            Bone name=thumb_03_L head=(0.93577, 1.31195, 0.05993) tail=(0.95979, 1.29912, 0.06773) hit=none
+                                                                                                Union
+                                                                                                    Material material=soldier_gloves
+                                                                                                        ArbitraryRoundCone a=(0.93577, 1.31195, 0.05993) b=(0.95979, 1.29912, 0.06773) radiusA=0.0165 radiusB=0.01378
+                                                                                                    Material material=soldier_gloves
+                                                                                                        Translate translation=(0.95979, 1.29912, 0.06773)
+                                                                                                            Sphere radius=0.01378
+                                                                            Socket name=support at=(0.855, 1.33, -0.02) dir=(0, 0, 1) up=(0, 1, 0)
+                                            Bone name=clavicle_R head=(-0.07447, 1.39211, 0.01354) tail=(-0.19099, 1.39039, -0.04842) hit=none
+                                                SmoothUnion smoothness=0.012
+                                                    Material material=soldier_fatigues
+                                                        Capsule a=(-0.07447, 1.39211, 0.01354) b=(-0.19099, 1.39039, -0.04842) radius=0.066
+                                                    Bone name=shoulder_R head=(-0.19099, 1.39039, -0.04842) tail=(-0.52916, 1.36094, -0.05321)
+                                                        SmoothUnion smoothness=0.012
+                                                            Material material=soldier_fatigues
+                                                                Union
+                                                                    ArbitraryRoundCone a=(-0.19099, 1.39039, -0.04842) b=(-0.52916, 1.36094, -0.05321) radiusA=0.07 radiusB=0.06
+                                                                    Translate translation=(-0.19099, 1.39039, -0.04842)
+                                                                        Sphere radius=0.07
+                                                                    Translate translation=(-0.52916, 1.36094, -0.05321)
+                                                                        Sphere radius=0.06
+                                                            Bone name=elbow_R head=(-0.52916, 1.36094, -0.05321) tail=(-0.79963, 1.36094, -0.03417)
+                                                                Union
+                                                                    Material material=soldier_fatigues
+                                                                        Union
+                                                                            ArbitraryRoundCone a=(-0.52916, 1.36094, -0.05321) b=(-0.775, 1.3609, -0.036) radiusA=0.058 radiusB=0.05
+                                                                            ArbitraryRoundCone a=(-0.755, 1.3609, -0.037) b=(-0.806, 1.3609, -0.034) radiusA=0.054 radiusB=0.054
+                                                                    Bone name=hand_R head=(-0.79963, 1.36094, -0.03417) tail=(-0.89946, 1.35978, -0.06701) falloff=0.03
+                                                                        Union
+                                                                            Material material=soldier_gloves
+                                                                                Union
+                                                                                    Translate translation=(-0.86, 1.357, -0.036)
+                                                                                        Ellipsoid radii=(0.063, 0.031, 0.056)
+                                                                                    Capsule a=(-0.79963, 1.36094, -0.03417) b=(-0.845, 1.358, -0.04) radius=0.044
+                                                                            Bone name=finger_01_R head=(-0.89946, 1.35978, -0.06701) tail=(-0.94151, 1.35498, -0.07071) hit=none
+                                                                                Union
+                                                                                    Material material=soldier_gloves
+                                                                                        ArbitraryRoundCone a=(-0.89946, 1.35978, -0.06701) b=(-0.94151, 1.35498, -0.07071) radiusA=0.026 radiusB=0.024
+                                                                                    Bone name=finger_02_R head=(-0.94151, 1.35498, -0.07071) tail=(-0.97618, 1.34953, -0.0724) hit=none
+                                                                                        Union
+                                                                                            Material material=soldier_gloves
+                                                                                                ArbitraryRoundCone a=(-0.94151, 1.35498, -0.07071) b=(-0.97618, 1.34953, -0.0724) radiusA=0.024 radiusB=0.022
+                                                                                            Bone name=finger_03_R head=(-0.97618, 1.34953, -0.0724) tail=(-1.00393, 1.33947, -0.07792) hit=none
+                                                                                                Union
+                                                                                                    Material material=soldier_gloves
+                                                                                                        ArbitraryRoundCone a=(-0.97618, 1.34953, -0.0724) b=(-1.00393, 1.33947, -0.07792) radiusA=0.022 radiusB=0.02
+                                                                                                    Bone name=finger_04_R head=(-1.00393, 1.33947, -0.07792) tail=(-1.02242, 1.33277, -0.08159) hit=none
+                                                                                                        Union
+                                                                                                            Material material=soldier_gloves
+                                                                                                                ArbitraryRoundCone a=(-1.00393, 1.33947, -0.07792) b=(-1.02242, 1.33277, -0.08159) radiusA=0.02 radiusB=0.01615
+                                                                                                            Material material=soldier_gloves
+                                                                                                                Translate translation=(-1.02242, 1.33277, -0.08159)
+                                                                                                                    Sphere radius=0.01615
+                                                                            Bone name=index_finger_01_R head=(-0.9036, 1.36493, -0.00745) tail=(-0.94418, 1.36458, -0.00207) hit=none
+                                                                                Union
+                                                                                    Material material=soldier_gloves
+                                                                                        ArbitraryRoundCone a=(-0.9036, 1.36493, -0.00745) b=(-0.94418, 1.36458, -0.00207) radiusA=0.0165 radiusB=0.0155
+                                                                                    Bone name=index_finger_02_R head=(-0.94418, 1.36458, -0.00207) tail=(-0.98107, 1.35684, 0.002) hit=none
+                                                                                        Union
+                                                                                            Material material=soldier_gloves
+                                                                                                ArbitraryRoundCone a=(-0.94418, 1.36458, -0.00207) b=(-0.98107, 1.35684, 0.002) radiusA=0.0155 radiusB=0.0145
+                                                                                            Bone name=index_finger_03_R head=(-0.98107, 1.35684, 0.002) tail=(-1.01689, 1.34497, 0.00404) hit=none
+                                                                                                Union
+                                                                                                    Material material=soldier_gloves
+                                                                                                        ArbitraryRoundCone a=(-0.98107, 1.35684, 0.002) b=(-1.01689, 1.34497, 0.00404) radiusA=0.0145 radiusB=0.0135
+                                                                                                    Bone name=index_finger_04_R head=(-1.01689, 1.34497, 0.00404) tail=(-1.03585, 1.33868, 0.00512) hit=none
+                                                                                                        Union
+                                                                                                            Material material=soldier_gloves
+                                                                                                                ArbitraryRoundCone a=(-1.01689, 1.34497, 0.00404) b=(-1.03585, 1.33868, 0.00512) radiusA=0.0135 radiusB=0.0114
+                                                                                                            Material material=soldier_gloves
+                                                                                                                Translate translation=(-1.03585, 1.33868, 0.00512)
+                                                                                                                    Sphere radius=0.0114
+                                                                            Bone name=thumb_01_R head=(-0.83477, 1.34923, 0.01088) tail=(-0.88772, 1.33761, 0.04433) hit=none
+                                                                                Union
+                                                                                    Material material=soldier_gloves
+                                                                                        ArbitraryRoundCone a=(-0.83477, 1.34923, 0.01088) b=(-0.88772, 1.33761, 0.04433) radiusA=0.021 radiusB=0.0185
+                                                                                    Bone name=thumb_02_R head=(-0.88772, 1.33761, 0.04433) tail=(-0.93577, 1.31195, 0.05993) hit=none
+                                                                                        Union
+                                                                                            Material material=soldier_gloves
+                                                                                                ArbitraryRoundCone a=(-0.88772, 1.33761, 0.04433) b=(-0.93577, 1.31195, 0.05993) radiusA=0.0185 radiusB=0.0165
+                                                                                            Bone name=thumb_03_R head=(-0.93577, 1.31195, 0.05993) tail=(-0.95979, 1.29912, 0.06773) hit=none
+                                                                                                Union
+                                                                                                    Material material=soldier_gloves
+                                                                                                        ArbitraryRoundCone a=(-0.93577, 1.31195, 0.05993) b=(-0.95979, 1.29912, 0.06773) radiusA=0.0165 radiusB=0.01378
+                                                                                                    Material material=soldier_gloves
+                                                                                                        Translate translation=(-0.95979, 1.29912, 0.06773)
+                                                                                                            Sphere radius=0.01378
+                                                                            Socket name=grip at=(-0.855, 1.33, -0.02) dir=(0, 0, 1) up=(0, 1, 0)
+                                            Bone name=neck head=(0, 1.44901, -0.02416) tail=(0, 1.56911, -0.00484)
+                                                SmoothUnion smoothness=0.01
+                                                    Material material=soldier_skin
+                                                        Capsule a=(0, 1.42, -0.026) b=(0, 1.56, -0.006) radius=0.055
+                                                    Bone name=head head=(0, 1.56911, -0.00484) tail=(0, 1.8, 0.02) hit=0.13
+                                                        # No skull, hair, ears, nose, eyes, brows or jaw: the monster head (ticket 45) sits on this bone and the head_top socket.
+                                                        # Each face bone keeps a tiny sphere buried in the neck, so every bone still owns some geometry (it never shows).
+                                                        SmoothUnion smoothness=0.012
+                                                            Material material=soldier_skin
+                                                                Translate translation=(0, 1.55, -0.012)
+                                                                    Sphere radius=0.004
+                                                            Bone name=jaw head=(0.00005, 1.63159, 0.0168) tail=(0.00007, 1.66283, 0.02762) hit=none
+                                                                Material material=soldier_skin
+                                                                    Translate translation=(0, 1.54, -0.012)
+                                                                        Sphere radius=0.004
+                                                            Bone name=eyes head=(0, 1.66359, 0.11788) tail=(0, 1.71083, 0.17924) hit=none
+                                                                Material material=soldier_skin
+                                                                    Translate translation=(0, 1.53, -0.012)
+                                                                        Sphere radius=0.004
+                                                            Bone name=eyebrows head=(0, 1.69678, 0.11788) tail=(0, 1.76062, 0.17924) hit=none
+                                                                Material material=soldier_skin
+                                                                    Translate translation=(0, 1.52, -0.012)
+                                                                        Sphere radius=0.004
+                                                        Socket name=head_top at=(0, 1.815, 0.015)
+                                        Union
+                                            Material material=soldier_fatigues
+                                                Translate translation=(0, 1.475, -0.022)
+                                                    RoundedCylinder radius=0.085 roundness=0.03 height=0.047
+                                            Material material=soldier_vest
+                                                Union
+                                                    Intersection
+                                                        Translate translation=(0, 1.24, 0.12)
+                                                            RoundBox size=(0.17, 0.16, 0.04) roundness=0.03
+                                                        Translate translation=(0, 1.37, 0)
+                                                            Box size=(1, 0.13, 1)
+                                                    Intersection
+                                                        Translate translation=(0, 1.24, -0.15)
+                                                            RoundBox size=(0.17, 0.16, 0.04) roundness=0.03
+                                                        Translate translation=(0, 1.37, 0)
+                                                            Box size=(1, 0.13, 1)
+                                                    Union
+                                                        Translate translation=(0.1, 1.437, -0.04)
+                                                            RoundBox size=(0.03, 0.011, 0.09) roundness=0.008
+                                                        Translate translation=(0.1, 1.4175, 0.075)
+                                                            Rotate rotation=(0.37, 0, 0)
+                                                                RoundBox size=(0.03, 0.011, 0.055) roundness=0.008
+                                                        Translate translation=(0.1, 1.4175, -0.13)
+                                                            Rotate rotation=(-0.52, 0, 0)
+                                                                RoundBox size=(0.03, 0.011, 0.035) roundness=0.008
+                                                    Union
+                                                        Translate translation=(-0.1, 1.437, -0.04)
+                                                            RoundBox size=(0.03, 0.011, 0.09) roundness=0.008
+                                                        Translate translation=(-0.1, 1.4175, 0.075)
+                                                            Rotate rotation=(0.37, 0, 0)
+                                                                RoundBox size=(0.03, 0.011, 0.055) roundness=0.008
+                                                        Translate translation=(-0.1, 1.4175, -0.13)
+                                                            Rotate rotation=(-0.52, 0, 0)
+                                                                RoundBox size=(0.03, 0.011, 0.035) roundness=0.008
+                                            Material material=soldier_pack
+                                                Union
+                                                    Union
+                                                        Translate translation=(0.105, 1.456, -0.04)
+                                                            RoundBox size=(0.02, 0.008, 0.09) roundness=0.006
+                                                        Translate translation=(0.105, 1.435, 0.09)
+                                                            Rotate rotation=(0.337, 0, 0)
+                                                                RoundBox size=(0.02, 0.008, 0.065) roundness=0.008
+                                                        Translate translation=(0.105, 1.245, 0.168)
+                                                            RoundBox size=(0.02, 0.165, 0.008) roundness=0.006
+                                                    Union
+                                                        Translate translation=(-0.105, 1.456, -0.04)
+                                                            RoundBox size=(0.02, 0.008, 0.09) roundness=0.006
+                                                        Translate translation=(-0.105, 1.435, 0.09)
+                                                            Rotate rotation=(0.337, 0, 0)
+                                                                RoundBox size=(0.02, 0.008, 0.065) roundness=0.008
+                                                        Translate translation=(-0.105, 1.245, 0.168)
+                                                            RoundBox size=(0.02, 0.165, 0.008) roundness=0.006
+                                            Socket name=back at=(0, 1.28, -0.19)
+                                            Socket name=chest at=(0, 1.25, 0.16) dir=(0, 0, 1)
+                            Material material=soldier_vest
+                                Union
+                                    Intersection
+                                        Translate translation=(0, 1.24, 0.12)
+                                            RoundBox size=(0.17, 0.16, 0.04) roundness=0.03
+                                        Translate translation=(0, 1.12, 0)
+                                            Box size=(1, 0.12, 1)
+                                    Intersection
+                                        Translate translation=(0, 1.24, -0.15)
+                                            RoundBox size=(0.17, 0.16, 0.04) roundness=0.03
+                                        Translate translation=(0, 1.12, 0)
+                                            Box size=(1, 0.12, 1)
+                                    Intersection
+                                        Translate translation=(0, 1.2, -0.03)
+                                            Ellipsoid radii=(0.215, 0.3, 0.185)
+                                        Translate translation=(0, 1.165, 0.31)
+                                            Box size=(1, 0.085, 0.5)
+                                    Translate translation=(-0.092, 1.185, 0.175)
+                                        RoundBox size=(0.04, 0.05, 0.028) roundness=0.01
+                                    Translate translation=(0, 1.185, 0.175)
+                                        RoundBox size=(0.04, 0.05, 0.028) roundness=0.01
+                                    Translate translation=(0.092, 1.185, 0.175)
+                                        RoundBox size=(0.04, 0.05, 0.028) roundness=0.01
+        SmoothUnion smoothness=0.012
+            Material material=soldier_fatigues
+                Translate translation=(0, 0.93, -0.02)
+                    Ellipsoid radii=(0.19, 0.14, 0.14)
+            Bone name=upper_leg_L head=(0.09897, 0.83156, -0.02047) tail=(0.11164, 0.43245, -0.02047)
+                Union
+                    SmoothUnion smoothness=0.012
+                        Material material=soldier_fatigues
+                            ArbitraryRoundCone a=(0.09897, 0.83156, -0.02047) b=(0.11164, 0.43245, -0.02047) radiusA=0.088 radiusB=0.07
+                        Bone name=lower_leg_L head=(0.11164, 0.43245, -0.02047) tail=(0.11444, 0.05569, -0.03687)
+                            SmoothUnion smoothness=0.008
+                                Material material=soldier_fatigues
+                                    Union
+                                        ArbitraryRoundCone a=(0.11164, 0.43245, -0.02047) b=(0.11332, 0.2, -0.0306) radiusA=0.068 radiusB=0.058
+                                        Translate translation=(0.1138, 0.205, -0.036)
+                                            Ellipsoid radii=(0.076, 0.045, 0.076)
+                                Bone name=ankle_L head=(0.11444, 0.05569, -0.03687) tail=(0.11444, -0.00298, 0.05951) falloff=0.03
+                                    Union
+                                        Material material=soldier_boots
+                                            Intersection
+                                                SmoothUnion smoothness=0.01
+                                                    Translate translation=(0.11444, 0.015, 0.045)
+                                                        RoundBox size=(0.057, 0.015, 0.145) roundness=0.012
+                                                    Translate translation=(0.11444, 0.058, 0.068)
+                                                        RoundBox size=(0.049, 0.034, 0.118) roundness=0.026
+                                                    Capsule a=(0.11444, 0.05, -0.034) b=(0.11444, 0.105, -0.034) radius=0.06
+                                                    Translate translation=(0.11444, 0.04, -0.07)
+                                                        RoundBox size=(0.05, 0.04, 0.03) roundness=0.014
+                                                Translate translation=(0, 0, -0.47025)
+                                                    Box size=(5, 5, 0.52975)
+                                        Bone name=ball_L head=(0.11444, -0.00298, 0.05951) tail=(0.11444, -0.00298, 0.13247) hit=none
+                                            Union
+                                                Material material=soldier_boots
+                                                    Intersection
+                                                        SmoothUnion smoothness=0.01
+                                                            Translate translation=(0.11444, 0.015, 0.045)
+                                                                RoundBox size=(0.057, 0.015, 0.145) roundness=0.012
+                                                            Translate translation=(0.11444, 0.058, 0.068)
+                                                                RoundBox size=(0.049, 0.034, 0.118) roundness=0.026
+                                                            Capsule a=(0.11444, 0.05, -0.034) b=(0.11444, 0.105, -0.034) radius=0.06
+                                                            Translate translation=(0.11444, 0.04, -0.07)
+                                                                RoundBox size=(0.05, 0.04, 0.03) roundness=0.014
+                                                        Translate translation=(0, 0, 0.09599)
+                                                            Box size=(5, 5, 0.03648)
+                                                Bone name=toes_L head=(0.11444, -0.00298, 0.13247) tail=(0.11444, -0.00298, 0.16895) hit=none
+                                                    Material material=soldier_boots
+                                                        Intersection
+                                                            SmoothUnion smoothness=0.01
+                                                                Translate translation=(0.11444, 0.015, 0.045)
+                                                                    RoundBox size=(0.057, 0.015, 0.145) roundness=0.012
+                                                                Translate translation=(0.11444, 0.058, 0.068)
+                                                                    RoundBox size=(0.049, 0.034, 0.118) roundness=0.026
+                                                                Capsule a=(0.11444, 0.05, -0.034) b=(0.11444, 0.105, -0.034) radius=0.06
+                                                                Translate translation=(0.11444, 0.04, -0.07)
+                                                                    RoundBox size=(0.05, 0.04, 0.03) roundness=0.014
+                                                            Translate translation=(0, 0, 0.56624)
+                                                                Box size=(5, 5, 0.43377)
+                    Material material=soldier_fatigues
+                        Translate translation=(0.194, 0.66, -0.025)
+                            RoundBox size=(0.027, 0.065, 0.055) roundness=0.012
+        SmoothUnion smoothness=0.012
+            Material material=soldier_fatigues
+                Translate translation=(0, 0.93, -0.02)
+                    Ellipsoid radii=(0.19, 0.14, 0.14)
+            Bone name=upper_leg_R head=(-0.09897, 0.83156, -0.02047) tail=(-0.11164, 0.43245, -0.02047)
+                Union
+                    SmoothUnion smoothness=0.012
+                        Material material=soldier_fatigues
+                            ArbitraryRoundCone a=(-0.09897, 0.83156, -0.02047) b=(-0.11164, 0.43245, -0.02047) radiusA=0.088 radiusB=0.07
+                        Bone name=lower_leg_R head=(-0.11164, 0.43245, -0.02047) tail=(-0.11444, 0.05569, -0.03687)
+                            SmoothUnion smoothness=0.008
+                                Material material=soldier_fatigues
+                                    Union
+                                        ArbitraryRoundCone a=(-0.11164, 0.43245, -0.02047) b=(-0.11332, 0.2, -0.0306) radiusA=0.068 radiusB=0.058
+                                        Translate translation=(-0.1138, 0.205, -0.036)
+                                            Ellipsoid radii=(0.076, 0.045, 0.076)
+                                Bone name=ankle_R head=(-0.11444, 0.05569, -0.03687) tail=(-0.11444, -0.00298, 0.05951) falloff=0.03
+                                    Union
+                                        Material material=soldier_boots
+                                            Intersection
+                                                SmoothUnion smoothness=0.01
+                                                    Translate translation=(-0.11444, 0.015, 0.045)
+                                                        RoundBox size=(0.057, 0.015, 0.145) roundness=0.012
+                                                    Translate translation=(-0.11444, 0.058, 0.068)
+                                                        RoundBox size=(0.049, 0.034, 0.118) roundness=0.026
+                                                    Capsule a=(-0.11444, 0.05, -0.034) b=(-0.11444, 0.105, -0.034) radius=0.06
+                                                    Translate translation=(-0.11444, 0.04, -0.07)
+                                                        RoundBox size=(0.05, 0.04, 0.03) roundness=0.014
+                                                Translate translation=(0, 0, -0.47025)
+                                                    Box size=(5, 5, 0.52975)
+                                        Bone name=ball_R head=(-0.11444, -0.00298, 0.05951) tail=(-0.11444, -0.00298, 0.13247) hit=none
+                                            Union
+                                                Material material=soldier_boots
+                                                    Intersection
+                                                        SmoothUnion smoothness=0.01
+                                                            Translate translation=(-0.11444, 0.015, 0.045)
+                                                                RoundBox size=(0.057, 0.015, 0.145) roundness=0.012
+                                                            Translate translation=(-0.11444, 0.058, 0.068)
+                                                                RoundBox size=(0.049, 0.034, 0.118) roundness=0.026
+                                                            Capsule a=(-0.11444, 0.05, -0.034) b=(-0.11444, 0.105, -0.034) radius=0.06
+                                                            Translate translation=(-0.11444, 0.04, -0.07)
+                                                                RoundBox size=(0.05, 0.04, 0.03) roundness=0.014
+                                                        Translate translation=(0, 0, 0.09599)
+                                                            Box size=(5, 5, 0.03648)
+                                                Bone name=toes_R head=(-0.11444, -0.00298, 0.13247) tail=(-0.11444, -0.00298, 0.16895) hit=none
+                                                    Material material=soldier_boots
+                                                        Intersection
+                                                            SmoothUnion smoothness=0.01
+                                                                Translate translation=(-0.11444, 0.015, 0.045)
+                                                                    RoundBox size=(0.057, 0.015, 0.145) roundness=0.012
+                                                                Translate translation=(-0.11444, 0.058, 0.068)
+                                                                    RoundBox size=(0.049, 0.034, 0.118) roundness=0.026
+                                                                Capsule a=(-0.11444, 0.05, -0.034) b=(-0.11444, 0.105, -0.034) radius=0.06
+                                                                Translate translation=(-0.11444, 0.04, -0.07)
+                                                                    RoundBox size=(0.05, 0.04, 0.03) roundness=0.014
+                                                            Translate translation=(0, 0, 0.56624)
+                                                                Box size=(5, 5, 0.43377)
+                    Material material=soldier_fatigues
+                        Translate translation=(-0.194, 0.66, -0.025)
+                            RoundBox size=(0.027, 0.065, 0.055) roundness=0.012
+        Material material=soldier_gloves
+            Intersection
+                Translate translation=(0, 1, -0.014)
+                    Ellipsoid radii=(0.19, 0.2, 0.14)
+                Translate translation=(0, 1, 0)
+                    Box size=(1, 0.024, 1)

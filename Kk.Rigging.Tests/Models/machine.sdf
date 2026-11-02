@@ -1,0 +1,18 @@
+# Test machine: a chassis, a spinning drill head (rigid, spin about its own axis) and a rigid turret
+format 2
+collider bones
+
+Union
+    Material material=machine_blue_flesh
+        Box size=(0.5, 0.25, 0.8)
+    Bone name=drill head=(0, 0, 0.8) tail=(0, 0, 1.2) spin=(0, 0, 1)
+        Material material=machine_tread
+            Translate translation=(0, 0, 1)
+                Rotate rotation=(1.5707963, 0, 0)
+                    CappedCone height=0.4 bottomRadius=0.2 topRadius=0.02
+        Socket name=drill_tip at=(0, 0, 1.4) dir=(0, 0, 1)
+    Bone name=turret head=(0, 0.3, -0.1) tail=(0, 0.6, -0.1) falloff=0
+        Material material=machine_tread
+            Translate translation=(0, 0.45, -0.1)
+                Box size=(0.2, 0.15, 0.2)
+        Socket name=muzzle at=(0, 0.6, 0.3)
