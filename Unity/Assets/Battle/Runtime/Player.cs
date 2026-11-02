@@ -19,6 +19,9 @@ namespace SdfBattle
         /// <summary>The soldier drawn for this player (ticket 44), hidden for you in first person; null when the soldier models were not imported.</summary>
         public SoldierPuppet soldier;
 
+        /// <summary>The monster head this player wears (ticket 45), whose shape is where a shot counts as a headshot; null without one.</summary>
+        public SdfHeads.HeadWear WornHead => soldier != null ? soldier.Head : null;
+
         /// <summary>The root of whatever body is drawn (the soldier, else the scout); null for none.</summary>
         public Transform BodyRoot => soldier != null ? soldier.transform : body != null ? body.transform : null;
 

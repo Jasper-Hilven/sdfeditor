@@ -486,13 +486,17 @@ namespace SdfBattle
             {
                 if (player == ignore || player == ignoreToo || player.State == null || !player.State.Alive)
                     continue;
-                var centre = player.transform.position + Vector3.up * headCentre;
-                if (!Shots.HitEllipsoid(origin, direction, centre, headRadii.x + radius, headRadii.y + radius, out var t) || t > reach)
+                // The worn monster head's own shape (ticket 45, sized fairly across heads), else the old cap's
+                var worn = player.WornHead;
+                var across = worn != null ? worn.Shape.RadiusAcross : headRadii.x;
+                var up = worn != null ? worn.Shape.RadiusUp : headRadii.y;
+                var centre = player.transform.position + Vector3.up * (worn != null ? worn.CentreHeight : headCentre);
+                if (!Shots.HitEllipsoid(origin, direction, centre, across + radius, up + radius, out var t) || t > reach)
                     continue;
                 reach = t;
                 var point = origin + direction * t;
                 var local = point - centre;
-                var normal = new Vector3(local.x / Sq(headRadii.x + radius), local.y / Sq(headRadii.y + radius), local.z / Sq(headRadii.x + radius)).normalized;
+                var normal = new Vector3(local.x / Sq(across + radius), local.y / Sq(up + radius), local.z / Sq(across + radius)).normalized;
                 result = new ShotHit { hit = true, point = point - normal * radius, normal = normal, distance = t, player = player, head = true };
             }
             return result;

@@ -1,0 +1,204 @@
+# Jack-o'-Lantern, the October head (ticket 45): a glowing orange pumpkin with a jagged carved grin, two angry triangle eyes and a triangle
+# nose. Twelve lobes make the ribbed rind, a crooked stem sits on top, and the carving is cut into the front: the pocket's floor
+# glows (emission, the candle inside) and a pale strip of flesh rims the cut. About 0.43 m wide and 0.5 m tall with the stem, twice a
+# human head. Its eyes are the carved triangles.
+# Frame (the soldier's head_top socket, ticket 43): the origin is the socket, 1.815 m over the soles; the head faces +Z, +Y is up. The
+# pumpkin's underside is at y=-0.24 (1.575 m), over the neck's top at 1.569, so it sits on the collar and the neck's stub is inside it.
+# The head turns on the Head bone, 0.25 m under the origin.
+# The carving is written three times below (the cutter, the cutter grown by 1.4 cm for the flesh rim, and the glowing plug): edit them
+# together (this file was written from one template).
+# Detail 1 (a head this small gets few cells at the default resolution): about 2.9k triangles at LOD0.
+format 1
+
+# No collider (the hit shape of the head is a number in MonsterHeads), and never culled before 200 m: the head is what reads at range
+collider none
+cull 200
+
+Detail detail=1
+    Union
+        # The rind: the pumpkin without the carving
+        Material material=pumpkin_skin
+            Subtraction
+                SmoothUnion smoothness=0.03
+                    # The body: twelve lobes round the middle, so the rind is ribbed
+                    Translate translation=(0, -0.07, 0)
+                        Ellipsoid radii=(0.15, 0.17, 0.15)
+                    SymmetryXZ
+                        Union
+                            Rotate rotation=(0, 0, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                            Rotate rotation=(0, 0.5235988, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                            Rotate rotation=(0, 1.0471976, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                            Rotate rotation=(0, 1.5707964, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                Translate translation=(0, 0, 0.25)
+                    Extrusion height=0.15
+                        Union2D
+                            # Eyes: two angry triangles, pointing inward-down
+                            Translate2D offset=(-0.085, 0.045)
+                                Triangle2D a=(-0.05, -0.03) b=(0.05, -0.012) c=(0.02, 0.06)
+                            Translate2D offset=(0.085, 0.045)
+                                Triangle2D a=(0.05, -0.03) b=(-0.05, -0.012) c=(-0.02, 0.06)
+                            # Nose: a small triangle
+                            Translate2D offset=(0, -0.025)
+                                Triangle2D a=(-0.025, -0.02) b=(0.025, -0.02) c=(0, 0.03)
+                            # Grin: a smile crescent with teeth left standing along its top and bottom edge
+                            Translate2D offset=(0, -0.13)
+                                Subtraction2D
+                                    Subtraction2D
+                                        Ellipse2D radii=(0.16, 0.1)
+                                        Translate2D offset=(0, 0.095)
+                                            Ellipse2D radii=(0.19, 0.1)
+                                    Union2D
+                                        Translate2D offset=(-0.085, -0.002)
+                                            Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                        Translate2D offset=(0.085, -0.002)
+                                            Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                        Translate2D offset=(0, -0.092)
+                                            Triangle2D a=(-0.024, -0.02) b=(0.024, -0.02) c=(0, 0.035)
+                                        Translate2D offset=(-0.12, -0.065)
+                                            Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+                                        Translate2D offset=(0.12, -0.065)
+                                            Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+        # The flesh: a rim round the carving, between the cutter and the cutter grown by 1.4 cm
+        Material material=pumpkin_flesh
+            Subtraction
+                Intersection
+                    SmoothUnion smoothness=0.03
+                        # The body: twelve lobes round the middle, so the rind is ribbed
+                        Translate translation=(0, -0.07, 0)
+                            Ellipsoid radii=(0.15, 0.17, 0.15)
+                        SymmetryXZ
+                            Union
+                                Rotate rotation=(0, 0, 0)
+                                    Translate translation=(0, -0.07, 0.115)
+                                        Ellipsoid radii=(0.062, 0.18, 0.09)
+                                Rotate rotation=(0, 0.5235988, 0)
+                                    Translate translation=(0, -0.07, 0.115)
+                                        Ellipsoid radii=(0.062, 0.18, 0.09)
+                                Rotate rotation=(0, 1.0471976, 0)
+                                    Translate translation=(0, -0.07, 0.115)
+                                        Ellipsoid radii=(0.062, 0.18, 0.09)
+                                Rotate rotation=(0, 1.5707964, 0)
+                                    Translate translation=(0, -0.07, 0.115)
+                                        Ellipsoid radii=(0.062, 0.18, 0.09)
+                    Round radius=0.014
+                        Translate translation=(0, 0, 0.25)
+                            Extrusion height=0.15
+                                Union2D
+                                    # Eyes: two angry triangles, pointing inward-down
+                                    Translate2D offset=(-0.085, 0.045)
+                                        Triangle2D a=(-0.05, -0.03) b=(0.05, -0.012) c=(0.02, 0.06)
+                                    Translate2D offset=(0.085, 0.045)
+                                        Triangle2D a=(0.05, -0.03) b=(-0.05, -0.012) c=(-0.02, 0.06)
+                                    # Nose: a small triangle
+                                    Translate2D offset=(0, -0.025)
+                                        Triangle2D a=(-0.025, -0.02) b=(0.025, -0.02) c=(0, 0.03)
+                                    # Grin: a smile crescent with teeth left standing along its top and bottom edge
+                                    Translate2D offset=(0, -0.13)
+                                        Subtraction2D
+                                            Subtraction2D
+                                                Ellipse2D radii=(0.16, 0.1)
+                                                Translate2D offset=(0, 0.095)
+                                                    Ellipse2D radii=(0.19, 0.1)
+                                            Union2D
+                                                Translate2D offset=(-0.085, -0.002)
+                                                    Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                                Translate2D offset=(0.085, -0.002)
+                                                    Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                                Translate2D offset=(0, -0.092)
+                                                    Triangle2D a=(-0.024, -0.02) b=(0.024, -0.02) c=(0, 0.035)
+                                                Translate2D offset=(-0.12, -0.065)
+                                                    Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+                                                Translate2D offset=(0.12, -0.065)
+                                                    Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+                Translate translation=(0, 0, 0.25)
+                    Extrusion height=0.15
+                        Union2D
+                            # Eyes: two angry triangles, pointing inward-down
+                            Translate2D offset=(-0.085, 0.045)
+                                Triangle2D a=(-0.05, -0.03) b=(0.05, -0.012) c=(0.02, 0.06)
+                            Translate2D offset=(0.085, 0.045)
+                                Triangle2D a=(0.05, -0.03) b=(-0.05, -0.012) c=(-0.02, 0.06)
+                            # Nose: a small triangle
+                            Translate2D offset=(0, -0.025)
+                                Triangle2D a=(-0.025, -0.02) b=(0.025, -0.02) c=(0, 0.03)
+                            # Grin: a smile crescent with teeth left standing along its top and bottom edge
+                            Translate2D offset=(0, -0.13)
+                                Subtraction2D
+                                    Subtraction2D
+                                        Ellipse2D radii=(0.16, 0.1)
+                                        Translate2D offset=(0, 0.095)
+                                            Ellipse2D radii=(0.19, 0.1)
+                                    Union2D
+                                        Translate2D offset=(-0.085, -0.002)
+                                            Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                        Translate2D offset=(0.085, -0.002)
+                                            Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                        Translate2D offset=(0, -0.092)
+                                            Triangle2D a=(-0.024, -0.02) b=(0.024, -0.02) c=(0, 0.035)
+                                        Translate2D offset=(-0.12, -0.065)
+                                            Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+                                        Translate2D offset=(0.12, -0.065)
+                                            Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+        # The candle's glow: what the carving shows at its floor, a plug of the pumpkin from the centre out to z=0.1
+        Material material=pumpkin_glow
+            Intersection
+                SmoothUnion smoothness=0.03
+                    # The body: twelve lobes round the middle, so the rind is ribbed
+                    Translate translation=(0, -0.07, 0)
+                        Ellipsoid radii=(0.15, 0.17, 0.15)
+                    SymmetryXZ
+                        Union
+                            Rotate rotation=(0, 0, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                            Rotate rotation=(0, 0.5235988, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                            Rotate rotation=(0, 1.0471976, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                            Rotate rotation=(0, 1.5707964, 0)
+                                Translate translation=(0, -0.07, 0.115)
+                                    Ellipsoid radii=(0.062, 0.18, 0.09)
+                Translate translation=(0, 0, 0.05)
+                    Extrusion height=0.05
+                        Union2D
+                            # Eyes: two angry triangles, pointing inward-down
+                            Translate2D offset=(-0.085, 0.045)
+                                Triangle2D a=(-0.05, -0.03) b=(0.05, -0.012) c=(0.02, 0.06)
+                            Translate2D offset=(0.085, 0.045)
+                                Triangle2D a=(0.05, -0.03) b=(-0.05, -0.012) c=(-0.02, 0.06)
+                            # Nose: a small triangle
+                            Translate2D offset=(0, -0.025)
+                                Triangle2D a=(-0.025, -0.02) b=(0.025, -0.02) c=(0, 0.03)
+                            # Grin: a smile crescent with teeth left standing along its top and bottom edge
+                            Translate2D offset=(0, -0.13)
+                                Subtraction2D
+                                    Subtraction2D
+                                        Ellipse2D radii=(0.16, 0.1)
+                                        Translate2D offset=(0, 0.095)
+                                            Ellipse2D radii=(0.19, 0.1)
+                                    Union2D
+                                        Translate2D offset=(-0.085, -0.002)
+                                            Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                        Translate2D offset=(0.085, -0.002)
+                                            Triangle2D a=(-0.024, 0.02) b=(0.024, 0.02) c=(0, -0.035)
+                                        Translate2D offset=(0, -0.092)
+                                            Triangle2D a=(-0.024, -0.02) b=(0.024, -0.02) c=(0, 0.035)
+                                        Translate2D offset=(-0.12, -0.065)
+                                            Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+                                        Translate2D offset=(0.12, -0.065)
+                                            Triangle2D a=(-0.02, -0.02) b=(0.02, -0.02) c=(0, 0.03)
+        # The stem, crooked
+        Material material=pumpkin_stem
+            Union
+                ArbitraryRoundCone a=(0, 0.07, 0.0) b=(0.015, 0.16, -0.01) radiusA=0.04 radiusB=0.03
+                ArbitraryRoundCone a=(0.015, 0.16, -0.01) b=(0.05, 0.215, -0.02) radiusA=0.03 radiusB=0.022

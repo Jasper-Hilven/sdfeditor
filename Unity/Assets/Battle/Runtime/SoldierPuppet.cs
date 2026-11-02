@@ -1,4 +1,5 @@
 using SdfBody;
+using SdfHeads;
 using SdfLevel;
 using SdfRig;
 using UnityEngine;
@@ -26,6 +27,9 @@ namespace SdfBattle
         public const float JumpSpeed = 2f;
 
         public SoldierAnimator Animator { get; private set; }
+
+        /// <summary>The monster head on its head socket (ticket 45), null when the heads were not imported.</summary>
+        public HeadWear Head { get; private set; }
 
         private Player player;
         private FirstPersonController controller;
@@ -56,6 +60,8 @@ namespace SdfBattle
             foreach (var collider in instance.GetComponentsInChildren<Collider>(true))
                 Destroy(collider);
             var puppet = instance.AddComponent<SoldierPuppet>();
+            // Ticket 45's stand-in: a random modelled head. Ticket 47 replaces this one line with the head the player chose or the bot drew.
+            puppet.Head = HeadWear.Attach(instance.transform, MonsterHeads.RandomBuiltId(count => Random.Range(0, count)));
             puppet.player = player;
             puppet.controller = controller;
             puppet.capsule = player.GetComponent<CharacterController>();
