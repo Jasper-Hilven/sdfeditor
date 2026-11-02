@@ -173,10 +173,10 @@ namespace SdfBattle
         /// <summary>Where a player's feet are, for the clouds and splats; the scene sets it (tests too). Without it, nobody is in one.</summary>
         public Func<PlayerState, Vector3> PositionOf { get; set; }
 
-        /// <summary>What a player's walking speed is multiplied by on top of the slows (ticket 25's Mycelium Rush); null: 1.</summary>
+        /// <summary>What a player's walking speed is multiplied by on top of the slows (ticket 25's Frenzy); null: 1.</summary>
         public Func<PlayerState, float> SpeedBoostOf { get; set; }
 
-        /// <summary>What the damage a player takes is multiplied by (ticket 25's Puffball Armour); null: 1.</summary>
+        /// <summary>What the damage a player takes is multiplied by (ticket 25's Thick Hide); null: 1.</summary>
         public Func<PlayerState, float> DamageTakenOf { get; set; }
 
         /// <summary>What the damage a player takes from this hit is multiplied by (ticket 29.7's wet scouts and the electro gun); null: 1.</summary>

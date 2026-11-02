@@ -9,7 +9,7 @@ namespace SdfBattle
     /// The spores on the HUD (ticket 25), 5 px above the health panel and as small, 5 px from the screen's left edge, one of three
     /// things at a time:
     /// <list type="bullet">
-    /// <item>filling: the spore meter only (a copy of the health panel: its name, then a spore-coloured bar);</item>
+    /// <item>filling: the rage meter only (a copy of the health panel: its name, then a rage-coloured bar);</item>
     /// <item>full: the three powers only, a card each in key order (the key as the player's layout prints it, Q F C or A F C on
     /// AZERTY, and the power's name), their keys glowing up and down in the power's colour and the cards breathing a little, so a
     /// full meter is noticed; no meter;</item>
@@ -62,6 +62,9 @@ namespace SdfBattle
                 return false;
             meter = hud.sporeMeter;
             meterBar = hud.sporeBar;
+            // The rage meter's colour
+            if (meterBar != null && meterBar.bar != null)
+                meterBar.bar.SetColor(GuiPalette.Rage);
             cards = hud.sporeCards;
             cardLetters = hud.sporeLetters;
             cardKeys = new ToonShape[cards.Length];
@@ -69,6 +72,9 @@ namespace SdfBattle
             {
                 var key = cards[i] != null ? cards[i].transform.Find("Key") : null;
                 cardKeys[i] = key != null ? key.GetComponent<ToonShape>() : null;
+                // The power's colour, whatever the prefab was baked with
+                if (cardKeys[i] != null && i < SporeRules.All.Length)
+                    cardKeys[i].SetColor(Spores.ColourOf(SporeRules.All[i]));
             }
             active = hud.sporePower;
             activeLabel = hud.sporePowerLabel;
@@ -146,7 +152,7 @@ namespace SdfBattle
             if (tint != null)
             {
                 var alpha = on ? 0.16f + 0.06f * Mathf.Sin(Time.time * 3) : 0;
-                tint.SetColor(GuiPalette.WithAlpha(on ? Spores.ColourOf(m.Power.Value) : GuiPalette.Spore, alpha));
+                tint.SetColor(GuiPalette.WithAlpha(on ? Spores.ColourOf(m.Power.Value) : GuiPalette.Rage, alpha));
             }
         }
     }

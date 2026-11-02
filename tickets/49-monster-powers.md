@@ -30,4 +30,10 @@ Depends on: nothing (it can run alongside the others).
 
 ## Status
 
-Not started.
+Done in code; left: a Play-mode look at the three effects and the power cards, and a Play-mode listen.
+
+- Renamed: `SporePower.Rush/Regrowth/Armour` to `Frenzy/Regenerate/ThickHide`; the rule fields (`frenzySpeed`, `regeneratePerSecond`, `thickHideDamage`, ...), `Spores.FrenzyColour/RegenerateColour/ThickHideColour` and the tests. `Spore*` type names, `GuiHud`'s spore fields and the `spore.*` audio cues stay (noted in `SporeRules.cs`).
+- Strings: rage meter, Frenzy, Regenerate, Thick Hide in the HUD (builder and prefab), loading tips, caption, end screen, pickup label, kill-feed lines, credits, `description.md`, `control.html`.
+- HUD: meter and tint in rage red-orange (`GuiPalette.Rage`), Thick Hide stone grey (`GuiPalette.Stone`); `SporeHud` also sets the colours at run time.
+- Effects: steam and sparks on use; Frenzy speed streaks and steam, Regenerate green pulse ring, Thick Hide grey glints and the swell.
+- Tests: EditMode 433 of 433 pass. Capture: `Media/powers-49/Hud.png` (the power cards and line only show in a match).

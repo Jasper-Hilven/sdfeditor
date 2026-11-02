@@ -322,18 +322,18 @@ namespace SdfBattle
                 L("{killer} spun up {icon} on {victim}"),
                 L("{victim} {icon} met {killer}'s minigun"),
                 L("{killer} {icon} turned {victim} to mulch"),
-                L("{killer} {icon} made spore paste of {victim}", Gory),
+                L("{killer} {icon} made mince of {victim}", Gory),
             },
             [(DeathKind.Minigun, DeathText.Title)] = new[]
             {
-                L("SHREDDED!"), L("MULCHED!"), L("BRRRRT!"), L("MINCED!"), L("DICED!"), L("SPUN OUT!"), L("SPORE PASTE!", Gory),
+                L("SHREDDED!"), L("MULCHED!"), L("BRRRRT!"), L("MINCED!"), L("DICED!"), L("SPUN OUT!"), L("MASHED UP!", Gory),
             },
             [(DeathKind.Minigun, DeathText.Detail)] = new[]
             {
                 L("by {killer}\nand a lot of minigun"),
                 L("{killer} held\nthe trigger down"),
                 L("{killer}'s minigun\ndid not stop"),
-                L("by {killer}\nand all 250 spores"),
+                L("by {killer}\nand all 250 rounds"),
                 L("{killer} spun up.\nYou spun out."),
                 L("{killer} made\nmulch of you"),
                 L("{killer} turned\nyou into a smoothie", Ultra),
@@ -390,7 +390,7 @@ namespace SdfBattle
                 L("by {killer}'s\nelectro-gun"),
                 L("{killer} put volts\nin your gills"),
                 L("you conducted\n{killer}'s bolt"),
-                L("{killer} zapped\nyour mycelium"),
+                L("{killer} zapped\nyour fur"),
                 L("gills: frizzy.\nby: {killer}"),
                 L("{killer} gave\nyou a big buzz"),
             },
@@ -427,7 +427,7 @@ namespace SdfBattle
             [(DeathKind.PoisonGun, DeathText.Feed)] = new[]
             {
                 L("{killer} {icon} gassed {victim}"),
-                L("{victim} got spored out {icon} by {killer}"),
+                L("{victim} got poisoned out {icon} by {killer}"),
                 L("{killer} {icon} wilted {victim}"),
                 L("{victim} {icon} sniffed {killer}'s cloud"),
                 L("{killer} {icon} poisoned {victim}"),
@@ -439,7 +439,7 @@ namespace SdfBattle
             },
             [(DeathKind.PoisonGun, DeathText.Title)] = new[]
             {
-                L("SPORED OUT"), L("WILTED!"), L("BLIGHTED!"), L("GASSED!"), L("QUEASY!"), L("TOXIC!"),
+                L("POISONED"), L("WILTED!"), L("BLIGHTED!"), L("GASSED!"), L("QUEASY!"), L("TOXIC!"),
             },
             [(DeathKind.PoisonGun, DeathText.Detail)] = new[]
             {
@@ -447,7 +447,7 @@ namespace SdfBattle
                 L("by {killer}'s\npoison gun"),
                 L("{killer}'s cloud\nwas not fog"),
                 L("{killer} said:\nhold your breath"),
-                L("{killer} gave you\nthe bad spores"),
+                L("{killer} gave you\nthe bad fumes"),
                 L("{killer} left you\nwilting"),
             },
 
@@ -724,7 +724,7 @@ namespace SdfBattle
             },
             [(DeathKind.Streak, DeathText.Title)] = new[]
             {
-                L("ON A ROLL!"), L("UNSTOPPABLE"), L("RAMPAGE!"), L("IN BLOOM!"), L("SPORE STORM!"),
+                L("ON A ROLL!"), L("UNSTOPPABLE"), L("RAMPAGE!"), L("IN BLOOM!"), L("RAGE STORM!"),
             },
             [(DeathKind.Streak, DeathText.Detail)] = new[]
             {

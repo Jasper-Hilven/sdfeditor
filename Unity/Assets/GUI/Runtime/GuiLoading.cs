@@ -37,7 +37,7 @@ namespace SdfGui
             "Walk onto a pod to take its weapon.",
             "Low on health? Walk over a health pod.",
             "Carry their flag home while yours is at its base.",
-            "Fill your spores and activate Mycelium Rush.",
+            "Fill your rage and activate Frenzy.",
         };
 
         private static int tipCounter;

@@ -386,7 +386,7 @@ namespace SdfGui.Editor
             var pickup = f.Panel(t, "Pick Up", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), Bottom, new Vector2(0, 220), new Vector2(520, 76), 20);
             var key = f.Shape(pickup.transform, "Key", ToonShapeKind.Box, GuiPalette.Paper, Left, new Vector2(16, 0), new Vector2(56, 56), s => { s.CornerRadius = 12; s.Outline = 4; s.Shadow = 5; });
             f.FillText(key.transform, "Letter", "E", TextStyle.Label, 36, GuiPalette.Ink);
-            hud.pickupLabel = f.Text(pickup.transform, "Label", "Pick up Spore Sac", TextStyle.BodyInk, 34, GuiPalette.Cream, Left, new Vector2(92, 0), new Vector2(410, 60), TextAlignmentOptions.Left);
+            hud.pickupLabel = f.Text(pickup.transform, "Label", "Pick up Minigun", TextStyle.BodyInk, 34, GuiPalette.Cream, Left, new Vector2(92, 0), new Vector2(410, 60), TextAlignmentOptions.Left);
             hud.pickupPrompt = pickup.gameObject;
 
             var spectating = p.BannerInstance(t, "Spectating", "SPECTATING", GuiPalette.Dusk, Bottom, new Vector2(0, 120), new Vector2(720, 84), 40);
@@ -456,8 +456,8 @@ namespace SdfGui.Editor
 
             var meter = f.Panel(t, "Spore Meter", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), BottomLeft, corner, health.sizeDelta, 16);
             meter.Shading = 0;
-            f.Text(meter.transform, "Label", "SPORES", TextStyle.BodyInk, 20, GuiPalette.Paper, Left, new Vector2(14, 0), new Vector2(86, 30), TextAlignmentOptions.Left);
-            hud.sporeBar = p.BarInstance(meter.transform, "Bar", GuiPalette.Spore, 0, Left, new Vector2(102, 0), new Vector2(226, 28), 20);
+            f.Text(meter.transform, "Label", "RAGE", TextStyle.BodyInk, 20, GuiPalette.Paper, Left, new Vector2(14, 0), new Vector2(86, 30), TextAlignmentOptions.Left);
+            hud.sporeBar = p.BarInstance(meter.transform, "Bar", GuiPalette.Rage, 0, Left, new Vector2(102, 0), new Vector2(226, 28), 20);
             hud.sporeBar.bar.Outline = 3;
             hud.sporeBar.bar.Shadow = 3;
             hud.sporeBar.bar.Shading = 0;
@@ -488,13 +488,13 @@ namespace SdfGui.Editor
             }
 
             var power = SporePanel(t, "Spore Power", corner, new Vector2(health.sizeDelta.x, SporeCard.y));
-            hud.sporePowerLabel = f.Text(power.transform, "Label", "MYCELIUM RUSH  12", TextStyle.BodyInk, 22, SdfBattle.Spores.RushColour, Left, new Vector2(14, 0),
+            hud.sporePowerLabel = f.Text(power.transform, "Label", "FRENZY  12", TextStyle.BodyInk, 22, SdfBattle.Spores.FrenzyColour, Left, new Vector2(14, 0),
                 new Vector2(health.sizeDelta.x - 28, 32), TextAlignmentOptions.Left);
             AutoSize(hud.sporePowerLabel, 12, 22);
             hud.sporePower = power.gameObject;
             power.gameObject.SetActive(false);
 
-            hud.sporeTint = f.Shape(t, "Spore Tint", ToonShapeKind.Vignette, GuiPalette.WithAlpha(GuiPalette.Spore, 0), Centre, Vector2.zero, Vector2.zero, s => s.FillAmount = 0.35f);
+            hud.sporeTint = f.Shape(t, "Spore Tint", ToonShapeKind.Vignette, GuiPalette.WithAlpha(GuiPalette.Rage, 0), Centre, Vector2.zero, Vector2.zero, s => s.FillAmount = 0.35f);
             Stretch(hud.sporeTint);
             hud.sporeTint.transform.SetSiblingIndex(hud.vignette.transform.GetSiblingIndex() + 1);
         }
@@ -889,7 +889,7 @@ namespace SdfGui.Editor
             caption.box = box.AddComponent<CanvasGroup>();
             f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, new Vector2(1300, 210), 26);
             caption.speaker = f.Text(box.transform, "Speaker", "MUSHROOM 7", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44));
-            caption.line = f.Text(box.transform, "Line", "Fill your spores and activate Mycelium Rush. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
+            caption.line = f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
             caption.line.textWrappingMode = TextWrappingModes.Normal;
             caption.line.alignment = TextAlignmentOptions.Center;
 

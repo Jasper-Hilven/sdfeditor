@@ -63,9 +63,9 @@ namespace SdfBattle.Tests
             var rules = new SporeRules();
             Assert.AreEqual(100, rules.full);
             Assert.AreEqual((25f, 15f, 15f, 20f, 50f), (rules.kill, rules.machine, rules.flagReturn, rules.flagTake, rules.capture));
-            Assert.AreEqual((1.6f, 24f), (rules.rushSpeed, rules.rushSeconds));
-            Assert.AreEqual((8f, 20f), (rules.regrowthPerSecond, rules.regrowthSeconds));
-            Assert.AreEqual((0.5f, 24f), (rules.armourDamage, rules.armourSeconds));
+            Assert.AreEqual((1.6f, 24f), (rules.frenzySpeed, rules.frenzySeconds));
+            Assert.AreEqual((8f, 20f), (rules.regeneratePerSecond, rules.regenerateSeconds));
+            Assert.AreEqual((0.5f, 24f), (rules.thickHideDamage, rules.thickHideSeconds));
         }
 
         [Test]
@@ -117,65 +117,65 @@ namespace SdfBattle.Tests
         public void Sporulating_NeedsAFullMeter_AndEmptiesIt()
         {
             spores.Gain(Red, 99);
-            Assert.IsFalse(spores.Sporulate(Red, SporePower.Rush), "not full: nothing happens");
+            Assert.IsFalse(spores.Sporulate(Red, SporePower.Frenzy), "not full: nothing happens");
             Assert.IsFalse(spores.MeterOf(Red).Active);
             Assert.AreEqual(99, spores.MeterOf(Red).Amount, 1e-4f);
             spores.Gain(Red, 5);
             Assert.AreEqual(100, spores.MeterOf(Red).Amount, 1e-4f, "never past full");
-            Assert.IsTrue(spores.Sporulate(Red, SporePower.Rush));
+            Assert.IsTrue(spores.Sporulate(Red, SporePower.Frenzy));
             Assert.AreEqual(0, spores.MeterOf(Red).Amount);
-            Assert.AreEqual(SporePower.Rush, spores.MeterOf(Red).Power);
-            Assert.AreEqual(spores.Rules.rushSeconds, spores.MeterOf(Red).TimeLeft, 1e-4f);
-            Assert.IsFalse(spores.Sporulate(Red, SporePower.Armour), "one power at a time");
+            Assert.AreEqual(SporePower.Frenzy, spores.MeterOf(Red).Power);
+            Assert.AreEqual(spores.Rules.frenzySeconds, spores.MeterOf(Red).TimeLeft, 1e-4f);
+            Assert.IsFalse(spores.Sporulate(Red, SporePower.ThickHide), "one power at a time");
         }
 
         [Test]
         public void NoSporesAreGained_WhileAPowerIsOn()
         {
             Fill(Red);
-            spores.Sporulate(Red, SporePower.Armour);
+            spores.Sporulate(Red, SporePower.ThickHide);
             Kill(Blue, Red);
             Assert.AreEqual(0, spores.MeterOf(Red).Amount);
-            Run(spores.Rules.armourSeconds + 0.1f);
+            Run(spores.Rules.thickHideSeconds + 0.1f);
             Assert.IsFalse(spores.MeterOf(Red).Active);
             Kill(match.Players[5], Red);
             Assert.AreEqual(25, spores.MeterOf(Red).Amount, 1e-4f, "it fills again once the power ends");
         }
 
         [Test]
-        public void Rush_MakesThePlayerFaster_For24Seconds()
+        public void Frenzy_MakesThePlayerFaster_For24Seconds()
         {
             Fill(Red);
             Assert.AreEqual(1, combat.SpeedFactor(Red));
-            spores.Sporulate(Red, SporePower.Rush);
+            spores.Sporulate(Red, SporePower.Frenzy);
             Assert.AreEqual(1.6f, combat.SpeedFactor(Red), 1e-4f);
             combat.Slow(Red, Team.Blue, 0.5f, 3);
             Assert.AreEqual(0.8f, combat.SpeedFactor(Red), 1e-4f, "on top of a slow");
-            Run(spores.Rules.rushSeconds - 0.1f);
+            Run(spores.Rules.frenzySeconds - 0.1f);
             Assert.AreEqual(1.6f, combat.SpeedFactor(Red), 1e-4f);
             Run(0.2f);
             Assert.AreEqual(1, combat.SpeedFactor(Red));
-            Assert.Contains("ended Rush Red 1", events);
+            Assert.Contains("ended Frenzy Red 1", events);
         }
 
         [Test]
-        public void Armour_HalvesTheDamageTaken()
+        public void ThickHide_HalvesTheDamageTaken()
         {
             Fill(Red);
-            spores.Sporulate(Red, SporePower.Armour);
+            spores.Sporulate(Red, SporePower.ThickHide);
             Assert.AreEqual(10, combat.Hurt(Red, Damage.By(Blue, WeaponIds.Pistol, 20)), 1e-4f);
             Assert.AreEqual(90, Red.Health, 1e-4f);
-            Run(spores.Rules.armourSeconds + 0.1f);
+            Run(spores.Rules.thickHideSeconds + 0.1f);
             Assert.AreEqual(20, combat.Hurt(Red, Damage.By(Blue, WeaponIds.Pistol, 20)), 1e-4f);
         }
 
         [Test]
-        public void Regrowth_Heals8ASecond_For20Seconds_UpToTheOverheal()
+        public void Regenerate_Heals8ASecond_For20Seconds_UpToTheOverheal()
         {
             combat.Hurt(Red, Damage.By(Blue, WeaponIds.Pistol, 60));
             Assert.AreEqual(40, Red.Health, 1e-4f);
             Fill(Red);
-            spores.Sporulate(Red, SporePower.Regrowth);
+            spores.Sporulate(Red, SporePower.Regenerate);
             Run(5);
             // 40 points in 5 s, and 4 of the slow heal (1 a second under 80)
             Assert.AreEqual(84, Red.Health, 2.5f);
@@ -189,7 +189,7 @@ namespace SdfBattle.Tests
 
             Red.Health = 199;
             spores.Gain(Red, 100);
-            spores.Sporulate(Red, SporePower.Regrowth);
+            spores.Sporulate(Red, SporePower.Regenerate);
             Run(3);
             Assert.AreEqual(200, Red.Health, 1e-4f, "never past the overheal limit");
         }
@@ -198,15 +198,15 @@ namespace SdfBattle.Tests
         public void ADeath_EndsThePower_AndKeepsTheMeter()
         {
             Fill(Red);
-            spores.Sporulate(Red, SporePower.Rush);
+            spores.Sporulate(Red, SporePower.Frenzy);
             Kill(Red, Blue);
             Assert.IsFalse(spores.MeterOf(Red).Active);
-            Assert.Contains("ended Rush Red 1", events);
+            Assert.Contains("ended Frenzy Red 1", events);
 
             spores.Gain(Red2, 60);
             Kill(Red2, Blue);
             Assert.AreEqual(60, spores.MeterOf(Red2).Amount, 1e-4f, "kept");
-            Assert.IsFalse(spores.Sporulate(Red, SporePower.Rush), "the dead cannot");
+            Assert.IsFalse(spores.Sporulate(Red, SporePower.Frenzy), "the dead cannot");
         }
 
         [Test]
@@ -214,7 +214,7 @@ namespace SdfBattle.Tests
         {
             Fill(Red);
             spores.Gain(Blue, 40);
-            spores.Sporulate(Red, SporePower.Armour);
+            spores.Sporulate(Red, SporePower.ThickHide);
             for (var i = 0; i < match.Rules.capturesToWin; i++)
             {
                 Assert.IsTrue(ctf.TouchStand(Blue, Team.Red));
@@ -228,12 +228,12 @@ namespace SdfBattle.Tests
         }
 
         [Test]
-        public void Bots_Rush_OnAFlagRun_Regrow_WhenHurt_AndArmour_UpClose()
+        public void Bots_Frenzy_OnAFlagRun_Regenerate_WhenHurt_AndThickHide_UpClose()
         {
             var rules = new SporeRules();
-            Assert.AreEqual(SporePower.Rush, rules.ChooseForBot(true, 30, 100, 5));
-            Assert.AreEqual(SporePower.Regrowth, rules.ChooseForBot(false, 30, 100, 5));
-            Assert.AreEqual(SporePower.Armour, rules.ChooseForBot(false, 90, 100, 10));
+            Assert.AreEqual(SporePower.Frenzy, rules.ChooseForBot(true, 30, 100, 5));
+            Assert.AreEqual(SporePower.Regenerate, rules.ChooseForBot(false, 30, 100, 5));
+            Assert.AreEqual(SporePower.ThickHide, rules.ChooseForBot(false, 90, 100, 10));
             Assert.IsNull(rules.ChooseForBot(false, 90, 100, 40), "kept for later");
         }
     }

@@ -414,7 +414,7 @@ namespace SdfGui
                 YouKill(Random.value < 0.4f);
         }
 
-        public void TogglePickup() => pickup = string.IsNullOrEmpty(pickup) ? "Spore Sac" : "";
+        public void TogglePickup() => pickup = string.IsNullOrEmpty(pickup) ? "Minigun" : "";
 
         private void Eliminate(int killer, int victim, int weaponIndex, bool headshot)
         {

@@ -582,7 +582,7 @@ namespace SdfAudio
 
         private void OnSporulated(PlayerState player, SporePower power)
         {
-            var cue = power == SporePower.Rush ? Cues.SporeRush : power == SporePower.Regrowth ? Cues.SporeRegrowth : Cues.SporeArmour;
+            var cue = power == SporePower.Frenzy ? Cues.SporeRush : power == SporePower.Regenerate ? Cues.SporeRegrowth : Cues.SporeArmour;
             var body = match.PlayerOf(player);
             if (body == null || body.IsYou)
                 Audio.Play2D(cue);

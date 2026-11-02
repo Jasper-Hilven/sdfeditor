@@ -15,6 +15,10 @@ namespace SdfGui
         public static readonly Color AmanitaDark = Hex(0xA62E2E);
         public static readonly Color Chanterelle = Hex(0xF5A63B);
         public static readonly Color Gold = Hex(0xFFD54F);
+        /// <summary>Rage red-orange: the rage meter and Frenzy.</summary>
+        public static readonly Color Rage = Hex(0xFF5A2A);
+        /// <summary>Stony grey: Thick Hide.</summary>
+        public static readonly Color Stone = Hex(0xAEB8C2);
         public static readonly Color Moss = Hex(0x86BC4A);
         public static readonly Color MossDark = Hex(0x4D7D2E);
         public static readonly Color Spore = Hex(0x8FF0DC);

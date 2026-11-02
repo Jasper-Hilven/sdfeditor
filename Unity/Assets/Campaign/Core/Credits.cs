@@ -40,7 +40,7 @@ namespace SdfCampaign
             new CreditsLine(CreditsKind.Line, "Mushroom 42, as themselves"),
             new CreditsLine(CreditsKind.Line, "Mushroom 7 and Mushroom 13"),
             new CreditsLine(CreditsKind.Line, "Mushroom 99, who joined late"),
-            new CreditsLine(CreditsKind.Line, "Ref Puffball, as the referee"),
+            new CreditsLine(CreditsKind.Line, "Ref Dumpling, as the referee"),
             new CreditsLine(CreditsKind.Line, "Chanterelle Prime, as himself, regrettably"),
             new CreditsLine(CreditsKind.Gap),
             new CreditsLine(CreditsKind.Heading, "Made with"),

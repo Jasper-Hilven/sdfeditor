@@ -14,7 +14,7 @@ The single-player campaign runs from a comic-book intro through eight arenas to 
 
 - Eight arenas, each with its own theme, scale and weapons: a meadow, a fungal island, a chessboard, a toy box, a kitchen worktop, a bathroom, the inside of a computer, and the boss's Champion's Arena.
 - Weapons by range: pistols, minigun, sniper, electro-gun, flamethrower, poison-gun and blob-gun, in four slots.
-- Spore powers: fight well to fill the spore meter, then spend it on Mycelium Rush (speed), Regrowth (healing) or Puffball Armour (less damage).
+- Monster powers: fight well to fill the rage meter, then spend it on Frenzy (speed), Regenerate (healing) or Thick Hide (less damage).
 - Enemy machines to fight: helicopters, tanks and turrets that shoot at you and respawn.
 - Four difficulties, Super Easy, Easy, Normal and Hard, and an easier retry after a defeat.
 - Adjustable gore (off, splatty, extra splatty, ultra gore) and quality levels from ultra low up to Epic and Ultra Epic, with an automatic setting.
@@ -32,7 +32,7 @@ Keyboard and mouse
 | Fire | Left mouse button (hold) |
 | Zoom (sniper) | Right mouse button |
 | Switch weapon | 1 to 4, or the mouse wheel |
-| Spore powers (when the meter is full) | Q: Mycelium Rush, F: Regrowth, C: Puffball Armour (by key position, so AZERTY uses A, F, C; the HUD shows your own letters) |
+| Monster powers (when the meter is full) | Q: Frenzy, F: Regenerate, C: Thick Hide (by key position, so AZERTY uses A, F, C; the HUD shows your own letters) |
 | Scoreboard | Hold Tab |
 | Pause / menu / back | Escape |
 | Skip comics and credits | Hold Space or Escape |

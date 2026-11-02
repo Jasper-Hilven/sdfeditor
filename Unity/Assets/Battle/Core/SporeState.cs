@@ -12,8 +12,8 @@ namespace SdfBattle
     /// the enemy flag, returning your own by touch, a capture (<see cref="CaptureTheFlagState"/>'s events). Nothing while a power is on;
     /// the meter fills again from 0 once it ends.</item>
     /// <item><see cref="Sporulate"/>: alive, the meter full, no power on and the round playing; it empties the meter.</item>
-    /// <item>The powers through combat: Rush multiplies <see cref="CombatState.SpeedFactor"/>, Armour the damage of
-    /// <see cref="CombatState.Hurt"/>, Regrowth heals through <see cref="CombatState.Heal"/> every step.</item>
+    /// <item>The powers through combat: Frenzy multiplies <see cref="CombatState.SpeedFactor"/>, Thick Hide the damage of
+    /// <see cref="CombatState.Hurt"/>, Regenerate heals through <see cref="CombatState.Heal"/> every step.</item>
     /// <item>A death ends the power and keeps the meter; a new round empties every meter.</item>
     /// </list>
     /// Time moves only through <see cref="Tick"/>, so EditMode tests play it without a scene.
@@ -103,7 +103,7 @@ namespace SdfBattle
             meter.Amount = 0;
             meter.Power = power;
             meter.TimeLeft = Rules.SecondsOf(power);
-            meter.RegrowthClock = 0;
+            meter.RegenerateClock = 0;
             Sporulated?.Invoke(player, power);
             return true;
         }
@@ -127,7 +127,7 @@ namespace SdfBattle
         /// <summary>The player started a stun window on Prime: a capture, or the sac that crashed the copter.</summary>
         public void ReportBossStun(PlayerState by) => Gain(by, Rules.bossStun);
 
-        /// <summary>Lets <paramref name="seconds"/> pass: the powers' time, and Regrowth's healing in steps of a quarter second.</summary>
+        /// <summary>Lets <paramref name="seconds"/> pass: the powers' time, and Regenerate's healing in steps of a quarter second.</summary>
         public void Tick(float seconds)
         {
             if (seconds <= 0)
@@ -138,13 +138,13 @@ namespace SdfBattle
                 if (!meter.Active)
                     continue;
                 var step = Mathf.Min(seconds, meter.TimeLeft);
-                if (meter.Power == SporePower.Regrowth && player.Alive)
+                if (meter.Power == SporePower.Regenerate && player.Alive)
                 {
-                    meter.RegrowthClock += step;
-                    while (meter.RegrowthClock >= CombatState.TickSeconds - 1e-5f)
+                    meter.RegenerateClock += step;
+                    while (meter.RegenerateClock >= CombatState.TickSeconds - 1e-5f)
                     {
-                        meter.RegrowthClock -= CombatState.TickSeconds;
-                        Combat.Heal(player, Rules.regrowthPerSecond * CombatState.TickSeconds);
+                        meter.RegenerateClock -= CombatState.TickSeconds;
+                        Combat.Heal(player, Rules.regeneratePerSecond * CombatState.TickSeconds);
                     }
                 }
                 meter.TimeLeft -= seconds;
@@ -162,9 +162,9 @@ namespace SdfBattle
             Ended?.Invoke(player, power);
         }
 
-        private float SpeedBoost(PlayerState player) => IsOn(player, SporePower.Rush) ? Rules.rushSpeed : 1;
+        private float SpeedBoost(PlayerState player) => IsOn(player, SporePower.Frenzy) ? Rules.frenzySpeed : 1;
 
-        private float DamageTaken(PlayerState player) => IsOn(player, SporePower.Armour) ? Rules.armourDamage : 1;
+        private float DamageTaken(PlayerState player) => IsOn(player, SporePower.ThickHide) ? Rules.thickHideDamage : 1;
 
         // ---------------------------------------------------------------- The match's and the flags' events
 
