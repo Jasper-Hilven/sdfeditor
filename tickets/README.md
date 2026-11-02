@@ -60,6 +60,7 @@ ticket's Status says.
 | 50 | [Rebrand: GUI, description and media](50-rebrand-gui-and-description.md) | Minigun Monsters: logo, GUI, scoreboard with head icons, `description.md`, `control.html`, covers and videos; never called multiplayer. Done: logo, Loading screen, scoreboard with head icons, names, kill lines, `description.md`, `control.html`, product name, and the covers and preview videos re-rendered with monster heads on the soldiers (721 EditMode pass); the user's look at the covers and videos is pending |
 | 51 | [Gore: only the heads explode](51-head-only-gore.md) | Only the monster head bursts, in pieces, in its own blood colour (12 non-red colours); the human body never bursts or bleeds, it ragdolls (PEGI 12). Done in code and tested (head pieces cut from each head's own mesh, `HeadBurstProfile` plug-in for 46, a pooled ten-body ragdoll, `GoreCheck` Play-mode check, captures in `Media/gore-51`); left: a look at the captures, web frame time with 8 ragdolls. After 44, 45; before 46 |
 | 52 | [Every level in its own bundle](52-every-level-streamed.md) | The web player is Boot and the GUI only; all 7 levels (the Meadow too) are streamed bundles, the first one picked at boot by 42 and fetched behind the Loading screen. Done (initial download 17.7 MB). After 41, 42 |
+| 53 | [First-person soldier arms](53-first-person-soldier-arms.md) | In first person your arms are the soldier's (team-coloured sleeves, gloves) holding each weapon, not mushroom stalks. Not started. After 43, 44 |
 
 ## Running the open tickets
 

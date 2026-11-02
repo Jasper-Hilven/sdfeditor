@@ -32,6 +32,17 @@ Depends on: 41, and 45 for the art. It comes last: its media need 43-46 done.
   multiplayer.
 - The new covers and videos have been looked at by the user.
 
+## User review of the covers (2026-11-02)
+
+The covers must be about **monsters, not mushrooms** (the lead decides the composition):
+- Monster heads big and front and centre, facing the camera and readable at thumbnail size. Show at least three different heads.
+- One head bursting in its own blood colour with its 46 profile debris (for example the Vampire's purple mist and bats). Not the big
+  pale disc.
+- No mushroom shapes as the subject. Pick a background level without mushroom props, for example the Meadow away from any fungus, or
+  the Kitchen or Toybox. The weapons may be in shot (they are mushroom-shaped by design) but are not the focus.
+- Nothing cropped at the edges in any format.
+- The Fungal video clip is dropped or swapped for a level where the soldiers and heads are visible.
+
 ## Status
 
 **Done; the user's look at the covers and the videos is pending** (`Media/review-50.png` is the contact sheet).
