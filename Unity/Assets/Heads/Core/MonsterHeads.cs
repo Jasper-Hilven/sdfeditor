@@ -62,8 +62,8 @@ namespace SdfHeads
             new MonsterHead("cyclops", 5, "Raging Cyclops", Rgb(0.80f, 0.55f, 0.10f), true),           // ochre
             new MonsterHead("cthulhu", 6, "Deep-Sea Cthulhu", Rgb(0.00f, 0.50f, 0.55f), true),         // ocean teal
             new MonsterHead("alien", 7, "Acid Alien", Rgb(0.85f, 1.00f, 0.10f), true),                 // glowing acid yellow
-            new MonsterHead("mummy", 8, "Ancient Mummy", Rgb(0.74f, 0.70f, 0.60f), false),              // sand-grey dust
-            new MonsterHead("werewolf", 9, "Feral Werewolf", Rgb(0.12f, 0.12f, 0.14f), false),          // charcoal black
+            new MonsterHead("mummy", 8, "Ancient Mummy", Rgb(0.74f, 0.70f, 0.60f), true),              // sand-grey dust
+            new MonsterHead("werewolf", 9, "Feral Werewolf", Rgb(0.12f, 0.12f, 0.14f), true),          // charcoal black
             new MonsterHead("pumpkin", 10, "Glowing Jack-o'-Lantern", Rgb(1.00f, 0.50f, 0.00f), true),  // pumpkin orange
             new MonsterHead("frankenstein", 11, "Frankenstein's Monster", Rgb(0.55f, 0.90f, 0.10f), false), // lime green
             new MonsterHead("santa", 12, "Crazed Evil Santa", Rgb(1.00f, 0.45f, 0.70f), false),         // candy pink

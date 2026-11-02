@@ -1,0 +1,64 @@
+# The Feral Werewolf's head shape (ticket 45), a part so the model (content/models/characters/monsters/werewolf.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size.
+Translate translation=(0, -0.0555, 0)
+    Scale scale=(1.1724, 1.1724, 1.1724)
+        Union
+            # The shaggy skull, wide, with heavy cheek ruffs, in dark fur
+            Material material=wolf_fur
+                Union
+                    Translate translation=(0, 0.02, -0.04)
+                        Ellipsoid radii=(0.255, 0.21, 0.22)
+                    SymmetryX
+                        Translate translation=(0.17, -0.07, 0.03)
+                            Ellipsoid radii=(0.09, 0.1, 0.1)
+                    # Pointed ears, tall
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.12, 0.15, -0.03) b=(0.2, 0.37, -0.07) radiusA=0.075 radiusB=0.008
+                    # Heavy angry brows
+                    SymmetryX
+                        Capsule a=(0.14, 0.1, 0.1) b=(0.03, 0.065, 0.21) radius=0.04
+                    # Ruff spikes, swept back from the cheeks, and a mane on the crown and the back
+                    SymmetryX
+                        Union
+                            ArbitraryRoundCone a=(0.2, -0.06, 0.04) b=(0.34, -0.15, -0.09) radiusA=0.05 radiusB=0.005
+                            ArbitraryRoundCone a=(0.19, -0.12, 0.0) b=(0.3, -0.26, -0.08) radiusA=0.045 radiusB=0.005
+                            ArbitraryRoundCone a=(0.2, 0.0, -0.02) b=(0.35, 0.02, -0.15) radiusA=0.045 radiusB=0.005
+                            ArbitraryRoundCone a=(0.08, 0.17, -0.1) b=(0.14, 0.27, -0.2) radiusA=0.04 radiusB=0.005
+                    ArbitraryRoundCone a=(0, 0.18, -0.08) b=(0, 0.3, -0.16) radiusA=0.045 radiusB=0.005
+                    ArbitraryRoundCone a=(0, 0.1, -0.2) b=(0, 0.15, -0.34) radiusA=0.05 radiusB=0.005
+                    ArbitraryRoundCone a=(0, -0.02, -0.21) b=(0, -0.08, -0.35) radiusA=0.05 radiusB=0.005
+            # The oversized snout: the upper jaw, pale fur, long and wide; the lower jaw hanging open under it
+            Material material=wolf_fur_light
+                Union
+                    ArbitraryRoundCone a=(0, 0.0, 0.1) b=(0, -0.04, 0.3) radiusA=0.115 radiusB=0.07
+                    ArbitraryRoundCone a=(0, -0.145, 0.06) b=(0, -0.225, 0.265) radiusA=0.095 radiusB=0.05
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.07, -0.04, 0.23) b=(0.1, -0.06, 0.3) radiusA=0.035 radiusB=0.01
+            Material material=wolf_nose
+                Translate translation=(0, -0.025, 0.335)
+                    Ellipsoid radii=(0.06, 0.04, 0.04)
+            # The inside of the open mouth, wet red
+            Material material=wolf_mouth
+                Intersection
+                    Translate translation=(0, -0.115, 0.2)
+                        Ellipsoid radii=(0.085, 0.05, 0.14)
+                    Plane normal=(0, 0, -1) height=0.07
+            # Fangs: long canines top and bottom, smaller teeth between them
+            Material material=wolf_fang
+                SymmetryX
+                    Union
+                        ArbitraryRoundCone a=(0.06, -0.085, 0.28) b=(0.06, -0.19, 0.295) radiusA=0.026 radiusB=0.002
+                        ArbitraryRoundCone a=(0.03, -0.09, 0.345) b=(0.03, -0.14, 0.35) radiusA=0.014 radiusB=0.002
+                        ArbitraryRoundCone a=(0.085, -0.09, 0.26) b=(0.085, -0.135, 0.265) radiusA=0.014 radiusB=0.002
+                        ArbitraryRoundCone a=(0.055, -0.19, 0.285) b=(0.055, -0.095, 0.3) radiusA=0.024 radiusB=0.002
+                        ArbitraryRoundCone a=(0.02, -0.2, 0.3) b=(0.02, -0.15, 0.28) radiusA=0.013 radiusB=0.002
+                        ArbitraryRoundCone a=(0.08, -0.18, 0.23) b=(0.08, -0.135, 0.235) radiusA=0.013 radiusB=0.002
+            # Eyes: amber slits, burning, under the brow
+            SymmetryX
+                Translate translation=(0.095, 0.045, 0.15)
+                    Scale scale=(0.44, 0.44, 0.44)
+                        Part part=monster_eye_amber
