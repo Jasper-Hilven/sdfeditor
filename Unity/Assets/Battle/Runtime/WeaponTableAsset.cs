@@ -53,6 +53,12 @@ namespace SdfBattle
         [Tooltip("First person: the view model's size against the weapon's own, so it sits within the player's capsule and never reaches into a wall")]
         public float viewScale = 0.3f;
 
+        [Header("First-person arms (ticket 53)")]
+        [Tooltip("The soldier's glove, a right fist round a vertical grip, per team (red, blue): soldier-glove-red and -blue")]
+        public GameObject[] gloveModels = Array.Empty<GameObject>();
+        [Tooltip("The soldier's sleeve from the wrist back to the shoulder, per team (red, blue): soldier-sleeve-red and -blue")]
+        public GameObject[] sleeveModels = Array.Empty<GameObject>();
+
         [Header("Effects")]
         [Tooltip("The effects' material (Assets/Effects/Materials/Effect.mat)")]
         public Material effectMaterial;
@@ -96,39 +102,39 @@ namespace SdfBattle
             new Look
             {
                 id = WeaponIds.Pistol, muzzle = new Vector3(0, 0.128f, 0.105f), grip = new Vector3(0, 0.052f, -0.058f),
-                viewGrip = new Vector3(0.17f, -0.2f, 0.36f), tracer = new Color(1f, 0.55f, 0.1f), tracerWidth = 0.05f, tracerLength = 1.4f, tracerSpeed = 110,
+                viewGrip = new Vector3(0.17f, -0.15f, 0.36f), tracer = new Color(1f, 0.55f, 0.1f), tracerWidth = 0.05f, tracerLength = 1.4f, tracerSpeed = 110,
             },
             new Look
             {
                 id = WeaponIds.Minigun, muzzle = new Vector3(0, 0.135f, 1.0f), grip = new Vector3(0, 0.1f, -0.45f),
-                viewGrip = new Vector3(0.2f, -0.36f, 0.25f), viewYaw = -3, handScale = 0.7f, tracer = new Color(1f, 0.3f, 0.05f), tracerWidth = 0.045f,
+                viewGrip = new Vector3(0.2f, -0.17f, 0.3f), viewYaw = -3, handScale = 0.7f, tracer = new Color(1f, 0.3f, 0.05f), tracerWidth = 0.045f,
                 tracerLength = 2.2f, tracerSpeed = 140, flashSize = 0.13f,
             },
             new Look
             {
                 id = WeaponIds.Sniper, muzzle = new Vector3(0, 0.172f, 0.69f), grip = new Vector3(0, 0.1f, -0.15f),
-                viewGrip = new Vector3(0.17f, -0.24f, 0.3f), viewYaw = -2, handScale = 0.8f, tracer = new Color(0.3f, 0.7f, 1f), tracerWidth = 0.065f,
+                viewGrip = new Vector3(0.17f, -0.17f, 0.3f), viewYaw = -2, handScale = 0.8f, tracer = new Color(0.3f, 0.7f, 1f), tracerWidth = 0.065f,
                 tracerLength = 6, tracerSpeed = 320, tracerTrail = 0.7f, flashSize = 0.12f,
             },
             new Look
             {
                 id = WeaponIds.ElectroGun, muzzle = new Vector3(0, 0.13f, 0.34f), grip = new Vector3(0, 0.055f, -0.152f),
-                viewGrip = new Vector3(0.18f, -0.22f, 0.32f), tracer = new Color(0.25f, 0.75f, 1f),
+                viewGrip = new Vector3(0.18f, -0.16f, 0.32f), tracer = new Color(0.25f, 0.75f, 1f),
             },
             new Look
             {
                 id = WeaponIds.Flamethrower, muzzle = new Vector3(0, 0.17f, 0.53f), grip = new Vector3(0, 0.11f, -0.11f),
-                viewGrip = new Vector3(0.18f, -0.28f, 0.3f), tracer = new Color(1f, 0.45f, 0.08f),
+                viewGrip = new Vector3(0.18f, -0.2f, 0.3f), tracer = new Color(1f, 0.45f, 0.08f),
             },
             new Look
             {
                 id = WeaponIds.PoisonGun, muzzle = new Vector3(0, 0.125f, 0.34f), grip = new Vector3(0, 0.06f, -0.14f),
-                viewGrip = new Vector3(0.18f, -0.24f, 0.32f), tracer = new Color(0.5f, 0.9f, 0.2f),
+                viewGrip = new Vector3(0.18f, -0.17f, 0.32f), tracer = new Color(0.5f, 0.9f, 0.2f),
             },
             new Look
             {
                 id = WeaponIds.BlobGun, muzzle = new Vector3(0, 0.135f, 0.25f), grip = new Vector3(0, 0.055f, -0.1f),
-                viewGrip = new Vector3(0.18f, -0.24f, 0.33f), tracer = new Color(0.85f, 0.18f, 0.65f),
+                viewGrip = new Vector3(0.18f, -0.17f, 0.33f), tracer = new Color(0.85f, 0.18f, 0.65f),
             },
         };
     }

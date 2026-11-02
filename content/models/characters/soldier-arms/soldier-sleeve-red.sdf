@@ -1,0 +1,8 @@
+# First-person sleeve, red team (ticket 53): the soldier's forearm sleeve in its fatigues, a tapering tube one metre long from the wrist at the origin
+# back along -z (the game scales and aims it from the glove's wrist to the shoulder).
+format 1
+
+Material material=soldier_fatigues_red
+    Union
+        Sphere radius=0.04
+        ArbitraryRoundCone a=(0, 0, 0) b=(0, 0, -1) radiusA=0.04 radiusB=0.06

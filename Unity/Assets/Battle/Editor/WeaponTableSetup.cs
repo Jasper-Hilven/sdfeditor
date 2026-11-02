@@ -109,6 +109,8 @@ namespace SdfBattle.Editor
             changed |= FillModels(ref asset.blobModels, BlobModels);
             changed |= FillModels(ref asset.splatModels, SplatModels);
             changed |= FillModels(ref asset.scoutPieces, ScoutPieces());
+            changed |= FillTeamModels(ref asset.gloveModels, "soldier-glove-");
+            changed |= FillTeamModels(ref asset.sleeveModels, "soldier-sleeve-");
             return changed;
         }
 
@@ -127,6 +129,18 @@ namespace SdfBattle.Editor
             if (found.Length == 0)
                 return false;
             models = complete ? current.Concat(found.Where(m => System.Array.IndexOf(current, m) < 0)).ToArray() : found;
+            return true;
+        }
+
+        /// <summary>A model per team in team order (red, blue): <paramref name="prefix"/> + red, + blue. Left alone until both exist.</summary>
+        private static bool FillTeamModels(ref GameObject[] models, string prefix)
+        {
+            var found = new[] { Prefab(prefix + "red"), Prefab(prefix + "blue") };
+            if (found[0] == null || found[1] == null)
+                return false;
+            if (models != null && models.Length == 2 && models[0] == found[0] && models[1] == found[1])
+                return false;
+            models = found;
             return true;
         }
 

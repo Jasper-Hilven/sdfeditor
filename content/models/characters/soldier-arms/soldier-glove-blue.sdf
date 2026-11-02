@@ -1,0 +1,24 @@
+# First-person glove, blue team (ticket 53): a right-hand fist round a vertical grip, the grip's axis along y through the origin, the back of
+# the hand on the right, four fingers wrapping the front and the thumb on the left, the cuff running back along -z to z = -0.1. Mirror it
+# (negative x scale) for the left hand. Built in the soldier's gloves material; the sleeve is its own model (soldier-sleeve-blue).
+# The model is written in the game's x (the .sdf's x is mirrored on import), so x is negated here.
+format 1
+
+Material material=soldier_gloves_blue
+    SmoothUnion smoothness=0.008
+        Translate translation=(-0.0240, 0.0000, -0.0120)
+            Ellipsoid radii=(0.032, 0.048, 0.052)
+        Capsule a=(-0.0400, -0.0330, 0.0000) b=(-0.0320, -0.0330, 0.0450) radius=0.0125
+        Capsule a=(-0.0320, -0.0330, 0.0450) b=(-0.0040, -0.0330, 0.0600) radius=0.0118
+        Capsule a=(-0.0040, -0.0330, 0.0600) b=(0.0260, -0.0330, 0.0400) radius=0.011
+        Capsule a=(-0.0400, -0.0110, 0.0000) b=(-0.0320, -0.0110, 0.0450) radius=0.0125
+        Capsule a=(-0.0320, -0.0110, 0.0450) b=(-0.0040, -0.0110, 0.0600) radius=0.0118
+        Capsule a=(-0.0040, -0.0110, 0.0600) b=(0.0260, -0.0110, 0.0400) radius=0.011
+        Capsule a=(-0.0400, 0.0110, 0.0000) b=(-0.0320, 0.0110, 0.0450) radius=0.0125
+        Capsule a=(-0.0320, 0.0110, 0.0450) b=(-0.0040, 0.0110, 0.0600) radius=0.0118
+        Capsule a=(-0.0040, 0.0110, 0.0600) b=(0.0260, 0.0110, 0.0400) radius=0.011
+        Capsule a=(-0.0400, 0.0330, 0.0000) b=(-0.0320, 0.0330, 0.0450) radius=0.0125
+        Capsule a=(-0.0320, 0.0330, 0.0450) b=(-0.0040, 0.0330, 0.0600) radius=0.0118
+        Capsule a=(-0.0040, 0.0330, 0.0600) b=(0.0260, 0.0330, 0.0400) radius=0.011
+        Capsule a=(-0.0120, 0.0300, -0.0350) b=(0.0300, 0.0340, 0.0120) radius=0.0145
+        ArbitraryRoundCone a=(-0.0260, 0.0000, -0.0400) b=(-0.0260, 0.0000, -0.1000) radiusA=0.034 radiusB=0.036

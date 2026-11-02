@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -19,6 +20,19 @@ namespace SdfBattle
             public Transform[] models;
             public Transform[] muzzles;
             public WeaponTableAsset.Look look;
+            public string armsFor;
+            public Team armsTeam = (Team)(-1);
+            /// <summary>First person: the gloves on each model, and the sleeve behind each glove (same order).</summary>
+            public List<Arm>[] arms;
+        }
+
+        /// <summary>One gloved hand in first person: the glove on its weapon model, the sleeve from its wrist to the shoulder.</summary>
+        private sealed class Arm
+        {
+            public Transform glove;
+            public Transform sleeve;
+            public bool left;
+            public float size;
         }
 
         [Tooltip("Metres the view model kicks back with a shot")]
@@ -119,16 +133,80 @@ namespace SdfBattle
         public void Show(string weapon)
         {
             if (current != null)
-                foreach (var model in current.models)
-                    model.gameObject.SetActive(false);
+                for (var i = 0; i < current.models.Length; i++)
+                    SetShown(current, i, false);
             dual = weapon == WeaponIds.DualPistols;
             current = Get(WeaponIds.ModelOf(weapon));
             nextMuzzle = 0;
             recoil = 0;
             if (current == null)
                 return;
+            if (FirstPerson)
+                DressArms(current, weapon);
             for (var i = 0; i < current.models.Length; i++)
-                current.models[i].gameObject.SetActive(!hidden && (i == 0 || dual));
+                SetShown(current, i, !hidden && (i == 0 || dual));
+        }
+
+        /// <summary>A model and its arms drawn or not.</summary>
+        private static void SetShown(Held held, int i, bool shown)
+        {
+            held.models[i].gameObject.SetActive(shown);
+            if (held.arms != null && held.arms[i] != null)
+                foreach (var arm in held.arms[i])
+                    if (arm.sleeve != null)
+                        arm.sleeve.gameObject.SetActive(shown);
+        }
+
+        /// <summary>
+        /// First person: the soldier's gloved hands on the weapon in the player's team colour (<see cref="FirstPersonArms"/>), made the first
+        /// time the weapon is held and made again if the team changed. Dual pistols hold one pistol in each hand.
+        /// </summary>
+        private void DressArms(Held held, string weapon)
+        {
+            var team = arsenal != null && arsenal.Player != null ? arsenal.Player.Team : Team.Red;
+            if (held.arms != null && held.armsTeam == team && held.armsFor == weapon)
+                return;
+            if (assets == null || assets.gloveModels == null || assets.gloveModels.Length <= (int)team || assets.sleeveModels == null || assets.sleeveModels.Length <= (int)team
+                || assets.gloveModels[(int)team] == null || assets.sleeveModels[(int)team] == null)
+                return;
+            if (held.arms != null)
+                foreach (var list in held.arms)
+                    foreach (var arm in list)
+                    {
+                        Destroy(arm.glove.gameObject);
+                        Destroy(arm.sleeve.gameObject);
+                    }
+            held.armsTeam = team;
+            held.armsFor = weapon;
+            held.arms = new List<Arm>[held.models.Length];
+            var primary = FirstPersonArms.Primary(weapon);
+            var support = FirstPersonArms.Support(weapon);
+            for (var i = 0; i < held.models.Length; i++)
+            {
+                held.arms[i] = new List<Arm>();
+                // The second pistol of a pair is held in the left hand
+                held.arms[i].Add(MakeArm(held.models[i], team, i == 0 ? primary : new FirstPersonArms.Hand(primary.position, primary.euler, primary.size, true)));
+                if (support.HasValue && i == 0)
+                    held.arms[i].Add(MakeArm(held.models[i], team, support.Value));
+            }
+        }
+
+        private Arm MakeArm(Transform model, Team team, FirstPersonArms.Hand hand)
+        {
+            var glove = Instantiate(assets.gloveModels[(int)team], model, false).transform;
+            var sleeve = Instantiate(assets.sleeveModels[(int)team], transform, false).transform;
+            foreach (var renderer in glove.GetComponentsInChildren<Renderer>(true).Concat(sleeve.GetComponentsInChildren<Renderer>(true)))
+            {
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+            foreach (var collider in glove.GetComponentsInChildren<Collider>(true).Concat(sleeve.GetComponentsInChildren<Collider>(true)))
+                Destroy(collider);
+            glove.localPosition = hand.position;
+            glove.localRotation = Quaternion.Euler(hand.euler);
+            glove.localScale = new Vector3(hand.left ? -hand.size : hand.size, hand.size, hand.size);
+            sleeve.gameObject.SetActive(model.gameObject.activeSelf);
+            return new Arm { glove = glove, sleeve = sleeve, left = hand.left, size = hand.size };
         }
 
         /// <summary>Hides the view model (zoomed in with the sniper) or shows it again.</summary>
@@ -139,7 +217,7 @@ namespace SdfBattle
             hidden = hide;
             if (current != null)
                 for (var i = 0; i < current.models.Length; i++)
-                    current.models[i].gameObject.SetActive(!hidden && (i == 0 || dual));
+                    SetShown(current, i, !hidden && (i == 0 || dual));
         }
 
         /// <summary>A shot left: the gun kicks back, and two pistols take turns.</summary>
@@ -241,6 +319,29 @@ namespace SdfBattle
                 model.localRotation = rotation;
                 model.localScale = Vector3.one * scale;
                 model.localPosition = grip - rotation * (look.grip * scale);
+                PlaceSleeves(current, i);
+            }
+        }
+
+        /// <summary>The sleeves of a model's arms: from each glove's wrist back to its shoulder, a fixed point under the camera's corners.</summary>
+        private void PlaceSleeves(Held held, int i)
+        {
+            if (held.arms == null || held.arms[i] == null)
+                return;
+            foreach (var arm in held.arms[i])
+            {
+                var wrist = arm.glove.TransformPoint(FirstPersonArms.Wrist);
+                var shoulderLocal = FirstPersonArms.Shoulder * assets.viewScale;
+                if (arm.left)
+                    shoulderLocal.x = -shoulderLocal.x;
+                var shoulder = transform.TransformPoint(shoulderLocal);
+                var back = shoulder - wrist;
+                var length = back.magnitude;
+                if (length < 1e-4f)
+                    continue;
+                arm.sleeve.SetPositionAndRotation(wrist, Quaternion.LookRotation(-back / length, transform.up));
+                var thick = assets.viewScale * arm.size;
+                arm.sleeve.localScale = new Vector3(thick, thick, length / transform.lossyScale.z);
             }
         }
 
