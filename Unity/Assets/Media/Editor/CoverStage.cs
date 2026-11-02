@@ -50,7 +50,7 @@ namespace SdfMedia.Editor
         /// <summary>The way he faces (a direction in the stage's space); his gun aims at <see cref="RedAimAt"/>.</summary>
         private static readonly Vector3 RedFacing = new Vector3(-0.45f, 0, -1);
         /// <summary>Left of the lens and a little low: the minigun points past the camera, so its tracers streak across the foreground.</summary>
-        private static readonly Vector3 RedAimAt = new Vector3(3.5f, 5.2f, 3f);
+        private static readonly Vector3 RedAimAt = new Vector3(-4f, 1.5f, 1.2f);
         /// <summary>The hero's middle: the point of him the formats' cameras place on the picture (<see cref="CoverFormat.Anchor"/>).</summary>
         public static readonly Vector3 HeroCentre = new Vector3(0, 1.4f, 0);
 
@@ -90,6 +90,10 @@ namespace SdfMedia.Editor
         private readonly List<Object> owned = new List<Object>();
         private readonly Dictionary<PrimitiveType, Mesh> meshes = new Dictionary<PrimitiveType, Mesh>();
         private Texture2D blob;
+        /// <summary>Each soldier's head bone turned relative to its root in the bind pose, before any clip is sampled.</summary>
+        private readonly Dictionary<Transform, Quaternion> restHead = new Dictionary<Transform, Quaternion>();
+        /// <summary>Roughly where the cameras are (stage space), which the faces look at.</summary>
+        private static readonly Vector3 LookAt = new Vector3(-0.3f, 0.6f, -4.3f);
 
         /// <param name="scene">The empty scene the stage is built in.</param>
         /// <param name="fallbackGroundY">The ground height where the level's ground cannot be hit (the player's feet).</param>
@@ -188,6 +192,8 @@ namespace SdfMedia.Editor
             var red = Soldier(SoldierModels.RedSkin, HeroHead, "Red Hero", AimClip, 0.2f);
             Stand(red.transform, RedPosition, RedFacing, RedLift, RedLean, RedRoll, 1, out var redFeet, out var redNormal);
             var redLook = weapons.LookOf(WeaponIds.Minigun);
+            PoseArms(red.transform, new Vector3(0.28f, 1.22f, 0.5f), ToWorld(RedAimAt), true);
+            FaceCamera(red.transform);
             var redGun = Hold(red.transform, redLook, ToWorld(RedAimAt));
             Shade(redFeet, redNormal, 1);
             Shots(fx, redGun.transform, redLook);
@@ -214,7 +220,9 @@ namespace SdfMedia.Editor
         {
             var soldier = Soldier(SoldierModels.RedSkin, head, name, AimClip, phase);
             Stand(soldier.transform, position, facing, lift, lean, roll, 1, out var feet, out var normal);
-            Hold(soldier.transform, weapons.LookOf(weapon), ToWorld(aimAt));
+            PoseArms(soldier.transform, new Vector3(0.36f, 1.0f, 0.75f), ToWorld(aimAt), false);
+            FaceCamera(soldier.transform);
+            Hold(soldier.transform, weapons.LookOf(weapon), ToWorld(aimAt), 1.7f);
             Shade(feet, normal, 0.9f);
         }
 
@@ -223,6 +231,9 @@ namespace SdfMedia.Editor
         {
             var path = SoldierSkins.SkinPrefab(skin);
             var instance = Spawn(path, name);
+            var headBone = instance.transform.Find(SoldierBody.Head);
+            if (headBone != null)
+                restHead[instance.transform] = Quaternion.Inverse(instance.transform.rotation) * headBone.rotation;
             if (head != null && HeadWear.Attach(instance.transform, head) == null)
                 throw new InvalidOperationException($"the head {head} did not attach (build the heads first)");
             var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
@@ -260,13 +271,74 @@ namespace SdfMedia.Editor
             return ground;
         }
 
+        // ------------------------------------------------------------------------------------------------------------ Poses
+
+        /// <summary>
+        /// The arms in code, over the sampled pose: the right hand out in front of the body at <paramref name="rightHand"/> (in the soldier's own
+        /// space, root at its feet) holding a gun that points at <paramref name="aimAt"/>; the left hand on the gun's front for a two-handed
+        /// gun, otherwise let down at the side. Two-bone inverse kinematics on Shoulder and Elbow, the elbows pointing down and out.
+        /// </summary>
+        private void PoseArms(Transform body, Vector3 rightHand, Vector3 aimAt, bool twoHands)
+        {
+            var rightPath = SoldierBody.HandR;
+            var right = Chain(body, rightPath);
+            var target = body.TransformPoint(rightHand);
+            Solve(right, target, body.TransformDirection(new Vector3(0.7f, -1f, -0.3f)));
+            var aim = (aimAt - target).normalized;
+            var left = Chain(body, SoldierBody.HandL);
+            if (twoHands)
+                Solve(left, target + aim * 0.5f - Vector3.up * 0.04f, body.TransformDirection(new Vector3(-0.7f, -1f, -0.3f)));
+            else
+                Solve(left, body.TransformPoint(new Vector3(-0.3f, 0.8f, 0.12f)), body.TransformDirection(new Vector3(-0.7f, -1f, -0.5f)));
+        }
+
+        private static Transform[] Chain(Transform body, string handPath)
+        {
+            var hand = body.Find(handPath);
+            var elbow = hand.parent;
+            return new[] { elbow.parent, elbow, hand };
+        }
+
+        /// <summary>Bends a shoulder-elbow-hand chain so the hand is at the target (as far as the arm reaches), the elbow towards the hint.</summary>
+        private static void Solve(Transform[] chain, Vector3 target, Vector3 hint)
+        {
+            var upper = chain[0];
+            var elbow = chain[1];
+            var hand = chain[2];
+            var a = upper.position;
+            var l1 = (elbow.position - a).magnitude;
+            var l2 = (hand.position - elbow.position).magnitude;
+            var toTarget = target - a;
+            var d = Mathf.Clamp(toTarget.magnitude, Mathf.Abs(l1 - l2) + 0.01f, l1 + l2 - 0.005f);
+            var axis = toTarget.normalized;
+            var x = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
+            var h = Mathf.Sqrt(Mathf.Max(0, l1 * l1 - x * x));
+            var pole = Vector3.ProjectOnPlane(hint, axis).normalized;
+            var wantedElbow = a + axis * x + pole * h;
+            upper.rotation = Quaternion.FromToRotation(elbow.position - a, wantedElbow - a) * upper.rotation;
+            elbow.rotation = Quaternion.FromToRotation(hand.position - elbow.position, a + axis * d - elbow.position) * elbow.rotation;
+        }
+
+        /// <summary>Turns the head bone so the face looks at the cameras (the head upright, a little down at the lens from the low angle).</summary>
+        private void FaceCamera(Transform body)
+        {
+            var bone = body.Find(SoldierBody.Head);
+            if (bone == null || !restHead.TryGetValue(body, out var rest))
+                return;
+            var direction = ToWorld(LookAt) - bone.position;
+            var flat = new Vector3(direction.x, 0, direction.z);
+            var pitch = Mathf.Clamp(Mathf.Atan2(direction.y, flat.magnitude) * Mathf.Rad2Deg, -12f, 4f);
+            var look = Quaternion.LookRotation(flat.normalized, Vector3.up) * Quaternion.Euler(-pitch, 0, 0);
+            bone.rotation = look * rest;
+        }
+
         // ------------------------------------------------------------------------------------------------------------ Guns
 
         /// <summary>
         /// A weapon in a soldier's right hand as <see cref="WeaponView"/> holds it: the model's grip on the grip socket, pointing along the aim.
         /// Returns the weapon's model.
         /// </summary>
-        private GameObject Hold(Transform body, WeaponTableAsset.Look look, Vector3 aimAt)
+        private GameObject Hold(Transform body, WeaponTableAsset.Look look, Vector3 aimAt, float scale = 1)
         {
             var grip = SoldierBody.FindSocket(body, "grip");
             if (grip == null)
@@ -276,7 +348,8 @@ namespace SdfMedia.Editor
             gun.name = "Gun " + look.model.name;
             foreach (var collider in gun.GetComponentsInChildren<Collider>(true))
                 collider.enabled = false;
-            gun.transform.SetPositionAndRotation(grip.position - aim * look.grip, aim);
+            gun.transform.SetPositionAndRotation(grip.position - aim * look.grip * scale, aim);
+            gun.transform.localScale = Vector3.one * scale;
             return gun;
         }
 
@@ -328,11 +401,10 @@ namespace SdfMedia.Editor
             var core = Hdr(new Color(1f, 0.97f, 0.8f), 2.6f);
 
             // The flash
-            var size = 0.42f;
+            var size = 0.3f;
             var at = muzzle + forward * size * 0.6f;
             var flashBand = Hdr(look.tracer, 1.3f);
             var flashCore = Hdr(new Color(1f, 0.97f, 0.8f), 3.1f);
-            fx.Glow(at, size * 0.8f, Hdr(look.tracer, 0.7f), flashBand, 0.25f, 0.3f);
             fx.Glow(at, size * 0.55f, flashBand, flashCore, 0.55f);
             fx.Streak(at, at + forward * size * 2.2f, size * 0.5f, 0, flashBand, flashCore, 0.45f);
             for (var i = 0; i < 4; i++)

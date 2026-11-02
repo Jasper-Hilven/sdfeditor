@@ -94,13 +94,13 @@ namespace SdfMedia.Editor
             new CoverFormat
             {
                 FileName = "cover-portrait.png", Width = 800, Height = 1200,
-                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.6f, 0.60f), FieldOfView = 62, Roll = -4,
+                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.66f, 0.60f), FieldOfView = 68, Roll = -4,
                 LogoCentre = new Vector2(0.5f, 0.145f), LogoShare = 0.92f,
             },
             new CoverFormat
             {
                 FileName = "cover-square.png", Width = 800, Height = 800,
-                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.6f, 0.62f), FieldOfView = 54, Roll = -3,
+                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.65f, 0.62f), FieldOfView = 60, Roll = -3,
                 LogoCentre = new Vector2(0.5f, 0.165f), LogoShare = 0.78f,
             },
         };
