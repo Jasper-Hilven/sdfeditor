@@ -45,7 +45,7 @@ namespace SdfBody
 
         /// <summary>
         /// The clips' natural ground speeds (m/s at playback 1), measured on the soldier by <c>LocomotionClipSpeeds</c> (the planted
-        /// foot's median slide over 120 samples per cycle; 2026-10-31). The stand-ins (sprint, pistol, heavy) carry their stand-in clip's number;
+        /// foot's median slide over 120 samples per cycle; 2026-11-02). The stand-ins (sprint, heavy) carry their stand-in clip's number;
         /// rerun the measure when a Mixamo clip replaces one (the tests compare these with a fresh measure).
         /// </summary>
         public static ClipSpeed[] DefaultClipSpeeds() => new[]
@@ -59,9 +59,10 @@ namespace SdfBody
             new ClipSpeed("soldier_loco_run_fl", 1.797f), new ClipSpeed("soldier_loco_run_fr", 1.777f),
             new ClipSpeed("soldier_loco_run_bl", 1.793f), new ClipSpeed("soldier_loco_run_br", 1.800f),
             new ClipSpeed("soldier_loco_sprint_f", 2.995f),
-            new ClipSpeed("body_pistol_run_f", 2.995f), new ClipSpeed("body_pistol_run_b", 2.526f),
-            new ClipSpeed("body_pistol_run_l", 4.264f), new ClipSpeed("body_pistol_run_r", 4.478f),
+            new ClipSpeed("body_pistol_run_f", 2.932f), new ClipSpeed("body_pistol_run_b", 3.178f),
+            new ClipSpeed("body_pistol_run_l", 2.096f), new ClipSpeed("body_pistol_run_r", 2.351f),
             new ClipSpeed("body_heavy_run_f", 2.995f),
+            new ClipSpeed("body_pistol_walk_f", 2.483f), new ClipSpeed("body_pistol_walk_b", 1.369f),
         };
 
         /// <summary>Natural ground speed of a clip by name; unknown gives 0.</summary>

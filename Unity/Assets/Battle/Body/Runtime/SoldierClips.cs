@@ -126,8 +126,13 @@ namespace SdfBody
             new GapEntry("body_pistol_run_l", L, true, "\"Pistol Strafe\" (left)", true, "soldier_loco_run_l", -1f, "pistol locomotion"),
             new GapEntry("body_pistol_run_r", L, true, "\"Pistol Strafe\" (right)", true, "soldier_loco_run_r", -1f, "pistol locomotion"),
             new GapEntry("body_jump_up", M, false, "\"Jump\" (the take-off half)", true, "soldier_jump", -1f, "the jump"),
-            new GapEntry("body_fall_loop", M, true, "\"Falling Idle\"", true, "soldier_jump", JumpFallPose, "in the air"),
-            new GapEntry("body_land", M, false, "\"Falling To Landing\"", true, "soldier_jump", JumpFallPose, "the landing"),
+            // The user's decision (2026-11-02): falling and landing play the idle of the stance (the pistol idle in the pistol stance, else the
+            // rifle idle) until Falling Idle and Falling To Landing are downloaded; SoldierControllerBuilder blends it by Stance.
+            new GapEntry("body_fall_loop", M, true, "\"Falling Idle\"", true, "soldier_loco_aim_idle", -1f, "in the air"),
+            new GapEntry("body_land", M, false, "\"Falling To Landing\"", true, "soldier_loco_aim_idle", -1f, "the landing"),
+            // The pistol stance's walk tier (the forward and backward walks; the other walks stay the rifle's)
+            new GapEntry("body_pistol_walk_f", L, true, "\"Pistol Walk\"", true, "soldier_loco_walk_f", -1f, "pistol locomotion", optional: true),
+            new GapEntry("body_pistol_walk_b", L, true, "\"Pistol Walk Backward\"", true, "soldier_loco_walk_b", -1f, "pistol locomotion", optional: true),
             // Optional
             new GapEntry("body_heavy_idle", L, true, "\"Rifle Idle\" with a heavy weapon", true, "soldier_loco_aim_idle", -1f, "minigun and flamethrower", optional: true),
             new GapEntry("body_heavy_run_f", L, true, "\"Heavy Weapon Run\"", true, "soldier_loco_run_f", -1f, "minigun and flamethrower", optional: true),

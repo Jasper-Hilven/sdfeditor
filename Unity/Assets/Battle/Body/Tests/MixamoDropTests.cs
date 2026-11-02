@@ -72,9 +72,9 @@ namespace SdfBody.Tests
             Assert.AreEqual("body_roar", clip.name);
             Assert.IsFalse(AnimationUtility.GetAnimationClipSettings(clip).loopTime);
 
-            var pistol = Copy("body_pistol_run_f");
-            Assert.IsEmpty(MixamoDrop.Validate(pistol), string.Join("\n", MixamoDrop.Validate(pistol)));
-            Assert.IsTrue(AnimationUtility.GetAnimationClipSettings(SoldierClipAssets.LoadAt(pistol, "body_pistol_run_f")).loopTime);
+            var heavy = Copy("body_heavy_run_f");
+            Assert.IsEmpty(MixamoDrop.Validate(heavy), string.Join("\n", MixamoDrop.Validate(heavy)));
+            Assert.IsTrue(AnimationUtility.GetAnimationClipSettings(SoldierClipAssets.LoadAt(heavy, "body_heavy_run_f")).loopTime);
 
             var bad = Copy("Pistol Run");
             var problems = MixamoDrop.Validate(bad);

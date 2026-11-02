@@ -91,7 +91,8 @@ namespace SdfBody
         public static readonly LocomotionClip[] Pistol = Swap(Stand, new[]
         {
             ("soldier_loco_aim_idle", "body_pistol_idle"), ("soldier_loco_run_f", "body_pistol_run_f"), ("soldier_loco_run_b", "body_pistol_run_b"),
-            ("soldier_loco_run_l", "body_pistol_run_l"), ("soldier_loco_run_r", "body_pistol_run_r"), ("soldier_loco_sprint_f", "body_pistol_run_f"),
+            ("soldier_loco_run_l", "body_pistol_run_l"),
+            ("soldier_loco_walk_f", "body_pistol_walk_f"), ("soldier_loco_walk_b", "body_pistol_walk_b"), ("soldier_loco_run_r", "body_pistol_run_r"), ("soldier_loco_sprint_f", "body_pistol_run_f"),
         });
 
         /// <summary>The standing tree with the heavy weapon's idle and forward run (the sprint too), for the minigun and the flamethrower.</summary>

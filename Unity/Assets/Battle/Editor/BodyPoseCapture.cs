@@ -20,13 +20,17 @@ namespace SdfBattle.Editor
     {
         const int Width = 400, Height = 600;
 
-        static readonly (string Name, Action<Animator> Set)[] Poses =
+        // Name, how to drive it, and how many 1/30 s steps to settle (the take-off is looked at mid-jump)
+        static readonly (string Name, Action<Animator> Set, int Steps)[] Poses =
         {
-            ("idle", a => { }),
-            ("run", a => { a.SetFloat("MoveY", 1); a.SetFloat("Speed", 1); }),
-            ("run heavy", a => { a.SetFloat("MoveY", 1); a.SetFloat("Speed", 1); a.SetFloat("Stance", 2); }),
-            ("fire", a => { a.SetBool("FireAuto", true); }),
-            ("jump fall", a => { a.SetTrigger("Jump"); a.SetBool("Airborne", true); }),
+            ("idle", a => { }, 40),
+            ("pistol idle", a => { a.SetFloat("Stance", 1); }, 40),
+            ("pistol run", a => { a.SetFloat("MoveY", 1); a.SetFloat("Speed", 1); a.SetFloat("Stance", 1); }, 40),
+            ("pistol strafe left", a => { a.SetFloat("MoveX", -1); a.SetFloat("Speed", 1); a.SetFloat("Stance", 1); }, 40),
+            ("pistol back", a => { a.SetFloat("MoveY", -1); a.SetFloat("Speed", 1); a.SetFloat("Stance", 1); }, 40),
+            ("pistol jump up", a => { a.SetTrigger("Jump"); a.SetBool("Airborne", true); a.SetFloat("Stance", 1); }, 8),
+            ("pistol fall", a => { a.SetTrigger("Jump"); a.SetBool("Airborne", true); a.SetFloat("Stance", 1); }, 60),
+            ("rifle fall", a => { a.SetTrigger("Jump"); a.SetBool("Airborne", true); }, 60),
         };
 
         [MenuItem("Sdf/Body/Capture Poses")]
@@ -69,7 +73,7 @@ namespace SdfBattle.Editor
                 var slot = 0;
                 foreach (var skin in SoldierModels.SkinKeys)
                 {
-                    foreach (var (name, set) in Poses)
+                    foreach (var (name, set, steps) in Poses)
                     {
                         var soldier = (GameObject)PrefabUtility.InstantiatePrefab(SoldierModels.Prefab(skin));
                         var animator = soldier.GetComponent<Animator>();
@@ -79,7 +83,7 @@ namespace SdfBattle.Editor
                         set(animator);
                         animator.Rebind();
                         set(animator);
-                        for (var i = 0; i < 40; i++)
+                        for (var i = 0; i < steps; i++)
                             animator.Update(1f / 30);
                         // A three-quarter view from the front right of the soldier
                         tiles[slot++] = Shoot(camera, new Vector3(0, 0.95f, 0), new Vector3(-0.55f, 0.1f, 1), 4.6f);

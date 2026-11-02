@@ -134,3 +134,28 @@ A Play-mode smoke test (`SdfBody.PlayTests`, `tools/unity-batch.sh play44 -runTe
 Left for a Play-mode look by eye: that 7 bots and you run, strafe, jump, fire and carry the flag with no foot sliding at the game's speeds;
 that the held weapons sit right in the soldier's hands (the sockets, the pitch of the aim); the frozen body on death; the web frame time
 with 8 animated bodies on the Kitchen (43's open item).
+
+### Mixamo clips in (2026-11-02)
+
+The user's downloads (Synty skeleton, no `mixamorig`; the character FBX was not copied) are in `Animations/Mixamo/`, copied, not moved:
+
+| Convention name | Source | Why |
+|---|---|---|
+| `body_pistol_idle` | single `@Pistol Idle` | the pack's `pistol idle` is the same take (1.33 s); the single is In Place |
+| `body_pistol_run_f` | single `@Pistol Run` (0.73 s, In Place) | the pack's `pistol run` is another, faster take (0.5 s, 4.6 m/s of root motion), so the single wins |
+| `body_pistol_run_b` | pack `pistol run backward` (0.53 s, root motion) | a run for the run ring; the single `@Pistol Walk Backward` is a walk (1.4 m/s) and would need 3x playback |
+| `body_pistol_run_l` | pack `pistol strafe` | its Root travels to -x (left) over 0.57 s, and the planted feet slide the same way (measured direction (-1.00, 0)) |
+| `body_pistol_run_r` | pack `pistol strafe (2)` | its Root travels to +x (right) over 0.6 s (measured direction (1.00, 0)) |
+| `body_jump_up` | single `@Pistol Jump` (0.8 s, In Place) | the same take as the pack's `pistol jump (2)`; a short standing take-off. The pack's `pistol jump` (2 s) is a whole jump with landing, too long for a take-off |
+| `body_pistol_walk_b` | single `@Pistol Walk Backward` | the walk tier (same take as the pack's walk backward) |
+| `body_pistol_walk_f` | pack `pistol walk` (0.8 s, root motion) | the walk tier |
+
+Root motion: a pack has no In Place, so its Root bone travelled 1.2 to 2 m. `SoldierAnimationPostprocessor.OnPostprocessAnimation` takes the net horizontal travel of the shallowest position-animated bone (`Root`) out of every Mixamo drop (a straight ramp from first to last key, tangents too; the bob, the sway and the jump's rise stay, and the loop still closes). The FBX files are untouched; In Place clips have no net travel and are left alone. `MixamoDrop.Validate` now fails a drop whose Root still travels more than 5 cm.
+
+Walk tier: wired. New optional gaps `body_pistol_walk_f/b` replace the rifle's forward and backward walks in the pistol tree (the diagonals and strafes of the walk ring stay the rifle's). The tree stays 18 clips.
+
+Fall and landing (the user's decision): `body_fall_loop` and `body_land` stand in with the idle of the stance (a 1D blend over `Stance`: the pistol idle for the pistol, the rifle idle otherwise, until a heavy idle exists), looping, leaving by the Airborne condition, instead of the held pose of the rifle jump.
+
+Measured clip speeds (m/s at playback 1, `Sdf/Body/Measure Locomotion Clip Speeds`, in `DefaultClipSpeeds` and the tuning asset): pistol run f 2.932, b 3.178, l 2.096, r 2.351; pistol walk f 2.483, b 1.369 (the rifle's are unchanged).
+
+Still stand-ins: `body_fall_loop`, `body_land` (the stance's idle), `body_heavy_idle`, `body_heavy_run_f` (the rifle set), `body_roar` (nothing plays), `body_victory` (the first dance). Capture: `Media/body-44-pistol/body-poses.png` (red above blue: rifle idle, pistol idle, pistol run, pistol strafe left, pistol backward, pistol jump up, pistol fall, rifle fall); `BodyPoseCapture` now shows the pistol stance. EditMode 728 passed, 0 failed (`MixamoDropTests` passes for all 8 files). Not seen in Play mode.

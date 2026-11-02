@@ -114,10 +114,22 @@ namespace SdfBody.Tests
                 Assert.AreEqual(1f, land.speed);
                 var toLoco = land.transitions.First(t => t.destinationState.name == "Locomotion");
                 Assert.IsTrue(toLoco.hasExitTime);
-                // And the stand-in's land is a held pose that leaves by the Airborne condition
-                var held = Controller.layers[0].stateMachine.states.First(s => s.state.name == "Land").state;
-                Assert.AreEqual(0f, held.speed);
-                Assert.IsFalse(held.transitions.First(t => t.destinationState.name == "Locomotion").hasExitTime);
+                // And the stand-in's land is the idle of the stance (pistol idle for the pistol, rifle idle otherwise), leaving by the Airborne condition
+                foreach (var name in new[] { "Land", "Fall" })
+                {
+                    var held = Controller.layers[0].stateMachine.states.First(s => s.state.name == name).state;
+                    Assert.AreEqual(1f, held.speed, name);
+                    var idle = held.motion as BlendTree;
+                    Assert.IsNotNull(idle, name + " plays a blend over the stance");
+                    Assert.AreEqual("Stance", idle.blendParameter);
+                    Assert.AreEqual(3, idle.children.Length);
+                    var map0 = AssetDatabase.LoadAssetAtPath<SoldierClipMap>(ClipMapBuilder.AssetPath);
+                    Assert.AreSame(map0.Get("soldier_loco_aim_idle"), idle.children[0].motion, "rifle stance: the rifle idle");
+                    Assert.AreSame(map0.Get("body_pistol_idle"), idle.children[1].motion, "pistol stance: the pistol idle");
+                    Assert.AreSame(map0.Get("soldier_loco_aim_idle"), idle.children[2].motion, "heavy stance: the rifle idle (no heavy idle yet)");
+                }
+                var heldLand = Controller.layers[0].stateMachine.states.First(s => s.state.name == "Land").state;
+                Assert.IsFalse(heldLand.transitions.First(t => t.destinationState.name == "Locomotion").hasExitTime);
             }
             finally
             {

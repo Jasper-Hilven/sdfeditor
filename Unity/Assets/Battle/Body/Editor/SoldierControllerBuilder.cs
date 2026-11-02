@@ -254,9 +254,10 @@ namespace SdfBody.Editor
             // The air: JumpUp (the take-off), Fall (a loop while Airborne) and Land. Until Mixamo's clips are in, the rifle jump stands in
             // for all three (the fall and the landing as poses of it: the stand-in states are held, so they leave by condition only).
             var up = ctx.SlotState(sm, Names.JumpState, "body_jump_up", new Vector3(600, -120, 0));
-            var fall = ctx.SlotState(sm, Names.FallState, "body_fall_loop", new Vector3(900, -120, 0));
-            var land = ctx.SlotState(sm, Names.LandState, "body_land", new Vector3(900, 60, 0));
-            var landHeld = ctx.Slot("body_land").holdAt >= 0f;
+            var fall = AirState(ctx, sm, Names.FallState, "body_fall_loop", new Vector3(900, -120, 0));
+            var land = AirState(ctx, sm, Names.LandState, "body_land", new Vector3(900, 60, 0));
+            // A stand-in landing (a held pose or the idle) never ends by itself: it leaves by the condition.
+            var landHeld = ctx.Slot("body_land").holdAt >= 0f || ctx.Map.IsStandIn("body_land");
             var upLength = ctx.Clip("body_jump_up").length;
 
             Transition(loco, up, 0.08f, null, (AnimatorConditionMode.If, Names.Jump, 0f));
@@ -285,6 +286,35 @@ namespace SdfBody.Editor
                 if (!ctx.Slot(name).loop)
                     Transition(state, loco, 0.2f, 0.9f);
             }
+        }
+
+        /// <summary>
+        /// The fall or landing state. With its own clip, that clip; while a stand-in plays, the idle of the weapon in hand: a 1D blend over
+        /// Stance of each stance's idle (the pistol idle for the pistol, the rifle idle otherwise, until a heavy idle exists), looping.
+        /// </summary>
+        static AnimatorState AirState(SoldierControllerContext ctx, AnimatorStateMachine sm, string stateName, string clipName, Vector3 position)
+        {
+            var state = ctx.SlotState(sm, stateName, clipName, position);
+            if (!ctx.Map.IsStandIn(clipName) || ctx.Slot(clipName).holdAt >= 0f)
+                return state;
+            var tree = new BlendTree
+            {
+                name = stateName + " idle",
+                blendType = BlendTreeType.Simple1D,
+                blendParameter = Names.Stance,
+                useAutomaticThresholds = false,
+                hideFlags = HideFlags.HideInHierarchy
+            };
+            AssetDatabase.AddObjectToAsset(tree, ctx.Controller);
+            for (var i = 0; i < LocomotionClips.Trees.Length; i++)
+            {
+                var centre = LocomotionClips.Trees[i][0];
+                tree.AddChild(LocomotionClips.Resolve(ctx.Map, centre) ?? ctx.Clip(centre.Name), i);
+            }
+            state.motion = tree;
+            state.speed = 1f;
+            state.cycleOffset = 0f;
+            return state;
         }
 
         /// <summary>Where the take-off clip hands over to the fall: a stand-in jump at its fall pose, an own clip at its end.</summary>

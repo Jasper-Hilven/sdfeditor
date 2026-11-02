@@ -190,7 +190,7 @@ namespace SdfBody.Tests
                 var names = LocomotionTuning.DefaultClipSpeeds().Select(c => c.Clip).ToList();
                 foreach (var c in LocomotionClips.Trees.SelectMany(t => t).Where(c => c.Ring != LocomotionRing.Centre))
                     CollectionAssert.Contains(names, c.Name);
-                Assert.AreEqual(17 + 5, names.Count);
+                Assert.AreEqual(17 + 5 + 2, names.Count);
             }
             finally { Object.DestroyImmediate(t); }
         }

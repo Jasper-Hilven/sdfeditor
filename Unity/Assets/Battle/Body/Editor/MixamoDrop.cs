@@ -54,6 +54,10 @@ namespace SdfBody.Editor
             if (clip.length <= 0f)
                 problems.Add("the clip has no length");
 
+            var travel = SoldierAnimationPostprocessor.RootTravel(clip);
+            if (travel > SoldierAnimationPostprocessor.RootTravelTolerance)
+                problems.Add($"the Root bone travels {travel:F2} m across the clip (root motion): the game moves the body, the import should have baked it out");
+
             var unknown = AnimationUtility.GetCurveBindings(clip).Select(b => b.path).Distinct()
                 .Where(p => !SyntySkeletonPaths.IsPath(p)).ToList();
             if (unknown.Count > 0)
