@@ -1,0 +1,86 @@
+# The Deep-Sea Cthulhu's head shape (ticket 45), a part so the model (content/models/characters/monsters/cthulhu.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size. The eight tentacles are written by a script from a ring round the mouth: each is three
+# round cones with a different phase of wobble, curling out and forward (not down: they must clear the chest), 0.4 m out at the tips.
+Translate translation=(0, -0.0286, 0)
+    Scale scale=(1.2449, 1.2449, 1.2449)
+        Union
+            # Slick sea-green skin: a bulging dome, a heavy jaw, lids over the eyes, a dorsal fin down the back, gill ridges on the cheeks
+            Material material=cthulhu_skin
+                Subtraction
+                    Union
+                        Translate translation=(0, 0.03, -0.03)
+                            Ellipsoid radii=(0.245, 0.22, 0.215)
+                        Translate translation=(0, -0.11, 0.07)
+                            Ellipsoid radii=(0.15, 0.1, 0.13)
+                        # Heavy lids
+                        SymmetryX
+                            Rotate rotation=(0, 0, 0.35)
+                                Translate translation=(0.1, 0.1, 0.13)
+                                    Ellipsoid radii=(0.085, 0.03, 0.07)
+                        # The eyes' bulging sockets
+                        SymmetryX
+                            Translate translation=(0.1, 0.05, 0.12)
+                                Ellipsoid radii=(0.08, 0.07, 0.07)
+                    # The maw's pocket in the middle of the lower face
+                    Translate translation=(0, -0.105, 0.19)
+                        Ellipsoid radii=(0.08, 0.05, 0.06)
+            Material material=cthulhu_mouth
+                Intersection
+                    Translate translation=(0, -0.105, 0.19)
+                        Ellipsoid radii=(0.08, 0.05, 0.06)
+                    Plane normal=(0, 0, 1) height=-0.17
+            Material material=cthulhu_gill
+                Union
+                    Translate translation=(0, 0.2, -0.12)
+                        Ellipsoid radii=(0.014, 0.1, 0.14)
+                    SymmetryX
+                        Union
+                            Translate translation=(0.2, -0.03, 0.03)
+                                Ellipsoid radii=(0.014, 0.035, 0.05)
+                            Translate translation=(0.2, -0.09, 0.03)
+                                Ellipsoid radii=(0.014, 0.035, 0.05)
+                            Translate translation=(0.18, -0.15, 0.03)
+                                Ellipsoid radii=(0.014, 0.03, 0.045)
+            # Needle teeth in the maw
+            Material material=cthulhu_tooth
+                SymmetryX
+                    Union
+                        ArbitraryRoundCone a=(0.030, -0.085, 0.230) b=(0.030, -0.115, 0.235) radiusA=0.01 radiusB=0.002
+                        ArbitraryRoundCone a=(0.060, -0.092, 0.220) b=(0.060, -0.121, 0.225) radiusA=0.01 radiusB=0.002
+                        ArbitraryRoundCone a=(0.04, -0.135, 0.225) b=(0.04, -0.09, 0.23) radiusA=0.009 radiusB=0.002
+            # The writhing tentacles round the mouth
+            Material material=cthulhu_skin
+                Union
+                        ArbitraryRoundCone a=(0.074, -0.099, 0.170) b=(0.141, -0.123, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(0.141, -0.123, 0.245) b=(0.146, -0.175, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(0.146, -0.175, 0.320) b=(0.168, -0.201, 0.395) radiusA=0.019 radiusB=0.004
+                        ArbitraryRoundCone a=(0.041, -0.080, 0.170) b=(0.069, -0.129, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(0.069, -0.129, 0.245) b=(0.098, -0.143, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(0.098, -0.143, 0.320) b=(0.180, -0.151, 0.395) radiusA=0.019 radiusB=0.004
+                        ArbitraryRoundCone a=(-0.015, -0.061, 0.170) b=(-0.075, -0.095, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(-0.075, -0.099, 0.245) b=(-0.073, -0.115, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(-0.073, -0.115, 0.320) b=(-0.121, -0.161, 0.395) radiusA=0.019 radiusB=0.004
+                        ArbitraryRoundCone a=(-0.063, -0.089, 0.170) b=(-0.077, -0.104, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(-0.077, -0.104, 0.245) b=(-0.134, -0.156, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(-0.134, -0.156, 0.320) b=(-0.210, -0.196, 0.395) radiusA=0.019 radiusB=0.004
+                        ArbitraryRoundCone a=(-0.074, -0.111, 0.170) b=(-0.110, -0.157, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(-0.110, -0.157, 0.245) b=(-0.182, -0.183, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(-0.182, -0.183, 0.320) b=(-0.190, -0.189, 0.395) radiusA=0.019 radiusB=0.004
+                        ArbitraryRoundCone a=(-0.041, -0.130, 0.170) b=(-0.109, -0.162, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(-0.109, -0.162, 0.245) b=(-0.112, -0.171, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(-0.112, -0.171, 0.320) b=(-0.136, -0.204, 0.395) radiusA=0.019 radiusB=0.004
+                        ArbitraryRoundCone a=(0.015, -0.134, 0.170) b=(0.069, -0.143, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(0.069, -0.143, 0.245) b=(0.117, -0.190, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(0.117, -0.190, 0.320) b=(0.115, -0.240, 0.395) radiusA=0.019 radiusB=0.004
+                        ArbitraryRoundCone a=(0.063, -0.121, 0.170) b=(0.121, -0.159, 0.245) radiusA=0.036 radiusB=0.028
+                        ArbitraryRoundCone a=(0.121, -0.159, 0.245) b=(0.119, -0.199, 0.320) radiusA=0.028 radiusB=0.019
+                        ArbitraryRoundCone a=(0.119, -0.199, 0.320) b=(0.170, -0.210, 0.395) radiusA=0.019 radiusB=0.004
+            # Eyes: big, orange, slit pupils
+            SymmetryX
+                Translate translation=(0.1, 0.05, 0.145)
+                    Scale scale=(0.52, 0.52, 0.52)
+                        Part part=monster_eye_orange

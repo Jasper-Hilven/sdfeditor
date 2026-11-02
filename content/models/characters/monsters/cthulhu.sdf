@@ -1,0 +1,15 @@
+# Deep-Sea Cthulhu, the June head (ticket 45): a bulging sea-green dome with heavy lids over two big orange slit eyes, gill ridges on the
+# cheeks, a dorsal fin down the back, no nose and, round a small needle-toothed maw, eight writhing tentacles that curl out and forward
+# (not down, so they clear the chest).
+# Frame (the soldier's head_top socket, ticket 43): the origin is the socket, 1.815 m over the soles; the head faces +Z, +Y is up. The
+# size and the height come from the head part (content/parts/cthulhu_head.sdf): normalized to the common size, the chin 4 cm lower than
+# phase 1's (at 1.525 m, over the neck's top at 1.569 whose stub is inside it). The head turns on the Head bone, 0.25 m under the origin.
+# The eyes are the small eye part monster_eye_orange, meshed once, used twice.
+format 1
+
+# No collider (the hit shape of the head is a number in the registry), and never culled before 200 m: the head is what reads at range
+collider none
+cull 200
+
+Detail detail=0.691
+    Part part=cthulhu_head

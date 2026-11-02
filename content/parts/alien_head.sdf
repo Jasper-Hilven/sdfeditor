@@ -1,0 +1,81 @@
+# The Acid Alien's head shape (ticket 45), a part so the model (content/models/characters/monsters/alien.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size.
+Translate translation=(0, -0.0448, 0)
+    Scale scale=(1.2261, 1.2261, 1.2261)
+        Union
+            # Sleek black-green chitin: a long smooth cranium swept back and up, a narrow muzzle and jaw, a ridge down the middle
+            Material material=alien_skin
+                Subtraction
+                    Union
+                        Rotate rotation=(-0.25, 0, 0)
+                            Translate translation=(0, 0.03, -0.05)
+                                Ellipsoid radii=(0.25, 0.215, 0.215)
+                        Translate translation=(0, -0.095, 0.1)
+                            Ellipsoid radii=(0.15, 0.1, 0.13)
+                        Translate translation=(0, -0.17, 0.12)
+                            Ellipsoid radii=(0.085, 0.06, 0.1)
+                        # The brow, over the eyes
+                        SymmetryX
+                            Capsule a=(0.19, 0.115, 0.1) b=(0.04, 0.13, 0.19) radius=0.03
+                    # The mouth
+                    Translate translation=(0, -0.145, 0.2)
+                        Ellipsoid radii=(0.065, 0.025, 0.07)
+            Material material=alien_mouth
+                Intersection
+                    Translate translation=(0, -0.145, 0.2)
+                        Ellipsoid radii=(0.065, 0.025, 0.07)
+                    Plane normal=(0, 0, 1) height=-0.15
+            # The plates along the back of the skull and the ridge down the middle
+            Material material=alien_ridge
+                Union
+                    Rotate rotation=(-0.25, 0, 0)
+                        Union
+                            Translate translation=(0, 0.2, -0.08)
+                                Ellipsoid radii=(0.03, 0.03, 0.14)
+                            Translate translation=(0, 0.1, -0.25)
+                                Ellipsoid radii=(0.12, 0.012, 0.04)
+                            Translate translation=(0, 0.08, -0.2)
+                                Ellipsoid radii=(0.16, 0.012, 0.04)
+                            Translate translation=(0, 0.1, -0.12)
+                                Ellipsoid radii=(0.15, 0.012, 0.035)
+                    # Mandibles: pairs of hooked jaws either side of the mouth
+                    SymmetryX
+                        Union
+                            ArbitraryRoundCone a=(0.04, -0.165, 0.2) b=(0.11, -0.21, 0.27) radiusA=0.028 radiusB=0.02
+                            ArbitraryRoundCone a=(0.11, -0.21, 0.27) b=(0.06, -0.29, 0.31) radiusA=0.02 radiusB=0.004
+                            ArbitraryRoundCone a=(0.02, -0.18, 0.205) b=(0.03, -0.25, 0.28) radiusA=0.02 radiusB=0.004
+            # Inner teeth
+            Material material=alien_tooth
+                SymmetryX
+                    Union
+                        ArbitraryRoundCone a=(0.025, -0.125, 0.235) b=(0.025, -0.165, 0.24) radiusA=0.009 radiusB=0.002
+                        ArbitraryRoundCone a=(0.05, -0.13, 0.225) b=(0.05, -0.17, 0.23) radiusA=0.009 radiusB=0.002
+            # Huge glossy black eyes, slanted down to the muzzle
+            Material material=alien_eye
+                SymmetryX
+                    Rotate rotation=(0, 0, 0.45)
+                        Translate translation=(0.11, 0.0, 0.15)
+                            Ellipsoid radii=(0.08, 0.125, 0.06)
+            # Antennae, bent back, glowing tips; acid drool hanging from the mandibles (emission)
+            Material material=alien_ridge
+                SymmetryX
+                    Union
+                        ArbitraryRoundCone a=(0.05, 0.17, 0.1) b=(0.09, 0.25, 0.06) radiusA=0.014 radiusB=0.01
+                        ArbitraryRoundCone a=(0.09, 0.25, 0.06) b=(0.07, 0.31, -0.05) radiusA=0.01 radiusB=0.006
+            Material material=alien_acid
+                Union
+                    SymmetryX
+                        Translate translation=(0.07, 0.315, -0.055)
+                            Sphere radius=0.024
+                    SymmetryX
+                        Union
+                            ArbitraryRoundCone a=(0.06, -0.29, 0.31) b=(0.06, -0.37, 0.315) radiusA=0.012 radiusB=0.009
+                            Translate translation=(0.06, -0.385, 0.315)
+                                Sphere radius=0.02
+                    ArbitraryRoundCone a=(0.0, -0.15, 0.255) b=(0.0, -0.21, 0.26) radiusA=0.01 radiusB=0.007
+                    Translate translation=(0, -0.22, 0.26)
+                        Sphere radius=0.016
