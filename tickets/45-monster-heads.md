@@ -57,8 +57,13 @@ Depends on: 43 (the socket and scale). Blocks: 46, 47.
 included:**
 - **20% bigger**: scale each head 1.2x about its socket origin (Yeti about 0.73 m, pumpkin about 0.52 m across). Re-fit the hit shape
   with it.
-- **The hitbox equals the visible head** (user decision, replaces the +-15% fairness rule and the 85% fit): each head's hit shape
-  is fitted to its own visible mesh, with no clamp to a reference. A bigger head is easier to headshot, and that is accepted. Fit
+- **All heads a similar size, normalized** (user decision): every head is scaled so its tight-fit shape (below) is the same size as
+  the others, within +-10% in volume and in each axis's radius. The target is 1.2x the mean of the Yeti's and the pumpkin's tight
+  fits from phase 1 (the "20% bigger" above, applied to the common size, not to each head on its own). The scale is one uniform
+  factor per head, in its model file, so the look is unchanged. Spikes, tufts, icicles, hats and stems stick out past the
+  normalized core and don't count. A test checks all built heads against the target.
+- **The hitbox equals the visible head** (user decision, replaces the +-15% clamp and the 85% fit): each head's hit shape is fitted
+  to its own visible mesh. With the heads normalized, the hitboxes are also equal within +-10%, so no head is easier to hit. Fit
   it tightly: an ellipsoid fitted to the mesh's volume rather than the bounding box, so spikes, tufts and icicles don't inflate it,
   or a convex or mesh test if `Combat.Trace` can afford one on the web. Test that a shot just outside the visible head misses and
   one just inside hits.
