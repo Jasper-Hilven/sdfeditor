@@ -53,6 +53,15 @@ Depends on: 43 (the socket and scale). Blocks: 46, 47.
 
 ## Status
 
+**User review of phase 1 (2026-11-02): the Yeti and the Jack-o'-Lantern are approved, with two changes for every head, these two
+included:**
+- **20% bigger**: scale each head 1.2x about its socket origin (Yeti about 0.73 m, pumpkin about 0.52 m across). Re-fit the hit shape
+  with the fairness reference scaled 1.2x too (0.24 m across, 0.264 m up, still +-15%), so the head you see stays the head you hit.
+  51's head pieces (`content/parts/<id>_head.sdf`, `tools/make-head-pieces.py`) must be re-cut from the bigger heads.
+- **4 cm lower** (less neck): the head sits 4 cm lower on the soldier. Lower the whole head 4 cm against the socket (the head's
+  underside at about 1.525 m, not 1.565). Don't move the socket, which 43's tests and 44's animation use. Check that the collar does
+  not poke through the head's underside, and that the Yeti's icicles still clear the chest.
+
 **Phase 1 done: the Yeti and the Jack-o'-Lantern are modelled, meshed, imported and on the soldiers. The user's review of them is pending; the other 10 are not started** (the Order above: look at these two for scale, neck join, readability at 50 m and budget first).
 
 What exists:
