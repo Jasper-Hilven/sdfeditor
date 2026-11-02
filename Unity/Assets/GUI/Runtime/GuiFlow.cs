@@ -7,7 +7,6 @@ namespace SdfGui
 {
     public enum GuiScreen
     {
-        Title,
         Hud,
         Scoreboard,
         Pause,
@@ -17,23 +16,14 @@ namespace SdfGui
         Victory,
         Gallery,
         Loading,
-        LevelSelect,
         /// <summary>A small yes/no card over whatever screen is up; <see cref="GuiFlow.screen"/> is never this, see <see cref="GuiFlow.Ask"/>.</summary>
         Confirm,
-        /// <summary>The New Campaign card: Easy, Normal or Hard.</summary>
-        Difficulty,
-        /// <summary>The player's gallery: the cutscenes seen so far, to watch again.</summary>
-        Story,
         /// <summary>The lost match's screen: DEFEATED, Prime's taunt, RETRY, RETRY EASIER and MENU.</summary>
         Defeat,
         /// <summary>The 2 s banner over the HUD between the match's last capture and Victory or Defeat.</summary>
         MatchEnd,
         /// <summary>The caption box over the HUD (the warm-up's prompts); <see cref="GuiFlow.screen"/> is never this, it shows while the HUD does and the caption has a line.</summary>
         Caption,
-        /// <summary>A story beat: the scene alone with the caption box and letterbox bars, no HUD (ticket 32.7).</summary>
-        Cutscene,
-        /// <summary>The ending (ticket 32.8): 42's desk and the monitor drawn from the GUI's own shapes, with the caption box; plays over Boot.</summary>
-        Ending,
         /// <summary>The credits (ticket 32.8): a 45 s scroll, skippable by holding Space.</summary>
         Credits,
     }
@@ -59,7 +49,7 @@ namespace SdfGui
     {
         public GuiScreen screen = GuiScreen.Hud;
         [Tooltip("Where Back from the settings goes")]
-        public GuiScreen settingsReturn = GuiScreen.Title;
+        public GuiScreen settingsReturn = GuiScreen.Hud;
         public bool testPanel = true;
 
         /// <summary>The match end's slow-down: this time scale, for this many seconds, then the banner this many.</summary>
@@ -225,9 +215,7 @@ namespace SdfGui
                     screen = GuiScreen.Hud;
                 else if (screen == GuiScreen.Settings)
                     screen = settingsReturn;
-                else if (screen == GuiScreen.LevelSelect || screen == GuiScreen.Difficulty || screen == GuiScreen.Story)
-                    screen = GuiScreen.Title;
-            }
+                            }
             if (Input.GetKeyDown(KeyCode.Tab) && screen == GuiScreen.Hud)
             {
                 held = screen;
@@ -388,8 +376,8 @@ namespace SdfGui
             if (Match != null && !Match.driven)
             {
                 Match.caption.Clear();
-                if (next == GuiScreen.Caption || next == GuiScreen.Cutscene || next == GuiScreen.Ending)
-                    Match.caption.Set("Mushroom 7", "Fill your rage and activate Frenzy. Trust me.", 1, next != GuiScreen.Caption ? 0.4f : 0, "Hold SPACE to skip");
+                if (next == GuiScreen.Caption)
+                    Match.caption.Set("Mushroom 7", "Fill your rage and activate Frenzy. Trust me.", 1, 0, "Hold SPACE to skip");
             }
             if (next == GuiScreen.Caption)
                 next = GuiScreen.Hud;
@@ -399,7 +387,7 @@ namespace SdfGui
             if ((next == GuiScreen.Victory || next == GuiScreen.Defeat) && Match != null && !Match.driven)
                 Match.SampleEnd(next == GuiScreen.Victory);
             if (next == GuiScreen.Settings && screen != GuiScreen.Settings)
-                settingsReturn = screen == GuiScreen.Pause ? GuiScreen.Pause : GuiScreen.Title;
+                settingsReturn = screen == GuiScreen.Pause ? GuiScreen.Pause : GuiScreen.Hud;
             screen = next;
             Apply();
         }
@@ -431,10 +419,6 @@ namespace SdfGui
                 case GuiCommandId.Show:
                     Show(argument);
                     break;
-                case GuiCommandId.NewCampaign:
-                    // Straight to the difficulty card, even with a story to continue (medals and unlocked levels stay)
-                    Show(GuiScreen.Difficulty);
-                    break;
                 // Without a campaign (the GUI scene played alone) these start the showcase round
                 case GuiCommandId.Continue:
                 case GuiCommandId.BeginCampaign:
@@ -451,13 +435,13 @@ namespace SdfGui
                 case GuiCommandId.WatchCutscene:
                     break;
                 case GuiCommandId.Back:
-                    Show(screen == GuiScreen.Settings ? settingsReturn : GuiScreen.Title);
+                    Show(screen == GuiScreen.Settings ? settingsReturn : GuiScreen.Hud);
                     break;
                 case GuiCommandId.Resume:
                     Show(GuiScreen.Hud);
                     break;
                 case GuiCommandId.QuitToMenu:
-                    Show(GuiScreen.Title);
+                    Show(GuiScreen.Hud);
                     break;
                 case GuiCommandId.Confirm:
                 {

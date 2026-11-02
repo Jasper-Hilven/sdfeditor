@@ -113,7 +113,6 @@ namespace SdfBattle
 #endif
             var root = new GameObject(ObjectName).transform;
             root.SetParent(transform, false);
-            var bossLevel = FindFirstObjectByType<BossSpots>() != null;
             foreach (var side in new[] { arena.west, arena.east })
             {
                 if (side == null)
@@ -125,8 +124,7 @@ namespace SdfBattle
                             Add<TurretMachine>(rig, MachineKind.Turret, team, side);
                 if (side.machineSpawn == null)
                     continue;
-                // The boss fight's blue helicopter is the Prime-copter (ticket 33.5), flown by the boss; no other
-                for (var i = 0; i < (bossLevel ? 0 : rules.helicoptersPerSide); i++)
+                for (var i = 0; i < rules.helicoptersPerSide; i++)
                     Make<HelicopterMachine>(team == Team.Red ? redHelicopter : blueHelicopter, MachineKind.Helicopter, team, side, root, i);
                 for (var i = 0; i < rules.tanksPerSide; i++)
                     Make<TankMachine>(team == Team.Red ? redTank : blueTank, MachineKind.Tank, team, side, root, i);
@@ -267,7 +265,7 @@ namespace SdfBattle
             for (var i = 0; i < count; i++)
             {
                 var hit = Hits[i];
-                if (Player.Of(hit.collider) != null || Of(hit.collider) != null || PrimeCopter.Owns(hit.collider))
+                if (Player.Of(hit.collider) != null || Of(hit.collider) != null)
                     continue;
                 point = hit.point;
                 normal = hit.normal;

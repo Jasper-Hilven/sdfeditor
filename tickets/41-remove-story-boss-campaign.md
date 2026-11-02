@@ -39,4 +39,55 @@ Depends on: nothing. Blocks: 42, 48, 50.
 
 ## Status
 
-Not started.
+Done in code, Unity compiles, EditMode tests pass, the web build runs in batch. Not done as the ticket asks: the pipeline's boss layout (below).
+
+**Done**
+- **Boss**: Prime, the Champion's Arena (`arena.level`, its scene, its models and materials, `minigun-gold` and its pod), the boss
+  rules, the copter, the boss HUD and the boss tests are deleted. `IsBoss` branches gone from `DifficultyRules`, `MatchSetup`,
+  `MatchRules` (the `MatchObjective` enum is gone), `BattleSetup`, the bots, `Cheats`, `Machines`, the navmesh bake, the audio (boss theme,
+  boss cues), `MatchHud`, `GuiEndBanner`.
+- **Story**: `Assets/Story`, `content/story`, `content/scenes/home.txt`, `Home.unity` and its models and materials, `SDFPipeline/Story`
+  and its test, the `StreamedContent` comic bundles, the comic code in `ContentStreamer` and `StreamedBundles`, `Beat*`, `ComicBeatPlayer`,
+  the story viewer hook, `Taunts` (its only users were the campaign and the Defeat screen's Prime taunt; the kill feed and bots never
+  used it), the Cutscene and Ending screens.
+- **Campaign**: `CampaignRunner`, `CampaignDefinition`, `CampaignStep`, `CampaignProgress`, `Medals` (its users: the Title and Victory
+  medal, the boss and campaign code; ticket 47's text does not mention medals), `StreamPlan`, the campaign tests and the play tests.
+  Title, Level Select, Difficulty, RETRY EASIER and the Story gallery screens are gone; the component Gallery (developer tool) stays.
+  The Settings rows for difficulty and backdrop are gone.
+- **Menu backdrop**: `MenuBackdrop`, `DeskDioramaBuilder`, `WallAtlasBuilder`, the wall atlases and `DeskScreen.mat`, `WallCard.shader`.
+  `GuiPlayTest` removed (it drove the removed screens).
+- **Kept**: `Credits.cs`, `Credits.prefab`, `CreditsPlayer`, `CreditsMenu` (the user's credits work is untouched; `CreditsMenu` now
+  shows the credits over the HUD), `Difficulty.cs` (the ladder for 42), `SkipHold` (moved out of the deleted `BeatSequencer.cs`, used by the
+  credits and the warm-up), the warm-up, `SceneLoader`, `ContentStreamer`, `StreamManifest`, `CampaignStorage` and its tests (42 uses them).
+- **Temporary flow**: `Campaign/Runtime/BootFlow.cs`. Boot starts the Meadow; the commands that start, retry or leave a match (Continue,
+  Next, Retry, Restart, QuitToMenu and the others) load the Meadow again. `SceneLoader.Abandoned` does the same for a cancelled download.
+  `Boot.unity` rebuilt by `BootBuilder` (no backdrop, no menus); `UpdateAll` rebuilt the seven levels, `GUI.unity`, `Mushrooms.unity`
+  and the build scene list (Boot, Meadow, Fungal, Chessboard, Toybox, Kitchen, Bathroom, Computer; showcases in development only).
+- **Streamed build**: the arena and the comics are out of the bundles. The other six levels still stream.
+
+**Measured** (WebGL, `SdfMushrooms.Editor.WebBuild.Build`, batch)
+- Before: initial download `Web/Build` 29.3 MB (Web.data.br 20.96 MB, Web.wasm.br 9.68 MB, framework and loader 0.11 MB); the
+  streamed `Bundles` folder 51.0 MB in 35 files, including the arena and eight comics.
+- After: initial download 23.0 MB (Web.data.unityweb 14.3 MB, Web.wasm.unityweb 9.56 MB, framework and loader 0.20 MB); bundles 37.0 MB in
+  25 files (no arena, no comics). The "before" figures are the numbers the previous build folder held; the files were overwritten by
+  this build.
+
+**Tests**
+- EditMode (`tools/unity-batch.sh ... -runTests -testPlatform EditMode`): 425 passed, 0 failed, 8 skipped, 433 total, from 641 passed
+  before (the deleted boss, story and campaign tests went with their code). The 8 skips are `SdfRig.Tests.SoldierBodyTests`, which need
+  ticket 43's generated soldier prefabs.
+- Pipeline (`dotnet test SDFPipeline.Tests`): 6 failed, all in `Levels/BattleSidesTests` (the arena cases and the boss layout), which are
+  now removed from that file. The filtered re-run of `BattleSidesTests`, `LevelFileTests` and `BackdropTests` is in the commit notes.
+
+**Left for a person or a later ticket**
+- A Play-mode look: Boot into the Meadow, a match end, the Victory and Defeat screens with no medal or taunt, the pause menu over the
+  match, and the web build run in a browser.
+- The pipeline still has the boss layout code: `LevelLayout.Boss`, `BossSpec`, the `boss` section and `phases` tags in `LevelFile` and
+  `LevelBaker`, `BattleLayout`, `BattleNavmesh`'s asymmetric parts. No level uses it now. Removing it needs its own pass with the
+  pipeline tests.
+- Dead code left on purpose, to remove when it is in the way: `WarmUpPlayer` (its driver was `CampaignRunner`; the warm-up is now
+  not started), the boss cues in `Cues.cs`/`SoundBankSetup.cs` (`boss.phase`, `boss.shield-down`, `boss.crash`), the boss theme file in
+  `Audio/Library`, `PhaseGroup`, the Victory and Defeat `GuiEndScreen` fields from the old design, and the `Story/Resources` comics that
+  `StreamedBundles` no longer reads.
+- Nothing reaches the credits from the game now: the title that held their button is gone (the Tools menu's Play Credits still works).
+- 42 starts from here: Boot and the match end both go through `BootFlow`, which 42 replaces.

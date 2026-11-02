@@ -60,18 +60,14 @@ namespace SdfLevel.Editor
                 Do("weapon pods", SdfPickups.Editor.WeaponPodBuilder.BuildAll);
                 Do("flag stands", SdfPickups.Editor.FlagStandBuilder.BuildAll);
                 Do("machines", SdfMachines.Editor.MachineBuilder.BuildAll);
-                Do("Prime", SdfPrime.Editor.PrimeBuilder.BuildAll);
-                Do("Prime-copter", SdfMachines.Editor.PrimeCopterBuilder.BuildAll);
                 foreach (var level in LevelBuilder.Levels())
                     Step($"level {level}", () => LevelBuilder.Build(level));
-                Step("home", SdfStory.Editor.HomeBuilder.Build);
                 Do("special effects", SdfEffects.Editor.SpecialEffectsScene.Build);
                 // The GUI renders the weapon and scout icons: without a graphics device (-nographics) they come out blank
                 if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
                     Debug.LogWarning("SDF Update All: no graphics device, so the GUI and its icons are left as they are (run without -nographics)");
                 else
                     Do("GUI", SdfGui.Editor.GuiScene.BuildInBatch);
-                Do("intro viewer", SdfStory.Editor.StoryIntroBuilder.Build);
                 Do("Boot", SdfCampaign.Editor.BootBuilder.Build);
                 Do("build scene list", SdfCampaign.Editor.CampaignBuildScenes.Update);
                 Do("navmesh check", SdfBattle.Editor.NavmeshCheck.CheckAll);

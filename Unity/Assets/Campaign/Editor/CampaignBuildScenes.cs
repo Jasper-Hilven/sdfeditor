@@ -18,8 +18,9 @@ namespace SdfCampaign.Editor
     {
         public const string Folder = "Assets/Scenes";
         public static readonly string[] Showcases = { "Mushrooms", "GUI", "SpecialEffects" };
-        // Home is 31's intro room, played as comic panels in the viewer, not a scene the game loads
-        public static readonly string[] EditorOnly = { "Home" };
+        // The battle levels the game plays (ticket 41: the arena and Home are gone); the first one is the Meadow, which Boot starts
+        public static readonly string[] Levels = { "Meadow", "Fungal", "Chessboard", "Toybox", "Kitchen", "Bathroom", "Computer" };
+        public static readonly string[] EditorOnly = { };
 
         static CampaignBuildScenes()
         {
@@ -33,9 +34,8 @@ namespace SdfCampaign.Editor
         /// <summary>The scene paths of a release (<paramref name="development"/> false) or development build.</summary>
         public static IEnumerable<string> Paths(bool development)
         {
-            var names = new List<string> { CampaignRunner.BootScene };
-            foreach (var step in CampaignDefinition.Default().Steps)
-                names.Add(step.scene);
+            var names = new List<string> { "Boot" };
+            names.AddRange(Levels);
             if (development)
                 names.AddRange(Showcases);
             return names.Distinct()
@@ -50,8 +50,8 @@ namespace SdfCampaign.Editor
         /// </summary>
         public static IEnumerable<string> PlayerPaths()
         {
-            var first = CampaignDefinition.Default().Steps.First(step => step.IsBattle).scene;
-            return Paths(false).Where(path => Path.GetFileNameWithoutExtension(path) is var name && (name == CampaignRunner.BootScene || name == first));
+            var first = BootFlow.Level;
+            return Paths(false).Where(path => Path.GetFileNameWithoutExtension(path) is var name && (name == "Boot" || name == first));
         }
 
         /// <summary>The release scenes the streamed web build leaves out of the player: the arenas after the first.</summary>

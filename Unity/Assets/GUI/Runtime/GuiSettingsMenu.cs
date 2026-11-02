@@ -1,4 +1,3 @@
-using SdfCampaign;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,7 +5,7 @@ namespace SdfGui
 {
     /// <summary>
     /// The settings: the render quality (the project's quality levels: ultra high, high, integrated GPU / web and ultra low), the gore
-    /// level, the campaign's difficulty (ticket 32.5; saved with the campaign, so only where there is one), mouse sensitivity, the master, music and sound volumes,
+    /// level, mouse sensitivity, the master, music and sound volumes,
     /// screen shake, the FPS counter and disabling the automatic quality adjustment (with its hints). Shows the current values in the editor too.
     /// </summary>
     [ExecuteAlways]
@@ -14,9 +13,6 @@ namespace SdfGui
     {
         public GuiSelector quality;
         public GuiSelector gore;
-        public GuiSelector difficulty;
-        [Tooltip("The menus' backdrop: Auto, the 3D desk or the flat wall of panels (ticket 35)")]
-        public GuiSelector backdrop;
         public Slider sensitivity;
         public Slider volume;
         [Tooltip("The music's volume, on top of the master volume")]
@@ -35,10 +31,6 @@ namespace SdfGui
                 quality.Changed += i => QualitySettings.SetQualityLevel(QualityLevel(i), true);
             if (gore != null)
                 gore.Changed += i => GuiSettings.Gore = i;
-            if (backdrop != null)
-                backdrop.Changed += i => GuiSettings.MenuBackdrop = i;
-            if (difficulty != null)
-                difficulty.Changed += i => GuiCampaign.Progress.SetDifficulty((Difficulty)i);
             sensitivity?.onValueChanged.AddListener(v => GuiSettings.Sensitivity = v);
             volume?.onValueChanged.AddListener(v => GuiSettings.Volume = v);
             music?.onValueChanged.AddListener(v => GuiSettings.MusicVolume = v);
@@ -73,18 +65,6 @@ namespace SdfGui
             {
                 gore.options = GuiSettings.GoreLevels;
                 gore.Set(GuiSettings.Gore);
-            }
-            if (backdrop != null)
-            {
-                backdrop.options = BackdropChoice.Names;
-                backdrop.Set(GuiSettings.MenuBackdrop);
-            }
-            if (difficulty != null)
-            {
-                difficulty.options = new[] { "Super Easy", "Easy", "Normal", "Hard" };
-                difficulty.Set((int)GuiCampaign.Progress.Difficulty);
-                // A scene played alone has no campaign to keep it in; the editor shows the row
-                GuiText.Show(difficulty.transform.parent, !Application.isPlaying || CampaignRunner.Instance != null);
             }
             sensitivity?.SetValueWithoutNotify(GuiSettings.Sensitivity);
             volume?.SetValueWithoutNotify(GuiSettings.Volume);

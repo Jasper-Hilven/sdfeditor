@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using SdfCampaign;
-using SdfStory;
 using UnityEngine;
 
 namespace SdfAudio
@@ -26,8 +24,6 @@ namespace SdfAudio
         public const float MenuLevel = 0.3f;
         /// <summary>A battle track's level.</summary>
         public const float BattleLevel = 0.55f;
-        /// <summary>The boss theme's level.</summary>
-        public const float BossLevel = 0.65f;
         /// <summary>Seconds a track takes to fade in or out.</summary>
         public const float TrackFade = 1.5f;
         /// <summary>Seconds a layer takes to fade in or out as the intensity moves.</summary>
@@ -94,25 +90,6 @@ namespace SdfAudio
             }
             clips = null;
             level = 0;
-            if (CampaignRunner.Instance == null)
-                return;
-            var menu = Audio.CueOf(Cues.MusicMenu);
-            if (menu == null || !menu.Filled)
-                return;
-            clips = new[] { menu.clips[0] };
-            level = MenuLevel * menu.volume * (MenuDucked() ? 0 : 1);
-        }
-
-        // The comic viewer, when it has music of its own, plays alone
-        private bool MenuDucked()
-        {
-            if (Time.unscaledTime >= duckCheck)
-            {
-                duckCheck = Time.unscaledTime + 0.5f;
-                var intro = FindFirstObjectByType<StoryIntro>();
-                ducked = intro != null && intro.music != null;
-            }
-            return ducked;
         }
 
         private void Follow(AudioClip[] clips, float level, IReadOnlyList<float> shares)

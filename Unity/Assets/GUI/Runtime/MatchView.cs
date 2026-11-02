@@ -256,8 +256,7 @@ namespace SdfGui
         }
 
         /// <summary>
-        /// The showcase round's end made up for the end screens (a real match fills <see cref="end"/> itself): a win 3 to 1 with a Silver
-        /// medal, or the loss the other way round.
+        /// The showcase round's end made up for the end screens (a real match fills <see cref="end"/> itself): a win 3 to 1, or the loss the other way round.
         /// </summary>
         public void SampleEnd(bool won)
         {
@@ -270,25 +269,6 @@ namespace SdfGui
             end.kills = You?.kills ?? 0;
             end.deaths = players.Count(p => !p.alive);
             end.seconds = Mathf.Max(0, roundSeconds - timeLeft);
-            end.medal = won ? 2 : 0;
-            end.newBest = won;
-            end.taunt = won ? "" : "Silver suits you.";
-            end.canRetryEasier = !won;
-        }
-
-        /// <summary>The boss fight's end made up for the end screens' snapshots (ticket 33.7): a win with a Silver medal, or a defeat in phase 2.</summary>
-        public void SampleBossEnd(bool won)
-        {
-            SampleEnd(won);
-            end.boss = true;
-            end.bossPhase = won ? 3 : 2;
-            end.bossHealthLeft = won ? 0 : 0.63f;
-            end.livesLost = won ? 2 : 3;
-            end.damageDealt = won ? 5120 : 2310;
-            end.kills = won ? 6 : 2;
-            end.seconds = won ? 512 : 301;
-            end.tip = won ? "" : "The electro-gun jumps between the sacs.";
-            end.taunt = won ? "" : "Have you considered second place? It's lovely.";
         }
 
         /// <summary>Whether the showcase round, played to its end, was won by your team.</summary>

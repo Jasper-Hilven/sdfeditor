@@ -96,35 +96,4 @@ namespace SdfCampaign
             return total;
         }
     }
-
-    /// <summary>Which streamed content to fetch ahead while the player is busy in a battle.</summary>
-    public static class StreamPlan
-    {
-        /// <summary>
-        /// The keys of the scenes and comics of the steps after <paramref name="currentId"/>, up to and including the next battle (the
-        /// arena that follows and the comic that goes before it); after the last battle, the comics of the ending. Only keys the manifest has.
-        /// </summary>
-        public static List<string> Upcoming(CampaignDefinition definition, string currentId, StreamManifest manifest)
-        {
-            var keys = new List<string>();
-            var from = definition.IndexOf(currentId);
-            if (from < 0)
-                return keys;
-            for (var i = from + 1; i < definition.Steps.Count; i++)
-            {
-                var step = definition.Steps[i];
-                Add(keys, manifest, StreamManifest.SceneKey(step.scene));
-                Add(keys, manifest, StreamManifest.ComicKey(step.id));
-                if (step.IsBattle)
-                    break;
-            }
-            return keys;
-        }
-
-        private static void Add(List<string> keys, StreamManifest manifest, string key)
-        {
-            if (manifest.Has(key) && !keys.Contains(key))
-                keys.Add(key);
-        }
-    }
 }

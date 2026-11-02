@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using SdfStory;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -18,7 +17,7 @@ namespace SdfCampaign
     }
 
     /// <summary>
-    /// The web build's streamed content (ticket 38): every arena after the first, and the comics, are AssetBundles in a Bundles folder
+    /// The web build's streamed content (ticket 38): every level after the first is an AssetBundle in a Bundles folder
     /// next to the player (relative URLs, so the upload is one folder), listed in <see cref="StreamManifest"/>. This downloads them
     /// (UnityWebRequestAssetBundle, cached by Unity's Caching under the content hash), keeps the ones the current scene needs, and fetches the next
     /// arena in the background while the player is in a battle. Off (everything false, nothing to do) in the editor and desktop builds and in any
@@ -49,7 +48,6 @@ namespace SdfCampaign
         private static StreamManifest manifest;
         private static ContentStreamer instance;
         private static readonly Dictionary<string, State> states = new Dictionary<string, State>();
-        private static readonly Dictionary<string, Texture2D[]> comics = new Dictionary<string, Texture2D[]>();
         private static readonly List<string> prefetchKeys = new List<string>();
         private static readonly Queue<StreamedBundle> prefetchQueue = new Queue<StreamedBundle>();
         private static bool prefetching;
@@ -83,19 +81,6 @@ namespace SdfCampaign
                 if (!states.TryGetValue(bundle.name, out var state) || state.bundle == null)
                     return false;
             return true;
-        }
-
-        /// <summary>The panels of a streamed comic that is loaded, else null.</summary>
-        public static Texture2D[] Panels(string comic) => comics.TryGetValue(comic, out var panels) ? panels : null;
-
-        /// <summary>Whether a comic is among the streamed content (fetched or not).</summary>
-        public static bool HasComic(string comic) => Enabled && Manifest.Has(StreamManifest.ComicKey(comic));
-
-        /// <summary>Hooks the story viewer to the streamed comics.</summary>
-        public static void Install()
-        {
-            StoryIntro.StreamedHas = HasComic;
-            StoryIntro.StreamedPanels = Panels;
         }
 
         /// <summary>Fetches everything a key needs; a failed bundle fails the request, and asking again retries it.</summary>
@@ -157,9 +142,6 @@ namespace SdfCampaign
                     drop.Add(pair.Key);
             foreach (var name in drop)
             {
-                var bundle = Manifest.Bundle(name);
-                if (bundle != null && !string.IsNullOrEmpty(bundle.comic))
-                    comics.Remove(bundle.comic);
                 states[name].bundle.Unload(true);
                 states.Remove(name);
                 Debug.Log($"ContentStreamer: released {name}");
@@ -293,12 +275,6 @@ namespace SdfCampaign
                     state.error = "not an asset bundle";
                     Debug.LogWarning($"ContentStreamer: {info.name} is not a readable asset bundle");
                     yield break;
-                }
-                if (!string.IsNullOrEmpty(info.comic))
-                {
-                    var panels = bundle.LoadAllAssets<Texture2D>();
-                    Array.Sort(panels, (a, b) => string.CompareOrdinal(a.name, b.name));
-                    comics[info.comic] = panels;
                 }
                 state.progress = 1;
                 state.bundle = bundle;

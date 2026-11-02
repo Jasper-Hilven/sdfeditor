@@ -12,15 +12,13 @@ using UnityEngine.SceneManagement;
 namespace SdfCampaign.Editor
 {
     /// <summary>
-    /// The streamed part of the web build (ticket 38): every arena after the first, as AssetBundles, so the player (Boot, the GUI, the menu
-    /// backdrop, the intro comic and the first arena) is the initial download and the rest is fetched as the campaign goes there.
+    /// The streamed part of the web build (ticket 38): every level after the first, as AssetBundles, so the player (Boot, the GUI and the Meadow)
+    /// is the initial download and the rest is fetched as the game goes there.
     /// <list type="bullet">
     /// <item>Each later scene is a scene bundle (<c>fungal</c>); a bundle holds scenes or assets, not both. The assets a scene needs are split by
     /// who uses them: those only that scene uses in <c>fungal-assets</c>, those used by several later scenes in a <c>shared-xxxx</c> bundle per
     /// distinct set of scenes. Every asset is in exactly one bundle (no implicit copies in several), and loading a scene loads the bundles that
     /// hold its assets first.</item>
-    /// <item>The comics' panels (<c>Story/Resources/Comics/*</c>, in the player's Resources otherwise) are a bundle each, <c>comic-beat-fungal</c>;
-    /// the folder is moved out of Resources while the player is built, so the player does not carry them too, and moved back after.</item>
     /// <item>Assets the player carries as well (used by Boot or the first arena, or in a Resources folder) cannot be shared with a bundle: they
     /// are copied into the bundle that needs them. The log lists the largest.</item>
     /// <item>The bundles are LZ4 chunk-compressed (the only compression WebGL loads), named with their content hash, and written to the
@@ -34,8 +32,6 @@ namespace SdfCampaign.Editor
         public const string RawFolder = "Library/StreamedBundles";
         public const string ManifestAsset = "Assets/Campaign/Resources/StreamedContent.json";
         public const string LinkAsset = "Assets/Campaign/link.xml";
-        public const string ComicsSource = "Assets/Story/Resources/Comics";
-        public const string ComicsAway = "Assets/Story/StreamedComics";
 
         public StreamManifest Manifest { get; private set; } = new StreamManifest();
         /// <summary>Bundle file name to source path (in <see cref="RawFolder"/>) for the copy to the build folder.</summary>
@@ -43,7 +39,6 @@ namespace SdfCampaign.Editor
 
         public StreamedBundles(BuildTarget target)
         {
-            Restore();
             try
             {
                 Build(target);
@@ -61,18 +56,6 @@ namespace SdfCampaign.Editor
                 AssetDatabase.DeleteAsset(ManifestAsset);
             if (File.Exists(LinkAsset))
                 AssetDatabase.DeleteAsset(LinkAsset);
-            Restore();
-        }
-
-        // Puts the comics back where they belong (also after a build that crashed before it could)
-        private static void Restore()
-        {
-            if (Directory.Exists(ComicsAway) && !Directory.Exists(ComicsSource))
-            {
-                var error = AssetDatabase.MoveAsset(ComicsAway, ComicsSource);
-                if (!string.IsNullOrEmpty(error))
-                    throw new Exception("StreamedBundles: cannot put the comics back: " + error);
-            }
         }
 
         /// <summary>Copies the bundles to <paramref name="buildFolder"/>/StreamingAssets/Bundles (emptied first).</summary>
@@ -128,22 +111,6 @@ namespace SdfCampaign.Editor
                 }
             }
 
-            // The comics: out of the player's Resources, a bundle each
-            var comicBundles = new Dictionary<string, List<string>>();
-            if (Directory.Exists(ComicsSource))
-            {
-                var error = AssetDatabase.MoveAsset(ComicsSource, ComicsAway);
-                if (!string.IsNullOrEmpty(error))
-                    throw new Exception("StreamedBundles: cannot move the comics out of Resources: " + error);
-                foreach (var folder in Directory.GetDirectories(ComicsAway).OrderBy(f => f, StringComparer.Ordinal))
-                {
-                    var id = Path.GetFileName(folder);
-                    var panels = Directory.GetFiles(folder).Where(f => !f.EndsWith(".meta")).Select(f => f.Replace('\\', '/')).OrderBy(f => f, StringComparer.Ordinal).ToList();
-                    if (panels.Count > 0)
-                        comicBundles[id] = panels;
-                }
-            }
-
             // Bundles: signature (the set of scenes that use an asset) to its assets
             var builds = new List<AssetBundleBuild>();
             var bundleScenes = new Dictionary<string, List<string>>(); // asset bundle name to the scenes (lower case) that load it
@@ -160,8 +127,6 @@ namespace SdfCampaign.Editor
                 var name = Path.GetFileNameWithoutExtension(scene).ToLowerInvariant();
                 builds.Add(new AssetBundleBuild { assetBundleName = name, assetNames = new[] { scene } });
             }
-            foreach (var pair in comicBundles)
-                builds.Add(new AssetBundleBuild { assetBundleName = "comic-" + pair.Key.ToLowerInvariant(), assetNames = pair.Value.ToArray() });
 
             WriteLink(scenes, uses.Keys, codeAssets);
             ReportDuplicates(uses, playerScenes);
@@ -170,7 +135,7 @@ namespace SdfCampaign.Editor
             Directory.CreateDirectory(raw);
             foreach (var old in Directory.GetFiles(raw))
                 File.Delete(old);
-            Debug.Log($"StreamedBundles: building {builds.Count} bundles ({uses.Count} assets, {scenes.Count} scenes, {comicBundles.Count} comics) for {target}");
+            Debug.Log($"StreamedBundles: building {builds.Count} bundles ({uses.Count} assets, {scenes.Count} scenes) for {target}");
             var built = BuildPipeline.BuildAssetBundles(raw, builds.ToArray(), BuildAssetBundleOptions.ChunkBasedCompression, target);
             if (built == null)
                 throw new Exception("StreamedBundles: BuildAssetBundles failed (see the errors above)");
@@ -181,26 +146,18 @@ namespace SdfCampaign.Editor
             {
                 var source = Path.Combine(raw, build.assetBundleName);
                 var hash = built.GetAssetBundleHash(build.assetBundleName).ToString();
-                var comic = build.assetBundleName.StartsWith("comic-") ? comicBundles.Keys.First(id => "comic-" + id.ToLowerInvariant() == build.assetBundleName) : "";
                 var file = $"{build.assetBundleName}-{hash.Substring(0, 12)}.bundle";
-                bundles.Add(new StreamedBundle { name = build.assetBundleName, file = file, hash = hash, size = new FileInfo(source).Length, comic = comic });
+                bundles.Add(new StreamedBundle { name = build.assetBundleName, file = file, hash = hash, size = new FileInfo(source).Length });
                 Files[file] = source;
             }
             var entries = new List<StreamedEntry>();
-            var definition = CampaignDefinition.Default();
             foreach (var scene in scenes)
             {
                 var name = Path.GetFileNameWithoutExtension(scene).ToLowerInvariant();
                 var list = bundleScenes.Where(p => p.Value.Contains(name)).Select(p => p.Key).OrderBy(n => n.StartsWith("shared-") ? 0 : 1).ThenBy(n => n, StringComparer.Ordinal).ToList();
                 list.Add(name);
-                // The beat that plays over this scene is fetched with it
-                foreach (var step in definition.Steps)
-                    if (string.Equals(step.scene, Path.GetFileNameWithoutExtension(scene), StringComparison.OrdinalIgnoreCase) && comicBundles.ContainsKey(step.id))
-                        list.Add("comic-" + step.id.ToLowerInvariant());
                 entries.Add(new StreamedEntry { key = StreamManifest.SceneKey(Path.GetFileNameWithoutExtension(scene)), bundles = list.Distinct().ToArray() });
             }
-            foreach (var id in comicBundles.Keys)
-                entries.Add(new StreamedEntry { key = StreamManifest.ComicKey(id), bundles = new[] { "comic-" + id.ToLowerInvariant() } });
             Manifest = new StreamManifest { bundles = bundles.ToArray(), entries = entries.ToArray() };
             // The key of a scene is its real name ("Fungal"); the Resources manifest carries it
             File.WriteAllText(ManifestAsset, Manifest.ToJson());

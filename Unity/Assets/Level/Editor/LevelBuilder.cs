@@ -545,7 +545,6 @@ namespace SdfLevel.Editor
             AssetDatabase.SaveAssets();
             var player = AddPlayer(scene, data, (hasRoom || hasBackdrop) && !(data["sky"] is JObject));
             var battle = AddBattle(scene, data, player);
-            AddBossSpots(scene, data);
             // The movers (ticket 27.3) stand outside the Level root, so the bots' navmesh below leaves them out
             var movers = AddMovers(scene, data);
             // The level's steam and drips (ticket 29.1) likewise
@@ -772,39 +771,6 @@ namespace SdfLevel.Editor
             return count;
         }
 
-        /// <summary>
-        /// The final boss's places (level.json "boss", ticket 33.3) as <see cref="BossSpots"/> at the scene's root: an empty marker each for
-        /// Prime, the crash, the champion's plinth and the shield's dome, x mirrored and yaw turned round, as the placements. Nothing for a
-        /// level without a boss section.
-        /// </summary>
-        private static void AddBossSpots(Scene scene, JObject data)
-        {
-            if (!(data["boss"] is JObject boss))
-                return;
-            var root = new GameObject(BossSpots.ObjectName);
-            SceneManager.MoveGameObjectToScene(root, scene);
-            var spots = root.AddComponent<BossSpots>();
-            Transform Spot(string name, string spotName)
-            {
-                var entry = boss[name];
-                var position = entry["position"].ToObject<float[]>();
-                var marker = new GameObject(spotName).transform;
-                marker.SetParent(root.transform, false);
-                marker.SetLocalPositionAndRotation(new Vector3(-position[0], position[1], position[2]), Quaternion.Euler(0, -(entry.Value<float?>("yaw") ?? 0), 0));
-                return marker;
-            }
-            spots.prime = Spot("prime", "Prime");
-            spots.crash = Spot("crash", "Crash");
-            spots.plinth = Spot("plinth", "Plinth");
-            spots.shield = Spot("shield", "Shield");
-            spots.shieldRadius = boss["shield"].Value<float?>("radius") ?? spots.shieldRadius;
-            // The prefabs the boss's runtime (33.6) makes its things from; a missing one is left empty (a warning from the runtime)
-            spots.primePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prime/Prefabs/chanterelle-prime.prefab");
-            spots.copterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Machines/Prefabs/primecopter.prefab");
-            spots.goldMinigunPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/minigun-gold.prefab");
-            spots.crownPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MushroomBuilder.PrefabFolder}/prime-crown.prefab");
-            spots.healthPodPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Pickups/Pods/health-pod.prefab");
-        }
 
         public const string MoversName = "Movers";
 

@@ -61,7 +61,6 @@ namespace SdfAudio
         private Combat combat;
         private ArenaAudio.Sounds arena;
         private CaptureTheFlagState flags;
-        private BossState boss;
         private SporeState spores;
         private AudioPlayer.Handle heartbeat;
         private BattleMoment moment = BattleMoment.Calm;
@@ -72,7 +71,6 @@ namespace SdfAudio
         private bool victoryPlayed;
         private int createdFrame;
         private AudioClip[] musicClips;
-        private bool bossTrack;
 
         /// <summary>The clips of the music this battle plays (the arena's four layers, or the boss theme); null for none.</summary>
         public AudioClip[] MusicClips => musicClips;
@@ -81,7 +79,7 @@ namespace SdfAudio
         public IReadOnlyList<float> LayerShares => shares;
 
         /// <summary>The music's level: the battle's, the boss's, or lower once the match has ended.</summary>
-        public float MusicLevel => (bossTrack ? MusicDirector.BossLevel : MusicDirector.BattleLevel) * (ended ? 0.35f : 1);
+        public float MusicLevel => MusicDirector.BattleLevel * (ended ? 0.35f : 1);
 
         /// <summary>The fight's intensity now, 0 to 1 (the music's layers follow it).</summary>
         public float Intensity => intensity.Level;
@@ -148,19 +146,8 @@ namespace SdfAudio
                     machineOf[machine.State] = machine;
                     machine.State.Died += OnMachineDied;
                 }
-            if (Boss.Current != null)
-            {
-                boss = Boss.Current.State;
-                boss.PhaseChanged += OnBossPhase;
-                boss.ShieldChanged += OnBossShield;
-                boss.CrashLanded += OnBossCrash;
-                boss.Defeated += OnBossDefeated;
-                boss.Lost += OnBossLost;
-            }
-
-            // The music: the boss theme in the boss's fight, else the arena's four layers; none, and the menu's track plays on
-            bossTrack = boss != null && arena.bossTheme != null;
-            musicClips = bossTrack ? new[] { arena.bossTheme } : arena.HasBattleMusic ? arena.layers : null;
+            // The music: the arena's four layers; none, and the menu's track plays on
+            musicClips = arena.HasBattleMusic ? arena.layers : null;
             Current = this;
         }
 
@@ -216,14 +203,6 @@ namespace SdfAudio
             }
             foreach (var state in machineOf.Keys)
                 state.Died -= OnMachineDied;
-            if (boss != null)
-            {
-                boss.PhaseChanged -= OnBossPhase;
-                boss.ShieldChanged -= OnBossShield;
-                boss.CrashLanded -= OnBossCrash;
-                boss.Defeated -= OnBossDefeated;
-                boss.Lost -= OnBossLost;
-            }
             // Loops end with the scene
             heartbeat.Stop(0.2f);
             foreach (var walker in walkers)
@@ -540,7 +519,7 @@ namespace SdfAudio
 
         private void OnSuddenDeath() => Audio.Play2D(Cues.SuddenDeath);
 
-        // ---------------------------------------------------------------- Flags, pods, spores, boss
+        // ---------------------------------------------------------------- Flags, pods, spores
 
         private Team YourTeam => You != null ? You.Team : match.yourTeam;
 
@@ -588,30 +567,6 @@ namespace SdfAudio
                 Audio.Play2D(cue);
             else
                 Audio.Play(cue, body.transform.position + Vector3.up);
-        }
-
-        private void OnBossPhase(BossPhase phase) => Audio.Play2D(Cues.BossPhase);
-
-        private void OnBossShield(bool up)
-        {
-            if (!up)
-                Audio.Play2D(Cues.BossShieldDown);
-        }
-
-        private void OnBossCrash()
-        {
-            var spots = Boss.Current != null ? Boss.Current.Spots : null;
-            var at = spots != null && spots.crash != null ? spots.crash.position : Audio.ListenerPosition;
-            Audio.Play(Cues.BossCrash, at);
-            Explode(at, Cues.ExplosionLarge, Cues.DebrisLarge);
-        }
-
-        private void OnBossDefeated() => Victory();
-
-        private void OnBossLost()
-        {
-            ended = true;
-            Audio.Play2D(Cues.Defeat);
         }
 
         // ---------------------------------------------------------------- Loops that follow things
@@ -662,7 +617,7 @@ namespace SdfAudio
             }
             intensity.Tick(dt, moment);
             for (var i = 0; i < shares.Count; i++)
-                shares[i] = bossTrack ? (i == 0 ? 1 : 0) : MusicIntensity.LayerShare(i, intensity.Level);
+                shares[i] = MusicIntensity.LayerShare(i, intensity.Level);
         }
 
         /// <summary>A look at the fight from your place: the enemies near and in sight, how long since a shot or a hit, the flags.</summary>

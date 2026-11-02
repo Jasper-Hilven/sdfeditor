@@ -60,8 +60,7 @@ namespace SdfBattle
         }
 
         /// <summary>
-        /// Your team scores <see cref="CheatCode.SkipPoints"/> captures, credited to you, only while the round is being played; in the
-        /// boss fight Prime concedes instead (from a phase or a transition).
+        /// Your team scores <see cref="CheatCode.SkipPoints"/> captures, credited to you, only while the round is being played.
         /// </summary>
         public void SkipThisGame()
         {
@@ -69,11 +68,6 @@ namespace SdfBattle
             var you = match != null ? match.You : null;
             if (state == null || you == null)
                 return;
-            if (state.Rules.objective == MatchObjective.Boss)
-            {
-                Boss.Current?.State?.Concede();
-                return;
-            }
             for (var i = 0; i < CheatCode.SkipPoints && !state.Over; i++)
                 state.ReportCapture(you.State.Team, you.State);
         }

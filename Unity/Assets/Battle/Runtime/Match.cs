@@ -108,9 +108,6 @@ namespace SdfBattle
             }
             // The campaign's setup (ticket 32.3) overrides the numbers; the rules are copied so the scene's own stay as authored
             Setup = MatchSetup.Pending;
-            // The boss's arena (ticket 33.6) played on its own: the fight's own setup, as the campaign would make it
-            if (Setup == null && BossArena.Present)
-                Setup = BossArena.DefaultSetup();
             if (Setup != null)
             {
                 rules = JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(rules));
@@ -143,9 +140,7 @@ namespace SdfBattle
                 DeathCamera.Attach(You, this);
             // Bots (ticket 23): their brains, after combat (their arsenals) and before the first round (their spawns)
             Bots.Create(this);
-            // The final boss (ticket 33.6) in a scene with his arena: after everything it drives, before the first round it resets for
-            Boss.Create(this);
-            // The cheat codes, typed blind (cheatcheat: three captures for your team; Prime beaten in the boss fight)
+            // The cheat codes, typed blind (cheatcheat: three captures for your team)
             Cheats.Attach(this);
             // The sound: after everything it listens to, before the first round's spawns
             SdfAudio.GameAudio.Create(this, combat);

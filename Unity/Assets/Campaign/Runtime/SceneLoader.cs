@@ -24,6 +24,9 @@ namespace SdfCampaign
         /// <summary>Plays without waiting for the click (the batch-mode checks have no mouse).</summary>
         public static bool AutoPlay;
 
+        /// <summary>Runs when a load is cancelled by the player (a download that was given up); null for nothing.</summary>
+        public static System.Action Abandoned;
+
         public GuiFlow flow;
 
         /// <summary>A load is under way.</summary>
@@ -92,10 +95,8 @@ namespace SdfCampaign
                     fade.Alpha = 0;
                 Busy = false;
                 WebPortal.LoadingStop();
-                if (CampaignRunner.Instance != null)
-                    CampaignRunner.Instance.QuitToTitle();
-                else
-                    flow.Show(GuiScreen.Title);
+                // The loader's owner decides what a failed load means (the Boot flow starts the Meadow again)
+                Abandoned?.Invoke();
                 yield break;
             }
             var started = Time.unscaledTime;
@@ -105,7 +106,7 @@ namespace SdfCampaign
             {
                 Debug.LogError($"SceneLoader: no scene {scene} in the build");
                 Time.timeScale = 1;
-                flow.Show(GuiScreen.Title);
+                flow.Show(GuiScreen.Hud);
                 if (fade != null)
                     fade.Alpha = 0;
                 Busy = false;

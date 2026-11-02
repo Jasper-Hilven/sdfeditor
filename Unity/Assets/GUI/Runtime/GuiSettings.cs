@@ -76,13 +76,6 @@ namespace SdfGui
             set => PlayerPrefs.SetInt("gui.fps", value ? 1 : 0);
         }
 
-        /// <summary>The menus' backdrop (ticket 35), an index into <c>BackdropChoice.Names</c>: 0 Auto, 1 the 3D desk, 2 the flat wall of panels.</summary>
-        public static int MenuBackdrop
-        {
-            get => PlayerPrefs.GetInt("gui.menuBackdrop", 0);
-            set => PlayerPrefs.SetInt("gui.menuBackdrop", value);
-        }
-
         /// <summary>Whether the quality level stays put: no automatic change of quality level and no hint to change it (off by default).</summary>
         public static bool DismissQualityHints
         {

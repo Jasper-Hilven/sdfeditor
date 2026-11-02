@@ -58,25 +58,6 @@ namespace SdfCampaign.Tests
             Assert.IsFalse(StreamManifest.Parse("").Has("scene:Fungal"));
         }
 
-        [Test]
-        public void UpcomingIsTheNextArenaAndItsComic()
-        {
-            var def = CampaignDefinition.Default();
-            var m = new StreamManifest
-            {
-                bundles = new[] { new StreamedBundle { name = "x" } },
-                entries = new[]
-                {
-                    Entry("scene:Fungal"), Entry("comic:beat-fungal"), Entry("scene:Chessboard"), Entry("comic:beat-chessboard"), Entry("comic:ending"),
-                },
-            };
-            Assert.AreEqual(new[] { "scene:Fungal", "comic:beat-fungal" }, StreamPlan.Upcoming(def, CampaignDefinition.Meadow, m));
-            Assert.AreEqual(new[] { "scene:Chessboard", "comic:beat-chessboard" }, StreamPlan.Upcoming(def, CampaignDefinition.Fungal, m));
-            // After the boss only the ending's comic is left (the credits and the ending play over Boot)
-            Assert.AreEqual(new[] { "comic:ending" }, StreamPlan.Upcoming(def, CampaignDefinition.Boss, m));
-            Assert.IsEmpty(StreamPlan.Upcoming(def, "nope", m));
-        }
-
         static StreamedEntry Entry(string key) => new StreamedEntry { key = key, bundles = new[] { "x" } };
     }
 }

@@ -31,7 +31,6 @@ namespace SdfGui.Editor
 
         public void Build()
         {
-            Screens[GuiScreen.Title] = Title();
             Screens[GuiScreen.Hud] = Hud();
             Screens[GuiScreen.Scoreboard] = Scoreboard();
             Screens[GuiScreen.Pause] = Pause();
@@ -42,13 +41,8 @@ namespace SdfGui.Editor
             Screens[GuiScreen.Defeat] = Defeat();
             Screens[GuiScreen.Gallery] = Gallery();
             Screens[GuiScreen.Loading] = Loading();
-            Screens[GuiScreen.LevelSelect] = LevelSelect();
-            Screens[GuiScreen.Difficulty] = Difficulty();
-            Screens[GuiScreen.Story] = Story();
             Screens[GuiScreen.Confirm] = Confirm();
             Screens[GuiScreen.Caption] = Caption();
-            Screens[GuiScreen.Cutscene] = Cutscene();
-            Screens[GuiScreen.Ending] = Ending();
             Screens[GuiScreen.Credits] = Credits();
             TestPanel = Test();
         }
@@ -71,198 +65,9 @@ namespace SdfGui.Editor
             return dim;
         }
 
-        // ---------------------------------------------------------------- Title
-
-        private GameObject Title()
-        {
-            var root = Root("Title", GuiScreen.Title);
-            var t = root.transform;
-            var title = root.AddComponent<GuiTitle>();
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.55f), -0.2f);
-
-            // Logo: a big spotted cap with the name on it, the 2 on a gold burst
-            var logo = Object("Logo", t);
-            Place(logo.transform, Top, new Vector2(0, -50), new Vector2(1100, 430));
-            f.Shape(logo.transform, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.35f), Centre, new Vector2(0, -10), new Vector2(1300, 520));
-            f.Shape(logo.transform, "Cap", ToonShapeKind.Cap, GuiPalette.Amanita, Centre, new Vector2(0, 40), new Vector2(980, 330), s =>
-            {
-                s.Outline = 9;
-                s.Shadow = 14;
-                s.Spots = 1;
-                s.Seed = 3;
-                s.Wobble = 2;
-            });
-            // The gold crown that "campaign complete" puts on the cap (GuiTitle shows it): a band with three points, tipped on the cap's left shoulder
-            var crown = Object("Crown", logo.transform);
-            Place(crown.transform, Centre, new Vector2(-330, 178), new Vector2(190, 120));
-            crown.transform.localRotation = Quaternion.Euler(0, 0, 11);
-            for (var i = 0; i < 3; i++)
-            {
-                // A diamond standing on its corner, its lower half hidden behind the band
-                var point = f.Shape(crown.transform, $"Point {i + 1}", ToonShapeKind.Box, GuiPalette.Gold, Centre, new Vector2(-62 + i * 62, 12), new Vector2(54, 54), s =>
-                {
-                    s.Outline = 5;
-                    s.Shadow = 0;
-                    s.CornerRadius = 5;
-                });
-                point.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
-            }
-            f.Panel(crown.transform, "Band", GuiPalette.Gold, Centre, new Vector2(0, -26), new Vector2(190, 44), 12).Outline = 6;
-            f.Shape(crown.transform, "Gem", ToonShapeKind.Pill, GuiPalette.Amanita, Centre, new Vector2(0, -26), new Vector2(26, 26), s =>
-            {
-                s.Outline = 3;
-                s.Shadow = 0;
-            });
-            title.crown = crown;
-            // The name, in two layers a word (sticker border and extrusion behind, gradient face with ink outline in front), each word on a little arch
-            f.LogoWord(logo.transform, "Minigun", "MINIGUN", 128, GuiPalette.Hex(0xFFFAEA), GuiPalette.Hex(0xFFDB7A), new Vector2(0, 84), new Vector2(980, 150), 22, 6, 6);
-            f.LogoWord(logo.transform, "Mushrooms", "MUSHROOMS", 108, GuiPalette.Hex(0xFFE46B), GuiPalette.Hex(0xF59A2E), new Vector2(0, -38), new Vector2(980, 130), 16, 5, 5);
-            // Glints on the letters
-            f.Shape(logo.transform, "Glint 1", ToonShapeKind.Burst, Color.white, Centre, new Vector2(-292, 134), new Vector2(34, 34), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 1.4f; });
-            f.Shape(logo.transform, "Glint 2", ToonShapeKind.Burst, Color.white, Centre, new Vector2(352, 18), new Vector2(26, 26), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 2.7f; });
-            f.Shape(logo.transform, "Glint 3", ToonShapeKind.Burst, Color.white, Centre, new Vector2(-376, -22), new Vector2(22, 22), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 0.6f; });
-            logo.transform.localRotation = Quaternion.Euler(0, 0, 1.5f);
-
-            // The subtitle, "Second Place": Prime's grudge, a runner-up's ribbon across the cap's foot, with a silver rosette and its two tails at the left end
-            var subtitle = Object("Subtitle", logo.transform);
-            Place(subtitle.transform, Centre, new Vector2(0, -142), new Vector2(720, 130));
-            subtitle.transform.localRotation = Quaternion.Euler(0, 0, -2.5f);
-            for (var i = 0; i < 2; i++)
-            {
-                var tail = f.Shape(subtitle.transform, $"Tail {i + 1}", ToonShapeKind.Box, i == 0 ? GuiPalette.Sky : GuiPalette.Violet, Centre, new Vector2(-300 + i * 50, -60), new Vector2(40, 78),
-                    s => { s.CornerRadius = 6; s.Outline = 5; s.Shadow = 4; });
-                tail.rectTransform.localRotation = Quaternion.Euler(0, 0, i == 0 ? 12 : -12);
-            }
-            f.Shape(subtitle.transform, "Ribbon", ToonShapeKind.Box, GuiPalette.Night, Centre, new Vector2(30, 0), new Vector2(620, 88), s =>
-            {
-                s.CornerRadius = 20;
-                s.Outline = 7;
-                s.Shadow = 12;
-                s.Spots = 0;
-            });
-            f.Shape(subtitle.transform, "Ribbon Inner", ToonShapeKind.Box, GuiPalette.Dusk, Centre, new Vector2(30, 0), new Vector2(586, 56), s =>
-            {
-                s.CornerRadius = 14;
-                s.Outline = 0;
-                s.Shadow = 0;
-                s.Shading = 0;
-                s.Spots = 0;
-            });
-            var words = f.Text(subtitle.transform, "Second Place", "SECOND PLACE", TextStyle.Title, 64, Color.white, Centre, new Vector2(40, 2), new Vector2(560, 80));
-            words.characterSpacing = 6;
-            GuiFactory.Gradient(words, Color.white, GuiEndScreen.Silver);
-            var rosette = f.Shape(subtitle.transform, "Second Place Rosette", ToonShapeKind.Burst, GuiEndScreen.Silver, Centre, new Vector2(-290, 0), new Vector2(128, 128), s =>
-            {
-                s.Outline = 6;
-                s.Shadow = 8;
-                s.Seed = 0.2f;
-            });
-            rosette.rectTransform.localRotation = Quaternion.Euler(0, 0, -8);
-            f.Shape(rosette.transform, "Medal", ToonShapeKind.Pill, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(70, 70), s => { s.Outline = 4; s.Shadow = 0; });
-            f.FillText(rosette.transform, "Number", "2", TextStyle.Label, 52, GuiPalette.Night);
-
-            // The tagline on a plate of its own, slanted a little as if lettered by hand
-            var plate = f.Shape(logo.transform, "Tagline Plate", ToonShapeKind.Pill, GuiPalette.Night, Centre, new Vector2(0, -246), new Vector2(740, 56), s =>
-            {
-                s.Outline = 5;
-                s.Shadow = 8;
-                s.Shading = 0;
-            });
-            plate.rectTransform.localRotation = Quaternion.Euler(0, 0, 1);
-            var tagline = f.FillText(plate.transform, "Tagline", "Last year's champion. Probably still.", TextStyle.Title, 34, Color.white);
-            tagline.fontStyle = FontStyles.Italic;
-            tagline.characterSpacing = 2;
-            GuiFactory.Gradient(tagline, GuiPalette.Cream, GuiPalette.Hex(0xFFD98A));
-
-            // Top to bottom; GuiTitle shows what the save allows, and the layout closes the gaps
-            var buttons = Object("Buttons", t);
-            Place(buttons.transform, Top, new Vector2(0, -540), new Vector2(420, 480));
-            var layout = buttons.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 12;
-            layout.childAlignment = TextAnchor.UpperCenter;
-            layout.childControlWidth = layout.childControlHeight = false;
-            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
-            Button Menu(string text, Color color, GuiCommandId command, GuiScreen screen = GuiScreen.Hud, float spots = 0.4f) =>
-                p.ButtonInstance(buttons.transform, text, color, command, Top, Vector2.zero, new Vector2(380, 72), 38, screen, spots);
-            var resume = p.ButtonInstance(buttons.transform, "CONTINUE", GuiPalette.Amanita, GuiCommandId.Continue, Top, Vector2.zero, new Vector2(420, 100), 52);
-            var newCampaign = Menu("NEW CAMPAIGN", GuiPalette.Moss, GuiCommandId.NewCampaign);
-            var levelSelect = Menu("LEVEL SELECT", GuiPalette.Violet, GuiCommandId.Show, GuiScreen.LevelSelect);
-            Menu("SETTINGS", GuiPalette.Chanterelle, GuiCommandId.Show, GuiScreen.Settings);
-            Menu("GALLERY", GuiPalette.SporeDeep, GuiCommandId.Show, GuiScreen.Story);
-            title.continueButton = resume.gameObject;
-            title.newCampaignShape = newCampaign.GetComponent<ToonShape>();
-            title.levelSelectButton = levelSelect.gameObject;
-
-            title.progress = f.Text(t, "Progress", "", TextStyle.Title, 28, GuiPalette.Cream, BottomLeft, new Vector2(5, 5), new Vector2(700, 44), TextAlignmentOptions.Left);
-            title.version = f.Text(t, "Version", Application.version, TextStyle.Title, 28, GuiPalette.Cream, BottomRight, new Vector2(-5, 5), new Vector2(600, 44), TextAlignmentOptions.Right);
-            return Save(root);
-        }
-
-        // ---------------------------------------------------------------- Level select, difficulty, confirm and story
+        // ---------------------------------------------------------------- Confirm
 
         // Over Boot's desk and wall (ticket 35) the screens that were a flat purple let the world show through, as dim as the text needs
-        private ToonShape Backdrop(Transform parent, float alpha = 1)
-        {
-            var backdrop = f.Shape(parent, "Backdrop", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, alpha), Centre, Vector2.zero, Vector2.zero, s =>
-            {
-                s.Outline = 0;
-                s.Shadow = 0;
-                s.Shading = 0;
-                s.CornerRadius = 0;
-                s.raycastTarget = true;
-            });
-            Stretch(backdrop);
-            return backdrop;
-        }
-
-        private GameObject LevelSelect()
-        {
-            var root = Root("Level Select", GuiScreen.LevelSelect);
-            var t = root.transform;
-            var view = root.AddComponent<GuiLevelSelect>();
-            Backdrop(t, 0.6f);
-            p.BannerInstance(t, "Header", "LEVEL SELECT", GuiPalette.Violet, Top, new Vector2(0, -24), new Vector2(640, 100), 56);
-            p.ButtonInstance(t, "BACK", GuiPalette.Dusk, GuiCommandId.Back, TopRight, new Vector2(-5, -5), new Vector2(200, 76), 36, spots: 0);
-
-            f.Text(t, "Difficulty Label", "DIFFICULTY", TextStyle.BodyInk, 36, GuiPalette.Cream, Top, new Vector2(-300, -150), new Vector2(300, 50), TextAlignmentOptions.Right);
-            view.difficulty = Instance<GuiSelector>(p.Selector, t, "Difficulty", Top, new Vector2(110, -143));
-            view.difficulty.options = new[] { "Super Easy", "Easy", "Normal", "Hard" };
-            view.difficulty.index = 2;
-            view.difficulty.label.text = "Normal";
-
-            // Two rows of four, in campaign order
-            view.cards = Enumerable.Range(0, 8)
-                .Select(i => Instance<GuiLevelCard>(p.LevelCard, t, $"Level {i + 1}", Top, new Vector2(-645 + i % 4 * 430, -230 - i / 4 * 386)))
-                .ToArray();
-            return Save(root);
-        }
-
-        private GameObject Difficulty()
-        {
-            var root = Root("Difficulty", GuiScreen.Difficulty);
-            var t = root.transform;
-            Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.7f), -0.3f);
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(820, 840)).transform;
-            p.BannerInstance(panel, "Header", "NEW CAMPAIGN", GuiPalette.Moss, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
-            f.Text(panel, "Question", "How sharp are the blue mushrooms?", TextStyle.Label, 36, GuiPalette.Ink, Top, new Vector2(0, -80), new Vector2(740, 50));
-            (string name, Color color, string note)[] levels =
-            {
-                ("SUPER EASY", GuiPalette.SporeDeep, "Blue is much clumsier and never plays more than three."),
-                ("EASY", GuiPalette.Moss, "Blue is clumsier and never plays more than four."),
-                ("NORMAL", GuiPalette.Amanita, "The story as it was written."),
-                ("HARD", GuiPalette.AmanitaDark, "Blue is sharper. Much sharper."),
-            };
-            for (var i = 0; i < levels.Length; i++)
-            {
-                var y = -150 - i * 135;
-                var button = p.ButtonInstance(panel, levels[i].name, levels[i].color, GuiCommandId.BeginCampaign, Top, new Vector2(0, y), new Vector2(400, 90), 46, spots: 0.5f);
-                button.GetComponent<GuiCommand>().value = i;
-                f.Text(panel, levels[i].name + " Note", levels[i].note, TextStyle.Body, 28, GuiPalette.Dusk, Top, new Vector2(0, y - 98), new Vector2(760, 36));
-            }
-            p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(0, 28), new Vector2(260, 76), 38, spots: 0);
-            return Save(root);
-        }
-
         private GameObject Confirm()
         {
             var root = Root("Confirm", GuiScreen.Confirm);
@@ -275,31 +80,6 @@ namespace SdfGui.Editor
             view.question.textWrappingMode = TextWrappingModes.Normal;
             p.ButtonInstance(panel, "YES", GuiPalette.Moss, GuiCommandId.Confirm, Bottom, new Vector2(-170, 36), new Vector2(280, 90), 46, spots: 0.5f);
             p.ButtonInstance(panel, "NO", GuiPalette.Dusk, GuiCommandId.Cancel, Bottom, new Vector2(170, 36), new Vector2(280, 90), 46, spots: 0);
-            return Save(root);
-        }
-
-        private GameObject Story()
-        {
-            var root = Root("Story", GuiScreen.Story);
-            var t = root.transform;
-            var view = root.AddComponent<GuiStory>();
-            Backdrop(t, 0.62f);
-            p.BannerInstance(t, "Header", "THE STORY SO FAR", GuiPalette.SporeDeep, Top, new Vector2(0, -24), new Vector2(760, 100), 56);
-            p.ButtonInstance(t, "BACK", GuiPalette.Dusk, GuiCommandId.Back, TopRight, new Vector2(-5, -5), new Vector2(200, 76), 36, spots: 0);
-
-            // The intro, the seven beats, the ending and the credits, two columns of five
-            const int rows = 10;
-            view.titles = new TMP_Text[rows];
-            view.states = new TMP_Text[rows];
-            view.watch = new GuiCommand[rows];
-            for (var i = 0; i < rows; i++)
-            {
-                var row = p.PanelInstance(t, $"Scene {i + 1}", GuiPalette.Cream, Top, new Vector2(-440 + i % 2 * 880, -180 - i / 2 * 150), new Vector2(840, 120));
-                view.titles[i] = f.Text(row.transform, "Title", "Nightfall", TextStyle.Label, 40, GuiPalette.Ink, Left, new Vector2(28, 0), new Vector2(520, 60), TextAlignmentOptions.Left);
-                view.states[i] = f.Text(row.transform, "State", "Not seen yet", TextStyle.Body, 30, GuiPalette.Dusk, Right, new Vector2(-28, 0), new Vector2(240, 50), TextAlignmentOptions.Right);
-                var watch = p.ButtonInstance(row.transform, "WATCH", GuiPalette.Moss, GuiCommandId.WatchCutscene, Right, new Vector2(-20, 0), new Vector2(220, 76), 38, spots: 0.4f);
-                view.watch[i] = watch.GetComponent<GuiCommand>();
-            }
             return Save(root);
         }
 
@@ -670,14 +450,6 @@ namespace SdfGui.Editor
             menu.gore.options = GuiSettings.GoreLevels;
             menu.gore.index = 1;
             menu.gore.label.text = GuiSettings.GoreLevels[1];
-            menu.difficulty = Instance<GuiSelector>(p.Selector, Row("Difficulty"), "Difficulty", Right, Vector2.zero);
-            menu.difficulty.options = new[] { "Super Easy", "Easy", "Normal", "Hard" };
-            menu.difficulty.index = 2;
-            menu.difficulty.label.text = "Normal";
-            menu.backdrop = Instance<GuiSelector>(p.Selector, Row("Menu backdrop"), "Backdrop", Right, Vector2.zero);
-            menu.backdrop.options = BackdropChoice.Names;
-            menu.backdrop.index = 0;
-            menu.backdrop.label.text = BackdropChoice.Names[0];
             menu.sensitivity = Instance<Slider>(p.Slider, Row("Mouse sensitivity"), "Sensitivity", Right, new Vector2(-10, 0));
             menu.volume = Instance<Slider>(p.Slider, Row("Master volume"), "Volume", Right, new Vector2(-10, 0));
             menu.volume.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
@@ -755,19 +527,6 @@ namespace SdfGui.Editor
             p.BannerInstance(t, "Title", "VICTORY!", GuiPalette.Moss, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
             EndNumbers(t, end, 160, -300);
 
-            // The medal: a burst in the medal's colour (set by the view) with its name, and NEW BEST under it
-            var medal = Object("Medal", t);
-            Place(medal.transform, Centre, new Vector2(0, -50), new Vector2(210, 210));
-            end.medal = medal;
-            end.medalShape = f.Shape(medal.transform, "Burst", ToonShapeKind.Burst, GuiPalette.Gold, Centre, Vector2.zero, new Vector2(210, 210), s =>
-            {
-                s.Outline = 6;
-                s.Shadow = 8;
-                s.Wobble = 2;
-            });
-            end.medalLabel = f.FillText(end.medalShape.transform, "Name", "GOLD", TextStyle.Title, 44, GuiPalette.Ink);
-            end.newBest = f.Text(t, "New Best", "NEW BEST!", TextStyle.Title, 52, GuiPalette.Gold, Centre, new Vector2(0, -185), new Vector2(600, 64));
-
             p.ButtonInstance(t, "CONTINUE", GuiPalette.Moss, GuiCommandId.Next, Centre, new Vector2(-400, -430), new Vector2(380, 96), 46, spots: 0.5f);
             p.ButtonInstance(t, "RETRY", GuiPalette.Chanterelle, GuiCommandId.Retry, Centre, new Vector2(0, -430), new Vector2(300, 86), 42, spots: 0.4f);
             p.ButtonInstance(t, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, new Vector2(400, -430), new Vector2(300, 86), 42, spots: 0);
@@ -785,13 +544,8 @@ namespace SdfGui.Editor
             p.BannerInstance(t, "Title", "DEFEATED", GuiEndScreen.Blue, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
             EndNumbers(t, end, 160, -230);
 
-            // Prime's taunt on a cream card
-            var card = p.PanelInstance(t, "Taunt Card", GuiPalette.Cream, Centre, new Vector2(0, -20), new Vector2(1300, 160));
-            end.taunt = f.Text(card.transform, "Taunt", "\u201CSilver suits you.\u201D", TextStyle.Body, 50, GuiPalette.Ink, Centre, new Vector2(0, 16), new Vector2(1220, 80));
-            f.Text(card.transform, "Taunt By", "CHANTERELLE PRIME", TextStyle.Label, 26, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(600, 34));
             end.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -365), new Vector2(1500, 50));
 
-            // RETRY EASIER comes and goes, so the buttons are laid out and the gap closes
             var row = Object("Buttons", t);
             Place(row.transform, Centre, new Vector2(0, -450), new Vector2(1800, 90));
             var layout = row.AddComponent<HorizontalLayoutGroup>();
@@ -799,14 +553,9 @@ namespace SdfGui.Editor
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.childControlWidth = layout.childControlHeight = false;
             layout.childForceExpandWidth = layout.childForceExpandHeight = false;
-            // After the boss fight RETRY reads RETRY PHASE (33.7), RESTART FIGHT joins it, and the row is 1800 wide at the most
             var retry = p.ButtonInstance(row.transform, "RETRY", GuiPalette.Moss, GuiCommandId.Retry, Centre, Vector2.zero, new Vector2(320, 86), 42, spots: 0.5f);
             end.retryLabel = retry.GetComponentInChildren<TMP_Text>();
-            var restart = p.ButtonInstance(row.transform, "RESTART FIGHT", GuiPalette.Violet, GuiCommandId.RestartFight, Centre, Vector2.zero, new Vector2(440, 86), 40, spots: 0.4f);
-            end.restartFight = restart.gameObject;
-            var easier = p.ButtonInstance(row.transform, "RETRY EASIER", GuiPalette.Chanterelle, GuiCommandId.RetryEasier, Centre, Vector2.zero, new Vector2(440, 86), 40, spots: 0.4f);
             p.ButtonInstance(row.transform, "MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Centre, Vector2.zero, new Vector2(300, 86), 42, spots: 0);
-            end.retryEasier = easier.gameObject;
             return Save(root);
         }
 
@@ -856,13 +605,6 @@ namespace SdfGui.Editor
         }
 
         // A story beat: the scene alone, the caption box and letterbox bars
-        private GameObject Cutscene()
-        {
-            var root = Root("Cutscene", GuiScreen.Cutscene);
-            CaptionBox(root, true);
-            return Save(root);
-        }
-
         // The speaker over one wrapped line low on the screen, the skip hint and its bar 5 px from the corner, optionally the bars
         private void CaptionBox(GameObject root, bool letterbox)
         {
@@ -911,50 +653,19 @@ namespace SdfGui.Editor
             caption.skipBar = fill.GetComponent<RectTransform>();
         }
 
-        // ---------------------------------------------------------------- The ending and the credits (ticket 32.8)
-
-        // Over Boot the backdrop is 42's desk diorama (ticket 35), so the screen only dims it a little and holds the caption box with the
-        // ending's lines under it; the Ending shot is MenuShots' Wide. (The GUI scene has no desk: it shows its dimmed meadow.)
-        private GameObject Ending()
+        // Behind the credits: a dim night over the scene, as dim as the text needs
+        private ToonShape Backdrop(Transform parent, float alpha = 1)
         {
-            var root = Root("Ending", GuiScreen.Ending);
-            var t = root.transform;
-            Backdrop(t, 0.3f);
-            CaptionBox(root, true);
-            return Save(root);
-        }
-
-        // 45 s of text going up a dark screen; GuiCredits places the text, CreditsPlayer times it
-        private GameObject Credits()
-        {
-            var root = Root("Credits", GuiScreen.Credits);
-            var t = root.transform;
-            var credits = root.AddComponent<GuiCredits>();
-            Backdrop(t, 0.72f);
-            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.12f), Centre, new Vector2(0, 0), new Vector2(1500, 1000));
-
-            var viewport = Object("Viewport", t);
-            Stretch(viewport.transform);
-            viewport.AddComponent<RectMask2D>();
-            credits.viewport = (RectTransform)viewport.transform;
-            credits.text = f.Text(viewport.transform, "Text", CreditsRoll.RichText(), TextStyle.BodyInk, 44, GuiPalette.Cream, Top, Vector2.zero, new Vector2(1500, 3000));
-            credits.text.alignment = TextAlignmentOptions.Top;
-            credits.text.lineSpacing = 18;
-
-            credits.hint = f.Text(t, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight, new Vector2(-5, 30), new Vector2(500, 40), TextAlignmentOptions.Right);
-            var track = f.Panel(t, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, new Vector2(-5, 5), new Vector2(260, 22), 8);
-            track.Outline = 3;
-            track.Shadow = 0;
-            var fill = f.Shape(track.transform, "Fill", ToonShapeKind.Box, GuiPalette.Gold, Centre, Vector2.zero, Vector2.zero, s =>
+            var backdrop = f.Shape(parent, "Backdrop", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, alpha), Centre, Vector2.zero, Vector2.zero, s =>
             {
-                s.CornerRadius = 6;
                 s.Outline = 0;
                 s.Shadow = 0;
+                s.Shading = 0;
+                s.CornerRadius = 0;
+                s.raycastTarget = true;
             });
-            Stretch(fill, 3);
-            fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
-            credits.skipBar = fill.GetComponent<RectTransform>();
-            return Save(root);
+            Stretch(backdrop);
+            return backdrop;
         }
 
         // ---------------------------------------------------------------- Gallery: every component and style in one place
@@ -1131,6 +842,42 @@ namespace SdfGui.Editor
             return Save(root);
         }
 
+
+        // ---------------------------------------------------------------- The ending and the credits (ticket 32.8; ticket 41 left the credits)
+
+        // 45 s of text going up a dark screen; GuiCredits places the text, CreditsPlayer times it
+        private GameObject Credits()
+        {
+            var root = Root("Credits", GuiScreen.Credits);
+            var t = root.transform;
+            var credits = root.AddComponent<GuiCredits>();
+            Backdrop(t, 0.72f);
+            f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Spore, 0.12f), Centre, new Vector2(0, 0), new Vector2(1500, 1000));
+
+            var viewport = Object("Viewport", t);
+            Stretch(viewport.transform);
+            viewport.AddComponent<RectMask2D>();
+            credits.viewport = (RectTransform)viewport.transform;
+            credits.text = f.Text(viewport.transform, "Text", CreditsRoll.RichText(), TextStyle.BodyInk, 44, GuiPalette.Cream, Top, Vector2.zero, new Vector2(1500, 3000));
+            credits.text.alignment = TextAlignmentOptions.Top;
+            credits.text.lineSpacing = 18;
+
+            credits.hint = f.Text(t, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight, new Vector2(-5, 30), new Vector2(500, 40), TextAlignmentOptions.Right);
+            var track = f.Panel(t, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, new Vector2(-5, 5), new Vector2(260, 22), 8);
+            track.Outline = 3;
+            track.Shadow = 0;
+            var fill = f.Shape(track.transform, "Fill", ToonShapeKind.Box, GuiPalette.Gold, Centre, Vector2.zero, Vector2.zero, s =>
+            {
+                s.CornerRadius = 6;
+                s.Outline = 0;
+                s.Shadow = 0;
+            });
+            Stretch(fill, 3);
+            fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
+            credits.skipBar = fill.GetComponent<RectTransform>();
+            return Save(root);
+        }
+
         // ---------------------------------------------------------------- Test panel
 
         private GameObject Test()
@@ -1175,18 +922,14 @@ namespace SdfGui.Editor
             }
 
             Heading("Screens");
-            Add("TITLE", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Title);
             Add("HUD", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Hud);
             Add("SCORES", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Scoreboard);
             Add("PAUSE", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Pause);
+            Add("GALLERY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Gallery);
             Add("SETTINGS", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Settings);
             Add("DEATH", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Death);
             Add("VICTORY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Victory);
             Add("DEFEAT", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Defeat);
-            Add("GALLERY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Gallery);
-            Add("LEVELS", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.LevelSelect);
-            Add("DIFFICULTY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Difficulty);
-            Add("STORY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Story);
             Add("CONFIRM", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Confirm);
             EndRow();
             Heading("Round");
