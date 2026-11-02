@@ -1,0 +1,92 @@
+# The yeti head's shape (ticket 45), a part so the model (content/models/characters/monsters/yeti.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+Union
+    # Everything solid, with the mouth cut out of it at the end
+    Subtraction
+        Union
+            # The fur: skull, cheek ruffs, heavy brow bars and the mantle round the neck, one soft mass
+            Material material=yeti_fur
+                SmoothUnion smoothness=0.05
+                    Translate translation=(0, -0.01, -0.07)
+                        Ellipsoid radii=(0.195, 0.18, 0.19)
+                    SymmetryX
+                        Translate translation=(0.14, -0.08, -0.04)
+                            Ellipsoid radii=(0.08, 0.1, 0.1)
+                    # Brow bars, slanting down to the nose: the angry look
+                    SymmetryX
+                        Capsule a=(0.16, 0.095, 0.13) b=(0.02, 0.05, 0.2) radius=0.04
+                    # Mantle
+                    Translate translation=(0, -0.2, -0.06)
+                        Ellipsoid radii=(0.21, 0.07, 0.17)
+            # Shaggy locks: crest on top, sideburns hanging by the cheeks, fringe hanging off the mantle
+            Material material=yeti_fur
+                Union
+                    ArbitraryRoundCone a=(0, 0.14, 0.02) b=(0, 0.25, 0.05) radiusA=0.04 radiusB=0.004
+                    ArbitraryRoundCone a=(0, 0.14, -0.08) b=(0, 0.24, -0.11) radiusA=0.04 radiusB=0.004
+                    ArbitraryRoundCone a=(0, 0.06, -0.19) b=(0, 0.1, -0.29) radiusA=0.04 radiusB=0.004
+                    ArbitraryRoundCone a=(0, -0.2, -0.2) b=(0, -0.3, -0.24) radiusA=0.04 radiusB=0.004
+                    SymmetryX
+                        Union
+                            ArbitraryRoundCone a=(0.08, 0.13, 0.03) b=(0.12, 0.23, 0.05) radiusA=0.035 radiusB=0.004
+                            ArbitraryRoundCone a=(0.13, 0.1, -0.05) b=(0.2, 0.19, -0.04) radiusA=0.035 radiusB=0.004
+                            ArbitraryRoundCone a=(0.18, 0.04, -0.07) b=(0.28, 0.07, -0.08) radiusA=0.035 radiusB=0.004
+                            # Sideburns
+                            ArbitraryRoundCone a=(0.17, -0.02, 0.07) b=(0.24, -0.16, 0.1) radiusA=0.04 radiusB=0.004
+                            ArbitraryRoundCone a=(0.2, -0.06, -0.02) b=(0.3, -0.19, 0.0) radiusA=0.04 radiusB=0.004
+                            ArbitraryRoundCone a=(0.15, -0.1, -0.12) b=(0.22, -0.22, -0.16) radiusA=0.04 radiusB=0.004
+                            # Fringe
+                            ArbitraryRoundCone a=(0.19, -0.2, 0.0) b=(0.25, -0.29, 0.02) radiusA=0.04 radiusB=0.004
+                            ArbitraryRoundCone a=(0.12, -0.21, 0.12) b=(0.15, -0.3, 0.16) radiusA=0.035 radiusB=0.004
+                            ArbitraryRoundCone a=(0.1, -0.21, -0.15) b=(0.12, -0.3, -0.2) radiusA=0.035 radiusB=0.004
+            # The bare face: snout, jaw and a flat broad nose in grey-blue skin
+            Material material=yeti_skin
+                SmoothUnion smoothness=0.03
+                    Translate translation=(0, -0.08, 0.14)
+                        Ellipsoid radii=(0.15, 0.115, 0.14)
+                    Translate translation=(0, -0.205, 0.14)
+                        Ellipsoid radii=(0.115, 0.045, 0.125)
+                    Translate translation=(0, -0.04, 0.265)
+                        Ellipsoid radii=(0.065, 0.045, 0.045)
+                    # Eye sockets, so the brow has something to shade
+                    SymmetryX
+                        Translate translation=(0.085, 0.01, 0.16)
+                            Ellipsoid radii=(0.07, 0.06, 0.055)
+        # The open mouth
+        Translate translation=(0, -0.16, 0.265)
+            Ellipsoid radii=(0.1, 0.05, 0.12)
+    # The throat, dark plum: the mouth's pocket filled up to its depth
+    Material material=yeti_mouth
+        Intersection
+            Translate translation=(0, -0.16, 0.265)
+                Ellipsoid radii=(0.1, 0.05, 0.12)
+            Plane normal=(0, 0, 1) height=-0.21
+    # Nostrils, two dark flares
+    Material material=yeti_mouth
+        SymmetryX
+            Translate translation=(0.026, -0.055, 0.305)
+                Ellipsoid radii=(0.017, 0.013, 0.013)
+    # Jagged fangs: the top row hangs from the lip, the bottom row stands up from the jaw, the canines much longer
+    Material material=yeti_teeth
+        SymmetryX
+            Union
+                ArbitraryRoundCone a=(0.015, -0.11, 0.28) b=(0.015, -0.175, 0.285) radiusA=0.017 radiusB=0.002
+                ArbitraryRoundCone a=(0.05, -0.11, 0.27) b=(0.052, -0.225, 0.278) radiusA=0.03 radiusB=0.002
+                ArbitraryRoundCone a=(0.085, -0.115, 0.245) b=(0.087, -0.18, 0.252) radiusA=0.018 radiusB=0.002
+                ArbitraryRoundCone a=(0.025, -0.21, 0.25) b=(0.025, -0.15, 0.26) radiusA=0.017 radiusB=0.002
+                ArbitraryRoundCone a=(0.065, -0.21, 0.235) b=(0.068, -0.13, 0.245) radiusA=0.021 radiusB=0.002
+                ArbitraryRoundCone a=(0.095, -0.205, 0.21) b=(0.097, -0.15, 0.22) radiusA=0.016 radiusB=0.002
+    # Icicles from the chin, frozen drool
+    Material material=yeti_ice
+        Union
+            ArbitraryRoundCone a=(0, -0.245, 0.22) b=(0, -0.35, 0.23) radiusA=0.024 radiusB=0.002
+            SymmetryX
+                Union
+                    ArbitraryRoundCone a=(0.06, -0.242, 0.205) b=(0.06, -0.32, 0.215) radiusA=0.019 radiusB=0.002
+                    ArbitraryRoundCone a=(0.11, -0.23, 0.17) b=(0.115, -0.29, 0.18) radiusA=0.016 radiusB=0.002
+    # Eyes, under the brow, looking ahead
+    SymmetryX
+        Translate translation=(0.082, 0.015, 0.22)
+            Scale scale=(0.5, 0.5, 0.5)
+                Part part=eye_machine

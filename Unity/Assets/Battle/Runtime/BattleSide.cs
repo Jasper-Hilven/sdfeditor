@@ -96,7 +96,7 @@ namespace SdfBattle
         public static BattleSideId SideOf(Team team) => team == Team.Red ? BattleSideId.West : BattleSideId.East;
 
         /// <summary>The sides' colours, as their flags and scouts: west amanita red, east chanterelle blue.</summary>
-        public static Color ColorOf(BattleSideId id) => id == BattleSideId.West ? new Color(0.85f, 0.12f, 0.1f) : new Color(0.15f, 0.4f, 0.9f);
+        public static Color ColorOf(BattleSideId id) => id == BattleSideId.West ? GoreRules.TeamRed : GoreRules.TeamBlue;
 
         // The spawn marker: a player-sized upright outline on the ground and an arrow along the way it faces, in the zone's circle; the
         // machine zone's circle and arrow

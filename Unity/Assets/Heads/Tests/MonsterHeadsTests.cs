@@ -109,7 +109,7 @@ namespace SdfHeads.Tests
         {
             var glow = File.ReadAllText(Path.Combine(Root, "materials", "characters", "monsters", "pumpkin_glow.sdfmat"));
             StringAssert.Contains("emission = 1", glow);
-            var model = File.ReadAllText(Path.Combine(Root, "content", "models", "characters", "monsters", "pumpkin.sdf"));
+            var model = File.ReadAllText(Path.Combine(Root, "content", "parts", "pumpkin_head.sdf"));
             StringAssert.Contains("material=pumpkin_glow", model);
         }
 

@@ -78,7 +78,7 @@ What was ported (all under `Unity/Assets/Battle/Body/`, assemblies `SdfBody`, `S
   directional death layer and its measures. **`DeathLayerBuilder` was not tangled with the controller builder (it is a separate layer
   builder found by type), so it was not ported at all.**
 - **Death**: `SoldierAnimator.Died(hitDirection)` is the hook for 51's ragdoll: it stops the animation, holds the last pose (the Animator is
-  turned off) and raises `WasKilled(animator, flatPushDirection)`. Until 51 the body simply stands frozen where it was shot, until the
+  turned off) and raises `WasKilled(animator, flatPushDirection)`. Done by 51: `Gore` hands the frozen pose to a `SoldierRagdoll`; before that the body simply stood frozen where it was shot, until the
   player appears again (`Revive`). Falls and rule removals hide the body as before.
 - **Speeds**: the tree's run speed is the game's walk speed (4.4 m/s); the flag carrier (0.9) and Frenzy (1.6) land on the tree by their
   real velocity, with the sprint ring out to 1.65; the playback is matched per frame (`LocomotionMath.Playback`), so no foot sliding is

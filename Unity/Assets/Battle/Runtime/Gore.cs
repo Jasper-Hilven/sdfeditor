@@ -7,18 +7,23 @@ using UnityEngine.Rendering;
 namespace SdfBattle
 {
     /// <summary>
-    /// The death burst of a killed scout (the gore), on the Battle object next to the <see cref="Match"/>, which makes it at the start
-    /// and hands it every death before the body vanishes. With gore on (the settings' <see cref="GuiSettings.Gore"/>: splatty or extra
-    /// splatty) a kill leaves a <see cref="Corpse"/> where the scout stood: its eyes and hands pop off and roll away, its cap breaks off,
-    /// its stem slumps, all thrown away from the hit (<see cref="GoreRules"/>). And blood, lots of it, in the victim's team's colour:
-    /// gobs thrown out in a spray that splat where they land, a pool growing under the stump, drops and small splats along the rolling
-    /// eyes and hands. A fall, or gore off, just vanishes as before (with a little puff for a kill).
+    /// The gore of a kill (ticket 51), on the Battle object next to the <see cref="Match"/>, which makes it at the start and hands it every
+    /// death before the body vanishes. Only the monster head bursts: with gore on (the settings' <see cref="GuiSettings.Gore"/>: splatty,
+    /// extra splatty, ultra gore) the head the victim wore breaks into the pieces cut from its own mesh (<see cref="Corpse"/>) and its blood
+    /// flies, in the head's own colour (<see cref="GoreRules.BloodOf"/>, from the <see cref="SdfHeads.MonsterHeads"/> table, never the team's
+    /// and never a realistic red): gobs thrown out in a spray that splat where they land, drops and small splats along the flying pieces.
+    /// With gore off the head pops in a cartoon puff of that colour, no pieces, no gobs. Heads with a <see cref="HeadBurstProfile"/>
+    /// (ticket 46) add their own debris and specials.
+    /// <para>
+    /// The human body never bursts or bleeds at any level, and no blood lands on it: it becomes a <see cref="SoldierRagdoll"/> in the same
+    /// frame, pushed by the hit, and lies for the corpse time (<see cref="GoreRules.MaxCorpses"/> at most, the oldest goes first).
+    /// </para>
     /// <para>
     /// The blood is the blob gun's goop models (ticket 22's gobs and splats, the toon shader's glossy goo) with their colours turned to
-    /// the team's: copies of their meshes made once per team (<see cref="Tinted"/>), so the blood draws with the one toon material like
-    /// everything else. Gobs and splats are fixed pools, the oldest splat reused when all are out; a gob is stepped here with gravity
-    /// and a raycast, no rigidbody. Splats stay a good while and shrink into the ground; corpses go sooner (<see cref="Corpse"/>), at
-    /// most <see cref="GoreRules.MaxCorpses"/> at once.
+    /// the head's blood colour (<see cref="GoreRules.Tint"/>): copies of their meshes made once per colour (<see cref="Tinted"/>), so the
+    /// blood draws with the one toon material like everything else. Gobs and splats are fixed pools, the oldest splat reused when all are
+    /// out; a gob is stepped here with gravity and a raycast, no rigidbody. Splats stay a good while and shrink into the ground; corpses go
+    /// sooner.
     /// </para>
     /// </summary>
     [DefaultExecutionOrder(150)]
@@ -32,14 +37,11 @@ namespace SdfBattle
         [Tooltip("Seconds a splat of blood stays before it shrinks into the ground")]
         public float splatStay = 22;
         public float splatShrink = 2.5f;
-        [Tooltip("Radius the pool under the stump grows to, metres")]
-        public float poolRadius = 0.85f;
-        public float poolGrowTime = 3;
         [Tooltip("Thickest a splat stands off the ground, metres, however wide it is")]
         public float splatThickness = 0.035f;
         public float gravity = 9.8f;
 
-        /// <summary>A copy of a goop model in a pool, its meshes swapped for the team's blood.</summary>
+        /// <summary>A copy of a goop model in a pool, its meshes swapped for the head's blood.</summary>
         private sealed class Model
         {
             public Transform transform;
@@ -48,7 +50,7 @@ namespace SdfBattle
             /// <summary>Radius across (x, z) and half-height at scale 1.</summary>
             public float radius;
             public float height;
-            public int tint = -1;
+            public int tint;
         }
 
         private struct Gob
@@ -58,7 +60,7 @@ namespace SdfBattle
             public Vector3 velocity;
             public float age;
             public float radius;
-            public Team team;
+            public Color blood;
         }
 
         private struct Puddle
@@ -78,6 +80,10 @@ namespace SdfBattle
         private readonly Dictionary<PlayerState, Vector3> lastFrom = new Dictionary<PlayerState, Vector3>();
         private readonly Dictionary<PlayerState, Corpse> corpseOf = new Dictionary<PlayerState, Corpse>();
         private CorpseBudget<Corpse> corpses = new CorpseBudget<Corpse>();
+        private readonly Dictionary<PlayerState, SoldierRagdoll> ragdollOf = new Dictionary<PlayerState, SoldierRagdoll>();
+        private CorpseBudget<SoldierRagdoll> ragdolls = new CorpseBudget<SoldierRagdoll>();
+        private readonly Stack<SoldierRagdoll>[] ragdollPool = { new Stack<SoldierRagdoll>(), new Stack<SoldierRagdoll>() };
+        private Transform ragdollRoot;
         private Match match;
         private Combat combat;
         private WeaponTableAsset assets;
@@ -127,6 +133,9 @@ namespace SdfBattle
             // Epic and up keep more blood and corpses about (SdfMushrooms.QualityExtras), for the match: the pools are made once
             splatModels = Pool(root, "Splats", assets != null ? assets.splatModels : null, SplatPool * SdfMushrooms.QualityExtras.GoreAmount);
             corpses = new CorpseBudget<Corpse>(GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount);
+            ragdolls = new CorpseBudget<SoldierRagdoll>(GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount);
+            ragdollRoot = new GameObject("Ragdolls").transform;
+            ragdollRoot.SetParent(transform, false);
             gobs = new Gob[gobModels?.Length ?? 0];
             splats = new Puddle[splatModels?.Length ?? 0];
         }
@@ -174,24 +183,21 @@ namespace SdfBattle
         }
 
         /// <summary>
-        /// A player died: with gore on and a kill, its corpse bursts where it stood (the scout it was drawn as, in the pose it had), and
-        /// the blood flies; with gore off a little puff. A fall leaves nothing. <see cref="Match"/> calls it before the body vanishes.
+        /// A player died: a kill ragdolls the body at every level and bursts the head it wore (pieces and blood with gore on, a puff of the
+        /// head's colour with gore off), in the same frame. A fall leaves nothing. <see cref="Match"/> calls it before the body vanishes.
         /// </summary>
         public void Burst(Death death, Player player)
         {
-            var level = Level;
-            var feet = player.transform.position;
-            var middle = feet + Vector3.up * 0.9f;
             if (death.Cause != DeathCause.Killed)
                 return;
-            if (!GoreRules.Bursts(level, death.Cause))
-            {
-                Poof(middle);
-                return;
-            }
+            var level = Level;
+            var soldier = player.soldier;
+            var feet = player.transform.position;
 
             // Away from the hit: from where it came (the shooter's eye), else from the killer, else anywhere
             var away = Vector3.zero;
+            var head = soldier != null ? soldier.Head : null;
+            var middle = head != null ? head.transform.TransformPoint(head.Shape.Centre) : feet + Vector3.up * 1.7f;
             if (lastFrom.TryGetValue(death.Victim, out var from))
                 away = middle - from;
             else if (match.PlayerOf(death.Killer) is { } killer)
@@ -200,10 +206,32 @@ namespace SdfBattle
             away = away.sqrMagnitude > 1e-4f ? away.normalized : Vector3.zero;
             lastFrom.Remove(death.Victim);
 
-            var team = death.Victim.Team;
-            // The soldier does not burst (ticket 44; the head and the ragdoll are 45 and 51): no scout corpse over it
-            var corpse = Corpse.Make(this, player, death, player.soldier != null ? null : match.ScoutOf(team), assets != null ? assets.scoutPieces : null, away,
-                GoreRules.Flings(level));
+            // The body: a ragdoll, whatever the level, pushed by the hit
+            if (soldier != null && GoreRules.Ragdolls(death.Cause))
+                Fall(soldier, player, death, away);
+
+            var headId = head != null ? head.Id : null;
+            var blood = GoreRules.BloodOf(headId);
+            if (head == null)
+            {
+                // No head to burst (the scout stand-in, or the heads not imported): a puff at the top of the body
+                Poof(middle, blood);
+                return;
+            }
+            // The live head is gone from the body in every case
+            head.gameObject.SetActive(false);
+            if (GoreRules.Puffs(level, death.Cause))
+            {
+                Poof(middle, blood);
+                return;
+            }
+
+            var strength = GoreRules.Strength(death.Weapon);
+            var profile = HeadBurstProfile.Of(headId);
+            var burst = new HeadBurst(this, headId, middle, head.transform.rotation, away, blood, level, death.Weapon, death.Headshot);
+            var models = SdfHeads.MonsterHeadModels.Load();
+            var pieces = models != null && models.TryGet(headId, out var entry) && !(profile != null && profile.ReplacesPieces) ? entry.pieces : null;
+            var corpse = Corpse.Make(this, death.Victim, death, pieces, head.transform, middle, blood, away, GoreRules.Flings(level));
             if (corpse != null)
             {
                 // Epic and up let a player's earlier corpses lie (as long as they last); below, one corpse each
@@ -215,13 +243,59 @@ namespace SdfBattle
                 foreach (var other in match.Players)
                     corpse.IgnorePlayer(other);
             }
-
-            var strength = GoreRules.Strength(death.Weapon);
-            Spray(middle, away, team, GoreRules.BloodGobs(level, death.Weapon), strength);
-            if (Ground(feet + Vector3.up * 0.5f, out var ground, out var normal))
-                Splat(ground, normal, poolRadius * (death.Weapon == WeaponIds.Flamethrower ? 0.5f : 1), team, poolGrowTime);
+            Spray(middle, away, blood, GoreRules.BloodGobs(level, death.Weapon), strength);
             Flavour(death.Weapon, middle);
+            profile?.Special(burst);
         }
+
+        /// <summary>
+        /// The dead soldier's body falls: a pooled ragdoll takes its pose and starts, pushed by the hit; the live body is hidden. No blood,
+        /// no pieces, no stump.
+        /// </summary>
+        private void Fall(SoldierPuppet soldier, Player player, Death death, Vector3 away)
+        {
+            soldier.Animator.Died(away);
+            var ragdoll = TakeRagdoll(soldier.SkinIndex);
+            if (ragdoll == null)
+                return;
+            if (!CorpsesStay && ragdollOf.TryGetValue(death.Victim, out var earlier) && earlier != null)
+                earlier.Sink();
+            ragdollOf[death.Victim] = ragdoll;
+            ragdolls.Add(ragdoll)?.Sink();
+            var push = away * (GoreRules.RagdollPush * GoreRules.Strength(death.Weapon));
+            var inherited = player.Capsule != null ? player.Capsule.velocity * 0.5f : Vector3.zero;
+            inherited.y = Mathf.Min(inherited.y, 0);
+            ragdoll.lifetime = 10 * SdfMushrooms.QualityExtras.GoreStay;
+            ragdoll.Launch(soldier.transform, death.Victim, push, inherited, death.Headshot);
+            soldier.HandOverToRagdoll();
+            foreach (var other in match.Players)
+                ragdoll.IgnorePlayer(other);
+        }
+
+        private SoldierRagdoll TakeRagdoll(int skin)
+        {
+            var pool = ragdollPool[Mathf.Clamp(skin, 0, ragdollPool.Length - 1)];
+            while (pool.Count > 0)
+            {
+                var pooled = pool.Pop();
+                if (pooled != null)
+                    return pooled;
+            }
+            var prefab = SdfRig.SoldierModels.Load() is { } models ? models.prefabs[Mathf.Clamp(skin, 0, models.prefabs.Length - 1)] : null;
+            return SoldierRagdoll.Create(prefab, skin, ragdollRoot, this);
+        }
+
+        /// <summary>A ragdoll lay its time and sank away: back in the pool.</summary>
+        public void Release(SoldierRagdoll ragdoll)
+        {
+            ragdolls.Remove(ragdoll);
+            if (ragdoll.Victim != null && ragdollOf.TryGetValue(ragdoll.Victim, out var current) && current == ragdoll)
+                ragdollOf.Remove(ragdoll.Victim);
+            ragdollPool[Mathf.Clamp(ragdoll.Skin, 0, ragdollPool.Length - 1)].Push(ragdoll);
+        }
+
+        /// <summary>The ragdolls and head pieces lying about now (for the tests and captures).</summary>
+        public IEnumerable<SoldierRagdoll> Ragdolls => ragdolls.All;
 
         /// <summary>A corpse shrank away: no longer counted.</summary>
         public void Gone(Corpse corpse)
@@ -239,9 +313,14 @@ namespace SdfBattle
         {
             if (!CorpsesStay && corpseOf.TryGetValue(state, out var corpse) && corpse != null)
                 corpse.Sink();
+            if (!CorpsesStay && ragdollOf.TryGetValue(state, out var lying) && lying != null)
+                lying.Sink();
             // A capsule turned off and on again forgets what it ignored
             var player = match.PlayerOf(state);
             foreach (var each in corpses.All)
+                if (each != null)
+                    each.IgnorePlayer(player);
+            foreach (var each in ragdolls.All)
                 if (each != null)
                     each.IgnorePlayer(player);
             // and the latest of each player, which may be sinking away uncounted
@@ -253,18 +332,19 @@ namespace SdfBattle
         /// <summary>Whether corpses outlast their player's respawn and next death (Epic and up), going only by age or the corpse budget.</summary>
         private static bool CorpsesStay => SdfMushrooms.QualityExtras.GoreAmount > 1;
 
-        /// <summary>Gore off: a small puff of cream and cap colour where the scout was.</summary>
-        private void Poof(Vector3 at)
+        /// <summary>Gore off: a cartoon puff of the head's blood colour where it was, no pieces and no gobs.</summary>
+        private void Poof(Vector3 at, Color blood)
         {
             var particles = Particles;
             if (particles == null)
                 return;
-            for (var i = 0; i < 10; i++)
+            var end = new Color(blood.r * 0.35f, blood.g * 0.35f, blood.b * 0.35f, 1);
+            for (var i = 0; i < 12; i++)
             {
                 var direction = Random.onUnitSphere;
                 direction.y = Mathf.Abs(direction.y) * 0.8f;
-                particles.Emit(FxParticles.Kind.Puff, at + direction * 0.3f, direction * Random.Range(0.8f, 2f), Random.Range(0.4f, 0.7f),
-                    Random.Range(0.15f, 0.28f), new Color(0.95f, 0.9f, 0.78f), new Color(0.2f, 0.16f, 0.08f), gravity: -0.6f, drag: 4);
+                particles.Emit(FxParticles.Kind.Puff, at + direction * 0.2f, direction * Random.Range(0.8f, 2f), Random.Range(0.4f, 0.7f),
+                    Random.Range(0.15f, 0.28f), blood, end, gravity: -0.6f, drag: 4);
             }
         }
 
@@ -294,17 +374,11 @@ namespace SdfBattle
 
         // ---------------------------------------------------------------- Blood
 
-        /// <summary>The team's blood colour (its side's, as the flags and spawn markers) and the glow in its shade.</summary>
-        public static Color BloodOf(Team team) => BattleSide.ColorOf(BattleSide.SideOf(team));
-
-        public static Color BloodGlowOf(Team team)
-        {
-            var blood = BloodOf(team);
-            return new Color(blood.r * 0.35f, blood.g * 0.35f, blood.b * 0.35f, 1);
-        }
+        /// <summary>The glow of a blood colour: its own shade, dimmer.</summary>
+        public static Color BloodGlowOf(Color blood) => new Color(blood.r * 0.35f, blood.g * 0.35f, blood.b * 0.35f, 1);
 
         /// <summary>A gob count's worth of blood thrown out of <paramref name="from"/>, mostly away from the hit and up.</summary>
-        private void Spray(Vector3 from, Vector3 away, Team team, int count, float strength)
+        private void Spray(Vector3 from, Vector3 away, Color blood, int count, float strength)
         {
             for (var i = 0; i < count; i++)
             {
@@ -312,30 +386,30 @@ namespace SdfBattle
                 direction.y = Mathf.Abs(direction.y) * 0.9f + 0.35f;
                 direction = (direction + away * 0.8f).normalized;
                 var velocity = direction * (Random.Range(2.2f, 6.5f) * strength);
-                if (!Throw(from + direction * 0.25f, velocity, Random.Range(0.045f, 0.1f), team))
+                if (!Throw(from + direction * 0.25f, velocity, Random.Range(0.045f, 0.1f), blood))
                     break;
             }
             // And a mist of drops for the first moment
             var particles = Particles;
             if (particles == null)
                 return;
-            var colour = BloodOf(team);
-            var glow = BloodGlowOf(team);
+            var colour = blood;
+            var glow = BloodGlowOf(blood);
             for (var i = 0; i < count; i++)
                 particles.Emit(FxParticles.Kind.Drop, from + Random.insideUnitSphere * 0.3f, (Random.onUnitSphere + Vector3.up * 0.6f + away * 0.5f) * Random.Range(1.5f, 4.5f),
                     Random.Range(0.3f, 0.7f), Random.Range(0.014f, 0.03f), colour, glow, gravity: 9.8f);
         }
 
         /// <summary>A gob of blood in flight from the pool; false when there are no goop models.</summary>
-        public bool Throw(Vector3 position, Vector3 velocity, float radius, Team team)
+        public bool Throw(Vector3 position, Vector3 velocity, float radius, Color blood)
         {
             if (gobModels == null)
                 return false;
             var i = nextGob;
             nextGob = (nextGob + 1) % gobModels.Length;
-            gobs[i] = new Gob { flying = true, position = position, velocity = velocity, radius = radius, team = team };
+            gobs[i] = new Gob { flying = true, position = position, velocity = velocity, radius = radius, blood = blood };
             var model = gobModels[i];
-            Tint(model, (int)team);
+            Tint(model, blood);
             model.transform.gameObject.SetActive(true);
             return true;
         }
@@ -344,7 +418,7 @@ namespace SdfBattle
         /// A splat of blood of <paramref name="radius"/> on a surface at <paramref name="at"/> facing <paramref name="normal"/>; with
         /// <paramref name="grow"/> it spreads out over that many seconds (the pool), else it pops out. The oldest splat goes round.
         /// </summary>
-        public void Splat(Vector3 at, Vector3 normal, float radius, Team team, float grow = 0)
+        public void Splat(Vector3 at, Vector3 normal, float radius, Color blood, float grow = 0)
         {
             if (splatModels == null)
                 return;
@@ -371,20 +445,20 @@ namespace SdfBattle
                 rotation = Quaternion.FromToRotation(Vector3.up, normal) * Quaternion.AngleAxis(Random.Range(0, 360f), Vector3.up),
             };
             var model = splatModels[i];
-            Tint(model, (int)team);
+            Tint(model, blood);
             model.transform.gameObject.SetActive(true);
             PlaceSplat(i);
         }
 
         /// <summary>A few drops of blood, for the trails of the rolling eyes and hands.</summary>
-        public void Drip(Vector3 at, Vector3 velocity, Team team, int count = 1)
+        public void Drip(Vector3 at, Vector3 velocity, Color blood, int count = 1)
         {
             var particles = Particles;
             if (particles == null)
                 return;
             for (var i = 0; i < count; i++)
                 particles.Emit(FxParticles.Kind.Drop, at + Random.insideUnitSphere * 0.04f, velocity * 0.3f + Random.insideUnitSphere * 0.6f, Random.Range(0.25f, 0.5f),
-                    Random.Range(0.012f, 0.024f), BloodOf(team), BloodGlowOf(team), gravity: 9.8f);
+                    Random.Range(0.012f, 0.024f), blood, BloodGlowOf(blood), gravity: 9.8f);
         }
 
         /// <summary>The ground under a point, not a player; within 3 m.</summary>
@@ -436,12 +510,12 @@ namespace SdfBattle
                 model.transform.gameObject.SetActive(false);
                 if (Machines.Of(hit.collider) != null)
                 {
-                    Drip(hit.point, -velocity * 0.2f, g.team, 3);
+                    Drip(hit.point, -velocity * 0.2f, g.blood, 3);
                     return;
                 }
                 // Splats bigger than the gob, as it spreads; a fast one longer along the way it went
-                Splat(hit.point, hit.normal, g.radius * Random.Range(2.2f, 3.4f), g.team);
-                Drip(hit.point + hit.normal * 0.03f, Vector3.Reflect(velocity, hit.normal) * 0.4f, g.team, 2);
+                Splat(hit.point, hit.normal, g.radius * Random.Range(2.2f, 3.4f), g.blood);
+                Drip(hit.point + hit.normal * 0.03f, Vector3.Reflect(velocity, hit.normal) * 0.4f, g.blood, 2);
                 return;
             }
             g.position += step;
@@ -503,25 +577,29 @@ namespace SdfBattle
 
         // ---------------------------------------------------------------- Colours
 
-        private static void Tint(Model model, int team)
+        /// <summary>A key for a blood colour in the tint cache (8 bits a channel; never 0, which is no tint).</summary>
+        private static int KeyOf(Color blood) =>
+            1 + (Mathf.RoundToInt(blood.r * 255) << 16 | Mathf.RoundToInt(blood.g * 255) << 8 | Mathf.RoundToInt(blood.b * 255));
+
+        private static void Tint(Model model, Color blood)
         {
-            if (model.tint == team)
+            var key = KeyOf(blood);
+            if (model.tint == key)
                 return;
-            model.tint = team;
-            Color.RGBToHSV(BloodOf((Team)team), out var hue, out _, out _);
+            model.tint = key;
             for (var i = 0; i < model.filters.Length; i++)
-                model.filters[i].sharedMesh = Tinted(model.meshes[i], team, hue, 1);
+                model.filters[i].sharedMesh = Tinted(model.meshes[i], key, blood, 1);
         }
 
-        /// <summary>A scout's piece charred by the flamethrower: its colours darkened, its own hue kept.</summary>
-        public static Mesh Charred(Mesh mesh) => Tinted(mesh, 100, null, 0.3f);
+        /// <summary>A head piece charred by the flamethrower: its colours darkened, its own hues kept.</summary>
+        public static Mesh Charred(Mesh mesh) => Tinted(mesh, -1, null, 0.3f);
 
         /// <summary>
-        /// A copy of a model's mesh with its colours turned to <paramref name="hue"/> (or kept) and darkened (<see cref="GoreRules.Recolour"/>):
+        /// A copy of a model's mesh with its colours turned to <paramref name="blood"/> (or kept) and darkened (<see cref="GoreRules.Tint"/>):
         /// the base colour, the variation's, the speckles' and the glowing edge's (vertex colour, UV3, UV4, UV6, as MushroomBuilder packs
         /// them). Made once per mesh and <paramref name="key"/>; a mesh that cannot be read is used as it is.
         /// </summary>
-        private static Mesh Tinted(Mesh source, int key, float? hue, float darken)
+        private static Mesh Tinted(Mesh source, int key, Color? blood, float darken)
         {
             if (source == null || !source.isReadable)
                 return source;
@@ -532,7 +610,7 @@ namespace SdfBattle
             var colours = new List<Color>();
             mesh.GetColors(colours);
             for (var v = 0; v < colours.Count; v++)
-                colours[v] = GoreRules.Recolour(colours[v], hue, darken);
+                colours[v] = Turn(colours[v], blood, darken);
             if (colours.Count > 0)
                 mesh.SetColors(colours);
             var channel = new List<Vector4>();
@@ -544,7 +622,7 @@ namespace SdfBattle
                 for (var v = 0; v < channel.Count; v++)
                 {
                     var c = channel[v];
-                    var turned = GoreRules.Recolour(new Color(c.x, c.y, c.z), hue, darken);
+                    var turned = Turn(new Color(c.x, c.y, c.z), blood, darken);
                     channel[v] = new Vector4(turned.r, turned.g, turned.b, c.w);
                 }
                 mesh.SetUVs(uv, channel);
@@ -552,6 +630,13 @@ namespace SdfBattle
             mesh.UploadMeshData(true);
             TintCache[(source, key)] = mesh;
             return mesh;
+        }
+
+        private static Color Turn(Color colour, Color? blood, float darken)
+        {
+            if (blood is { } to)
+                return GoreRules.Tint(colour, to, darken);
+            return new Color(colour.r * darken, colour.g * darken, colour.b * darken, colour.a);
         }
     }
 }

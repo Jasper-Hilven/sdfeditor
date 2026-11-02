@@ -34,6 +34,8 @@ namespace SdfBattle
         public bool held;
         /// <summary>The controls warm-up runs first: the match starts held, and the warm-up lets it go (you may move and fire meanwhile).</summary>
         public bool warmUp;
+        /// <summary>The team you play in; <see cref="Match"/> takes it at its start (ticket 42: random at every match).</summary>
+        public Team yourTeam = Team.Red;
 
         public float SkillOf(Team team) => team == Team.Red ? redSkill : blueSkill;
 

@@ -15,7 +15,7 @@ until mkdir $LOCK 2>/dev/null; do echo "waiting for the Unity lock (held by $(ca
 echo $name > $LOCK/owner
 trap 'rm -rf $LOCK' EXIT
 log=$LOGS/$name-$(date +%H%M%S).log
-quit=(-quit); [[ " $* " == *" -runTests "* ]] && quit=()
+quit=(-quit); [[ " $* " == *" -runTests "* || -n "$SDF_NO_QUIT" ]] && quit=()   # SDF_NO_QUIT=1: an editor-driven play check that exits itself
 $UNITY -batchmode $quit -projectPath $ROOT/Unity -logFile $log "$@"
 code=$?
 echo "exit $code, log: $log"

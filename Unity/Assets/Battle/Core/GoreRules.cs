@@ -3,22 +3,22 @@ using UnityEngine;
 
 namespace SdfBattle
 {
-    /// <summary>What a piece of a burst scout is, for how it flies and what it collides as.</summary>
+    /// <summary>
+    /// What a piece of a burst head is, for how it flies and what it collides as (ticket 51: only heads burst, so there is one kind; the
+    /// body has none). Ticket 46's per-head debris adds its own kinds here.
+    /// </summary>
     public enum GibKind
     {
-        /// <summary>A floating eye or hand: pops off hardest and rolls (a ball, little friction).</summary>
-        Loose,
-        /// <summary>The cap, broken off the stem: flies up and tumbles (boxes, more friction).</summary>
-        Cap,
-        /// <summary>A piece of the stem or its bulb: slumps and topples near the spot.</summary>
-        Stem,
+        /// <summary>A piece of the monster head, cut from its own mesh: flies up and away, tumbles, then lies.</summary>
+        Piece,
     }
 
     /// <summary>
-    /// The numbers of a scout's death burst (the gore), apart from the scene so they can be tested: whether a death bursts at all, how
-    /// hard each piece is thrown and which way (away from the hit, up, harder for a cannon, the cap and eyes highest for a headshot),
-    /// how much blood flies, and the blood's colour from the team's (<see cref="Recolour"/>, the goop models' colours turned to it).
-    /// Levels are the settings' (SdfGui.GuiSettings.Gore): 0 off, 1 splatty, 2 extra splatty, 3 ultra gore.
+    /// The numbers of a monster head's death burst (the gore, ticket 51), apart from the scene so they can be tested: whether a kill bursts
+    /// the head with pieces, how hard each piece is thrown and which way (away from the hit, up, harder for a cannon, highest for a
+    /// headshot), how much blood flies, and the blood's colour from the head (<see cref="BloodOf"/>, the goop models' shades turned to it
+    /// by <see cref="Tint"/>). The human body never bursts or bleeds at any level (<see cref="BodyBursts"/>): it ragdolls. PEGI 12.
+    /// Levels are the settings' (SdfGui.GuiSettings.Gore): 0 off (a cartoon puff in the blood colour), 1 splatty, 2 extra splatty, 3 ultra gore.
     /// </summary>
     public static class GoreRules
     {
@@ -27,8 +27,35 @@ namespace SdfBattle
         /// <summary>Corpses lying about at once, at most; the oldest goes first.</summary>
         public const int MaxCorpses = 6;
 
-        /// <summary>Whether a death bursts: a kill with gore on; a fall (the scout is gone below the island) or gore off just vanishes.</summary>
+        /// <summary>The team colours of the two sides (BattleSide.ColorOf), which no blood may be mistaken for.</summary>
+        public static readonly Color TeamRed = new Color(0.85f, 0.12f, 0.1f), TeamBlue = new Color(0.15f, 0.4f, 0.9f);
+
+        /// <summary>Whether a kill bursts the head into pieces (gore on); at Off the head pops in a puff, a fall just vanishes.</summary>
         public static bool Bursts(int level, DeathCause cause) => level > Off && cause == DeathCause.Killed;
+
+        /// <summary>Whether a kill pops the head in a cartoon puff of its blood colour instead of pieces: a kill with gore off.</summary>
+        public static bool Puffs(int level, DeathCause cause) => level <= Off && cause == DeathCause.Killed;
+
+        /// <summary>The human body never bursts or bleeds, at any gore level (it ragdolls: <see cref="Ragdolls"/>).</summary>
+        public static bool BodyBursts(int level) => false;
+
+        /// <summary>Whether a death leaves a ragdoll: every kill, at every level (a fall or a rule removes the body).</summary>
+        public static bool Ragdolls(DeathCause cause) => cause == DeathCause.Killed;
+
+        /// <summary>The blood colour of a head by id (the <see cref="SdfHeads.MonsterHeads"/> table), a neutral orange for an unknown one.</summary>
+        public static Color BloodOf(string headId) =>
+            SdfHeads.MonsterHeads.ById(headId) is { } head ? head.Blood : new Color(1f, 0.5f, 0f, 1f);
+
+        /// <summary>Seconds a ragdoll simulates at most before it lies still (and sooner, once it has settled).</summary>
+        public const float RagdollSeconds = 3f;
+
+        /// <summary>Speed (metres per second) under which every body of a ragdoll counts as settled, for <see cref="RagdollSettleSeconds"/>.</summary>
+        public const float RagdollSettleSpeed = 0.15f;
+
+        public const float RagdollSettleSeconds = 0.4f;
+
+        /// <summary>The push of the hit on the ragdoll, metres per second at the chest: the weapon's <see cref="Strength"/> times this.</summary>
+        public const float RagdollPush = 3.2f;
 
         /// <summary>How hard the burst is: a cannon's (a machine's, ticket 24) much harder, the sniper's a little.</summary>
         public static float Strength(string weapon) =>
@@ -58,8 +85,8 @@ namespace SdfBattle
         /// <summary>
         /// The velocity a piece leaves with, metres per second. <paramref name="outward"/> is from the burst's middle to the piece's,
         /// <paramref name="away"/> the way the hit pushed (from the killer through the victim; zero when unknown), <paramref name="jitter"/>
-        /// a random vector in the unit ball, <paramref name="speed01"/> a random 0 to 1 for the speed within the piece's range. With
-        /// <paramref name="fling"/> (ultra gore) every piece really flies: the stem's pieces as far as a cap, all of them faster and higher.
+        /// a random vector in the unit ball, <paramref name="speed01"/> a random 0 to 1 for the speed within the range. With
+        /// <paramref name="fling"/> (ultra gore) every piece really flies: faster and higher. A headshot pops the pieces higher.
         /// </summary>
         public static Vector3 Launch(GibKind kind, Vector3 outward, Vector3 away, bool headshot, float strength, Vector3 jitter, float speed01,
             bool fling = false)
@@ -68,21 +95,7 @@ namespace SdfBattle
             outward = outward.sqrMagnitude > 1e-6f ? outward.normalized : Vector3.zero;
             away.y = 0;
             away = away.sqrMagnitude > 1e-6f ? away.normalized : Vector3.zero;
-            float up, push, low, high;
-            switch (kind)
-            {
-                case GibKind.Loose:
-                    (up, push, low, high) = (headshot ? 1.3f : 0.9f, 1.2f, 5f, 7.5f);
-                    if (headshot)
-                        (low, high) = (6.5f, 9f);
-                    break;
-                case GibKind.Cap:
-                    (up, push, low, high) = (headshot ? 2.2f : 1.0f, 0.6f, headshot ? 6f : 3f, headshot ? 8f : 4.5f);
-                    break;
-                default:
-                    (up, push, low, high) = fling ? (1.0f, 0.8f, 3.5f, 5.5f) : (0.25f, 0.5f, 0.6f, 1.6f);
-                    break;
-            }
+            var (up, push, low, high) = headshot ? (1.7f, 1.9f, 5.5f, 8f) : (1.0f, 1.6f, 3.5f, 6f);
             if (fling)
                 (up, low, high) = (up + 0.4f, low * 1.6f, high * 1.6f);
             var direction = outward + away * push + Vector3.up * up + jitter * 0.35f;
@@ -91,20 +104,18 @@ namespace SdfBattle
             return direction.normalized * (Mathf.Lerp(low, high, Mathf.Clamp01(speed01)) * strength);
         }
 
-        /// <summary>Degrees per second of spin a piece leaves with, at most: the eyes and hands spin hardest.</summary>
-        public static float Spin(GibKind kind) => kind == GibKind.Loose ? 900 : kind == GibKind.Cap ? 500 : 200;
+        /// <summary>Degrees per second of spin a piece leaves with, at most.</summary>
+        public static float Spin(GibKind kind) => 700;
 
         /// <summary>
-        /// A colour of the goop models turned to <paramref name="hue"/> (0 to 1, the team's), keeping its saturation and brightness: the
-        /// same glossy toon goo, in the team's colour. <paramref name="darken"/> scales the brightness (1 keeps it; the flamethrower's
-        /// charred pieces use less).
+        /// A colour of the goop models turned to the <paramref name="blood"/> colour: the blood's own hue and saturation (so charcoal stays
+        /// charcoal and ice stays pale), the goo's brightness variation kept as shading (its brightest the blood itself, its darkest half of it). <paramref name="darken"/> scales the result (the flamethrower's charred pieces use less).
         /// </summary>
-        public static Color Recolour(Color colour, float? hue, float darken = 1)
+        public static Color Tint(Color goop, Color blood, float darken = 1)
         {
-            Color.RGBToHSV(colour, out var h, out var s, out var v);
-            var result = Color.HSVToRGB(hue ?? h, s, v * darken, true);
-            result.a = colour.a;
-            return result;
+            Color.RGBToHSV(goop, out _, out _, out var v);
+            var shade = Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(v));
+            return new Color(Mathf.Clamp01(blood.r * shade * darken), Mathf.Clamp01(blood.g * shade * darken), Mathf.Clamp01(blood.b * shade * darken), goop.a);
         }
     }
 

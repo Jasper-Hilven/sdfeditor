@@ -14,8 +14,8 @@ namespace SdfBattle
     /// reports the shots and <see cref="Combat"/> the hits and the death. Purely visual: the hit capsules of the prefab are removed (the
     /// player's own capsule is what shots hit). Your own body is hidden in first person (the death camera shows it), a bot's is drawn.
     /// <para>
-    /// On death the body holds its last pose (<see cref="SoldierAnimator.Died"/>): ticket 51's ragdoll starts on
-    /// <see cref="SoldierAnimator.WasKilled"/>.
+    /// On a kill the body holds its last pose (<see cref="SoldierAnimator.Died"/>, which raises <see cref="SoldierAnimator.WasKilled"/>) and
+    /// <see cref="Gore"/> hands it to a <see cref="SoldierRagdoll"/> in that pose (ticket 51): this body is then hidden until the player appears again.
     /// </para>
     /// </summary>
     public sealed class SoldierPuppet : MonoBehaviour
@@ -37,6 +37,7 @@ namespace SdfBattle
         private Arsenal arsenal;
         private Renderer[] renderers;
         private bool visible = true;
+        private bool lyingElsewhere;
         private bool wasGrounded = true;
         private float airSeconds;
 
@@ -72,9 +73,23 @@ namespace SdfBattle
             return puppet;
         }
 
+        /// <summary>Puts another monster head on this soldier (ticket 47 chooses by this; the captures and checks force one); the old one goes.</summary>
+        public HeadWear WearHead(string id)
+        {
+            if (Head != null)
+                Destroy(Head.gameObject);
+            Head = HeadWear.Attach(transform, id);
+            renderers = GetComponentsInChildren<Renderer>(true);
+            SetVisible(visible);
+            return Head;
+        }
+
         /// <summary>Draws the body or not (your own is hidden in first person).</summary>
         public void SetVisible(bool value)
         {
+            // A body that died is drawn by its ragdoll (a copy): the original stays hidden until the player appears again
+            if (lyingElsewhere)
+                value = false;
             visible = value;
             if (renderers == null)
                 return;
@@ -88,9 +103,23 @@ namespace SdfBattle
         /// <summary>The weapon sockets of the hands: the right hand's grip, then the left's (dual pistols); null entries when missing.</summary>
         public Transform[] Hands() => new[] { SoldierBody.FindSocket(transform, "grip"), SoldierBody.FindSocket(transform, "support") };
 
+        /// <summary>
+        /// The body died and its ragdoll (<see cref="SoldierRagdoll"/>, a copy in this pose) lies where it fell: this one is hidden until
+        /// <see cref="Revive"/>, however the death camera asks.
+        /// </summary>
+        public void HandOverToRagdoll()
+        {
+            lyingElsewhere = true;
+            SetVisible(false);
+        }
+
+        /// <summary>The skin this soldier wears (<see cref="SoldierModels.SkinKeys"/> index), for the ragdoll's pool.</summary>
+        public int SkinIndex => SoldierModels.IndexOrDefault(SkinOf(player.Team));
+
         /// <summary>Back on its feet after a death (the player appears again).</summary>
         public void Revive()
         {
+            lyingElsewhere = false;
             wasGrounded = true;
             airSeconds = 0;
             Animator.Revive();

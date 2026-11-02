@@ -37,6 +37,37 @@ namespace SdfHeads.Tests
         }
 
         [Test]
+        public void EveryBuiltHeadBurstsIntoItsOwnPieces()
+        {
+            // Ticket 51: seven pieces cut from the head's own mesh (content/models/characters/head-pieces), found by id: no gore code per head
+            foreach (var id in MonsterHeads.BuiltIds())
+            {
+                Assert.IsTrue(Models().TryGet(id, out var entry), id);
+                Assert.AreEqual(7, entry.pieces.Length, id);
+                var union = new Bounds();
+                var any = false;
+                foreach (var piece in entry.pieces)
+                {
+                    Assert.IsNotNull(piece, id);
+                    foreach (var filter in piece.GetComponentsInChildren<MeshFilter>(true))
+                    {
+                        if (filter.sharedMesh == null || filter.name.Contains("_LOD") || filter.name == "Outline")
+                            continue;
+                        if (any)
+                            union.Encapsulate(filter.sharedMesh.bounds);
+                        else
+                            union = filter.sharedMesh.bounds;
+                        any = true;
+                    }
+                }
+                Assert.IsTrue(any, id + " pieces have meshes");
+                // Together they are the head: the pieces' bounds cover the head's (within a centimetre or two)
+                Assert.AreEqual(entry.boundsSize.y, union.size.y, 0.05f, id + " height");
+                Assert.AreEqual(entry.boundsSize.x, union.size.x, 0.05f, id + " width");
+            }
+        }
+
+        [Test]
         public void TheHeadsStayInTheTriangleBudgetAtTheFinestLevel()
         {
             foreach (var entry in Models().entries)

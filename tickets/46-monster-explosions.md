@@ -59,3 +59,5 @@ head's blood colour in 51's table.
 ## Status
 
 Not started.
+
+**Built by 51 (the plug-in point):** `HeadBurstProfile.Register(headId, profile)` in `Unity/Assets/Battle/Runtime/HeadBurstProfile.cs`: `Special(HeadBurst)` runs right after the generic burst (the head's own cut pieces, gobs and splats in `GoreRules.BloodOf(id)`), `ReplacesPieces` drops the generic pieces for the profile's debris. Off has no profile (the puff only).

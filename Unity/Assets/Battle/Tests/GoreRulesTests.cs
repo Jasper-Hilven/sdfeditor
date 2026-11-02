@@ -1,13 +1,17 @@
+using System.Linq;
 using NUnit.Framework;
+using SdfHeads;
 using UnityEngine;
 
 namespace SdfBattle.Tests
 {
-    /// <summary>The death burst's numbers: who bursts, which way the pieces fly, how much blood, how many corpses stay.</summary>
+    /// <summary>The gore's numbers (ticket 51): only the head bursts, in its own blood colour; the body never does; how many corpses stay.</summary>
     public sealed class GoreRulesTests
     {
+        static float Distance(Color a, Color b) => Mathf.Sqrt((a.r - b.r) * (a.r - b.r) + (a.g - b.g) * (a.g - b.g) + (a.b - b.b) * (a.b - b.b));
+
         [Test]
-        public void OnlyAKill_WithGoreOn_Bursts()
+        public void OnlyAKill_WithGoreOn_BurstsTheHead()
         {
             Assert.IsTrue(GoreRules.Bursts(GoreRules.Splatty, DeathCause.Killed));
             Assert.IsTrue(GoreRules.Bursts(GoreRules.ExtraSplatty, DeathCause.Killed));
@@ -18,38 +22,45 @@ namespace SdfBattle.Tests
         }
 
         [Test]
-        public void TheEyesAndHands_FlyAwayFromTheHit_AndUp()
+        public void GoreOff_PopsTheHeadInAPuff_NoPieces()
         {
-            // Shot from the west: the pieces go east, whichever side of the body they were on
+            Assert.IsTrue(GoreRules.Puffs(GoreRules.Off, DeathCause.Killed));
+            Assert.IsFalse(GoreRules.Puffs(GoreRules.Splatty, DeathCause.Killed));
+            Assert.IsFalse(GoreRules.Puffs(GoreRules.Off, DeathCause.Fell));
+        }
+
+        [Test]
+        public void NoLevelBurstsTheBody_ButEveryKillRagdollsIt()
+        {
+            for (var level = GoreRules.Off; level <= GoreRules.UltraGore; level++)
+                Assert.IsFalse(GoreRules.BodyBursts(level), $"level {level}");
+            Assert.IsTrue(GoreRules.Ragdolls(DeathCause.Killed));
+            Assert.IsFalse(GoreRules.Ragdolls(DeathCause.Fell));
+        }
+
+        [Test]
+        public void ThePieces_FlyAwayFromTheHit_AndUp()
+        {
+            // Shot from the west: the pieces go east, whichever side of the head they were on
             var away = Vector3.right;
             foreach (var outward in new[] { Vector3.left, Vector3.forward, Vector3.back })
             {
-                var velocity = GoreRules.Launch(GibKind.Loose, outward, away, false, 1, Vector3.zero, 0.5f);
+                var velocity = GoreRules.Launch(GibKind.Piece, outward, away, false, 1, Vector3.zero, 0.5f);
                 Assert.Greater(Vector3.Dot(velocity, away), -0.01f, $"{outward}");
                 Assert.Greater(velocity.y, 0);
-                Assert.Greater(velocity.magnitude, 4);
+                Assert.Greater(velocity.magnitude, 3);
             }
         }
 
         [Test]
-        public void AHeadshot_PopsTheCapHigher_AndTheEyesFurther()
+        public void AHeadshot_PopsThePiecesHigher_AndACannonThrowsHarder()
         {
-            var cap = GoreRules.Launch(GibKind.Cap, Vector3.zero, Vector3.right, false, 1, Vector3.zero, 0.5f);
-            var poppedCap = GoreRules.Launch(GibKind.Cap, Vector3.zero, Vector3.right, true, 1, Vector3.zero, 0.5f);
-            Assert.Greater(poppedCap.y, cap.y * 1.5f);
-            var eye = GoreRules.Launch(GibKind.Loose, Vector3.left, Vector3.right, false, 1, Vector3.zero, 0.5f);
-            var poppedEye = GoreRules.Launch(GibKind.Loose, Vector3.left, Vector3.right, true, 1, Vector3.zero, 0.5f);
-            Assert.Greater(poppedEye.magnitude, eye.magnitude);
-        }
-
-        [Test]
-        public void TheStem_SlumpsNearTheSpot_AndACannonThrowsHarder()
-        {
-            var stem = GoreRules.Launch(GibKind.Stem, Vector3.left, Vector3.right, false, 1, Vector3.zero, 1);
-            Assert.Less(stem.magnitude, 2);
-            var shot = GoreRules.Launch(GibKind.Loose, Vector3.left, Vector3.right, false, GoreRules.Strength(WeaponIds.Pistol), Vector3.zero, 0.5f);
-            var cannon = GoreRules.Launch(GibKind.Loose, Vector3.left, Vector3.right, false, GoreRules.Strength("cannon"), Vector3.zero, 0.5f);
-            Assert.Greater(cannon.magnitude, shot.magnitude * 1.4f);
+            var plain = GoreRules.Launch(GibKind.Piece, Vector3.left, Vector3.right, false, 1, Vector3.zero, 0.5f);
+            var popped = GoreRules.Launch(GibKind.Piece, Vector3.left, Vector3.right, true, 1, Vector3.zero, 0.5f);
+            Assert.Greater(popped.y, plain.y * 1.3f);
+            var cannon = GoreRules.Launch(GibKind.Piece, Vector3.left, Vector3.right, false, GoreRules.Strength("cannon"), Vector3.zero, 0.5f);
+            var pistol = GoreRules.Launch(GibKind.Piece, Vector3.left, Vector3.right, false, GoreRules.Strength(WeaponIds.Pistol), Vector3.zero, 0.5f);
+            Assert.Greater(cannon.magnitude, pistol.magnitude * 1.4f);
         }
 
         [Test]
@@ -58,11 +69,9 @@ namespace SdfBattle.Tests
             Assert.AreEqual(GoreRules.BloodGobs(GoreRules.Splatty, WeaponIds.Pistol) * 3, GoreRules.BloodGobs(GoreRules.UltraGore, WeaponIds.Pistol));
             Assert.IsFalse(GoreRules.Flings(GoreRules.ExtraSplatty));
             Assert.IsTrue(GoreRules.Flings(GoreRules.UltraGore));
-            var stem = GoreRules.Launch(GibKind.Stem, Vector3.left, Vector3.right, false, 1, Vector3.zero, 0.5f, true);
-            Assert.Greater(stem.magnitude, 5);
-            var eye = GoreRules.Launch(GibKind.Loose, Vector3.left, Vector3.right, false, 1, Vector3.zero, 0.5f);
-            var flungEye = GoreRules.Launch(GibKind.Loose, Vector3.left, Vector3.right, false, 1, Vector3.zero, 0.5f, true);
-            Assert.Greater(flungEye.magnitude, eye.magnitude * 1.4f);
+            var piece = GoreRules.Launch(GibKind.Piece, Vector3.left, Vector3.right, false, 1, Vector3.zero, 0.5f);
+            var flung = GoreRules.Launch(GibKind.Piece, Vector3.left, Vector3.right, false, 1, Vector3.zero, 0.5f, true);
+            Assert.Greater(flung.magnitude, piece.magnitude * 1.4f);
         }
 
         [Test]
@@ -73,18 +82,68 @@ namespace SdfBattle.Tests
             Assert.Less(GoreRules.BloodGobs(GoreRules.Splatty, WeaponIds.Flamethrower), GoreRules.BloodGobs(GoreRules.Splatty, WeaponIds.Pistol));
         }
 
+        // ---------------------------------------------------------------- the blood's colour
+
         [Test]
-        public void TheBlood_TakesTheTeamsHue_KeepingTheGoosShade()
+        public void EveryHeadHasABloodColour_FromTheTable()
         {
-            var goo = new Color(0.85f, 0.18f, 0.65f);
-            Color.RGBToHSV(goo, out _, out var s, out var v);
-            Color.RGBToHSV(new Color(0.15f, 0.4f, 0.9f), out var blue, out _, out _);
-            var blood = GoreRules.Recolour(goo, blue);
-            Color.RGBToHSV(blood, out var h2, out var s2, out var v2);
-            Assert.AreEqual(blue, h2, 1e-3f);
-            Assert.AreEqual(s, s2, 1e-3f);
-            Assert.AreEqual(v, v2, 1e-3f);
-            Assert.Less(GoreRules.Recolour(goo, null, 0.3f).maxColorComponent, goo.maxColorComponent * 0.31f);
+            foreach (var head in MonsterHeads.All)
+            {
+                var blood = GoreRules.BloodOf(head.Id);
+                Assert.AreEqual(head.Blood, blood, head.Id);
+                Assert.AreEqual(1f, blood.a, head.Id);
+            }
+        }
+
+        [Test]
+        public void TheBloodColours_AreDistinctFromEachOther_FromHumanRed_AndFromBothTeams()
+        {
+            var humanRed = new Color(0.8f, 0.05f, 0.05f);
+            var heads = MonsterHeads.All;
+            for (var i = 0; i < heads.Count; i++)
+            {
+                var a = GoreRules.BloodOf(heads[i].Id);
+                Assert.Greater(Distance(a, humanRed), 0.4f, $"{heads[i].Id} vs human red");
+                Assert.Greater(Distance(a, GoreRules.TeamRed), 0.3f, $"{heads[i].Id} vs the red team");
+                Assert.Greater(Distance(a, GoreRules.TeamBlue), 0.3f, $"{heads[i].Id} vs the blue team");
+                for (var j = i + 1; j < heads.Count; j++)
+                    Assert.GreaterOrEqual(Distance(a, GoreRules.BloodOf(heads[j].Id)), 0.2f, $"{heads[i].Id} vs {heads[j].Id}");
+            }
+        }
+
+        [Test]
+        public void AnUnknownHead_StillBleedsAColour_NotRed()
+        {
+            var blood = GoreRules.BloodOf("nobody");
+            Assert.Greater(Distance(blood, GoreRules.TeamRed), 0.3f);
+        }
+
+        [Test]
+        public void TheGoo_TakesTheBloodsColour_KeepingItsShading()
+        {
+            var blood = MonsterHeads.ById("yeti").Value.Blood;
+            var bright = GoreRules.Tint(new Color(0.9f, 0.2f, 0.6f), blood);
+            var dark = GoreRules.Tint(new Color(0.3f, 0.06f, 0.2f), blood);
+            Color.RGBToHSV(blood, out var hue, out var sat, out _);
+            foreach (var shade in new[] { bright, dark })
+            {
+                Color.RGBToHSV(shade, out var h, out var s, out _);
+                Assert.AreEqual(hue, h, 0.01f);
+                Assert.AreEqual(sat, s, 0.05f);
+            }
+            Assert.Greater(bright.maxColorComponent, dark.maxColorComponent);
+            Assert.Less(GoreRules.Tint(new Color(0.9f, 0.2f, 0.6f), blood, 0.3f).maxColorComponent, bright.maxColorComponent * 0.31f);
+            Assert.AreEqual(0.5f, GoreRules.Tint(new Color(1, 1, 1, 0.5f), blood).a, 1e-5f);
+        }
+
+        // ---------------------------------------------------------------- the ragdoll's numbers
+
+        [Test]
+        public void TheRagdoll_SimulatesThreeSecondsAtMost_AndSettlesEarlier()
+        {
+            Assert.AreEqual(3f, GoreRules.RagdollSeconds);
+            Assert.Less(GoreRules.RagdollSettleSeconds, GoreRules.RagdollSeconds);
+            Assert.Greater(GoreRules.RagdollPush, 0);
         }
 
         [Test]

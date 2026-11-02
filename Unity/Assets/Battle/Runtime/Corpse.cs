@@ -4,15 +4,13 @@ using UnityEngine;
 namespace SdfBattle
 {
     /// <summary>
-    /// What is left of a killed scout (the gore, <see cref="Gore"/>): a fresh copy of the team's scout where the body stood, in its pose
-    /// (the eyes and hands where the live scout held them), burst at once. The floating eyes and hands pop off hardest and roll a good
-    /// way (balls, little friction, little angular drag), dripping blood and leaving small splats where they land and along their roll.
-    /// The body breaks into its pieces where the scout has them (each team's own, content/models/characters/exploding, picked by the
-    /// scout prefab's name: amanita-scout-* for red, chanterelle-scout-* for blue; the cap breaks off in one, or shatters for a
-    /// cannon; the stem pieces slump and topple), or topples whole (a scout without pieces); these are boxes with more friction. How hard and which way each flies is <see cref="GoreRules.Launch"/>: away from the hit, up,
-    /// the cap and eyes highest for a headshot. The flamethrower's corpse is charred dark. At ultra gore (<see cref="GoreRules.Flings"/>)
-    /// every piece, the stem's too, flies far and leaves a long trail: drops and gobs of blood all the way through the air, and splats
-    /// close together along the ground.
+    /// What is left of a killed player's head (the gore, <see cref="Gore"/>, ticket 51): the monster head it wore, burst where it was into
+    /// the pieces cut from its own mesh (SDF intersections of the head with Voronoi cells, content/models/characters/head-pieces, listed
+    /// in <see cref="SdfHeads.MonsterHeadModels"/>: any head that has its pieces bursts, no code per head). How hard and which way each
+    /// flies is <see cref="GoreRules.Launch"/>: away from the hit, up, higher for a headshot. The pieces are boxes with friction that
+    /// tumble and lie; at ultra gore (<see cref="GoreRules.Flings"/>) they fly far and trail drops and gobs of the head's blood, with
+    /// splats close together along the ground. The flamethrower's pieces are charred dark. The body is never part of it (it ragdolls:
+    /// <see cref="SoldierRagdoll"/>) and nothing bleeds at the neck.
     /// <para>
     /// The pieces are real rigidbodies on the Ignore Raycast layer (no shot, sight line or blood raycast meets them) and let the
     /// players' capsules through. They settle and freeze after <see cref="settleAfter"/> seconds, and sink and shrink away after
@@ -22,11 +20,7 @@ namespace SdfBattle
     public sealed class Corpse : MonoBehaviour
     {
         private const string OutlineName = "Outline";
-        private const int IgnoreRaycastLayer = 2;
-        private static readonly string[] LooseParts = { "eye.0", "eye.1", "hand.0", "hand.1" };
-
-        /// <summary>Where the burst comes from, in the scout's own coordinates: its middle, about where the eyes float.</summary>
-        private static readonly Vector3 Origin = new Vector3(0, 0.8f, 0);
+        public const int IgnoreRaycastLayer = 2;
 
         [Tooltip("Seconds the pieces move freely before they slow and freeze")]
         public float settleAfter = 4;
@@ -34,7 +28,7 @@ namespace SdfBattle
         [Tooltip("Seconds before the corpse sinks away of itself (it sinks sooner when the player respawns)")]
         public float lifetime = 10;
         public float sinkTime = 0.7f;
-        [Tooltip("Metres a rolling eye or hand goes between the small splats it leaves")]
+        [Tooltip("Metres a flying piece goes between the small splats it leaves")]
         public float trailSpacing = 0.45f;
         [Tooltip("Metres between the trail's splats at ultra gore")]
         public float flingTrailSpacing = 0.2f;
@@ -57,18 +51,16 @@ namespace SdfBattle
             public float gobIn;
         }
 
-        private static PhysicsMaterial rolling;
         private static PhysicsMaterial resting;
 
         private readonly List<Gib> gibs = new List<Gib>();
         private Gore gore;
-        private Team team;
+        private Color blood;
         private float age;
         private float sinking = -1;
         private bool settled;
         private int trailSplats;
         private bool fling;
-        private Vector3 stump;
 
         /// <summary>Whose corpse it is.</summary>
         public PlayerState Victim { get; private set; }
@@ -76,86 +68,35 @@ namespace SdfBattle
         public bool Sinking => sinking >= 0;
 
         /// <summary>
-        /// The corpse of <paramref name="player"/>, killed by <paramref name="death"/>: <paramref name="scout"/> (the team's prefab) where
-        /// it stood, with the body pieces of <paramref name="pieces"/> named after it, burst away from <paramref name="away"/> (the hit's
-        /// push, flat; zero when unknown); with <paramref name="fling"/> (ultra gore) every piece flies far, trailing blood. Null without
-        /// a scout prefab.
+        /// The burst of the head <paramref name="head"/> worn by <paramref name="victim"/>, killed by <paramref name="death"/>: its
+        /// <paramref name="pieces"/> (prefabs, in the head's own frame, origin at the soldier's head socket) where the head was
+        /// (<paramref name="at"/>, in the head's pose), burst from <paramref name="middle"/> (world) away from <paramref name="away"/> (the
+        /// hit's push, flat; zero when unknown), in the head's <paramref name="blood"/>; with <paramref name="fling"/> (ultra gore) every
+        /// piece flies far, trailing blood. Null without pieces.
         /// </summary>
-        public static Corpse Make(Gore gore, Player player, Death death, GameObject scout, GameObject[] pieces, Vector3 away, bool fling = false)
+        public static Corpse Make(Gore gore, PlayerState victim, Death death, GameObject[] pieces, Transform at, Vector3 middle, Color blood, Vector3 away,
+            bool fling = false)
         {
-            if (scout == null)
+            if (pieces == null || pieces.Length == 0 || at == null)
                 return null;
-            var root = new GameObject($"Corpse of {player.name}");
-            root.transform.SetPositionAndRotation(player.transform.position, Quaternion.Euler(0, player.Controller.Yaw, 0));
+            var root = new GameObject($"Head of {victim?.Name}");
+            root.transform.SetPositionAndRotation(at.position, at.rotation);
+            root.transform.localScale = at.lossyScale;
             var corpse = root.AddComponent<Corpse>();
             corpse.gore = gore;
-            corpse.team = death.Victim.Team;
-            corpse.Victim = death.Victim;
+            corpse.blood = blood;
+            corpse.Victim = victim;
             corpse.fling = fling;
-            corpse.stump = root.transform.position + Vector3.up * 0.55f;
-
-            var body = Instantiate(scout, root.transform, false);
-            body.name = "Body";
-            body.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-            Strip(body);
-            // The pose: the eyes and hands where the live scout held them (you have no scout drawn: at rest)
-            var live = player.body != null ? player.body.transform : null;
-            var loose = new List<Transform>();
-            foreach (var name in LooseParts)
-            {
-                var part = Find(body.transform, name);
-                if (part == null)
-                    continue;
-                var held = live != null ? Find(live, name) : null;
-                if (held != null)
-                    part.SetLocalPositionAndRotation(held.localPosition, held.localRotation);
-                loose.Add(part);
-            }
-
             var strength = GoreRules.Strength(death.Weapon);
-            var headshot = death.Headshot;
-            foreach (var part in loose)
+            foreach (var prefab in pieces)
             {
-                part.SetParent(root.transform, true);
-                corpse.Add(part, GibKind.Loose, away, headshot, strength);
+                if (prefab == null)
+                    continue;
+                var piece = Instantiate(prefab, root.transform, false);
+                piece.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                Strip(piece);
+                corpse.Add(piece.transform, GibKind.Piece, middle, away, death.Headshot, strength);
             }
-
-            // The body: in its pieces where the scout has them, else whole
-            var prefix = scout.name + "-";
-            var own = pieces != null ? System.Array.FindAll(pieces, p => p != null && p.name.StartsWith(prefix)) : new GameObject[0];
-            if (own.Length > 0)
-            {
-                Destroy(body);
-                // A cannon shatters the cap; otherwise it breaks off in one
-                var shatter = death.Weapon == "cannon";
-                Transform cap = null;
-                foreach (var prefab in own)
-                {
-                    var piece = Instantiate(prefab, root.transform, false);
-                    piece.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-                    Strip(piece);
-                    var isCap = prefab.name.Substring(prefix.Length).StartsWith("cap");
-                    if (isCap && !shatter)
-                    {
-                        if (cap == null)
-                        {
-                            cap = new GameObject("Cap").transform;
-                            cap.SetParent(root.transform, false);
-                        }
-                        piece.transform.SetParent(cap, false);
-                        AddBox(piece.transform);
-                        continue;
-                    }
-                    corpse.Add(piece.transform, isCap ? GibKind.Cap : GibKind.Stem, away, headshot, strength);
-                }
-                if (cap != null)
-                    corpse.Add(cap, GibKind.Cap, away, headshot, strength);
-            }
-            else
-            {
-                corpse.Add(body.transform, GibKind.Stem, away, headshot, strength);
-            }
-
             if (death.Weapon == WeaponIds.Flamethrower)
                 foreach (var filter in root.GetComponentsInChildren<MeshFilter>(true))
                     if (filter.name != OutlineName)
@@ -166,44 +107,26 @@ namespace SdfBattle
         }
 
         /// <summary>A piece gets its collider, its physics and its push.</summary>
-        private void Add(Transform part, GibKind kind, Vector3 away, bool headshot, float strength)
+        private void Add(Transform part, GibKind kind, Vector3 middle, Vector3 away, bool headshot, float strength)
         {
             var bounds = LocalBounds(part, part);
             var radius = Mathf.Max(0.03f, Mathf.Max(bounds.extents.x, Mathf.Max(bounds.extents.y, bounds.extents.z)) * 0.85f);
-            if (kind == GibKind.Loose)
-            {
-                var sphere = part.gameObject.AddComponent<SphereCollider>();
-                sphere.center = bounds.center;
-                sphere.radius = radius;
-            }
-            else if (part.GetComponentInChildren<Collider>() == null)
-            {
-                AddBox(part);
-            }
+            AddBox(part);
             var colliders = part.GetComponentsInChildren<Collider>();
-            var material = kind == GibKind.Loose ? Rolling : Resting;
             foreach (var collider in colliders)
-                collider.sharedMaterial = material;
+                collider.sharedMaterial = Resting;
 
             var body = part.gameObject.AddComponent<Rigidbody>();
-            body.mass = kind == GibKind.Loose ? 0.3f : kind == GibKind.Cap ? 1.5f : 2.5f;
-            body.linearDamping = kind == GibKind.Loose ? 0.05f : 0.3f;
-            body.angularDamping = kind == GibKind.Loose ? 0.1f : 1.5f;
+            body.mass = 0.4f;
+            body.linearDamping = 0.15f;
+            body.angularDamping = 0.6f;
             body.maxAngularVelocity = 40;
             body.interpolation = RigidbodyInterpolation.Interpolate;
-            body.collisionDetectionMode = kind == GibKind.Loose ? CollisionDetectionMode.ContinuousSpeculative : CollisionDetectionMode.Discrete;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
-            var outward = part.TransformPoint(bounds.center) - transform.TransformPoint(Origin);
+            var outward = part.TransformPoint(bounds.center) - middle;
             body.linearVelocity = GoreRules.Launch(kind, outward, away, headshot, strength, Random.insideUnitSphere, Random.value, fling);
-            var spin = Random.onUnitSphere * (GoreRules.Spin(kind) * Random.Range(0.4f, 1f) * Mathf.Deg2Rad);
-            // The stem topples over, away from the hit
-            if (kind == GibKind.Stem && !fling)
-            {
-                var fall = away.sqrMagnitude > 1e-4f ? away : new Vector3(outward.x, 0, outward.z).normalized;
-                if (fall.sqrMagnitude > 1e-4f)
-                    spin += Vector3.Cross(Vector3.up, fall).normalized * Random.Range(1.5f, 3f);
-            }
-            body.angularVelocity = spin;
+            body.angularVelocity = Random.onUnitSphere * (GoreRules.Spin(kind) * Random.Range(0.4f, 1f) * Mathf.Deg2Rad);
 
             gibs.Add(new Gib
             {
@@ -260,12 +183,9 @@ namespace SdfBattle
             }
             if (!settled)
                 Settle();
-            if (age < 1.5f)
-                Gush(dt);
             if (age < settleAfter)
                 foreach (var gib in gibs)
-                    if (gib.kind == GibKind.Loose || fling)
-                        Trail(gib, dt);
+                    Trail(gib, dt);
         }
 
         /// <summary>After a few seconds the pieces slow, then freeze: nothing keeps rolling about for ever.</summary>
@@ -289,17 +209,9 @@ namespace SdfBattle
             settled = t >= 1;
         }
 
-        /// <summary>For a moment blood spurts up out of the stump.</summary>
-        private void Gush(float dt)
-        {
-            if (Random.value > dt * 30)
-                return;
-            gore.Drip(stump, (Vector3.up * 3 + Random.insideUnitSphere) * Random.Range(0.8f, 1.4f), team);
-        }
-
         /// <summary>
-        /// A rolling eye or hand drips, and leaves a splat where it lands and every so often along its roll. At ultra gore every piece
-        /// does, more thickly, and sheds gobs as it flies that splat on the ground under its path.
+        /// A flying piece drips, and leaves a splat where it lands and every so often along its way. At ultra gore it does so more
+        /// thickly, and sheds gobs as it flies that splat on the ground under its path.
         /// </summary>
         private void Trail(Gib gib, float dt)
         {
@@ -311,7 +223,7 @@ namespace SdfBattle
                 gib.dripIn -= dt;
                 if (gib.dripIn <= 0)
                 {
-                    gore.Drip(position, velocity, team, fling ? 3 : 1);
+                    gore.Drip(position, velocity, blood, fling ? 3 : 1);
                     gib.dripIn = 0.06f;
                 }
                 if (fling && speed > 2)
@@ -319,7 +231,7 @@ namespace SdfBattle
                     gib.gobIn -= dt;
                     if (gib.gobIn <= 0)
                     {
-                        gore.Throw(position, velocity * 0.25f + Random.insideUnitSphere * 0.5f, Random.Range(0.035f, 0.06f), team);
+                        gore.Throw(position, velocity * 0.25f + Random.insideUnitSphere * 0.5f, Random.Range(0.035f, 0.06f), blood);
                         gib.gobIn = flingGobEvery;
                     }
                 }
@@ -330,11 +242,11 @@ namespace SdfBattle
             if (!gib.landed)
             {
                 gib.landed = true;
-                gore.Splat(point, normal, Random.Range(0.15f, 0.22f), team);
+                gore.Splat(point, normal, Random.Range(0.15f, 0.22f), blood);
             }
             else if (speed > 0.4f && (point - gib.lastSplat).sqrMagnitude > spacing * spacing)
             {
-                gore.Splat(point, normal, Random.Range(0.06f, 0.11f), team);
+                gore.Splat(point, normal, Random.Range(0.06f, 0.11f), blood);
             }
             else
             {
@@ -368,13 +280,6 @@ namespace SdfBattle
         }
 
         // ---------------------------------------------------------------- Helpers
-
-        /// <summary>Balls that roll a long way: little friction, a little bounce.</summary>
-        private static PhysicsMaterial Rolling => rolling != null ? rolling : rolling = new PhysicsMaterial("Gore Rolling")
-        {
-            dynamicFriction = 0.3f, staticFriction = 0.35f, bounciness = 0.35f,
-            frictionCombine = PhysicsMaterialCombine.Minimum, bounceCombine = PhysicsMaterialCombine.Maximum,
-        };
 
         /// <summary>Heavy pieces that stay near where they fall.</summary>
         private static PhysicsMaterial Resting => resting != null ? resting : resting = new PhysicsMaterial("Gore Resting")

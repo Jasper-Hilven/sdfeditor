@@ -14,8 +14,8 @@ namespace SdfGui
         public static void Save() => PlayerPrefs.Save();
 
         /// <summary>
-        /// The gore level, an index into <see cref="GoreLevels"/>: off (a killed scout just vanishes, no blood), splatty (the default: it
-        /// bursts, its pieces fly, its team's blood splats about) extra splatty (more blood) or ultra gore (three times the blood, and every piece flies far, trailing blood). SdfBattle.Gore
+        /// The gore level, an index into <see cref="GoreLevels"/>: off (a killed monster's head pops in a puff of its blood colour, no pieces, no blood), splatty (the default: the
+        /// head bursts into pieces and its own coloured blood splats about) extra splatty (more blood) or ultra gore (three times the blood, and every piece flies far, trailing blood). The body never bursts or bleeds at any level, it ragdolls. SdfBattle.Gore
         /// reads it at each death.
         /// </summary>
         public static int Gore

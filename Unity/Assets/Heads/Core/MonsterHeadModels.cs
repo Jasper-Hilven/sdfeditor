@@ -24,6 +24,8 @@ namespace SdfHeads
             [Tooltip("The bounds of the head's finest level in its own frame (the origin is the soldier's head socket)")]
             public Vector3 boundsCentre;
             public Vector3 boundsSize;
+            [Tooltip("The pieces the head bursts into (ticket 51), cut from its own mesh: content/models/characters/head-pieces, in the head's own frame")]
+            public GameObject[] pieces;
             [Tooltip("Triangles of the finest level, eyes included")]
             public int triangles;
         }

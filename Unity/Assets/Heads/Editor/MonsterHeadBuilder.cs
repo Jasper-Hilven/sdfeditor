@@ -65,6 +65,7 @@ namespace SdfHeads.Editor
                     id = head.Id,
                     prefab = prefab,
                     fastPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(head.FastPrefabPath),
+                    pieces = Pieces(head),
                     boundsCentre = centre,
                     boundsSize = size,
                     triangles = triangles,
@@ -83,6 +84,20 @@ namespace SdfHeads.Editor
             EditorUtility.SetDirty(models);
             AssetDatabase.SaveAssets();
             return entries.Count;
+        }
+
+        /// <summary>The prefabs of a head's bursting pieces (<c>&lt;id&gt;-head-piece0</c> ...), in order; empty when none were meshed (the head then only puffs).</summary>
+        public static GameObject[] Pieces(MonsterHead head)
+        {
+            var pieces = new List<GameObject>();
+            for (var i = 0; ; i++)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{MonsterHeads.PrefabFolder}/{head.Id}-head-piece{i}.prefab");
+                if (prefab == null)
+                    break;
+                pieces.Add(prefab);
+            }
+            return pieces.ToArray();
         }
 
         /// <summary>

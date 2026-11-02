@@ -112,6 +112,7 @@ namespace SdfBattle
             {
                 rules = JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(rules));
                 Setup.Apply(rules);
+                yourTeam = Setup.yourTeam;
             }
             random = new System.Random(seed);
             var lowest = Mathf.Min(Arena.west.spawn.position.y, Arena.east.spawn.position.y);
