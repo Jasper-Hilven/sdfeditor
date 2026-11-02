@@ -84,7 +84,7 @@ namespace SdfHeads.Tests
             foreach (var entry in Models().entries)
             {
                 Assert.GreaterOrEqual(entry.boundsSize.y, 0.23f * 1.5f, entry.id + " height");
-                Assert.LessOrEqual(entry.boundsSize.y, 0.23f * 2.8f, entry.id + " height");
+                Assert.LessOrEqual(entry.boundsSize.y, 0.23f * 3.2f, entry.id + " height");
                 Assert.GreaterOrEqual(Mathf.Max(entry.boundsSize.x, entry.boundsSize.z), 0.16f * 2f, entry.id + " width");
             }
         }
@@ -92,19 +92,71 @@ namespace SdfHeads.Tests
         [Test]
         public void TheHeadsStandOnTheNeckAndClearTheCollar()
         {
+            // 4 cm lower than phase 1 (user review): the underside at about 1.525 m, the neck's top (1.569) a few centimetres inside the head
             foreach (var entry in Models().entries)
             {
-                var low = SoldierBody.HeadTopHeight + entry.boundsCentre.y - entry.boundsSize.y * 0.5f;
-                Assert.GreaterOrEqual(low, SoldierBody.NeckTop - 0.1f, entry.id + " underside is not lost in the chest");
-                Assert.LessOrEqual(low, SoldierBody.NeckTop + 0.05f, entry.id + " underside is not floating over the neck");
+                var low = SoldierBody.HeadTopHeight + entry.underside;
+                Assert.AreEqual(1.525f, low, 0.02f, entry.id + " underside");
+                Assert.Less(low, SoldierBody.NeckTop - 0.02f, entry.id + " the neck's top is inside the head");
             }
         }
 
         [Test]
-        public void TheBuiltHeadsHitShapesAreFairAndAlike()
+        public void EveryBuiltHeadIsTheCommonSizeWithinTenPercent()
         {
-            var shapes = Models().entries.Select(MonsterHeadModels.ShapeOf).ToArray();
-            Assert.IsTrue(HeadHit.AreFair(shapes), string.Join("; ", shapes.Select(s => s.ToString())));
+            // The normalized size (user decision): volume and each axis's radius within 10 % of 1.2x the mean of phase 1's Yeti and pumpkin
+            foreach (var entry in Models().entries)
+            {
+                var fit = MonsterHeadModels.FitOf(entry);
+                Assert.IsTrue(HeadSize.IsNormalized(fit), $"{entry.id}: {fit}, target {HeadSize.TargetRadii:F3} {HeadSize.TargetVolume:0.0000} m3, off by {HeadSize.Deviation(fit):P1}");
+            }
+        }
+
+        [Test]
+        public void TheHitShapeIsTheTightFitOfTheVisibleHeadAndEveryOneIsAlike()
+        {
+            foreach (var entry in Models().entries)
+            {
+                var shape = MonsterHeadModels.ShapeOf(entry);
+                var fit = MonsterHeadModels.FitOf(entry);
+                Assert.AreEqual(fit.Radii, shape.Radii, entry.id);
+                Assert.AreEqual(fit.Centre, shape.Centre, entry.id);
+                // The ellipsoid has the volume of the mesh
+                Assert.AreEqual(fit.Volume, 4f / 3f * Mathf.PI * shape.Radii.x * shape.Radii.y * shape.Radii.z, fit.Volume * 0.01f, entry.id);
+                // Equal within 10 % of the target on each axis, so no head is easier to hit than another by more than 22 %
+                var radii = HeadSize.TargetRadii;
+                Assert.AreEqual(radii.x, shape.Radii.x, radii.x * HeadSize.Tolerance, entry.id + " x");
+                Assert.AreEqual(radii.y, shape.Radii.y, radii.y * HeadSize.Tolerance, entry.id + " y");
+                Assert.AreEqual(radii.z, shape.Radii.z, radii.z * HeadSize.Tolerance, entry.id + " z");
+            }
+        }
+
+        [Test]
+        public void AShotJustOutsideTheVisibleHeadMissesAndJustInsideHitsOnEveryBuiltHead()
+        {
+            // Through HeadHit.Hit, the test Combat.Trace runs for a worn head, on the head's own fitted shape; a player standing at 3, 0, 2 turned 30 degrees
+            var feet = new Vector3(3, 0, 2);
+            const float yaw = 30;
+            var turn = Quaternion.Euler(0, yaw, 0);
+            foreach (var entry in Models().entries)
+            {
+                var shape = MonsterHeadModels.ShapeOf(entry);
+                var centre = feet + Vector3.up * SoldierBody.HeadTopHeight + turn * shape.Centre;
+                // Shoot along the head's own x, y and z axes from 6 m off, grazing 2 cm inside or outside the ellipsoid at its widest
+                foreach (var axis in new[] { 0, 1, 2 })
+                {
+                    // The ray runs along z for the x and y axes and along x for the z axis, offset on the tested axis
+                    var along = axis == 2 ? Vector3.right : Vector3.forward;
+                    var offsetAxis = axis == 0 ? Vector3.right : axis == 1 ? Vector3.up : Vector3.forward;
+                    var extent = shape.Radii[axis];
+                    var side = turn * offsetAxis;
+                    var start = centre - turn * along * 6;
+                    var dir = turn * along;
+                    Assert.IsTrue(HeadHit.Hit(shape, feet, yaw, start + side * (extent - 0.02f), dir, 0, out var t, out _), $"{entry.id} axis {axis} just inside");
+                    Assert.Less(t, 6f);
+                    Assert.IsFalse(HeadHit.Hit(shape, feet, yaw, start + side * (extent + 0.02f), dir, 0, out _, out _), $"{entry.id} axis {axis} just outside");
+                }
+            }
         }
 
         [Test]
@@ -127,7 +179,7 @@ namespace SdfHeads.Tests
                 var capsule = SoldierBody.HeadCapsule(soldier.transform);
                 var shape = MonsterHeadModels.ShapeOf(entry);
                 Assert.AreEqual(shape.RadiusAcross, capsule.radius, 1e-4f);
-                Assert.AreEqual(shape.RadiusUp * 2, capsule.height, 0.01f); // the Head bone is a few degrees off upright
+                Assert.AreEqual(Mathf.Max(shape.RadiusUp, shape.RadiusAcross) * 2, capsule.height, 0.01f); // a capsule is at least as tall as it is wide; // the Head bone is a few degrees off upright
                 Object.DestroyImmediate(soldier);
             }
         }

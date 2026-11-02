@@ -24,6 +24,12 @@ namespace SdfHeads
             [Tooltip("The bounds of the head's finest level in its own frame (the origin is the soldier's head socket)")]
             public Vector3 boundsCentre;
             public Vector3 boundsSize;
+            [Tooltip("The tight fit of the head's mesh (HeadFit): centre of volume, the ellipsoid's radii, the volume; in the head's own frame")]
+            public Vector3 fitCentre;
+            public Vector3 fitRadii;
+            public float fitVolume;
+            [Tooltip("The head's underside: the lowest point of its mesh within 12 cm of the neck's axis, in the head's frame")]
+            public float underside;
             [Tooltip("The pieces the head bursts into (ticket 51), cut from its own mesh: content/models/characters/head-pieces, in the head's own frame")]
             public GameObject[] pieces;
             [Tooltip("Triangles of the finest level, eyes included")]
@@ -56,7 +62,10 @@ namespace SdfHeads
             return false;
         }
 
-        /// <summary>The hit shape of an entry: <see cref="HeadHit.Fit(Vector3, Vector3)"/> of its bounds.</summary>
-        public static HeadShape ShapeOf(Entry entry) => HeadHit.Fit(entry.boundsCentre, entry.boundsSize);
+        /// <summary>The hit shape of an entry: the tight fit of its mesh.</summary>
+        public static HeadShape ShapeOf(Entry entry) => new HeadShape(entry.fitCentre, entry.fitRadii);
+
+        /// <summary>The tight fit of an entry.</summary>
+        public static HeadFit FitOf(Entry entry) => new HeadFit(entry.fitCentre, entry.fitRadii, entry.fitVolume);
     }
 }

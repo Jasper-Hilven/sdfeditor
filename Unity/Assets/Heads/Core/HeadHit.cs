@@ -1,104 +1,73 @@
-using System;
-using System.Collections.Generic;
 using SdfRig;
 using UnityEngine;
 
 namespace SdfHeads
 {
     /// <summary>
-    /// Where a shot counts as a headshot on a worn head: an upright ellipsoid (<see cref="RadiusAcross"/> over the width and depth,
-    /// <see cref="RadiusUp"/> up and down) round <see cref="Centre"/>, which is in the head's own frame (the origin is the soldier's head
-    /// socket, ticket 43).
+    /// Where a shot counts as a headshot on a worn head: an ellipsoid with the radii <see cref="Radii"/> (along the head's x, y and z) round
+    /// <see cref="Centre"/>, in the head's own frame (the origin is the soldier's head socket, ticket 43; +Z is where it faces). It is the tight
+    /// fit of the head's own mesh (<see cref="HeadFit"/>): the hitbox equals the visible head, with no clamp (the user's decision, ticket 45).
     /// </summary>
     public readonly struct HeadShape
     {
-        public HeadShape(Vector3 centre, float radiusAcross, float radiusUp)
+        public HeadShape(Vector3 centre, Vector3 radii)
         {
             Centre = centre;
-            RadiusAcross = radiusAcross;
-            RadiusUp = radiusUp;
+            Radii = radii;
+        }
+
+        /// <summary>A shape round about the vertical axis: <paramref name="across"/> over the width and depth, <paramref name="up"/> high.</summary>
+        public HeadShape(Vector3 centre, float across, float up) : this(centre, new Vector3(across, up, across))
+        {
         }
 
         public Vector3 Centre { get; }
-        public float RadiusAcross { get; }
-        public float RadiusUp { get; }
+        public Vector3 Radii { get; }
 
-        public override string ToString() => $"centre {Centre}, radii {RadiusAcross:0.000} across, {RadiusUp:0.000} up";
+        /// <summary>The larger of the half width and the half depth.</summary>
+        public float RadiusAcross => Mathf.Max(Radii.x, Radii.z);
+
+        public float RadiusUp => Radii.y;
+
+        public override string ToString() => $"centre {Centre:F3}, radii {Radii:F3}";
     }
 
     /// <summary>
-    /// The head's hit shape and the fairness rule (ticket 45): each head's hit shape follows its own bounds, but headshots must stay fair,
-    /// so no head is easier to hit than another. The hit radii are held within <see cref="Tolerance"/> (15 %) of one reference size, whatever
-    /// the head's own size: a big shaggy head hits as large as a small one, within that band. Pure geometry, tested without the models.
+    /// The head's hit shape (ticket 45): the shot test <c>Combat.Trace</c> uses for a worn head, and the capsule resize. Pure geometry, tested
+    /// without the models.
     /// </summary>
     public static class HeadHit
     {
-        /// <summary>How far a head's hit radii may be from the reference, as a share of it: the same size across heads within 15 %.</summary>
-        public const float Tolerance = 0.15f;
-
-        /// <summary>The reference half-width (across and deep) and half-height of a head's hit shape, metres: a 0.40 by 0.44 m head.</summary>
-        public const float ReferenceAcross = 0.20f, ReferenceUp = 0.22f;
-
-        /// <summary>The share of a head's bounds the hit shape starts from: tufts, icicles, horns and stems on the bounds' edges do not count.</summary>
-        public const float BoundsShare = 0.85f;
-
-        /// <summary>The band a hit radius lies in: [reference * (1 - tolerance), reference * (1 + tolerance)].</summary>
-        public static Vector2 Band(float reference) => new Vector2(reference * (1 - Tolerance), reference * (1 + Tolerance));
-
-        /// <summary>A value held to the band round the reference.</summary>
-        public static float Held(float value, float reference)
-        {
-            var band = Band(reference);
-            return Mathf.Clamp(value, band.x, band.y);
-        }
-
-        /// <summary>The hit shape of a head whose bounds (in the head's frame) are <paramref name="centre"/> and <paramref name="size"/>.</summary>
-        public static HeadShape Fit(Vector3 centre, Vector3 size)
-        {
-            var across = Mathf.Max(size.x, size.z) * 0.5f * BoundsShare;
-            var up = size.y * 0.5f * BoundsShare;
-            return new HeadShape(centre, Held(across, ReferenceAcross), Held(up, ReferenceUp));
-        }
-
-        public static HeadShape Fit(Bounds bounds) => Fit(bounds.center, bounds.size);
-
-        /// <summary>Whether a shape's radii are inside the fair band (small float slack).</summary>
-        public static bool IsFair(HeadShape shape)
-        {
-            const float slack = 1e-5f;
-            var across = Band(ReferenceAcross);
-            var up = Band(ReferenceUp);
-            return shape.RadiusAcross >= across.x - slack && shape.RadiusAcross <= across.y + slack
-                && shape.RadiusUp >= up.x - slack && shape.RadiusUp <= up.y + slack;
-        }
-
         /// <summary>
-        /// The ellipsoid's volume relative to the reference's: what "how easy to hit" comes to over a whole head. The fair band bounds it to
-        /// (1 - tolerance)^3 .. (1 + tolerance)^3, about 0.61 to 1.52; <see cref="AreFair"/> asks for the smaller spread of its cross-sections.
+        /// Whether a ray (or a ball of radius <paramref name="pad"/> swept along it) hits the shape of a head worn by a player standing at
+        /// <paramref name="feet"/> turned <paramref name="yawDegrees"/> about the vertical; the distance along the ray in <paramref name="t"/> and
+        /// the surface normal (world) in <paramref name="normal"/>. False when it misses, or starts inside.
         /// </summary>
-        public static float RelativeVolume(HeadShape shape) =>
-            shape.RadiusAcross * shape.RadiusAcross * shape.RadiusUp / (ReferenceAcross * ReferenceAcross * ReferenceUp);
-
-        /// <summary>
-        /// Whether every shape is fair and no two heads differ by more than the band allows (the biggest radius over the smallest of the
-        /// same kind at most (1 + tolerance) / (1 - tolerance)).
-        /// </summary>
-        public static bool AreFair(IEnumerable<HeadShape> shapes)
+        public static bool Hit(HeadShape shape, Vector3 feet, float yawDegrees, Vector3 origin, Vector3 direction, float pad, out float t, out Vector3 normal)
         {
-            var any = false;
-            float minAcross = float.MaxValue, maxAcross = 0, minUp = float.MaxValue, maxUp = 0;
-            foreach (var shape in shapes)
-            {
-                if (!IsFair(shape))
-                    return false;
-                any = true;
-                minAcross = Mathf.Min(minAcross, shape.RadiusAcross);
-                maxAcross = Mathf.Max(maxAcross, shape.RadiusAcross);
-                minUp = Mathf.Min(minUp, shape.RadiusUp);
-                maxUp = Mathf.Max(maxUp, shape.RadiusUp);
-            }
-            var spread = (1 + Tolerance) / (1 - Tolerance) + 1e-4f;
-            return !any || (maxAcross <= minAcross * spread && maxUp <= minUp * spread);
+            var turn = Quaternion.Euler(0, yawDegrees, 0);
+            var back = Quaternion.Inverse(turn);
+            var centre = feet + Vector3.up * SoldierBody.HeadTopHeight + turn * shape.Centre;
+            var radii = shape.Radii + Vector3.one * pad;
+            var scale = new Vector3(1 / radii.x, 1 / radii.y, 1 / radii.z);
+            var o = Vector3.Scale(back * (origin - centre), scale);
+            var d = Vector3.Scale(back * direction, scale);
+            normal = Vector3.up;
+            t = 0;
+            var a = Vector3.Dot(d, d);
+            var b = 2 * Vector3.Dot(o, d);
+            var c = Vector3.Dot(o, o) - 1;
+            if (c <= 0 || a <= 0)
+                return false;
+            var disc = b * b - 4 * a * c;
+            if (disc < 0)
+                return false;
+            t = (-b - Mathf.Sqrt(disc)) / (2 * a);
+            if (t < 0)
+                return false;
+            var local = back * (origin + direction * t - centre);
+            normal = turn * new Vector3(local.x / (radii.x * radii.x), local.y / (radii.y * radii.y), local.z / (radii.z * radii.z)).normalized;
+            return true;
         }
 
         /// <summary>

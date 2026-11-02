@@ -8,11 +8,13 @@
 # The carving is written three times below (the cutter, the cutter grown by 1.4 cm for the flesh rim, and the glowing plug): edit them
 # together (this file was written from one template).
 # Detail 1 (a head this small gets few cells at the default resolution): about 2.9k triangles at LOD0.
+# Phase 2 (ticket 45): the head is normalized to the common size by a uniform scale in its part (content/parts/pumpkin_head.sdf), and sits with its
+# underside at y=-0.29 (1.525 m, 4 cm lower than phase 1); the sizes and underside quoted above are phase 1's.
 format 1
 
 # No collider (the hit shape of the head is a number in MonsterHeads), and never culled before 200 m: the head is what reads at range
 collider none
 cull 200
 
-Detail detail=1
+Detail detail=0.75
     Part part=pumpkin_head

@@ -13,11 +13,15 @@ namespace SdfHeads
     {
         public string Id { get; private set; }
 
-        /// <summary>Where a shot counts as the head's, in the head's frame (<see cref="HeadHit.Fit(Bounds)"/> of the model's bounds).</summary>
+        /// <summary>Where a shot counts as the head's, in the head's frame (the tight fit of the model's mesh, <see cref="HeadFit"/>).</summary>
         public HeadShape Shape { get; private set; }
 
         /// <summary>The height of the shape's centre over the soldier's feet at rest: the head socket's, plus the centre in the head's frame.</summary>
         public float CentreHeight => SoldierBody.HeadTopHeight + Shape.Centre.y;
+
+        /// <summary>Whether a shot (a ray, or a ball of radius <paramref name="pad"/> along it) hits this head on a player at <paramref name="feet"/> turned <paramref name="yawDegrees"/>.</summary>
+        public bool Hit(Vector3 feet, float yawDegrees, Vector3 origin, Vector3 direction, float pad, out float t, out Vector3 normal) =>
+            HeadHit.Hit(Shape, feet, yawDegrees, origin, direction, pad, out t, out normal);
 
         /// <summary>
         /// Puts the head <paramref name="id"/> on the soldier's head socket and resizes the soldier's Head hit capsule to it if it has one;

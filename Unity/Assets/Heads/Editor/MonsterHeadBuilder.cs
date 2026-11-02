@@ -59,7 +59,7 @@ namespace SdfHeads.Editor
                     Debug.LogError($"MonsterHeadBuilder: {head.PrefabPath} is missing: mesh {head.ModelPath} (sdf mesh ... --into Unity/Assets/Mushrooms/Generated/characters/monsters) and let Unity import it");
                     continue;
                 }
-                var (centre, size, triangles) = Measure(prefab);
+                var (centre, size, triangles, fit, underside) = Measure(prefab);
                 entries.Add(new MonsterHeadModels.Entry
                 {
                     id = head.Id,
@@ -68,9 +68,13 @@ namespace SdfHeads.Editor
                     pieces = Pieces(head),
                     boundsCentre = centre,
                     boundsSize = size,
+                    fitCentre = fit.Centre,
+                    fitRadii = fit.Radii,
+                    fitVolume = fit.Volume,
+                    underside = underside,
                     triangles = triangles,
                 });
-                Debug.Log($"MonsterHeadBuilder: {head.Id}: bounds centre {centre:F3} size {size:F3}, {triangles} triangles at LOD0, hit shape {HeadHit.Fit(centre, size)}");
+                Debug.Log($"MonsterHeadBuilder: {head.Id}: bounds centre {centre:F3} size {size:F3}, {triangles} triangles at LOD0, fit {fit} (target {HeadSize.TargetRadii:F3}, {HeadSize.TargetVolume:0.0000} m3; off by {HeadSize.Deviation(fit):P1}), underside {underside:F3}");
             }
 
             Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(Application.dataPath), ResourcesFolder));
@@ -100,11 +104,14 @@ namespace SdfHeads.Editor
             return pieces.ToArray();
         }
 
+        /// <summary>The radius round the neck's axis inside which the lowest point of the mesh is the head's underside.</summary>
+        public const float UndersideRadius = 0.12f;
+
         /// <summary>
-        /// A head prefab's bounds and triangles at its finest level, in the prefab's own frame: the renderers that are not a coarser level
-        /// (<c>_LOD1</c> ...) or the ink outline's second draw of a mesh.
+        /// A head prefab's bounds, triangles, tight fit (<see cref="HeadFit"/>) and underside at its finest level, in the prefab's own frame: the
+        /// renderers that are not a coarser level (<c>_LOD1</c> ...) or the ink outline's second draw of a mesh.
         /// </summary>
-        public static (Vector3 centre, Vector3 size, int triangles) Measure(GameObject prefab)
+        public static (Vector3 centre, Vector3 size, int triangles, HeadFit fit, float underside) Measure(GameObject prefab)
         {
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             try
@@ -113,6 +120,8 @@ namespace SdfHeads.Editor
                 var bounds = new Bounds();
                 var any = false;
                 var triangles = 0;
+                var fitter = new HeadFitter();
+                var underside = float.MaxValue;
                 foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
                 {
                     if (renderer.gameObject.name.Contains("_LOD") || renderer.gameObject.name == SdfMushrooms.Editor.MushroomBuilder.OutlineObjectName)
@@ -127,8 +136,18 @@ namespace SdfHeads.Editor
                         bounds = box;
                     any = true;
                     triangles += (int)(filter.sharedMesh.GetIndexCount(0) / 3);
+                    var vertices = SdfMushrooms.SdfPackedMesh.Positions(filter.sharedMesh);
+                    var matrix = renderer.localToWorldMatrix;
+                    for (var sub = 0; sub < filter.sharedMesh.subMeshCount; sub++)
+                        fitter.Add(vertices, filter.sharedMesh.GetTriangles(sub), matrix);
+                    foreach (var vertex in vertices)
+                    {
+                        var p = matrix.MultiplyPoint3x4(vertex);
+                        if (p.x * p.x + p.z * p.z <= UndersideRadius * UndersideRadius)
+                            underside = Mathf.Min(underside, p.y);
+                    }
                 }
-                return (bounds.center, bounds.size, triangles);
+                return (bounds.center, bounds.size, triangles, fitter.Result(), underside);
             }
             finally
             {

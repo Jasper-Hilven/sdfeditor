@@ -5,11 +5,13 @@
 # neck ends at y=-0.246 (1.569 m); the mantle's underside sits at -0.27 and hides the join over the collar. The head turns on the Head
 # bone, 0.25 m under the origin, so it nods from the neck. The eyes are the machines' eye part (eye_machine, a 12 cm ball meshed coarse) at half size, meshed once, used twice.
 # Detail 0.95 (a head this small gets few cells at the default resolution): about 3.3k triangles of head and 2 x 300 of eyes at LOD0.
+# Phase 2 (ticket 45): the head is normalized to the common size by a uniform scale in its part (content/parts/yeti_head.sdf), and sits with its
+# underside at y=-0.29 (1.525 m, 4 cm lower than phase 1); the sizes and underside quoted above are phase 1's.
 format 1
 
 # No collider (the hit shape of the head is a number in MonsterHeads), and never culled before 200 m: the head is what reads at range
 collider none
 cull 200
 
-Detail detail=0.95
+Detail detail=0.88
     Part part=yeti_head
