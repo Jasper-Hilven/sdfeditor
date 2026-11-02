@@ -40,8 +40,8 @@ Depends on: 43 (the socket and scale). Blocks: 46, 47.
 - Meshed at 128 cells with LODs and `_fast`, through `MushroomBuilder`'s route, which becomes a `MonsterHeadBuilder` or a shared
   builder. About 3k triangles at LOD0.
 - `MonsterHeads` (Core): the id, the month, the display name and the prefab path, one table read by 46, 47, 48 and 50.
-- The hit capsule on `Head` is resized per head to the head's bounds. Headshots must stay fair: the same size across heads within
-  ±15%, so no head is easier to hit.
+- The hit capsule on `Head` is resized per head to the head's visible shape (changed by the user's review, see Status: no ±15%
+  fairness clamp).
 - **Order**: Yeti and Jack-o'-Lantern first, to settle the scale, the neck join, the readability at 50 m and the budget. Then the
   other 10 in pairs.
 - A capture sheet of all 12 on red and blue bodies, front and three-quarter, near and at 50 m.
@@ -56,7 +56,12 @@ Depends on: 43 (the socket and scale). Blocks: 46, 47.
 **User review of phase 1 (2026-11-02): the Yeti and the Jack-o'-Lantern are approved, with two changes for every head, these two
 included:**
 - **20% bigger**: scale each head 1.2x about its socket origin (Yeti about 0.73 m, pumpkin about 0.52 m across). Re-fit the hit shape
-  with the fairness reference scaled 1.2x too (0.24 m across, 0.264 m up, still +-15%), so the head you see stays the head you hit.
+  with it.
+- **The hitbox equals the visible head** (user decision, replaces the +-15% fairness rule and the 85% fit): each head's hit shape
+  is fitted to its own visible mesh, with no clamp to a reference. A bigger head is easier to headshot, and that is accepted. Fit
+  it tightly: an ellipsoid fitted to the mesh's volume rather than the bounding box, so spikes, tufts and icicles don't inflate it,
+  or a convex or mesh test if `Combat.Trace` can afford one on the web. Test that a shot just outside the visible head misses and
+  one just inside hits.
   51's head pieces (`content/parts/<id>_head.sdf`, `tools/make-head-pieces.py`) must be re-cut from the bigger heads.
 - **4 cm lower** (less neck): the head sits 4 cm lower on the soldier. Lower the whole head 4 cm against the socket (the head's
   underside at about 1.525 m, not 1.565). Don't move the socket, which 43's tests and 44's animation use. Check that the collar does
