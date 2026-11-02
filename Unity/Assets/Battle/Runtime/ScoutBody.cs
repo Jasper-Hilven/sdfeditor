@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SdfBattle
 {
     /// <summary>
-    /// The scout drawn for a player (ticket 20): an instance of the team's scout prefab (amanita-scout red, chanterelle-scout blue) at
+    /// The scout drawn for a player (ticket 20), now only the fallback of the soldier body (ticket 44: <see cref="SoldierPuppet"/>) when the soldier models were not imported: an instance of the team's scout prefab (amanita-scout red, chanterelle-scout blue) at
     /// the player's feet, turning with its yaw. The floating eyes and hands (the prefab's eye.0, eye.1, hand.0, hand.1) follow the aim:
     /// the eyes look up and down with the pitch, the hands swing round the eyes' height with it, and all four bob a little, out of step,
     /// as the scouts float them. Purely visual: no collider of its own (the player's capsule is what is hit).
@@ -32,6 +32,10 @@ namespace SdfBattle
         /// <summary>The team's scout at the player's feet, its eyes and hands on <paramref name="controller"/>'s aim.</summary>
         public static ScoutBody Create(GameObject prefab, FirstPersonController controller)
         {
+            // The soldier replaced the scout (ticket 44): the scout is drawn only when the soldier models were not imported
+            var owner = controller.GetComponent<Player>();
+            if (owner != null && owner.soldier != null)
+                return null;
             var instance = Instantiate(prefab, controller.transform, false);
             instance.name = "Body";
             instance.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);

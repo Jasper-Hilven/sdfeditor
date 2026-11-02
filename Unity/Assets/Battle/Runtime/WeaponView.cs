@@ -38,6 +38,7 @@ namespace SdfBattle
         private float recoil;
         private float spinAngle;
         private bool hidden;
+        private bool handsAreSockets;
 
         public bool FirstPerson => viewCamera != null;
 
@@ -56,17 +57,28 @@ namespace SdfBattle
         public static WeaponView Create(Arsenal arsenal, WeaponTableAsset assets, Camera view)
         {
             var root = new GameObject("Weapons").transform;
-            var body = arsenal.Player.body;
+            var body = arsenal.Player.BodyRoot;
             // A bot's weapons go with its body, so they vanish with it when it dies
-            root.SetParent(view != null ? view.transform : body != null ? body.transform : arsenal.transform, false);
+            root.SetParent(view != null ? view.transform : body != null ? body : arsenal.transform, false);
             var weaponView = root.gameObject.AddComponent<WeaponView>();
             weaponView.arsenal = arsenal;
             weaponView.assets = assets;
             weaponView.viewCamera = view != null ? view.transform : null;
             if (view == null && body != null)
             {
-                weaponView.hands = FindHands(body.transform);
-                weaponView.reach = weaponView.hands != null ? System.Array.ConvertAll(weaponView.hands, Reach) : null;
+                var soldier = arsenal.Player.soldier;
+                if (soldier != null)
+                {
+                    // The soldier holds a weapon at the grip socket of its right hand (dual pistols: the left hand's socket too), in its own size
+                    weaponView.hands = System.Array.FindAll(soldier.Hands(), t => t != null);
+                    weaponView.reach = new float[weaponView.hands.Length];
+                    weaponView.handsAreSockets = true;
+                }
+                else
+                {
+                    weaponView.hands = FindHands(body);
+                    weaponView.reach = weaponView.hands != null ? System.Array.ConvertAll(weaponView.hands, Reach) : null;
+                }
             }
             // Every weapon made now, hidden, so picking one up mid-round makes nothing
             if (assets != null && assets.looks != null)
@@ -246,8 +258,8 @@ namespace SdfBattle
                 var hand = which >= 0 ? hands[which] : null;
                 var at = hand != null ? hand.position + aim * Vector3.forward * reach[which] : arsenal.transform.position + arsenal.transform.rotation * new Vector3(0.3f * (i == 0 ? 1 : -1), 0.9f, 0.2f);
                 var kicked = aim * Quaternion.Euler(-6 * recoil * (dual && nextMuzzle == i ? 0.4f : 1f), 0, 0);
-                model.SetPositionAndRotation(at - kicked * (look.grip * look.handScale), kicked);
-                model.localScale = Vector3.one * look.handScale;
+                model.SetPositionAndRotation(at - kicked * (look.grip * (handsAreSockets ? 1 : look.handScale)), kicked);
+                model.localScale = Vector3.one * (handsAreSockets ? 1 : look.handScale);
             }
         }
     }

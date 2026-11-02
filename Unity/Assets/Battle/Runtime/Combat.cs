@@ -126,6 +126,7 @@ namespace SdfBattle
             match.State.Spawned += OnSpawned;
             match.State.Died += OnDied;
             match.State.RoundReset += OnRoundReset;
+            State.Damaged += OnDamagedBody;
             WeaponPickup.CanPickUp = CanTakeWeapon;
             WeaponPickup.PickedUp += OnWeaponPickedUp;
             HealthPickup.CanPickUp = CanTakeHealth;
@@ -149,6 +150,8 @@ namespace SdfBattle
                 Match.State.Died -= OnDied;
                 Match.State.RoundReset -= OnRoundReset;
             }
+            if (State != null)
+                State.Damaged -= OnDamagedBody;
         }
 
         /// <summary>The arsenal of a player.</summary>
@@ -583,6 +586,30 @@ namespace SdfBattle
                 return;
             ArsenalOf(player)?.ResetLife();
             player.Controller.slowMultiplier = 1;
+            var soldier = player.soldier;
+            if (soldier == null)
+                return;
+            if (death.Cause != DeathCause.Killed)
+            {
+                // A fall or the rules take the body away
+                soldier.gameObject.SetActive(false);
+                return;
+            }
+            // The soldier holds its last pose where it fell, pushed away from the killer: ticket 51's ragdoll starts from this
+            var push = Vector3.zero;
+            if (Match.PlayerOf(death.Killer) is { } killer && killer != player)
+                push = player.transform.position - killer.transform.position;
+            soldier.Animator.Died(push);
+        }
+
+        /// <summary>A player took a hit: its soldier flinches to the side it came from.</summary>
+        private void OnDamagedBody(PlayerState victim, Damage damage, float taken)
+        {
+            var player = Match.PlayerOf(victim);
+            if (player == null || player.soldier == null || !victim.Alive || taken <= 0 || damage.OverTime)
+                return;
+            var from = damage.From ?? (Match.PlayerOf(damage.Attacker) is { } attacker ? attacker.transform.position : player.transform.position + player.transform.forward);
+            player.soldier.Animator.Hit(from);
         }
 
         private void OnRoundReset()

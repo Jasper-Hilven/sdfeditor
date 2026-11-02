@@ -201,7 +201,8 @@ namespace SdfBattle
             lastFrom.Remove(death.Victim);
 
             var team = death.Victim.Team;
-            var corpse = Corpse.Make(this, player, death, match.ScoutOf(team), assets != null ? assets.scoutPieces : null, away,
+            // The soldier does not burst (ticket 44; the head and the ragdoll are 45 and 51): no scout corpse over it
+            var corpse = Corpse.Make(this, player, death, player.soldier != null ? null : match.ScoutOf(team), assets != null ? assets.scoutPieces : null, away,
                 GoreRules.Flings(level));
             if (corpse != null)
             {

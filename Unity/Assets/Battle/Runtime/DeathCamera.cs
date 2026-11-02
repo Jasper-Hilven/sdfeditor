@@ -74,6 +74,8 @@ namespace SdfBattle
             weapons = arsenal != null && arsenal.View != null ? arsenal.View.gameObject : null;
             if (weapons != null)
                 weapons.SetActive(false);
+            // Your own body, hidden in first person, is what you watch
+            player.soldier?.SetVisible(true);
         }
 
         private void OnSpawned(PlayerState state)
@@ -86,6 +88,7 @@ namespace SdfBattle
             view.localRotation = Quaternion.Euler(player.Controller.Pitch, 0, 0);
             if (weapons != null)
                 weapons.SetActive(true);
+            player.soldier?.SetVisible(false);
         }
 
         private void LateUpdate()

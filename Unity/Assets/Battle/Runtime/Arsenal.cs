@@ -152,6 +152,7 @@ namespace SdfBattle
             Firing = held && trigger.SpinFraction >= 1 && !trigger.Overheated;
             if (shots > 0)
             {
+                Player.soldier?.Animator.Fire(BodyAnimationRules.AutomaticFire(equipped));
                 combat.State.Fired(state);
                 var eye = EyePosition;
                 var aim = AimDirection;
@@ -161,6 +162,8 @@ namespace SdfBattle
                     View?.Kick();
                 }
             }
+            if (held && BodyAnimationRules.FiresWhileHeld(equipped) && shots == 0)
+                Player.soldier?.Animator.Fire(true);
             if (stats.mode == FireMode.Cone && held && Muzzle != null)
                 combat.Fx.Flame(Muzzle, AimDirection, combat.FlameLength(EyePosition, AimDirection, stats.range), Time.deltaTime, Player.IsYou);
             View?.Spin(stats.spinUp > 0 ? trigger.SpinFraction : 0);

@@ -211,12 +211,12 @@ namespace SdfBattle
             // Thick Hide swells the monster, in and out over a fifth of a second
             var target = on && meter.Power == SporePower.ThickHide ? 1 : 0;
             swell[index] = Mathf.MoveTowards(swell[index], target, dt * 5);
-            if (player.body != null)
+            if (player.BodyRoot != null)
             {
                 var s = Vector2.Lerp(Vector2.one, thickHideSwell, swell[index] * swell[index] * (3 - 2 * swell[index]));
                 var scale = new Vector3(s.x, s.y, s.x);
-                if (player.body.transform.localScale != scale)
-                    player.body.transform.localScale = scale;
+                if (player.BodyRoot.localScale != scale)
+                    player.BodyRoot.localScale = scale;
             }
         }
     }
