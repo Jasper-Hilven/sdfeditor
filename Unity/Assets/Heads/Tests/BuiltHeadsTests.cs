@@ -93,11 +93,12 @@ namespace SdfHeads.Tests
         [Test]
         public void TheHeadsStandOnTheNeckAndClearTheCollar()
         {
-            // 4 cm lower than phase 1 (user review): the underside at about 1.525 m, the neck's top (1.569) a few centimetres inside the head
+            // 4 cm lower than phase 1, then at least 5 cm more (user review 2: no visible neck; each head's own lowering is in its _head part): the underside at 1.475 m or lower, the neck's top (1.569) inside the head
             foreach (var entry in Models().entries)
             {
                 var low = SoldierBody.HeadTopHeight + entry.underside;
-                Assert.AreEqual(1.525f, low, 0.045f, entry.id + " underside (the chin or main mass sits at 1.525 m; a beard's tuft or a tentacle may hang a few centimetres lower)");
+                Assert.LessOrEqual(low, 1.475f + 0.001f, entry.id + " underside (at least 5 cm under phase 2's 1.525 m)");
+                Assert.Greater(low, 1.15f, entry.id + " underside (not through the chest)");
                 Assert.Less(low, SoldierBody.NeckTop - 0.02f, entry.id + " the neck's top is inside the head");
             }
         }

@@ -66,7 +66,7 @@ namespace SdfHeads.Editor
                 ShaderUtil.allowAsyncCompilation = false;
                 var front = new Vector3(0, 0.05f, 1).normalized;
                 var quarter = new Vector3(-0.7f, 0.12f, 0.7f).normalized;   // from the soldier's right front (-X is its right)
-                var closeViews = new[] { front, new Vector3(-1, 0.05f, 0.02f).normalized, quarter };
+                var closeViews = new[] { front, new Vector3(-1, 0.05f, 0.02f).normalized, quarter, new Vector3(0, 0.05f, -1) };   // front, side, three-quarter, back
                 var closeTiles = new System.Collections.Generic.List<Texture2D>();
                 foreach (var entry in models.entries)
                 {
@@ -95,9 +95,13 @@ namespace SdfHeads.Editor
                         }
                         Object.DestroyImmediate(soldier);
                     }
+                    // The red body's two near tiles on their own, for the contact sheet (tools/make-heads-all.py)
+                    Directory.CreateDirectory(Path.Combine(directory, "tiles"));
+                    File.WriteAllBytes(Path.Combine(directory, "tiles", $"{entry.id}-front.png"), tiles[0].EncodeToPNG());
+                    File.WriteAllBytes(Path.Combine(directory, "tiles", $"{entry.id}-quarter.png"), tiles[1].EncodeToPNG());
                     Save(Atlas(tiles, 4, 2, 512, 768), Path.Combine(directory, $"heads-{entry.id}.png"));
                 }
-                Save(Atlas(closeTiles.ToArray(), 3, models.entries.Length, 480, 480), Path.Combine(directory, "heads-closeup.png"));
+                Save(Atlas(closeTiles.ToArray(), closeViews.Length, models.entries.Length, 480, 480), Path.Combine(directory, "heads-closeup.png"));
             }
             finally
             {

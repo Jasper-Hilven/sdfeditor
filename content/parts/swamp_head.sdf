@@ -4,8 +4,8 @@ format 1
 
 # Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
 # (1.525 m). The shape below is drawn at its own size.
-Translate translation=(0, -0.0096, 0)
-    Scale scale=(1.2652, 1.2652, 1.2652)
+Translate translation=(0, -0.0609, 0)
+    Scale scale=(1.2662, 1.2662, 1.2662)
         Union
             # The mud head: a lumpy mass with a heavy brow, a wide flat nose and a mouth slit, the eye sockets and mouth cut into it
             Material material=swamp_mud
@@ -81,16 +81,3 @@ Translate translation=(0, -0.0096, 0)
                     # Reeds
                     ArbitraryRoundCone a=(0.04, 0.2, -0.05) b=(0.1, 0.3, -0.08) radiusA=0.018 radiusB=0.005
                     ArbitraryRoundCone a=(-0.04, 0.2, -0.02) b=(-0.08, 0.27, 0.03) radiusA=0.016 radiusB=0.005
-            # Drips of slime: from the brow, the nose and the chin
-            Material material=swamp_slime
-                Union
-                    ArbitraryRoundCone a=(0.1, 0.0, 0.215) b=(0.1, -0.1, 0.225) radiusA=0.014 radiusB=0.008
-                    Translate translation=(0.1, -0.11, 0.225)
-                        Sphere radius=0.016
-                    ArbitraryRoundCone a=(-0.04, -0.19, 0.25) b=(-0.04, -0.3, 0.25) radiusA=0.016 radiusB=0.01
-                    Translate translation=(-0.04, -0.31, 0.25)
-                        Sphere radius=0.018
-                    ArbitraryRoundCone a=(0.06, -0.2, 0.22) b=(0.06, -0.26, 0.22) radiusA=0.014 radiusB=0.009
-                    Translate translation=(0.06, -0.27, 0.22)
-                        Sphere radius=0.015
-                    ArbitraryRoundCone a=(0, -0.05, 0.29) b=(0, -0.11, 0.3) radiusA=0.01 radiusB=0.007

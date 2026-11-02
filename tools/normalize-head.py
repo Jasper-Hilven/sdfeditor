@@ -4,11 +4,11 @@ fits an ellipsoid to the mesh's volume (the same fit as SdfHeads.HeadFit: the vo
 the two lines at the top of content/parts/<id>_head.sdf,
     Translate translation=(0, DY, 0)
         Scale scale=(S, S, S)
-so the fit's volume is the target (1.2 cubed times the mean of phase 1's Yeti and pumpkin, 0.1048 m3) and the head's underside is at y=-0.29
-(1.525 m over the soles, the socket being at 1.815). The underside is the lowest point of the mesh within 12 cm of the neck's axis, or --ref
+so the fit's volume is the target (1.2 cubed times the mean of phase 1's Yeti and pumpkin, 0.1048 m3) and the head's underside is at y=--under (default -0.34, 1.475 m over the soles: 9 cm under the first model, user review 2; phase 2 had -0.29)
+(the socket being at 1.815). The underside is the lowest point of the mesh within 12 cm of the neck's axis, or --ref
 (the lowest point of the main mass as drawn, before scaling) for a head with something hanging below it (tentacles, a beard's tips).
 The model's Detail is set to --detail divided by the scale, so the cell size follows the head's size. Prints the fit against the target.
-Usage: tools/normalize-head.py <id> [--detail 0.9] [--ref -0.25] [--passes 2]"""
+Usage: tools/normalize-head.py <id> [--detail 0.9] [--ref -0.25] [--under -0.34] [--passes 2]"""
 import math, os, re, struct, json, subprocess, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SDF = os.path.join(ROOT, "SDFPipeline.Cli/bin/Debug/net10.0/sdf")
@@ -71,6 +71,7 @@ def main():
     a = sys.argv[1:]
     id = a[0]
     opt = lambda name, d: float(a[a.index(name) + 1]) if name in a else d
+    under = opt("--under", -0.34)
     detail, ref, passes = opt("--detail", 0.9), (opt("--ref", None) if "--ref" in a else None), int(opt("--passes", 2))
     part = os.path.join(ROOT, f"content/parts/{id}_head.sdf"); model = os.path.join(ROOT, f"content/models/characters/monsters/{id}.sdf")
     t = open(part).read()
@@ -88,7 +89,7 @@ def main():
               f"dev x/y/z/vol {[f'{d:+.1%}' for d in dev]}  underside {r['underside']:.3f}  tris {r['tris']}  centre {[round(x, 3) for x in r['centre']]}")
         if p == passes: break
         k = (TARGET_V / r["vol"]) ** (1 / 3)
-        dy = -0.29 - (ref * s * k if ref is not None else (r["underside"] - dy) * k)
+        dy = under - (ref * s * k if ref is not None else (r["underside"] - dy) * k)
         s *= k
         t = t[:m.start()] + f"Translate translation=(0, {dy:.4f}, 0)\n    Scale scale=({s:.4f}, {s:.4f}, {s:.4f})\n" + t[m.end():]
         open(part, "w").write(t); m = re.search(r"^Translate translation=\(0, (-?[\d.]+), 0\)\n    Scale scale=\(([\d.]+), [\d.]+, [\d.]+\)\n", t, re.M)
