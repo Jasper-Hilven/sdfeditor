@@ -1,0 +1,97 @@
+# Frankenstein's Monster's head shape (ticket 45), a part so the model (content/models/characters/monsters/frankenstein.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size. Box sizes are half extents (the pipeline's).
+Translate translation=(0, -0.0659, 0)
+    Scale scale=(1.0913, 1.0913, 1.0913)
+        Union
+            # The grey-green skin: a square block of a head with a flat top, a heavy brow ridge, a blunt nose, lids, ears, a mouth line
+            Material material=frank_skin
+                Subtraction
+                    Union
+                        Translate translation=(0, 0.0, -0.02)
+                            RoundBox size=(0.2, 0.18, 0.23) roundness=0.06
+                        # The heavy brow ridge, jutting over the eyes
+                        Translate translation=(0, 0.085, 0.23)
+                            RoundBox size=(0.2, 0.035, 0.05) roundness=0.025
+                        # The jaw, squared off, thrust a little forward
+                        Translate translation=(0, -0.155, 0.05)
+                            RoundBox size=(0.17, 0.05, 0.15) roundness=0.03
+                        # The nose, blunt
+                        Translate translation=(0, -0.045, 0.25)
+                            RoundBox size=(0.035, 0.05, 0.04) roundness=0.02
+                        # Ears
+                        SymmetryX
+                            Translate translation=(0.205, -0.01, -0.01)
+                                RoundBox size=(0.02, 0.045, 0.03) roundness=0.012
+                        # Heavy lids, drooping over the eyes
+                        SymmetryX
+                            Translate translation=(0.085, 0.07, 0.230)
+                                RoundBox size=(0.05, 0.015, 0.03) roundness=0.01
+                    # The flat mouth line and a few gaps for the teeth
+                    Translate translation=(0, -0.13, 0.250)
+                        Box size=(0.095, 0.011, 0.045)
+            Material material=frank_mouth
+                Intersection
+                    Translate translation=(0, -0.13, 0.250)
+                        Box size=(0.095, 0.011, 0.045)
+                    Plane normal=(0, 0, 1) height=-0.2
+            Material material=frank_tooth
+                Union
+                    Translate translation=(-0.05, -0.122, 0.255)
+                        Box size=(0.014, 0.006, 0.006)
+                    Translate translation=(0.0, -0.138, 0.255)
+                        Box size=(0.014, 0.006, 0.006)
+                    Translate translation=(0.05, -0.122, 0.255)
+                        Box size=(0.014, 0.006, 0.006)
+            # Coarse black hair: a flat slab on top, a fringe of points hanging over the brow, side tufts
+            Material material=frank_hair
+                Union
+                    Translate translation=(0, 0.195, -0.02)
+                        RoundBox size=(0.205, 0.035, 0.23) roundness=0.02
+                    ArbitraryRoundCone a=(-0.15, 0.2, 0.210) b=(-0.14, 0.14, 0.240) radiusA=0.035 radiusB=0.004
+                    ArbitraryRoundCone a=(-0.075, 0.2, 0.220) b=(-0.075, 0.13, 0.250) radiusA=0.035 radiusB=0.004
+                    ArbitraryRoundCone a=(0, 0.2, 0.220) b=(0.0, 0.135, 0.255) radiusA=0.035 radiusB=0.004
+                    ArbitraryRoundCone a=(0.075, 0.2, 0.220) b=(0.075, 0.13, 0.250) radiusA=0.035 radiusB=0.004
+                    ArbitraryRoundCone a=(0.15, 0.2, 0.210) b=(0.14, 0.14, 0.240) radiusA=0.035 radiusB=0.004
+                    SymmetryX
+                        ArbitraryRoundCone a=(0.2, 0.15, -0.02) b=(0.215, 0.04, -0.01) radiusA=0.03 radiusB=0.005
+            # Scars and stitches: a long scar across the forehead with cross stitches, a short one on the cheek
+            Material material=frank_scar
+                Union
+                    Translate translation=(0.04, 0.165, 0.211)
+                        Box size=(0.1, 0.007, 0.005)
+                    Translate translation=(-0.03, 0.165, 0.212)
+                        Box size=(0.006, 0.025, 0.005)
+                    Translate translation=(0.02, 0.165, 0.212)
+                        Box size=(0.006, 0.025, 0.005)
+                    Translate translation=(0.07, 0.165, 0.212)
+                        Box size=(0.006, 0.025, 0.005)
+                    Translate translation=(0.115, 0.165, 0.212)
+                        Box size=(0.006, 0.025, 0.005)
+                    Translate translation=(-0.14, -0.06, 0.212)
+                        Rotate rotation=(0, 0, 0.5)
+                            Box size=(0.006, 0.05, 0.005)
+                    Translate translation=(-0.14, -0.06, 0.213)
+                        Rotate rotation=(0, 0, -0.5)
+                            Box size=(0.006, 0.02, 0.005)
+            # The neck bolts: two big steel bolts through the jaw, a head and a washer on each end
+            Material material=frank_metal
+                SymmetryX
+                    Union
+                        Translate translation=(0.215, -0.16, 0.0)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                CappedCylinder radius=0.032 height=0.16
+                        Translate translation=(0.3, -0.16, 0.0)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                RoundedCylinder radius=0.055 roundness=0.01 height=0.03
+                        Translate translation=(0.26, -0.16, 0.0)
+                            Rotate rotation=(0, 0, 1.5707964)
+                                CappedCylinder radius=0.045 height=0.012
+            # Eyes: small, deep under the brow
+            SymmetryX
+                Translate translation=(0.085, 0.035, 0.195)
+                    Scale scale=(0.38, 0.38, 0.38)
+                        Part part=eye_machine

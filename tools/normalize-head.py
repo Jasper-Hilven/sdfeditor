@@ -46,9 +46,15 @@ def measure(path):
             I = [x[0] for x in acc(j, b, pr["indices"])]
             for q in Q:
                 for k in range(3): lo[k] = min(lo[k], q[k]); hi[k] = max(hi[k], q[k])
-                if math.hypot(q[0], q[2]) <= 0.12: under = min(under, q[1])
             for t in range(0, len(I), 3):
                 a, bb, c = Q[I[t]], Q[I[t+1]], Q[I[t+2]]; tris += 1
+                # the underside: the lowest point of the surface within 12 cm of the neck's axis, sampled over each triangle (a flat chin has no vertex there)
+                for si in range(7):
+                    for sj in range(7 - si):
+                        u, w = si / 6, sj / 6
+                        px = a[0] + u * (bb[0] - a[0]) + w * (c[0] - a[0]); pz = a[2] + u * (bb[2] - a[2]) + w * (c[2] - a[2])
+                        if px * px + pz * pz <= 0.0144:
+                            under = min(under, a[1] + u * (bb[1] - a[1]) + w * (c[1] - a[1]))
                 v = (a[0]*(bb[1]*c[2]-bb[2]*c[1]) + a[1]*(bb[2]*c[0]-bb[0]*c[2]) + a[2]*(bb[0]*c[1]-bb[1]*c[0])) / 6
                 V += v
                 for k in range(3):

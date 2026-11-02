@@ -1,0 +1,18 @@
+# The frankenstein head, bursting: the crown piece (1 of 7). Made by tools/make-head-pieces.py (do not edit by hand): the head
+# (the frankenstein_head part, so the pieces follow its edits) intersected with the Voronoi cell of one seed; the cells split all of space with
+# no gap or overlap, so the pieces together are the head. The cut faces are the head_inner material. Low detail: debris lives seconds.
+format 1
+collider none
+surface part=frankenstein_head
+
+Detail detail=0.5
+    Intersection
+        Part part=frankenstein_head
+        Material material=head_inner
+            Intersection
+                Plane normal=(0.4969, -0.6776, 0.5421) height=-0.0226
+                Plane normal=(-0.4969, -0.6776, 0.5421) height=-0.0226
+                Plane normal=(0.4969, -0.6776, -0.5421) height=-0.0226
+                Plane normal=(-0.4969, -0.6776, -0.5421) height=-0.0226
+                Plane normal=(0.0000, -0.9377, 0.3473) height=-0.0221
+                Plane normal=(0.0000, -0.9662, -0.2577) height=-0.0296

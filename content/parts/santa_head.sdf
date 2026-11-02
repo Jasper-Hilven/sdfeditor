@@ -1,0 +1,85 @@
+# The Crazed Evil Santa's head shape (ticket 45), a part so the model (content/models/characters/monsters/santa.sdf) and its bursting pieces
+# (content/models/characters/head-pieces/, ticket 51) share one shape: edit it here and both follow. Frame and notes: see the model.
+format 1
+
+# Normalized by tools/normalize-head.py (ticket 45): one uniform scale about the socket and the whole head set so its underside is at y=-0.29
+# (1.525 m). The shape below is drawn at its own size.
+Translate translation=(0, 0.0185, 0)
+    Scale scale=(1.1142, 1.1142, 1.1142)
+        Union
+            # Flushed pink skin: a round face with fat cheeks (the rest is hidden by beard and hat)
+            Material material=santa_skin
+                Union
+                    Translate translation=(0, 0.0, -0.01)
+                        Ellipsoid radii=(0.23, 0.18, 0.2)
+                    SymmetryX
+                        Translate translation=(0.1, -0.06, 0.11)
+                            Ellipsoid radii=(0.085, 0.08, 0.075)
+            # The big white beard: a mass over the chin and the cheeks, a snarling gap cut in it, a huge moustache curling out and up
+            Material material=santa_beard
+                Union
+                    Subtraction
+                        Union
+                            Translate translation=(0, -0.1, 0.04)
+                                Ellipsoid radii=(0.27, 0.11, 0.2)
+                            Translate translation=(0, -0.17, 0.03)
+                                Ellipsoid radii=(0.18, 0.06, 0.15)
+                            SymmetryX
+                                Translate translation=(0.2, -0.03, 0.0)
+                                    Ellipsoid radii=(0.07, 0.1, 0.13)
+                            # Fluffy lumps on the beard's edge
+                            SymmetryX
+                                Translate translation=(0.18, -0.12, 0.12)
+                                    Sphere radius=0.07
+                            Translate translation=(0, -0.21, 0.1)
+                                Sphere radius=0.07
+                            SymmetryX
+                                Translate translation=(0.1, -0.19, 0.05)
+                                    Sphere radius=0.05
+                        # The snarl
+                        Translate translation=(0, -0.105, 0.2)
+                            Ellipsoid radii=(0.1, 0.04, 0.09)
+                    SymmetryX
+                        Union
+                            Capsule a=(0.01, -0.04, 0.215) b=(0.12, -0.075, 0.19) radius=0.035
+                            Capsule a=(0.12, -0.075, 0.19) b=(0.19, -0.03, 0.13) radius=0.03
+                            ArbitraryRoundCone a=(0.19, -0.03, 0.13) b=(0.24, 0.04, 0.1) radiusA=0.03 radiusB=0.006
+                    # Wild bushy eyebrows, slanting down to the nose
+                    SymmetryX
+                        Capsule a=(0.13, 0.12, 0.13) b=(0.02, 0.07, 0.195) radius=0.032
+            Material material=santa_mouth
+                Intersection
+                    Translate translation=(0, -0.105, 0.2)
+                        Ellipsoid radii=(0.1, 0.04, 0.09)
+                    Plane normal=(0, 0, 1) height=-0.15
+            Material material=santa_tooth
+                SymmetryX
+                    Union
+                        ArbitraryRoundCone a=(0.03, -0.08, 0.255) b=(0.03, -0.125, 0.258) radiusA=0.014 radiusB=0.002
+                        ArbitraryRoundCone a=(0.07, -0.085, 0.24) b=(0.07, -0.145, 0.245) radiusA=0.018 radiusB=0.002
+                        ArbitraryRoundCone a=(0.04, -0.14, 0.255) b=(0.04, -0.1, 0.258) radiusA=0.014 radiusB=0.002
+                        ArbitraryRoundCone a=(0.08, -0.14, 0.24) b=(0.08, -0.1, 0.245) radiusA=0.013 radiusB=0.002
+            # The glowing red nose (emission)
+            Material material=santa_nose
+                Translate translation=(0, -0.015, 0.225)
+                    Sphere radius=0.062
+            # The giant festive hat: a white fur band round the head, a red cone as big as the head that droops back and to the side,
+            # and a white pompom on the tip
+            Material material=santa_beard
+                Union
+                    Translate translation=(0, 0.115, -0.01)
+                        Subtraction
+                            Ellipsoid radii=(0.245, 0.055, 0.225)
+                            Ellipsoid radii=(0.17, 0.08, 0.16)
+                    Translate translation=(0.29, 0.06, -0.32)
+                        Sphere radius=0.075
+            Material material=santa_hat
+                Union
+                    ArbitraryRoundCone a=(0, 0.12, -0.01) b=(0.02, 0.14, -0.06) radiusA=0.2 radiusB=0.17
+                    ArbitraryRoundCone a=(0.02, 0.14, -0.06) b=(0.14, 0.15, -0.2) radiusA=0.17 radiusB=0.11
+                    ArbitraryRoundCone a=(0.14, 0.15, -0.2) b=(0.27, 0.07, -0.3) radiusA=0.1 radiusB=0.055
+            # Eyes: wide and crazed, with tiny red irises
+            SymmetryX
+                Translate translation=(0.085, 0.04, 0.17)
+                    Scale scale=(0.5, 0.5, 0.5)
+                        Part part=monster_eye_santa
