@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -12,14 +11,14 @@ using UnityEngine.SceneManagement;
 namespace SdfCampaign.Editor
 {
     /// <summary>
-    /// The streamed part of the web build (ticket 38): every level after the first, as AssetBundles, so the player (Boot, the GUI and the Meadow)
-    /// is the initial download and the rest is fetched as the game goes there.
+    /// The streamed part of the web build (ticket 38): every level, the Meadow too, as AssetBundles (ticket 52), so the player (Boot and the GUI)
+    /// is the initial download and the levels are fetched as the game goes there; the first one behind the Loading screen.
     /// <list type="bullet">
-    /// <item>Each later scene is a scene bundle (<c>fungal</c>); a bundle holds scenes or assets, not both. The assets a scene needs are split by
-    /// who uses them: those only that scene uses in <c>fungal-assets</c>, those used by several later scenes in a <c>shared-xxxx</c> bundle per
+    /// <item>Each level is a scene bundle (<c>fungal</c>); a bundle holds scenes or assets, not both. The assets a scene needs are split by
+    /// who uses them: those only that scene uses in <c>fungal-assets</c>, those used by several levels (those every level uses, the soldier, heads, weapons and effects, are the one all-levels shared bundle) in a <c>shared-xxxx</c> bundle per
     /// distinct set of scenes. Every asset is in exactly one bundle (no implicit copies in several), and loading a scene loads the bundles that
     /// hold its assets first.</item>
-    /// <item>Assets the player carries as well (used by Boot or the first arena, or in a Resources folder) cannot be shared with a bundle: they
+    /// <item>Assets the player carries as well (used by Boot or in a Resources folder) cannot be shared with a bundle: they
     /// are copied into the bundle that needs them. The log lists the largest.</item>
     /// <item>The bundles are LZ4 chunk-compressed (the only compression WebGL loads), named with their content hash, and written to the
     /// build's <c>StreamingAssets/Bundles</c> folder; the list of them (<see cref="StreamManifest"/>) goes into the player as Resources/StreamedContent.</item>
@@ -81,21 +80,25 @@ namespace SdfCampaign.Editor
 
         private void Build(BuildTarget target)
         {
-            var scenes = CampaignBuildScenes.StreamedPaths().ToList();
-            var playerScenes = CampaignBuildScenes.PlayerPaths().ToList();
+            var scenes = LevelBuildScenes.StreamedPaths().ToList();
+            var playerScenes = LevelBuildScenes.PlayerPaths().ToList();
             if (scenes.Count == 0)
-                throw new Exception("StreamedBundles: no later scenes to stream");
+                throw new Exception("StreamedBundles: no levels to stream");
 
-            // What every later scene needs
+            // What every level needs
             var uses = new Dictionary<string, SortedSet<string>>();
-            var sceneAssets = new Dictionary<string, List<string>>();
+            var assetsByScene = new Dictionary<string, IEnumerable<string>>();
+            var scenePaths = new Dictionary<string, string>();
+            var realNames = new Dictionary<string, string>();
             var codeAssets = new HashSet<string>();
             foreach (var scene in scenes)
             {
-                var name = Path.GetFileNameWithoutExtension(scene).ToLowerInvariant();
-                var all = AssetDatabase.GetDependencies(scene, true);
-                sceneAssets[name] = all.ToList();
-                foreach (var path in all)
+                var real = Path.GetFileNameWithoutExtension(scene);
+                var name = real.ToLowerInvariant();
+                scenePaths[name] = scene;
+                realNames[name] = real;
+                var needed = new List<string>();
+                foreach (var path in AssetDatabase.GetDependencies(scene, true))
                 {
                     if (path == scene || path.EndsWith(".unity"))
                         continue;
@@ -105,28 +108,21 @@ namespace SdfCampaign.Editor
                             codeAssets.Add(path);
                         continue;
                     }
+                    needed.Add(path);
                     if (!uses.TryGetValue(path, out var set))
                         uses[path] = set = new SortedSet<string>(StringComparer.Ordinal);
                     set.Add(name);
                 }
+                assetsByScene[name] = needed;
             }
 
-            // Bundles: signature (the set of scenes that use an asset) to its assets
-            var builds = new List<AssetBundleBuild>();
-            var bundleScenes = new Dictionary<string, List<string>>(); // asset bundle name to the scenes (lower case) that load it
-            var groups = uses.GroupBy(pair => string.Join("+", pair.Value));
-            foreach (var group in groups.OrderBy(g => g.Key, StringComparer.Ordinal))
+            // Bundles: the layout is StreamLayout's (tested); a scene bundle holds the scene file
+            StreamLayout.Plan(assetsByScene, out var planned, out var plannedEntries, realNames);
+            var builds = planned.Select(b => new AssetBundleBuild
             {
-                var sceneNames = group.First().Value.ToList();
-                var name = sceneNames.Count == 1 ? sceneNames[0] + "-assets" : "shared-" + ShortHash(group.Key);
-                builds.Add(new AssetBundleBuild { assetBundleName = name, assetNames = group.Select(p => p.Key).OrderBy(p => p, StringComparer.Ordinal).ToArray() });
-                bundleScenes[name] = sceneNames;
-            }
-            foreach (var scene in scenes)
-            {
-                var name = Path.GetFileNameWithoutExtension(scene).ToLowerInvariant();
-                builds.Add(new AssetBundleBuild { assetBundleName = name, assetNames = new[] { scene } });
-            }
+                assetBundleName = b.name,
+                assetNames = b.isScene ? new[] { scenePaths[b.name] } : b.assets,
+            }).ToList();
 
             WriteLink(scenes, uses.Keys, codeAssets);
             ReportDuplicates(uses, playerScenes);
@@ -140,7 +136,7 @@ namespace SdfCampaign.Editor
             if (built == null)
                 throw new Exception("StreamedBundles: BuildAssetBundles failed (see the errors above)");
 
-            // The manifest: files named by content, and what each scene and comic loads (shared first, the scene last)
+            // The manifest: files named by content, and what each scene loads (shared first, the scene last)
             var bundles = new List<StreamedBundle>();
             foreach (var build in builds)
             {
@@ -150,15 +146,7 @@ namespace SdfCampaign.Editor
                 bundles.Add(new StreamedBundle { name = build.assetBundleName, file = file, hash = hash, size = new FileInfo(source).Length });
                 Files[file] = source;
             }
-            var entries = new List<StreamedEntry>();
-            foreach (var scene in scenes)
-            {
-                var name = Path.GetFileNameWithoutExtension(scene).ToLowerInvariant();
-                var list = bundleScenes.Where(p => p.Value.Contains(name)).Select(p => p.Key).OrderBy(n => n.StartsWith("shared-") ? 0 : 1).ThenBy(n => n, StringComparer.Ordinal).ToList();
-                list.Add(name);
-                entries.Add(new StreamedEntry { key = StreamManifest.SceneKey(Path.GetFileNameWithoutExtension(scene)), bundles = list.Distinct().ToArray() });
-            }
-            Manifest = new StreamManifest { bundles = bundles.ToArray(), entries = entries.ToArray() };
+            Manifest = new StreamManifest { bundles = bundles.ToArray(), entries = plannedEntries.ToArray() };
             // The key of a scene is its real name ("Fungal"); the Resources manifest carries it
             File.WriteAllText(ManifestAsset, Manifest.ToJson());
             AssetDatabase.ImportAsset(ManifestAsset, ImportAssetOptions.ForceSynchronousImport);
@@ -176,7 +164,7 @@ namespace SdfCampaign.Editor
             Debug.Log(text.ToString());
         }
 
-        // Assets that are in the player (Boot's and the first arena's closure, everything in Resources) as well as in a bundle: a copy each
+        // Assets that are in the player (Boot's closure, everything in Resources) as well as in a bundle: a copy each
         private static void ReportDuplicates(Dictionary<string, SortedSet<string>> uses, List<string> playerScenes)
         {
             var player = new HashSet<string>(AssetDatabase.GetDependencies(playerScenes.ToArray(), true));
@@ -246,12 +234,6 @@ namespace SdfCampaign.Editor
             File.WriteAllText(LinkAsset, xml.ToString());
             AssetDatabase.ImportAsset(LinkAsset, ImportAssetOptions.ForceSynchronousImport);
             Debug.Log($"StreamedBundles: link.xml keeps {types.Sum(p => p.Value.Count)} types of {types.Count} assemblies and {modules.Count} engine modules ({string.Join(", ", modules)})");
-        }
-
-        private static string ShortHash(string text)
-        {
-            using var sha = SHA1.Create();
-            return string.Concat(sha.ComputeHash(Encoding.UTF8.GetBytes(text)).Take(4).Select(b => b.ToString("x2")));
         }
     }
 }

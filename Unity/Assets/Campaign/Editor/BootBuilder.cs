@@ -65,7 +65,7 @@ namespace SdfCampaign.Editor
             loader.flow = flow;
 
             EditorSceneManager.SaveScene(scene, ScenePath);
-            CampaignBuildScenes.Update();
+            LevelBuildScenes.Update();
             AssetDatabase.SaveAssets();
             Debug.Log($"SDF Campaign: built {ScenePath}");
         }

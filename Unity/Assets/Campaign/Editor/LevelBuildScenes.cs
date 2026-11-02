@@ -7,22 +7,21 @@ using UnityEngine;
 namespace SdfCampaign.Editor
 {
     /// <summary>
-    /// The build's scene list, written from the campaign's steps (ticket 32.4): Boot first (build index 0), then each step's scene that
-    /// exists, once, in campaign order. The showcases (Mushrooms, GUI, SpecialEffects) are in development builds only, so the web download
+    /// The build's scene list (tickets 32.4, 52): Boot first (build index 0), then the seven levels. The showcases (Mushrooms, GUI, SpecialEffects) are in development builds only, so the web download
     /// does not carry them. Scenes that are editor-only (Home) never go in. The Build Settings list holds the development list with the
     /// showcases disabled, so a builder that takes the enabled scenes (the web build, the CrazySDK build window) builds the release; the
     /// build button of the Build window uses the right one for what it builds.
     /// </summary>
     [InitializeOnLoad]
-    public static class CampaignBuildScenes
+    public static class LevelBuildScenes
     {
         public const string Folder = "Assets/Scenes";
         public static readonly string[] Showcases = { "Mushrooms", "GUI", "SpecialEffects" };
-        // The battle levels the game plays (ticket 41: the arena and Home are gone); the first one is the Meadow, which Boot starts
+        // The battle levels the game plays (ticket 41: the arena and Home are gone). Any of them can be the first (GameLoop's rotation)
         public static readonly string[] Levels = { "Meadow", "Fungal", "Chessboard", "Toybox", "Kitchen", "Bathroom", "Computer" };
         public static readonly string[] EditorOnly = { };
 
-        static CampaignBuildScenes()
+        static LevelBuildScenes()
         {
             BuildPlayerWindow.RegisterBuildPlayerHandler(options =>
             {
@@ -45,16 +44,12 @@ namespace SdfCampaign.Editor
         }
 
         /// <summary>
-        /// The scenes of the streamed web build (ticket 38): Boot and the first battle's scene only, which the player carries; every other
-        /// arena is an AssetBundle (<see cref="StreamedBundles"/>).
+        /// The scenes of the streamed web build (ticket 52): Boot alone. Every level, the Meadow too, is an AssetBundle
+        /// (<see cref="StreamedBundles"/>), and the first one is fetched behind the Loading screen.
         /// </summary>
-        public static IEnumerable<string> PlayerPaths()
-        {
-            var first = GameLoop.FirstLevel;
-            return Paths(false).Where(path => Path.GetFileNameWithoutExtension(path) is var name && (name == "Boot" || name == first));
-        }
+        public static IEnumerable<string> PlayerPaths() => Paths(false).Where(path => StreamLayout.IsPlayerScene(Path.GetFileNameWithoutExtension(path)));
 
-        /// <summary>The release scenes the streamed web build leaves out of the player: the arenas after the first.</summary>
+        /// <summary>The release scenes the streamed web build leaves out of the player: all the levels.</summary>
         public static IEnumerable<string> StreamedPaths()
         {
             var player = PlayerPaths().ToList();

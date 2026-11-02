@@ -2,8 +2,9 @@
 
 The release WebGL build was one 174.5 MB data file loaded before the title. CrazyGames wants an initial download of at most 50 MB (measured
 from the start of loading to the first `gameplayStart`, so the player and anything fetched before the first match count), 250 MB in all and
-1500 files, with relative paths. Now the player carries only Boot, the GUI, the menu backdrop, the intro comic and the Meadow; every later
-arena and comic is an AssetBundle next to it, fetched when the campaign goes there and prefetched in the background before.
+1500 files, with relative paths. Now the player carries only Boot and the GUI; every level, the Meadow too, is an AssetBundle next to it, fetched when the game goes there
+and prefetched in the background before (ticket 52; ticket 38 first kept Boot, the menu backdrop, the intro comic and the Meadow in the player,
+and the comics are gone since 41). The sections below describe the mechanism as 38 built it; where 52 changed it, a note says so.
 
 ## Decision: plain AssetBundles, no Addressables
 
@@ -68,7 +69,11 @@ arena and comic is an AssetBundle next to it, fetched when the campaign goes the
 - Dev check: on a page whose URL contains `streamcheck`, `unityInstance.SendMessage("Campaign", "StreamCheck", "beat-fungal")` runs that step.
   (The default template's `unityInstance` is not global; a test copy of `index.html` with `window.unityInstance = unityInstance` does it.)
 
-## Sizes (release, Brotli player, LZ4 bundles)
+> **Since 52**: the player lists Boot alone; `CampaignBuildScenes` is now `LevelBuildScenes`; all 7 levels are `scene:<Level>` keys; the comics, the
+> `comic` field and the Escape-to-title in the Loading screen are gone (a failed download keeps the retry). The sizes below are 38's, kept as history;
+> 52's table is in `52-every-level-streamed.md`. The "Shared assets" paragraph above is out of date: the duplication is now 79 assets, 7.8 MB.
+
+## Sizes (release, Brotli player, LZ4 bundles) as of ticket 38
 
 | | MB |
 |---|---|
@@ -103,7 +108,7 @@ Meadow's `regions.png` (4.8 MB), the Unity splash logo (2.7 MB).
 
 ## Status
 
-Done and tested as above. Left: get the initial download under 50 MB (ticket 37's mesh packing; then re-measure), try the CrazyGames
+Done and tested as above (ticket 52 later moved the Meadow out of the player and removed the comics; the initial download is 17.7 MB now). Left (the first item is done: 37 and 41 got it under 50 MB): get the initial download under 50 MB (ticket 37's mesh packing; then re-measure), try the CrazyGames
 preview, and check the cache across reloads. The first Loading wait of an arena depends on the prefetch finishing (41 MB at the player's
 connection speed within one match); if it often does not, prefetch earlier (e.g. start in the Meadow's warm-up).
 

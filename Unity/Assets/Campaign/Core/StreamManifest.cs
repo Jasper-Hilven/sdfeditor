@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SdfCampaign
 {
-    /// <summary>One AssetBundle of the web build's streamed content (ticket 38): a file next to the player, its content hash (the cache's version) and size.</summary>
+    /// <summary>One AssetBundle of the web build's streamed content (tickets 38, 52): a file next to the player, its content hash (the cache's version) and size.</summary>
     [Serializable]
     public sealed class StreamedBundle
     {
@@ -12,11 +12,9 @@ namespace SdfCampaign
         public string file = "";
         public string hash = "";
         public long size;
-        /// <summary>The comic whose panels this bundle holds ("beat-fungal"), or empty.</summary>
-        public string comic = "";
     }
 
-    /// <summary>What a key (a scene or a comic) needs loaded, in the order to load it: shared bundles first, the scene bundle last.</summary>
+    /// <summary>What a key (a level's scene) needs loaded, in the order to load it: shared bundles first, the scene bundle last.</summary>
     [Serializable]
     public sealed class StreamedEntry
     {
@@ -25,7 +23,7 @@ namespace SdfCampaign
     }
 
     /// <summary>
-    /// The list of streamed bundles and what each scene and comic needs, written by the web build into <c>Resources/StreamedContent</c>
+    /// The list of streamed bundles and what each level's scene needs, written by the web build into <c>Resources/StreamedContent</c>
     /// and read by the player (ticket 38). Without it (editor, desktop builds, a build that is not streamed) nothing is streamed.
     /// </summary>
     [Serializable]
@@ -37,8 +35,6 @@ namespace SdfCampaign
         public StreamedEntry[] entries = new StreamedEntry[0];
 
         public static string SceneKey(string scene) => "scene:" + scene;
-
-        public static string ComicKey(string comic) => "comic:" + comic;
 
         public static StreamManifest Parse(string json)
         {

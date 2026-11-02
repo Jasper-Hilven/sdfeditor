@@ -59,7 +59,7 @@ ticket's Status says.
 | 49 | [Monster powers](49-monster-powers.md) | The spore powers renamed: Rage meter, Frenzy, Regenerate, Thick Hide; HUD and effects; rules unchanged. Done in code (enum and fields renamed, strings, rage-red HUD, new effects; 433 EditMode tests pass); left: a Play-mode look |
 | 50 | [Rebrand: GUI, description and media](50-rebrand-gui-and-description.md) | Minigun Monsters: logo, GUI, scoreboard with head icons, `description.md`, `control.html`, covers and videos; never called multiplayer. Not started. Last |
 | 51 | [Gore: only the heads explode](51-head-only-gore.md) | Only the monster head bursts, in pieces, in its own blood colour (12 non-red colours); the human body never bursts or bleeds, it ragdolls (PEGI 12). Done in code and tested (head pieces cut from each head's own mesh, `HeadBurstProfile` plug-in for 46, a pooled ten-body ragdoll, `GoreCheck` Play-mode check, captures in `Media/gore-51`); left: a look at the captures, web frame time with 8 ragdolls. After 44, 45; before 46 |
-| 52 | [Every level in its own bundle](52-every-level-streamed.md) | The web player is Boot and the GUI only; all 7 levels (the Meadow too) are streamed bundles, the first one picked at boot by 42 and fetched behind the Loading screen. Not started. After 41, 42 |
+| 52 | [Every level in its own bundle](52-every-level-streamed.md) | The web player is Boot and the GUI only; all 7 levels (the Meadow too) are streamed bundles, the first one picked at boot by 42 and fetched behind the Loading screen. Done (initial download 17.7 MB). After 41, 42 |
 
 ## Running the open tickets
 

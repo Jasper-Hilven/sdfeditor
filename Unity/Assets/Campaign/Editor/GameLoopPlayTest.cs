@@ -13,15 +13,15 @@ namespace SdfCampaign.Editor
 {
     /// <summary>
     /// The endless game's play test (ticket 42; the campaign play test was removed in 41): Boot in Play mode, five matches driven through the
-    /// GUI's own commands. Match 1 starts on the Meadow with the warm-up (cleared here); the others are the rotation's picks. Match 2 is
+    /// GUI's own commands. Match 1 starts on the rotation's first pick with the warm-up (cleared here); the others are the rotation's picks. Match 2 is
     /// restarted from the pause menu (same level and team, nothing recorded). Match 3 opens CREDITS from the pause menu, waits for the
     /// credits, and comes back to the pause menu. Each match ends by captures (you 3-0, 1-3, 0-3, 3-0, 3-2), then CONTINUE after a win or
     /// RETRY after a loss. It checks the team, the enemy side's skill for the difficulty the match was made for, the difficulty after each
     /// result, that no level is among the last three, the warm-up on the first match only, and that the save holds the result.
     /// <para>
     /// <c>Run</c> plays the five matches from a clean save and writes the trace to <c>sdf-playtest-42-trace.txt</c> in the temporary folder.
-    /// <c>CheckReload</c>, in a new process, starts Boot again and checks that the save came back: the first match is the Meadow, made for the
-    /// difficulty the five left, and the save's last three levels are the Meadow after the trace's last two. Batch:
+    /// <c>CheckReload</c>, in a new process, starts Boot again and checks that the save came back: the first match is the rotation's pick (not one of the
+    /// save's last three), made for the difficulty the five left, and the save's last three levels are that pick after the trace's last two. Batch:
     /// <c>Unity -batchmode -projectPath Unity -executeMethod SdfCampaign.Editor.GameLoopPlayTest.Run</c> (no -quit: it exits itself, code 1 on a failure).
     /// </para>
     /// </summary>
@@ -205,7 +205,7 @@ namespace SdfCampaign.Editor
             var difficulty = DifficultyOf(setup.SkillOf(enemy));
             if (index == 0)
             {
-                Expect(level == GameLoop.FirstLevel, "boot starts on the Meadow");
+                Expect(System.Array.IndexOf(LevelRotation.Levels, level) >= 0, $"boot starts on one of the seven levels ({level})");
                 if (!checking)
                     Expect(difficulty == Difficulty.Normal, "a fresh save starts on Normal");
             }
@@ -308,7 +308,8 @@ namespace SdfCampaign.Editor
                 var walkLevels = walk.First(line => line.StartsWith("levels=")).Substring("levels=".Length).Split(',');
                 var walkDifficulty = walk.First(line => line.StartsWith("difficulty=")).Substring("difficulty=".Length);
                 Expect(DifficultyRules.Key(made[0]) == walkDifficulty, $"the reload is made for {walkDifficulty} (was {made[0]})");
-                Same(new[] { walkLevels[3], walkLevels[4], GameLoop.FirstLevel }, saved.lastLevels, "the save's last three levels after the boot");
+                Expect(!walkLevels.Skip(2).Contains(levels[0]), $"the reload's first level {levels[0]} is not among the save's last three ({string.Join(", ", walkLevels.Skip(2))})");
+                Same(new[] { walkLevels[3], walkLevels[4], levels[0] }, saved.lastLevels, "the save's last three levels after the boot");
                 trace.Add($"reload: first match {levels[0]} made {made[0]}; saved last three {string.Join(", ", saved.lastLevels)}");
                 Finish();
                 return;

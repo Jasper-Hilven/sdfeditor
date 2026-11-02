@@ -9,7 +9,7 @@ namespace SdfCampaign
 {
     /// <summary>
     /// The game's loop (ticket 42), on the persistent Campaign object of Boot.unity next to the <see cref="SceneLoader"/> and the GUI. Boot
-    /// loads the Meadow with a match on a random team (the loading tip, then the click to play, and the warm-up on the first match). Each
+    /// loads the first level (the rotation's pick, see <see cref="LevelRotation.First"/>; in the web build its bundles are fetched behind the Loading screen) with a match on a random team (the loading tip, then the click to play, and the warm-up on the first match). Each
     /// match is on the level the rotation picked when the one before it went live (<see cref="LevelRotation"/>), prefetched during the match
     /// (<see cref="ContentStreamer"/>); when a match ends its result moves the automatic difficulty (<see cref="AutoDifficulty"/>) and the save
     /// is written (<see cref="GameSave"/>). The end screens' buttons (CONTINUE, RETRY, MENU) start the next match; RESTART in the pause menu
@@ -17,9 +17,6 @@ namespace SdfCampaign
     /// </summary>
     public sealed class GameLoop : MonoBehaviour
     {
-        /// <summary>The level Boot starts on; it is in the initial web download, so it never waits for a download.</summary>
-        public const string FirstLevel = "Meadow";
-
         public GuiFlow flow;
         public SceneLoader loader;
 
@@ -66,7 +63,8 @@ namespace SdfCampaign
             HeadSelection.Yours = HeadUnlocks.Current(Now, save.heads);
             // The portal's SDK starts here; the game does not wait for it. Once it is up the save is written to its data store too.
             WebPortal.Init(OnPortalReady);
-            Launch(FirstLevel, RandomTeam(), !begun, new LoadingBriefing { arena = FirstLevel, tip = WarmUp.HowToScore }, true);
+            var first = rotation.First(random, Application.absoluteURL);
+            Launch(first, RandomTeam(), !begun, new LoadingBriefing { arena = first, tip = WarmUp.HowToScore }, true);
         }
 
         private void OnPortalReady()
@@ -147,8 +145,8 @@ namespace SdfCampaign
 
         private Team RandomTeam() => random.Next(2) == 0 ? Team.Red : Team.Blue;
 
-        // A load that was given up (its download failed and the player stopped it): the Meadow, which is in the player, starts instead
-        private void AbandonedLoad() => Launch(FirstLevel, RandomTeam(), !begun, null, true);
+        // A load that was given up: only with no Loading screen to retry on, which the game's Boot always has
+        private void AbandonedLoad() => Debug.LogError("GameLoop: a level's download was given up");
 
         /// <summary>
         /// Loads <paramref name="level"/> with the match set up for <paramref name="team"/> at the current difficulty. <paramref name="record"/>

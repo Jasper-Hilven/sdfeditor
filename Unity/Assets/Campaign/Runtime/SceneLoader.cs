@@ -24,7 +24,7 @@ namespace SdfCampaign
         /// <summary>Plays without waiting for the click (the batch-mode checks have no mouse).</summary>
         public static bool AutoPlay;
 
-        /// <summary>Runs when a load is cancelled by the player (a download that was given up); null for nothing.</summary>
+        /// <summary>Runs when a load is given up (a download that failed with no Loading screen to retry on); null for nothing.</summary>
         public static System.Action Abandoned;
 
         public GuiFlow flow;
@@ -64,14 +64,14 @@ namespace SdfCampaign
                 Time.timeScale = 0;
                 yield return FadeTo(fade, 0);
             }
-            // The web build's later arenas are bundles: fetched here (or already, by the prefetch), with the Loading screen's bar
+            // The web build's levels are bundles (ticket 52): fetched here (or already, by the prefetch), with the Loading screen's bar
             var sceneKey = StreamManifest.SceneKey(scene);
             var streamed = ContentStreamer.Needs(sceneKey);
             var previous = flow.screen;
             var shownForDownload = false;
             if (streamed && !held && loading != null)
             {
-                // A beat's load has no briefing and is black; a download must not be
+                // A load with no briefing is black; a download must not be
                 shownForDownload = true;
                 loading.Begin(new LoadingBriefing { arena = scene });
                 flow.Show(GuiScreen.Loading);
@@ -95,7 +95,7 @@ namespace SdfCampaign
                     fade.Alpha = 0;
                 Busy = false;
                 WebPortal.LoadingStop();
-                // The loader's owner decides what a failed load means (the Boot flow starts the Meadow again)
+                // The loader's owner decides what a failed load means
                 Abandoned?.Invoke();
                 yield break;
             }
@@ -125,7 +125,7 @@ namespace SdfCampaign
             yield return null;
             onLoaded?.Invoke();
 
-            // The bundles of the arenas left behind go (the next arena's, being fetched, stay)
+            // The bundles of the levels left behind go (the next level's, being fetched, stay)
             ContentStreamer.Release(streamed || ContentStreamer.IsReady(sceneKey) ? sceneKey : "");
             yield return Resources.UnloadUnusedAssets();
             GC.Collect();
@@ -157,7 +157,7 @@ namespace SdfCampaign
 
         /// <summary>
         /// Fetches a streamed key with the Loading screen's bar over the first <paramref name="share"/> of it (when the screen is there). A failure
-        /// never freezes: the message replaces the bar, a click tries again, Escape gives up (<paramref name="result"/> false).
+        /// never freezes: the message replaces the bar, a click tries again (there is no title to go back to, so Escape does nothing). <paramref name="result"/> is false only with no Loading screen to show it on.
         /// </summary>
         private static IEnumerator Fetching(string key, GuiLoading loading, float share, Action<bool> result)
         {
@@ -183,53 +183,11 @@ namespace SdfCampaign
                 }
                 loading.Message("DOWNLOAD FAILED - CLICK TO RETRY");
                 loading.Set(0, true);
-                while (!Input.GetMouseButtonDown(0) && !Input.GetKeyDown(KeyCode.Escape))
+                while (!Input.GetMouseButtonDown(0))
                     yield return null;
-                if (Input.GetKeyDown(KeyCode.Escape))
-                {
-                    loading.ClearMessage();
-                    result(false);
-                    yield break;
-                }
                 loading.ClearMessage();
                 loading.Set(0, false);
             }
-        }
-
-        /// <summary>
-        /// Makes sure a streamed key (a comic) is in, behind the Loading screen when it is not; <paramref name="done"/> gets false when the
-        /// player gave up. Already in, it runs at once.
-        /// </summary>
-        public void Ensure(string key, string title, Action<bool> done)
-        {
-            if (!ContentStreamer.Needs(key))
-            {
-                done(true);
-                return;
-            }
-            StartCoroutine(EnsureRun(key, title, done));
-        }
-
-        private IEnumerator EnsureRun(string key, string title, Action<bool> done)
-        {
-            Busy = true;
-            var fade = flow.GetComponentInChildren<GuiFade>(true);
-            var loading = flow.GetComponentInChildren<GuiLoading>(true);
-            var previous = flow.screen;
-            if (loading != null)
-            {
-                loading.Begin(new LoadingBriefing { arena = title });
-                flow.Show(GuiScreen.Loading);
-            }
-            var ok = true;
-            yield return Fetching(key, loading, 1, result => ok = result);
-            if (loading != null)
-            {
-                loading.ClearMessage();
-                flow.Show(previous);
-            }
-            Busy = false;
-            done(ok);
         }
 
         private static IEnumerator FadeTo(GuiFade fade, float target)

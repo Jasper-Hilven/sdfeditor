@@ -116,5 +116,37 @@ namespace SdfCampaign.Tests
                 b.Played(lb);
             }
         }
+
+        [Test]
+        public void TheFirstLevelFollowsTheRotationAndNeverTheLastThree()
+        {
+            var rotation = new LevelRotation(new[] { "Meadow", "Fungal", "Chessboard" });
+            var random = new System.Random(3);
+            var seen = new HashSet<string>();
+            for (var i = 0; i < 2000; i++)
+                seen.Add(rotation.First(random));
+            CollectionAssert.AreEquivalent(new[] { "Toybox", "Kitchen", "Bathroom", "Computer" }, seen);
+            // A fresh game can start on any of the seven, the Meadow only one of them
+            var fresh = new LevelRotation();
+            var firsts = new HashSet<string>();
+            for (var i = 0; i < 2000; i++)
+                firsts.Add(fresh.First(random));
+            CollectionAssert.AreEquivalent(LevelRotation.Levels, firsts);
+        }
+
+        [Test]
+        public void AStreamCheckPageForcesTheFirstLevelAndNothingElseDoes()
+        {
+            var rotation = new LevelRotation(new[] { "Kitchen" });
+            var random = new System.Random(1);
+            Assert.AreEqual("Kitchen", rotation.First(random, "http://localhost:8000/index.html?streamcheck&level=Kitchen"));
+            Assert.AreEqual("Toybox", LevelRotation.Forced("http://x/?level=toybox&streamcheck"));
+            Assert.AreEqual("Fungal", LevelRotation.Forced("http://x/?streamcheck&level=Fungal#top"));
+            Assert.IsNull(LevelRotation.Forced("http://x/?level=Kitchen"), "without streamcheck the URL decides nothing");
+            Assert.IsNull(LevelRotation.Forced("http://x/?streamcheck&level=Nowhere"));
+            Assert.IsNull(LevelRotation.Forced("http://x/?streamcheck"));
+            Assert.IsNull(LevelRotation.Forced(""));
+            Assert.IsNull(LevelRotation.Forced(null));
+        }
     }
 }

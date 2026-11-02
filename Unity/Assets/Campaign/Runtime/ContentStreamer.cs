@@ -17,10 +17,10 @@ namespace SdfCampaign
     }
 
     /// <summary>
-    /// The web build's streamed content (ticket 38): every level after the first is an AssetBundle in a Bundles folder
+    /// The web build's streamed content (ticket 38): every level (ticket 52) is an AssetBundle in a Bundles folder
     /// next to the player (relative URLs, so the upload is one folder), listed in <see cref="StreamManifest"/>. This downloads them
     /// (UnityWebRequestAssetBundle, cached by Unity's Caching under the content hash), keeps the ones the current scene needs, and fetches the next
-    /// arena in the background while the player is in a battle. Off (everything false, nothing to do) in the editor and desktop builds and in any
+    /// level in the background while the player is in a battle. Off (everything false, nothing to do) in the editor and desktop builds and in any
     /// build without the manifest, where the scenes are in the player as before.
     /// </summary>
     public sealed class ContentStreamer : MonoBehaviour

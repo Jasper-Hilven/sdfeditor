@@ -69,7 +69,7 @@ namespace SdfLevel.Editor
                 else
                     Do("GUI", SdfGui.Editor.GuiScene.BuildInBatch);
                 Do("Boot", SdfCampaign.Editor.BootBuilder.Build);
-                Do("build scene list", SdfCampaign.Editor.CampaignBuildScenes.Update);
+                Do("build scene list", SdfCampaign.Editor.LevelBuildScenes.Update);
                 Do("navmesh check", SdfBattle.Editor.NavmeshCheck.CheckAll);
                 // The hob check builds its own floor in the open scene, so it gets an empty one
                 Do("hob navmesh check", () =>

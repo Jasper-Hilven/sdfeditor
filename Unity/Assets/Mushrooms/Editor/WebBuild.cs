@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 namespace SdfMushrooms.Editor
 {
     /// <summary>
-    /// The web build: WebGL 2 of the campaign's release scenes (Boot and the arenas; no showcases, <see cref="SdfCampaign.Editor.CampaignBuildScenes"/>), into Unity/Builds/Web, on the integrated GPU /
+    /// The web build: WebGL 2 of the campaign's release scenes (Boot and the arenas; no showcases, <see cref="SdfCampaign.Editor.LevelBuildScenes"/>), into Unity/Builds/Web, on the integrated GPU /
     /// web quality level (<see cref="RenderPipelineSetup.Web"/>).
     /// <list type="bullet">
     /// <item>Tools > SDF Mushrooms > Build Web, or Build and Run Web, which serves it locally and opens the browser.</item>
@@ -66,7 +66,7 @@ namespace SdfMushrooms.Editor
             // -scene builds only the scenes named; -nostream puts every release scene in the player as before.
             var stream = chosen.Length == 0 && !args.Contains("-nostream");
             var scenes = chosen.Length > 0 ? chosen
-                : (stream ? SdfCampaign.Editor.CampaignBuildScenes.PlayerPaths() : SdfCampaign.Editor.CampaignBuildScenes.Paths(false)).ToArray();
+                : (stream ? SdfCampaign.Editor.LevelBuildScenes.PlayerPaths() : SdfCampaign.Editor.LevelBuildScenes.Paths(false)).ToArray();
             if (scenes.Length == 0)
             {
                 Debug.LogError("SDF mushrooms: no scenes in the build settings to build for the web");

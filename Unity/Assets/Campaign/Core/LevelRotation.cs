@@ -7,7 +7,7 @@ namespace SdfCampaign
     /// <summary>
     /// The endless rotation (ticket 42): the seven battle levels, and the last few played. The next one is random among the levels not
     /// among those last <see cref="Memory"/>, so no level comes back within four matches. Plain data and a seeded <see cref="Random"/>.
-    /// The level ids are the scene names. The Meadow is the first level a game starts on (Boot).
+    /// The level ids are the scene names. The first level of a game (Boot) is the same pick (<see cref="First"/>), from the saved last levels.
     /// </summary>
     public sealed class LevelRotation
     {
@@ -35,6 +35,31 @@ namespace SdfCampaign
             history.Add(level);
             while (history.Count > Memory)
                 history.RemoveAt(0);
+        }
+
+        /// <summary>
+        /// The level Boot starts on (ticket 52): the rotation's pick, so a saved game does not open on one of its last three. A page whose
+        /// URL contains <c>streamcheck</c> and <c>level=Name</c> forces that level (the web checks); anything else in the URL is ignored.
+        /// </summary>
+        public string First(Random random, string url = null)
+        {
+            var forced = Forced(url);
+            return forced ?? Next(random);
+        }
+
+        /// <summary>The level a <c>streamcheck</c> page asks for with <c>level=Name</c>, or null.</summary>
+        public static string Forced(string url)
+        {
+            if (string.IsNullOrEmpty(url) || url.IndexOf("streamcheck", StringComparison.OrdinalIgnoreCase) < 0)
+                return null;
+            var at = url.IndexOf("level=", StringComparison.OrdinalIgnoreCase);
+            if (at < 0)
+                return null;
+            var name = url.Substring(at + "level=".Length);
+            var end = name.IndexOfAny(new[] { '&', '#' });
+            if (end >= 0)
+                name = name.Substring(0, end);
+            return Levels.FirstOrDefault(level => string.Equals(level, name, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>A level picked evenly from the ones not among the last <see cref="Memory"/>. Does not record it.</summary>
