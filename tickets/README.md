@@ -89,7 +89,8 @@ Rules for every agent:
   plain-code tickets (41, 42, 48), `sonnet` for modelling, rigging, GUI and visual tickets (43-47, 49, 50). The lead reviews each
   diff against the ticket's "Done when" before starting the next ticket.
 - At most two tickets at once, and only pairs from the "Runs alongside" column. With two at once in the one checkout: stage only your
-  own ticket's paths (never `git add -A` or `git commit -a`), and a compile error in the other ticket's files is not yours to fix:
+  own ticket's paths (never `git add -A` or `git commit -a`) and commit with `git commit --only -- <paths>` (the index is
+  shared: a bare `git commit` takes the other agent's staged files too), and a compile error in the other ticket's files is not yours to fix:
   wait and retry.
 - Work in the main checkout, not a worktree: the generated meshes and level bakes are git-ignored and only exist here.
 - Mesh at the default 128 cells, never 256 or 512. No full re-mesh except ticket 37's last step, after ticket 39; test with a few models.
