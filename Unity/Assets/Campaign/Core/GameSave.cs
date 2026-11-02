@@ -1,4 +1,5 @@
 using System;
+using SdfHeads;
 using UnityEngine;
 
 namespace SdfCampaign
@@ -7,19 +8,22 @@ namespace SdfCampaign
     /// The game's save (ticket 42): the automatic difficulty and the last levels played, which is all the endless game keeps between
     /// sessions. It is JSON under <see cref="Key"/> in the campaign storage (the portal's data store first, PlayerPrefs behind it on the
     /// web). A save of another version, a broken one, or none reads as the default. The old campaign save has another key and is ignored.
-    /// Ticket 47 adds its head fields here, with its own version number.
+    /// Version 2 (ticket 47) adds the heads; a version 1 save is read as version 2 with no heads of its own.
     /// </summary>
     [Serializable]
     public sealed class GameSave
     {
         public const string Key = "minigun.save";
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int version = CurrentVersion;
         /// <summary>The difficulty's key ("supereasy", "easy", "normal", "hard"); <see cref="Difficulty"/> reads and writes it.</summary>
         public string difficulty = DifficultyRules.Key(SdfCampaign.Difficulty.Normal);
         /// <summary>The last levels played, oldest first (the rotation's history).</summary>
         public string[] lastLevels = Array.Empty<string>();
+
+        /// <summary>The heads: unlocked by wins, months played in, and the one picked (ticket 47).</summary>
+        public HeadProgress heads = new HeadProgress();
 
         public Difficulty Difficulty
         {
@@ -40,9 +44,13 @@ namespace SdfCampaign
             {
                 return new GameSave();
             }
-            if (save == null || save.version != CurrentVersion)
+            // Version 1 (ticket 42) has no heads: it migrates to the current version with the heads empty
+            if (save == null || (save.version != CurrentVersion && save.version != 1))
                 return new GameSave();
+            save.version = CurrentVersion;
             save.lastLevels ??= Array.Empty<string>();
+            save.heads ??= new HeadProgress();
+            save.heads.Normalise();
             return save;
         }
 

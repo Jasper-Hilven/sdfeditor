@@ -89,5 +89,45 @@ namespace SdfCampaign.Tests
             Assert.IsNotNull(save.lastLevels);
             Assert.IsEmpty(save.lastLevels);
         }
+
+        [Test]
+        public void AVersion1SaveMigratesToTheCurrentVersionWithNoHeads()
+        {
+            var save = GameSave.Parse("{\"version\":1,\"difficulty\":\"hard\",\"lastLevels\":[\"Fungal\"]}");
+            Assert.AreEqual(GameSave.CurrentVersion, save.version);
+            Assert.AreEqual(Difficulty.Hard, save.Difficulty);
+            CollectionAssert.AreEqual(new[] { "Fungal" }, save.lastLevels);
+            Assert.IsNotNull(save.heads);
+            Assert.IsEmpty(save.heads.unlocked);
+            Assert.IsEmpty(save.heads.monthsSeen);
+            Assert.AreEqual("", save.heads.current);
+            Assert.AreEqual(2, GameSave.CurrentVersion);
+        }
+
+        [Test]
+        public void TheHeadsSurviveAReload()
+        {
+            var storage = new MemoryCampaignStorage();
+            var save = new GameSave();
+            save.heads.unlocked = new[] { "frankenstein", "santa" };
+            save.heads.monthsSeen = new[] { 10, 11 };
+            save.heads.current = "santa";
+            save.Save(storage);
+            var back = GameSave.Load(storage);
+            CollectionAssert.AreEqual(new[] { "frankenstein", "santa" }, back.heads.unlocked);
+            CollectionAssert.AreEqual(new[] { 10, 11 }, back.heads.monthsSeen);
+            Assert.AreEqual("santa", back.heads.current);
+        }
+
+        [Test]
+        public void AMigratedSaveKeepsItsHeadsOnceSavedAgain()
+        {
+            var storage = new MemoryCampaignStorage();
+            storage.Set(GameSave.Key, "{\"version\":1,\"difficulty\":\"easy\"}");
+            var save = GameSave.Load(storage);
+            SdfHeads.HeadUnlocks.OnMatchWon(new System.DateTime(2026, 10, 5), save.heads);
+            save.Save(storage);
+            Assert.AreEqual("frankenstein", GameSave.Load(storage).heads.unlocked[0]);
+        }
     }
 }

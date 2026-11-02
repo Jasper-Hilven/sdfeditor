@@ -442,11 +442,18 @@ namespace SdfGui.Editor
             {
                 var row = Object(label, panel);
                 // Twelve rows close together, so the last stays clear of the back button
-                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 60));
+                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 58));
                 f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 56), TextAlignmentOptions.Left);
-                y -= 63;
+                y -= 60;
                 return row.transform;
             }
+            // Your head (ticket 47): the cycle in the panel, the turning preview and its caption beside it
+            menu.head = Instance<GuiSelector>(p.Selector, Row("Head"), "Head", Right, Vector2.zero);
+            var previewObject = Object("Head Preview", t);
+            Place(previewObject.transform, Centre, new Vector2(-720, 60), new Vector2(400, 500));
+            previewObject.AddComponent<UnityEngine.UI.RawImage>().raycastTarget = false;
+            menu.headPreview = previewObject.AddComponent<GuiHeadPreview>();
+            menu.headCaption = f.Text(t, "Head Caption", "October", TextStyle.Label, 40, GuiPalette.Cream, Centre, new Vector2(-720, -230), new Vector2(440, 60));
             menu.quality = Instance<GuiSelector>(p.Selector, Row("Quality"), "Quality", Right, Vector2.zero);
             menu.gore = Instance<GuiSelector>(p.Selector, Row("Gore"), "Gore", Right, Vector2.zero);
             menu.gore.options = GuiSettings.GoreLevels;

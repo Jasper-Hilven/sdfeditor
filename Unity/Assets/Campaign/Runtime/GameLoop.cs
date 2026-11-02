@@ -1,6 +1,7 @@
 using System.Linq;
 using SdfBattle;
 using SdfGui;
+using SdfHeads;
 using SdfPlatform;
 using UnityEngine;
 
@@ -23,6 +24,9 @@ namespace SdfCampaign
         public SceneLoader loader;
 
         private static GameLoop instance;
+
+        /// <summary>The loop, or null before Boot (the editor's other scenes have none).</summary>
+        public static GameLoop Instance => instance;
 
         private ICampaignStorage storage;
         private GameSave save;
@@ -59,6 +63,7 @@ namespace SdfCampaign
             save = GameSave.Load(storage);
             rotation = new LevelRotation(save.lastLevels);
             random = new System.Random();
+            HeadSelection.Yours = HeadUnlocks.Current(Now, save.heads);
             // The portal's SDK starts here; the game does not wait for it. Once it is up the save is written to its data store too.
             WebPortal.Init(OnPortalReady);
             Launch(FirstLevel, RandomTeam(), !begun, new LoadingBriefing { arena = FirstLevel, tip = WarmUp.HowToScore }, true);
@@ -84,6 +89,34 @@ namespace SdfCampaign
 
         /// <summary>The difficulty the next match is made for, as saved.</summary>
         public Difficulty Difficulty => save != null ? save.Difficulty : SdfCampaign.Difficulty.Normal;
+
+        /// <summary>The device's local date and time; the head rules read the month from it.</summary>
+        public static System.Func<System.DateTime> Clock = () => System.DateTime.Now;
+
+        private static System.DateTime Now => Clock();
+
+        /// <summary>The head unlocked by the match that just ended (ticket 48 shows it), or null when it was lost or unlocked nothing.</summary>
+        public string LastUnlockedHead { get; private set; }
+
+        /// <summary>The head you wear.</summary>
+        public string CurrentHead => save != null ? HeadUnlocks.Current(Now, save.heads) : HeadUnlocks.HeadOfMonth(Now);
+
+        /// <summary>The heads you can wear, in calendar order.</summary>
+        public System.Collections.Generic.List<string> AvailableHeads => HeadUnlocks.Available(Now, save.heads);
+
+        /// <summary>The unlocked head before / after the current one (wrapping).</summary>
+        public string PreviousHead() => HeadUnlocks.Previous(Now, save.heads, CurrentHead);
+        public string NextHead() => HeadUnlocks.Next(Now, save.heads, CurrentHead);
+
+        /// <summary>Picks the head to wear from the next match on, and saves it. False when it is not unlocked.</summary>
+        public bool SetHead(string id)
+        {
+            if (!HeadUnlocks.SetCurrent(Now, save.heads, id))
+                return false;
+            HeadSelection.Yours = id;
+            save.Save(storage);
+            return true;
+        }
 
         /// <summary>The level of the match being played, or loading; empty before Boot's load.</summary>
         public string Current => current ?? "";
@@ -125,6 +158,7 @@ namespace SdfCampaign
         {
             if (loader == null || loader.Busy)
                 return false;
+            HeadSelection.Yours = CurrentHead;
             var setup = new BattleSetup { yourTeam = team, warmUp = warmUp };
             setup = DifficultyRules.Apply(setup, save.Difficulty, team.Other());
             MatchSetup.Pending = setup.ToMatchSetup();
@@ -142,6 +176,7 @@ namespace SdfCampaign
             begun = true;
             if (record)
             {
+                HeadUnlocks.RecordPlayed(Now, save.heads);
                 rotation.Played(level);
                 save.lastLevels = rotation.History.ToArray();
                 save.Save(storage);
@@ -163,6 +198,13 @@ namespace SdfCampaign
             var blue = result.BlueScore;
             var yours = currentTeam == Team.Red ? red : blue;
             var enemy = currentTeam == Team.Red ? blue : red;
+            LastUnlockedHead = null;
+            if (yours > enemy)
+            {
+                LastUnlockedHead = HeadUnlocks.OnMatchWon(Now, save.heads);
+                if (LastUnlockedHead != null)
+                    WebPortal.HappyTime();
+            }
             save.Difficulty = AutoDifficulty.Next(save.Difficulty, new CaptureResult(yours, enemy));
             save.Save(storage);
             Debug.Log($"GameLoop: {current} ended {yours}-{enemy} for {currentTeam}; next difficulty {DifficultyRules.Key(save.Difficulty)}");

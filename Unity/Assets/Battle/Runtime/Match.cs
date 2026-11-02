@@ -123,6 +123,8 @@ namespace SdfBattle
             State.Spawned += OnSpawned;
             State.Died += OnDied;
             State.MatchEnded += result => Ended?.Invoke(result);
+            // Ticket 47: a new cast of heads for these players
+            SdfHeads.HeadSelection.BeginMatch();
             MakePlayers();
             Current = this;
             if (gui != null)

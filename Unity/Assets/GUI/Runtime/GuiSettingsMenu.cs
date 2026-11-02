@@ -1,3 +1,6 @@
+using SdfCampaign;
+using SdfHeads;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +16,13 @@ namespace SdfGui
     {
         public GuiSelector quality;
         public GuiSelector gore;
+        [Tooltip("The head you wear: a cycle over the heads you have unlocked (ticket 47)")]
+        public GuiSelector head;
+        [Tooltip("The head's name and month under the preview")]
+        public TMP_Text headCaption;
+        public GuiHeadPreview headPreview;
+
+        private System.Collections.Generic.List<string> headIds = new System.Collections.Generic.List<string>();
         public Slider sensitivity;
         public Slider volume;
         [Tooltip("The music's volume, on top of the master volume")]
@@ -29,6 +39,8 @@ namespace SdfGui
                 return;
             if (quality != null)
                 quality.Changed += i => QualitySettings.SetQualityLevel(QualityLevel(i), true);
+            if (head != null)
+                head.Changed += i => PickHead(i);
             if (gore != null)
                 gore.Changed += i => GuiSettings.Gore = i;
             sensitivity?.onValueChanged.AddListener(v => GuiSettings.Sensitivity = v);
@@ -46,6 +58,44 @@ namespace SdfGui
         /// </summary>
         private static int QualityLevel(int index) => QualitySettings.names.Length - 1 - index;
 
+        private static readonly string[] Months =
+            { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+
+        private void PickHead(int index)
+        {
+            var loop = GameLoop.Instance;
+            if (loop != null && index >= 0 && index < headIds.Count)
+                loop.SetHead(headIds[index]);
+            ShowHead();
+        }
+
+        // The cycle lists the heads you can wear in calendar order; a head not modelled yet says so (it shows as a stand-in)
+        private void FillHeads()
+        {
+            var loop = GameLoop.Instance;
+            if (head == null || loop == null)
+                return;
+            headIds = loop.AvailableHeads;
+            var labels = new string[headIds.Count];
+            for (var i = 0; i < labels.Length; i++)
+                labels[i] = HeadStandIn.Label(headIds[i]);
+            head.options = labels;
+            head.Set(Mathf.Max(0, headIds.IndexOf(loop.CurrentHead)));
+            ShowHead();
+        }
+
+        private void ShowHead()
+        {
+            var loop = GameLoop.Instance;
+            if (loop == null)
+                return;
+            var entry = MonsterHeads.ById(loop.CurrentHead);
+            if (headCaption != null && entry != null)
+                GuiText.Set(headCaption, Months[entry.Value.Month - 1] + (entry.Value.Built ? "" : "  (model to come)"));
+            if (headPreview != null)
+                headPreview.Show(loop.CurrentHead, loop.YourTeam == SdfBattle.Team.Blue ? SdfRig.SoldierModels.BlueSkin : SdfRig.SoldierModels.RedSkin);
+        }
+
         private void OnDisable()
         {
             if (Application.isPlaying)
@@ -54,6 +104,8 @@ namespace SdfGui
 
         private void OnEnable()
         {
+            if (Application.isPlaying)
+                FillHeads();
             if (quality != null)
             {
                 var names = QualitySettings.names;

@@ -61,8 +61,17 @@ namespace SdfBattle
             foreach (var collider in instance.GetComponentsInChildren<Collider>(true))
                 Destroy(collider);
             var puppet = instance.AddComponent<SoldierPuppet>();
-            // Ticket 45's stand-in: a random modelled head. Ticket 47 replaces this one line with the head the player chose or the bot drew.
-            puppet.Head = HeadWear.Attach(instance.transform, MonsterHeads.RandomBuiltId(count => Random.Range(0, count)));
+            // Ticket 47: your head is the one you picked (the campaign sets it), the bots draw random ones from all twelve, each different
+            var cast = HeadSelection.Cast;
+            string id;
+            if (player.IsYou)
+            {
+                id = HeadSelection.Yours ?? HeadUnlocks.HeadOfMonth(System.DateTime.Now);
+                cast.Reserve(id);
+            }
+            else
+                id = cast.Draw();
+            puppet.Head = WearWithStandIn(instance.transform, id);
             puppet.player = player;
             puppet.controller = controller;
             puppet.capsule = player.GetComponent<CharacterController>();
@@ -73,12 +82,22 @@ namespace SdfBattle
             return puppet;
         }
 
+        // A head that is not modelled yet (or not imported) shows as the nearest modelled one
+        private static HeadWear WearWithStandIn(Transform body, string id)
+        {
+            var worn = HeadWear.Attach(body, id);
+            if (worn != null)
+                return worn;
+            var standIn = HeadStandIn.Of(id, head => head.Built && MonsterHeadModels.Load() != null && MonsterHeadModels.Load().TryGet(head.Id, out _));
+            return standIn != null ? HeadWear.Attach(body, standIn) : null;
+        }
+
         /// <summary>Puts another monster head on this soldier (ticket 47 chooses by this; the captures and checks force one); the old one goes.</summary>
         public HeadWear WearHead(string id)
         {
             if (Head != null)
                 Destroy(Head.gameObject);
-            Head = HeadWear.Attach(transform, id);
+            Head = WearWithStandIn(transform, id);
             renderers = GetComponentsInChildren<Renderer>(true);
             SetVisible(visible);
             return Head;
