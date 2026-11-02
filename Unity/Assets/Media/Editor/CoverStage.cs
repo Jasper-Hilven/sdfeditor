@@ -39,7 +39,7 @@ namespace SdfMedia.Editor
         // ------------------------------------------------------------------------------------------------------------ Composition
 
         /// <summary>Which way the stage looks in the level: degrees about the up axis, 0 along +z, 90 along +x (the level's long side).</summary>
-        public const float YawDegrees = 90;
+        public static float YawDegrees = 90;
         /// <summary>The stage's middle on the level's ground (level x, z), the middle of the field.</summary>
         public static readonly Vector2 Centre = new Vector2(0, 0);
 
@@ -50,20 +50,22 @@ namespace SdfMedia.Editor
         /// <summary>The way he faces (a direction in the stage's space); his gun aims at <see cref="RedAimAt"/>.</summary>
         private static readonly Vector3 RedFacing = new Vector3(-0.45f, 0, -1);
         /// <summary>Left of the lens and a little low: the minigun points past the camera, so its tracers streak across the foreground.</summary>
-        private static readonly Vector3 RedAimAt = new Vector3(-6f, 0.4f, -3.5f);
+        private static readonly Vector3 RedAimAt = new Vector3(3.5f, 5.2f, 3f);
         /// <summary>The hero's middle: the point of him the formats' cameras place on the picture (<see cref="CoverFormat.Anchor"/>).</summary>
         public static readonly Vector3 HeroCentre = new Vector3(0, 1.4f, 0);
 
-        // The two blue scouts dive aside, one each way, looking back at the camera, hands flung out
-        private static readonly Vector3 BlueLeftPosition = new Vector3(-2.0f, 0, 3.8f);
-        private static readonly Vector3 BlueRightPosition = new Vector3(1.9f, 0, 3.4f);
-        private const float BlueLeftLift = 0.9f, BlueLeftLean = 10, BlueLeftRoll = -38;
-        private const float BlueRightLift = 1.0f, BlueRightLean = 8, BlueRightRoll = 34;
+        // The two red soldiers beside him (werewolf left, yeti right), a step behind, leaning at the lens, each with a gun aimed past it
+        private static readonly Vector3 WolfPosition = new Vector3(-1.45f, 0, 1.7f);
+        private static readonly Vector3 YetiPosition = new Vector3(1.25f, 0, 1.2f);
+        private const float WolfLift = 0.25f, WolfLean = 12, WolfRoll = 7;
+        private const float YetiLift = 0.2f, YetiLean = 10, YetiRoll = -7;
+        private static readonly Vector3 WolfFacing = new Vector3(0.35f, 0, -1), YetiFacing = new Vector3(-0.35f, 0, -1);
+        private static readonly Vector3 WolfAimAt = new Vector3(-3f, 0.9f, -4f), YetiAimAt = new Vector3(3.5f, 0.8f, -4f);
 
-        // The explosion behind them: where its middle is (in the stage's space), its radius in metres, and the pieces of a blue scout
-        // blown out of it (their size on top of the game's)
-        private const float ExplosionRadius = 2.8f;
-        private const float DebrisScale = 1.3f;
+        // The burst behind them: its radius in metres, the head pieces' size on top of the game's, how many bats and how many purple puffs
+        private const float ExplosionRadius = 2.7f;
+        private const float DebrisScale = 1.6f;
+        private const int Bats = 8, Puffs = 26;
 
         /// <summary>The soft shadow under a character: its radius in metres at scale 1, and how dark.</summary>
         private const float ShadowRadius = 0.95f, ShadowDarkness = 0.55f;
@@ -71,12 +73,12 @@ namespace SdfMedia.Editor
         // ------------------------------------------------------------------------------------------------------------ The stage
 
         // The three heads in the picture: the hero's, the two diving soldiers', and the one that bursts (its colours colour the explosion)
-        private const string HeroHead = "pumpkin", LeftHead = "werewolf", RightHead = "cthulhu", BurstHead = "frankenstein";
+        private const string HeroHead = "pumpkin", LeftHead = "werewolf", RightHead = "yeti", BurstHead = "vampire";
         private const string AimClip = "Assets/Battle/Body/Animations/Locomotion/soldier_loco_aim_idle.anim";
         private const string RunClip = "Assets/Battle/Body/Animations/Locomotion/soldier_loco_run_f.anim";
         // The headless soldier behind them, lifted and tipped back by the burst
-        private static readonly Vector3 VictimPosition = new Vector3(2.6f, 0, 6.5f);
-        private const float VictimLift = 2.6f, VictimLean = -25, VictimRoll = 15;
+        private static readonly Vector3 VictimPosition = new Vector3(1.6f, 0, 6.2f);
+        private const float VictimLift = 2.0f, VictimLean = -25, VictimRoll = 15;
         private const string EffectMaterialPath = "Assets/Effects/Materials/Effect.mat";
 
         private readonly Scene scene;
@@ -190,9 +192,9 @@ namespace SdfMedia.Editor
             Shade(redFeet, redNormal, 1);
             Shots(fx, redGun.transform, redLook);
 
-            // Blue: two soldiers diving aside, one each way
-            Dive(LeftHead, "Blue Soldier Left", BlueLeftPosition, new Vector3(0.3f, 0, -1), BlueLeftLift, BlueLeftLean, BlueLeftRoll, 0.15f);
-            Dive(RightHead, "Blue Soldier Right", BlueRightPosition, new Vector3(-0.3f, 0, -1), BlueRightLift, BlueRightLean, BlueRightRoll, 0.55f);
+            // Red: the werewolf and the yeti beside him
+            Mate(LeftHead, "Red Werewolf", WolfPosition, WolfFacing, WolfLift, WolfLean, WolfRoll, 0.1f, WeaponIds.Pistol, WolfAimAt, fx);
+            Mate(RightHead, "Red Yeti", YetiPosition, YetiFacing, YetiLift, YetiLean, YetiRoll, 0.3f, WeaponIds.Pistol, YetiAimAt, fx);
 
             // Behind them a blue soldier's head bursts
             var victim = Soldier(SoldierModels.BlueSkin, null, "Blue Soldier Headless", RunClip, 0.35f);
@@ -206,12 +208,14 @@ namespace SdfMedia.Editor
                 group.ForceLOD(0);
         }
 
-        /// <summary>A soldier in the air, leaning and rolled to one side, in a stride, with a head on.</summary>
-        private void Dive(string head, string name, Vector3 position, Vector3 facing, float lift, float lean, float roll, float phase)
+        /// <summary>A red soldier with a monster head and a gun, in the aim pose, leaning at the lens.</summary>
+        private void Mate(string head, string name, Vector3 position, Vector3 facing, float lift, float lean, float roll, float phase,
+            string weapon, Vector3 aimAt, FxBuffer fx)
         {
-            var soldier = Soldier(SoldierModels.BlueSkin, head, name, RunClip, phase);
+            var soldier = Soldier(SoldierModels.RedSkin, head, name, AimClip, phase);
             Stand(soldier.transform, position, facing, lift, lean, roll, 1, out var feet, out var normal);
-            Shade(feet, normal, 0.85f);
+            Hold(soldier.transform, weapons.LookOf(weapon), ToWorld(aimAt));
+            Shade(feet, normal, 0.9f);
         }
 
         /// <summary>The team's soldier prefab, with a monster head (none when null), in a pose sampled from a clip.</summary>
@@ -328,7 +332,7 @@ namespace SdfMedia.Editor
             var at = muzzle + forward * size * 0.6f;
             var flashBand = Hdr(look.tracer, 1.3f);
             var flashCore = Hdr(new Color(1f, 0.97f, 0.8f), 3.1f);
-            fx.Glow(at, size * 1.05f, Hdr(look.tracer, 0.7f), flashBand, 0.2f, 0.55f);
+            fx.Glow(at, size * 0.8f, Hdr(look.tracer, 0.7f), flashBand, 0.25f, 0.3f);
             fx.Glow(at, size * 0.55f, flashBand, flashCore, 0.55f);
             fx.Streak(at, at + forward * size * 2.2f, size * 0.5f, 0, flashBand, flashCore, 0.45f);
             for (var i = 0; i < 4; i++)
@@ -368,53 +372,61 @@ namespace SdfMedia.Editor
         }
 
         /// <summary>
-        /// A toon burst as <see cref="ExplodingMonster"/> makes one, frozen at its first instants and scaled to
-        /// <see cref="ExplosionRadius"/>: a cel-painted "pow" (a glowing disc and a ring of rays), balls of cream and cap-red smoke, a
-        /// cloud of glowing spores, and the pieces of a blue scout (the game's own exploding-model pieces) thrown out of it.
+        /// A head's burst as the game plays it for the Vampire (ticket 46's profile): deep purple mist puffs, small and scattered (not one
+        /// disc), glowing purple glints, tiny bats flying outward, and the head's own pieces (ticket 51) thrown out, around the point of the neck.
         /// </summary>
         private void Explosion(FxBuffer fx, Vector3 centre)
         {
             var random = new FxRandom(11);
             var size = ExplosionRadius;
-            var cream = new Color(0.95f, 0.9f, 0.78f);
-            var capRed = MonsterHeads.ById(BurstHead).Value.Blood;
-            var spore = Color.Lerp(MonsterHeads.ById(BurstHead).Value.Blood, Color.white, 0.5f);
-            var flashBand = Hdr(new Color(1, 0.8f, 0.45f), 1.3f);
-            var flashCore = Hdr(new Color(1, 0.97f, 0.85f), 2.6f);
-
-            // The disc first, so the smoke is drawn over it
-            fx.Glow(centre, size * 1.0f, flashBand, flashCore, 0.5f);
-            // The smoke: bigger toon balls on the outside, cream mostly, every third cap-red
-            for (var i = 0; i < 16; i++)
+            var blood = MonsterHeads.ById(BurstHead).Value.Blood;
+            var mist = Color.Lerp(blood, Color.black, 0.15f);
+            var mistLight = Color.Lerp(blood, Color.white, 0.25f);
+            var glint = Hdr(Color.Lerp(blood, Color.white, 0.45f), 1.5f);
+            // The mist: round puffs of different sizes thrown out, a few paler, with the game's ink line
+            for (var i = 0; i < Puffs; i++)
             {
                 var direction = random.OnUnitSphere;
-                direction.y = Mathf.Abs(direction.y) * 0.8f;
-                direction.z *= 0.5f;
-                var at = centre + ToWorldDirection(Vector3.Scale(direction, new Vector3(0.62f, 0.62f, 0.62f))) * size;
-                var radius = size * random.Range(0.17f, 0.3f);
-                fx.Lit(at, radius, i % 3 == 0 ? capRed : cream, i % 3 == 0 ? capRed * 0.3f : new Color(0.2f, 0.16f, 0.08f));
+                direction.y = Mathf.Abs(direction.y) * 0.9f;
+                direction.z *= 0.6f;
+                var at = centre + ToWorldDirection(direction) * size * random.Range(0.1f, 0.75f);
+                var radius = size * random.Range(0.09f, 0.2f);
+                fx.Lit(at, radius, i % 4 == 0 ? mistLight : mist, (i % 4 == 0 ? mistLight : mist) * 0.3f);
             }
-            // The rays out of the disc, mostly across the picture
-            for (var i = 0; i < 18; i++)
-            {
-                var ray = random.OnUnitSphere;
-                ray.z *= 0.45f;
-                ray.Normalize();
-                var world = ToWorldDirection(ray);
-                fx.Streak(centre + world * size * 0.55f, centre + world * size * random.Range(1.05f, 1.4f), size * 0.045f, 0, flashBand, flashCore, 0.45f);
-            }
-            // Glowing spores drifting out
-            var sporeCore = Hdr(Color.white, 1.6f);
-            var sporeBand = Hdr(spore, 1.4f);
-            for (var i = 0; i < 44; i++)
+            // Glints
+            for (var i = 0; i < 30; i++)
             {
                 var direction = random.OnUnitSphere;
                 direction.z *= 0.6f;
-                var at = centre + ToWorldDirection(direction) * size * random.Range(0.7f, 1.6f) + Vector3.up * size * 0.1f;
-                fx.Glow(at, random.Range(0.05f, 0.11f), sporeBand, sporeCore, 0.45f, random.Range(0.55f, 1f));
+                var at = centre + ToWorldDirection(direction) * size * random.Range(0.5f, 1.5f);
+                fx.Glow(at, random.Range(0.04f, 0.09f), glint, Hdr(Color.white, 1.6f), 0.45f, random.Range(0.55f, 1f));
             }
-
+            Bats_(centre, random);
             Debris(centre, random);
+        }
+
+        /// <summary>Tiny cartoon bats (the game's debris model) flying out of the burst, wings spread, turned along their flight.</summary>
+        private void Bats_(Vector3 centre, FxRandom random)
+        {
+            var models = MonsterDebrisModels.Load();
+            var prefab = models != null ? models.Prefab(DebrisKind.Bat) : null;
+            if (prefab == null)
+                throw new InvalidOperationException("the debris models have no bat (run MonsterDebrisBuilder)");
+            for (var i = 0; i < Bats; i++)
+            {
+                var bat = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
+                bat.name = "Bat " + i;
+                foreach (var collider in bat.GetComponentsInChildren<Collider>(true))
+                    collider.enabled = false;
+                var local = random.OnUnitSphere;
+                local.y = Mathf.Abs(local.y) * 0.8f + 0.1f;
+                local.z *= 0.35f;
+                var direction = rotation * local.normalized;
+                bat.transform.localScale = Vector3.one * random.Range(3.2f, 4.2f);
+                // The bat flies along its direction, its back up and a little rolled
+                bat.transform.rotation = Quaternion.LookRotation(Vector3.Cross(direction, Vector3.up).normalized, Vector3.up) * Quaternion.Euler(0, 0, random.Range(-25f, 25f));
+                bat.transform.position = centre + direction * ExplosionRadius * random.Range(0.8f, 1.5f);
+            }
         }
 
         /// <summary>The pieces of a blue scout, the game's own exploding-model pieces, each moved out from where it fits in the model and turned.</summary>

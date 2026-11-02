@@ -15,7 +15,7 @@ using Object = UnityEngine.Object;
 namespace SdfMedia.Editor
 {
     /// <summary>
-    /// Records the CrazyGames preview videos: four clips of four seconds of real battle, one each from the Meadow, Fungal, Toybox and
+    /// Records the CrazyGames preview videos: four clips of four seconds of real battle, one each from the Meadow, Chessboard, Toybox and
     /// Kitchen arenas, each frame rendered three times from the same camera pose (landscape, portrait and square), and then stitched
     /// into <c>Media/preview-landscape.mp4</c>, <c>preview-portrait.mp4</c> and <c>preview-square.mp4</c> by
     /// <see cref="PreviewVideoEncoder"/>. Tools > SDF Media > Record Preview Videos (Tools > SDF Media > Regenerate Promo Videos And Cover
@@ -95,7 +95,7 @@ namespace SdfMedia.Editor
         };
 
         /// <summary>The arenas, in clip order: clip N is arena N-1.</summary>
-        public static readonly string[] Arenas = { "Meadow", "Fungal", "Toybox", "Kitchen" };
+        public static readonly string[] Arenas = { "Meadow", "Chessboard", "Toybox", "Kitchen" };
 
         /// <summary>The weapon you hold in each arena's clip (never the single pistol), in the order of <see cref="Arenas"/>.</summary>
         public static readonly string[] Weapons = { WeaponIds.Minigun, WeaponIds.Flamethrower, WeaponIds.BlobGun, WeaponIds.DualPistols };

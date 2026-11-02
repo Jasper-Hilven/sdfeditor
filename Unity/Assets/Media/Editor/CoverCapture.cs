@@ -69,7 +69,7 @@ namespace SdfMedia.Editor
     public static class CoverCapture
     {
         /// <summary>The level whose ground and sky are the backdrop (Assets/Scenes/&lt;Level&gt;.unity); "fungal" is the other open-air one.</summary>
-        public const string Level = "meadow";
+        public static string Level = "meadow";
         /// <summary>Each cover is rendered at this many times its size and averaged down.</summary>
         public const int Super = 2;
         /// <summary>Where the covers are written, from the repository root.</summary>
@@ -94,13 +94,13 @@ namespace SdfMedia.Editor
             new CoverFormat
             {
                 FileName = "cover-portrait.png", Width = 800, Height = 1200,
-                CameraPosition = new Vector3(0, 0.5f, -3.9f), Anchor = new Vector2(0.5f, 0.66f), FieldOfView = 54, Roll = -5,
+                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.6f, 0.60f), FieldOfView = 62, Roll = -4,
                 LogoCentre = new Vector2(0.5f, 0.145f), LogoShare = 0.92f,
             },
             new CoverFormat
             {
                 FileName = "cover-square.png", Width = 800, Height = 800,
-                CameraPosition = new Vector3(0, 0.5f, -3.9f), Anchor = new Vector2(0.5f, 0.64f), FieldOfView = 48, Roll = -4,
+                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.6f, 0.62f), FieldOfView = 54, Roll = -3,
                 LogoCentre = new Vector2(0.5f, 0.165f), LogoShare = 0.78f,
             },
         };
@@ -206,9 +206,18 @@ namespace SdfMedia.Editor
             var index = Array.IndexOf(args, "-coverDir");
             var folder = index >= 0 && index + 1 < args.Length ? Path.GetFullPath(args[index + 1]) : null;
             var ok = false;
+            // -coverLevel <level> and -coverOnly <part of a file name> are for trying a framing or a backdrop
+            var levelIndex = Array.IndexOf(args, "-coverLevel");
+            if (levelIndex >= 0 && levelIndex + 1 < args.Length)
+                Level = args[levelIndex + 1];
+            var yawIndex = Array.IndexOf(args, "-coverYaw");
+            if (yawIndex >= 0 && yawIndex + 1 < args.Length)
+                CoverStage.YawDegrees = float.Parse(args[yawIndex + 1], System.Globalization.CultureInfo.InvariantCulture);
+            var onlyIndex = Array.IndexOf(args, "-coverOnly");
+            var only = onlyIndex >= 0 && onlyIndex + 1 < args.Length ? args[onlyIndex + 1] : null;
             try
             {
-                ok = Render(Formats.Concat(VideoFormats).ToArray(), folder, true);
+                ok = Render(Formats.Concat(VideoFormats).Where(f => only == null || f.FileName.Contains(only)).ToArray(), folder, true);
             }
             catch (Exception exception)
             {
