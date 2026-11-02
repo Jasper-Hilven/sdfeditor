@@ -27,8 +27,8 @@ legal notes if the project has them.
   - fire (automatic for the minigun, flamethrower and electro-gun; single for the sniper and pistol)
   - hit and death direction (directional deaths)
   - the carried flag (the upper body stays in the rifle pose)
-- **Death and the head**: on death the body plays its directional death and the head explodes at the same moment (46). The
-  headless corpse lies for the existing `Corpse` time. With gore Off, the whole body goes in the cartoon puff instead.
+- **Death and the head**: changed by 51. On death the body ragdolls (no directional death clip) and the head bursts at the same
+  moment (51, 46). The headless corpse lies for the existing `Corpse` time. The body never puffs, bursts or bleeds, at any gore level.
 - **Speeds**: the playback rate is matched to this game's move speeds (BR's `LocomotionClipSpeeds`), including the flag carrier's 10%
   slower speed and Frenzy's speed (49).
 - **First person** stays as it is: the camera's floating hands and weapon (`WeaponView`). Your own body is seen only by the death

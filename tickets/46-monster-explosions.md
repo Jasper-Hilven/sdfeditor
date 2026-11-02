@@ -3,7 +3,10 @@
 Part of **Minigun Monsters** (41-50). When a monster dies, its head bursts in its own way. The mushroom explosion becomes a
 data-driven monster explosion with one profile per head.
 
-Depends on: 45. Works best after 44 (the body's death plays at the same moment).
+Depends on: 45, 51 (head-only gore: the head burst, the blood colour per head, the body's ragdoll). Works best after 44.
+
+**Changed by 51:** only the head bursts; the body never puffs or bleeds. Each profile's goop, splat and mist colours start from the
+head's blood colour in 51's table.
 
 ## The explosions
 
@@ -39,7 +42,7 @@ Depends on: 45. Works best after 44 (the body's death plays at the same moment).
   - The tentacles scale down.
   - Frankenstein's sparks reuse the electro-gun's lightning.
 - **Gore**:
-  - Off: a cartoon puff in the profile's colours, with the body puffing too (44).
+  - Off: a cartoon puff of the head in the profile's colours; the body only ragdolls (51).
   - Splatty: pieces and the profile.
   - Extra Splatty: more debris and splats.
   - Ultra Gore: as today, plus the profile.

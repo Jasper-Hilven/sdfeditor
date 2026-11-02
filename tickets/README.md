@@ -58,6 +58,8 @@ ticket's Status says.
 | 48 | [The next-level countdown](48-next-level-countdown.md) | The end card counts down from 10 to the next level, win or lose; A and D (by key position) switch heads; the unlock reveal, the difficulty line, the midgame ad. Not started. After 42, 47 |
 | 49 | [Monster powers](49-monster-powers.md) | The spore powers renamed: Rage meter, Frenzy, Regenerate, Thick Hide; HUD and effects; rules unchanged. Not started |
 | 50 | [Rebrand: GUI, description and media](50-rebrand-gui-and-description.md) | Minigun Monsters: logo, GUI, scoreboard with head icons, `description.md`, `control.html`, covers and videos; never called multiplayer. Not started. Last |
+| 51 | [Gore: only the heads explode](51-head-only-gore.md) | Only the monster head bursts, in pieces, in its own blood colour (12 non-red colours); the human body never bursts or bleeds, it ragdolls (PEGI 12). Not started. After 44, 45; before 46 |
+| 52 | [Every level in its own bundle](52-every-level-streamed.md) | The web player is Boot and the GUI only; all 7 levels (the Meadow too) are streamed bundles, the first one picked at boot by 42 and fetched behind the Loading screen. Not started. After 41, 42 |
 
 ## Running the open tickets
 
@@ -78,7 +80,9 @@ section says what is left.
 | 10 | [47 Head unlocks and selection](47-head-unlocks-and-selection.md) | 46 | 42, 45 |
 | 11 | [48 The next-level countdown](48-next-level-countdown.md) | — | 42, 47 |
 | 12 | [49 Monster powers](49-monster-powers.md) | anything | — |
-| 13 | [50 Rebrand](50-rebrand-gui-and-description.md) | — | all of 41-49 |
+| 13 | [51 Gore: only the heads explode](51-head-only-gore.md) | 47, 52 | 44, 45; before 46 |
+| 14 | [52 Every level in its own bundle](52-every-level-streamed.md) | 43-47, 49, 51 | 41, 42 |
+| 15 | [50 Rebrand](50-rebrand-gui-and-description.md) | — | all of 41-49, 51, 52 |
 
 Rules for every agent:
 - One ticket per agent; it commits its ticket's work when done (the user pushes or asks to). Model per ticket: `haiku` for the
