@@ -172,11 +172,13 @@ namespace SdfCampaign.Editor
                     var menu = UnityEngine.Object.FindAnyObjectByType<GuiSettingsMenu>();
                     Expect(menu != null && menu.head != null, "the settings menu has the head row");
                     Expect(menu.head.options.Length == 2, "two heads in the cycle");
-                    StringEndsWith(menu.head.options[1], "(placeholder)");
-                    Expect(menu.headPreview != null && menu.headPreview.Worn == "pumpkin", "the preview wears the pumpkin");
-                    menu.head.Set(menu.head.index + 1, true);
+                    // Ticket 45 builds the heads one pair at a time: a head without its model says so, a real one does not
+                    if (!MonsterHeads.ById("frankenstein").Value.Built)
+                        StringEndsWith(menu.head.options[1], "(placeholder)");
+                    Expect(menu.headPreview != null && menu.headPreview.Worn == HeadStandIn.Of(loop.CurrentHead), "the preview wears the current head (the stand-in while it is unbuilt)");
+                    menu.head.Set(Array.FindIndex(menu.head.options, o => o.StartsWith("Frankenstein")), true);
                     Expect(loop.CurrentHead == "frankenstein", "the arrow picks Frankenstein");
-                    Expect(menu.headPreview.Worn == "pumpkin", "its preview shows the stand-in");
+                    Expect(menu.headPreview.Worn == HeadStandIn.Of("frankenstein"), "its preview shows the head (the stand-in while it is unbuilt)");
                     var dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../../Media/heads-47"));
                     Directory.CreateDirectory(dir);
                     SavePreview(menu.headPreview.GetComponent<UnityEngine.UI.RawImage>().texture as RenderTexture, Path.Combine(dir, "settings-head-preview.png"));
