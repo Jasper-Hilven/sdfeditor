@@ -1,0 +1,14 @@
+# Fur tuft (ticket 46): a clump of the Werewolf's coarse brown fur, six tapering hairs fanned from a root, about 12 cm long.
+# Centred on the origin, root at -z.
+format 1
+collider none
+
+Detail detail=1.2
+    Material material=wolf_fur
+        Union
+            ArbitraryRoundCone a=(0, 0, -0.05) b=(0, 0.01, 0.06) radiusA=0.012 radiusB=0.002
+            ArbitraryRoundCone a=(0, 0, -0.05) b=(0.03, 0.0, 0.05) radiusA=0.011 radiusB=0.002
+            ArbitraryRoundCone a=(0, 0, -0.05) b=(-0.03, 0.005, 0.05) radiusA=0.011 radiusB=0.002
+            ArbitraryRoundCone a=(0, 0, -0.05) b=(0.015, -0.025, 0.04) radiusA=0.010 radiusB=0.002
+            ArbitraryRoundCone a=(0, 0, -0.05) b=(-0.015, 0.03, 0.04) radiusA=0.010 radiusB=0.002
+            ArbitraryRoundCone a=(0, 0, -0.05) b=(0.0, -0.03, 0.03) radiusA=0.009 radiusB=0.002

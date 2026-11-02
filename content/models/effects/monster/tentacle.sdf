@@ -1,0 +1,23 @@
+# Tentacle (ticket 46): a cut piece of Deep-Sea Cthulhu's tentacle, 28 cm long, curled in an S and tapering, with pale suckers on the
+# inside of the curl. Centred on the origin along z. The effect deflates it (scales it down along its length and wriggles it).
+format 1
+collider none
+
+Detail detail=1.2
+    Union
+        Material material=cthulhu_skin
+            Union
+                ArbitraryRoundCone a=(0, 0, -0.14) b=(0.025, 0.02, -0.07) radiusA=0.026 radiusB=0.022
+                ArbitraryRoundCone a=(0.025, 0.02, -0.07) b=(0.01, 0.045, 0.0) radiusA=0.022 radiusB=0.017
+                ArbitraryRoundCone a=(0.01, 0.045, 0.0) b=(-0.025, 0.03, 0.07) radiusA=0.017 radiusB=0.011
+                ArbitraryRoundCone a=(-0.025, 0.03, 0.07) b=(-0.04, -0.005, 0.14) radiusA=0.011 radiusB=0.003
+        Material material=debris_sinew
+            Union
+                Translate translation=(0.012, 0.002, -0.095)
+                    Sphere radius=0.009
+                Translate translation=(0.012, 0.025, -0.04)
+                    Sphere radius=0.008
+                Translate translation=(-0.012, 0.03, 0.012)
+                    Sphere radius=0.0065
+                Translate translation=(-0.03, 0.012, 0.075)
+                    Sphere radius=0.005

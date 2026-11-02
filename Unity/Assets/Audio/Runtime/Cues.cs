@@ -55,6 +55,16 @@ namespace SdfAudio
         public const string DeathYou = "player.death";
         /// <summary>A scout bursting into pieces (with gore on), where it stood.</summary>
         public const string DeathGore = "player.death.gore";
+        /// <summary>A monster head's explosion (ticket 46), one cue per sound family: ice (the Yeti's shattering ice and frost). Empty.</summary>
+        public const string MonsterBurstIce = "monster.burst.ice";
+        /// <summary>Mist and dust: the Vampire's purple mist, the Mummy's sand cloud.</summary>
+        public const string MonsterBurstMist = "monster.burst.mist";
+        /// <summary>Slime, mud and acid: the Swamp Thing, Cyclops, Cthulhu, Acid Alien and Jack-o'-Lantern.</summary>
+        public const string MonsterBurstSplash = "monster.burst.splash";
+        /// <summary>Electric sparks: Frankenstein's Monster.</summary>
+        public const string MonsterBurstSparks = "monster.burst.sparks";
+        /// <summary>A pop of confetti, gold or fur: the Leprechaun, Werewolf and Evil Santa.</summary>
+        public const string MonsterBurstPop = "monster.burst.pop";
         /// <summary>You appear again after a death.</summary>
         public const string Respawn = "player.respawn";
         /// <summary>The low-health heart, looped; louder and faster as health falls.</summary>

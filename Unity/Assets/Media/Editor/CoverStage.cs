@@ -397,7 +397,7 @@ namespace SdfMedia.Editor
         }
 
         /// <summary>
-        /// A toon burst as <see cref="ExplodingMushroom"/> makes one, frozen at its first instants and scaled to
+        /// A toon burst as <see cref="ExplodingMonster"/> makes one, frozen at its first instants and scaled to
         /// <see cref="ExplosionRadius"/>: a cel-painted "pow" (a glowing disc and a ring of rays), balls of cream and cap-red smoke, a
         /// cloud of glowing spores, and the pieces of a blue scout (the game's own exploding-model pieces) thrown out of it.
         /// </summary>

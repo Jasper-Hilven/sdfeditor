@@ -1,0 +1,22 @@
+# Bandage strip (ticket 46): a long ragged strip of the Mummy's linen wrapping, 30 cm, twisting through an S, one end dark with age.
+# Centred on the origin along z. The effect lets it flutter down, as it unravels.
+format 1
+collider none
+
+Detail detail=1.2
+    Union
+        Material material=mummy_wrap
+            Union
+                Translate translation=(0, 0, 0.1)
+                    Rotate rotation=(0, 0, 0.1)
+                        Box size=(0.018, 0.0018, 0.05)
+                Translate translation=(0.005, 0, 0.035)
+                    Rotate rotation=(0.0, 0.15, -0.5)
+                        Box size=(0.018, 0.0018, 0.05)
+                Translate translation=(-0.003, 0, -0.03)
+                    Rotate rotation=(0.0, -0.1, 0.9)
+                        Box size=(0.017, 0.0018, 0.05)
+        Material material=mummy_wrap_dark
+            Translate translation=(-0.002, 0, -0.1)
+                Rotate rotation=(0.0, 0.1, 0.3)
+                    Box size=(0.016, 0.0018, 0.05)

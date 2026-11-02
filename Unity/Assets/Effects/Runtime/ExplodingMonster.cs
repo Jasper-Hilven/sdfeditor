@@ -3,7 +3,8 @@ using UnityEngine;
 namespace SdfEffects
 {
     /// <summary>
-    /// A mushroom that bursts: the intact model is swapped for its pieces (content/models/characters/exploding/, the model cut by
+    /// A model that bursts (ticket 46 made the mushroom's effect general; it was ExplodingMonster): a mushroom or, with <see cref="headId"/>,
+    /// a monster head whose explosion profile (<see cref="MonsterExplosion"/>) plays on top. The intact model is swapped for its pieces (content/models/characters/exploding/, the model cut by
     /// cells that split space, so they fit together exactly), which sit where the model was at the moment of the swap and so look
     /// the same, then fly apart with a spin, bounce on the ground, and shrink away after <see cref="linger"/> seconds. A toon puff
     /// (cream and cap-red balls that swell and shrink), a flash, and a cloud of glowing spores that drifts up go with it; the floating
@@ -14,7 +15,7 @@ namespace SdfEffects
     /// ground plane through the mushroom's foot, each piece taken as a ball of <see cref="radii"/> round its <see cref="centers"/>.
     /// </para>
     /// </summary>
-    public sealed class ExplodingMushroom : FxEffect
+    public sealed class ExplodingMonster : FxEffect
     {
         public GameObject intact;
         public Transform piecesRoot;
@@ -45,13 +46,23 @@ namespace SdfEffects
                  "draw its cuts along the surface, so until they part the intact model's line goes round them")]
         public float outlinesAfter = 0.05f;
 
+        [Header("A monster head (ticket 46)")]
+        [Tooltip("The head's id in the MonsterHeads table: its pieces burst as for the mushroom, and its explosion profile plays with them in place of the mushroom's puff, flash and spores; empty for a mushroom")]
+        public string headId;
+        [Tooltip("Where the ground is, in the model's own coordinates: the pieces bounce on it")]
+        public float groundLocalY;
+        [Tooltip("The gore level the head's explosion plays at (1 splatty, 2 extra splatty, 3 ultra gore)")]
+        public int goreLevel = 2;
+        [Tooltip("The bench's side of the explosion (set by the bench)")]
+        public IMonsterWorld world;
+
         [Header("Puff and spores")]
         public Color cream = new Color(0.95f, 0.9f, 0.78f);
         public Color capRed = new Color(0.85f, 0.18f, 0.08f);
         public Color spore = new Color(0.85f, 1f, 0.5f);
         public int sporeCount = 48;
 
-        public override string Label => "Explode";
+        public override string Label => string.IsNullOrEmpty(headId) ? "Explode" : headId;
 
         private Vector3[] position;
         private Vector3[] velocity;
@@ -160,9 +171,9 @@ namespace SdfEffects
                 rotation[i] = Quaternion.Euler(angular[i] * dt) * rotation[i];
                 // A bounce off the ground, losing most of its speed and spin; at rest it slides to a stop
                 var radius = radii[i] * shrink;
-                if (position[i].y < radius && velocity[i].y < 0)
+                if (position[i].y < radius + groundLocalY && velocity[i].y < 0)
                 {
-                    position[i].y = radius;
+                    position[i].y = radius + groundLocalY;
                     velocity[i] = new Vector3(velocity[i].x * 0.55f, -velocity[i].y * 0.3f, velocity[i].z * 0.55f);
                     angular[i] *= 0.5f;
                 }
@@ -187,6 +198,11 @@ namespace SdfEffects
         {
             var root = piecesRoot;
             var center = root.TransformPoint(origin);
+            if (!string.IsNullOrEmpty(headId))
+            {
+                BurstHead(center);
+                return;
+            }
             SdfAudio.GameAudio.Explode(center, SdfAudio.Cues.ExplosionMedium, SdfAudio.Cues.DebrisMedium);
             // A cel-painted "pow": a glowing disc and a ring of rays out of it, gone in a tenth of a second
             var flashBand = Hdr(new Color(1, 0.8f, 0.45f), 1.3f);
@@ -215,6 +231,28 @@ namespace SdfEffects
                 Particles.Emit(FxParticles.Kind.Spore, at, away * Random.Range(0.6f, 1.8f) + Vector3.up * Random.Range(0.2f, 0.7f),
                     Random.Range(2.2f, 3.6f), Random.Range(0.015f, 0.032f), sporeBand, sporeCore, gravity: -0.25f, drag: 1.4f);
             }
+        }
+
+        /// <summary>A monster head's burst: a puff of its blood colour (the match's gobs and splats are the gore's, not the bench's), then its profile.</summary>
+        private void BurstHead(Vector3 center)
+        {
+            var blood = SdfHeads.MonsterHeads.ById(headId) is { } head ? head.Blood : Color.white;
+            var end = new Color(blood.r * 0.35f, blood.g * 0.35f, blood.b * 0.35f, 1);
+            for (var i = 0; i < 10; i++)
+            {
+                var direction = Random.OnUnitSphere;
+                direction.y = Mathf.Abs(direction.y) * 0.8f;
+                Particles.Emit(FxParticles.Kind.Puff, center + direction * 0.2f, direction * Random.Range(0.8f, 2f), Random.Range(0.4f, 0.7f), Random.Range(0.15f, 0.28f),
+                    blood, end, gravity: -0.6f, drag: 4);
+            }
+            for (var i = 0; i < 18; i++)
+            {
+                var direction = Random.OnUnitSphere;
+                direction.y = Mathf.Abs(direction.y) * 0.9f + 0.35f;
+                Particles.Emit(FxParticles.Kind.Drop, center + Random.OnUnitSphere * 0.2f, direction * Random.Range(1.5f, 4.5f), Random.Range(0.3f, 0.7f),
+                    Random.Range(0.014f, 0.03f), blood, end, gravity: 9.8f);
+            }
+            MonsterBurst.Play(world, SdfHeads.MonsterExplosions.Of(headId), center, Vector3.zero, goreLevel, 1);
         }
     }
 }

@@ -1,0 +1,12 @@
+# Ice shard (ticket 46): a long sharp sliver of the Yeti's frozen head, about 12 cm, a smaller splinter growing out of its side.
+# Centred on the origin, long axis along +z. Debris: lives seconds, so low detail.
+format 1
+collider none
+
+Detail detail=1
+    Material material=yeti_ice
+        Union
+            ArbitraryRoundCone a=(0, 0, -0.045) b=(0, 0, 0.075) radiusA=0.022 radiusB=0.003
+            Rotate rotation=(0.35, 0.5, 0)
+                Translate translation=(0.012, 0, 0.0)
+                    ArbitraryRoundCone a=(0, 0, -0.02) b=(0, 0, 0.04) radiusA=0.011 radiusB=0.002

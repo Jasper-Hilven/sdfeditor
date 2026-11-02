@@ -1,0 +1,14 @@
+# Bolt (ticket 46): one of Frankenstein's neck bolts, a steel shaft with a hex head and a washer, about 9 cm long, head at +z.
+format 1
+collider none
+
+Detail detail=1.2
+    Material material=frank_metal
+        Union
+            Rotate rotation=(1.5707964, 0, 0)
+                Union
+                    CappedCylinder radius=0.011 height=0.035
+                    Translate translation=(0, 0.04, 0)
+                        CappedCylinder radius=0.017 height=0.004
+                    Translate translation=(0, 0.048, 0)
+                        RoundBox size=(0.015, 0.008, 0.015) roundness=0.003

@@ -92,11 +92,19 @@ namespace SdfBattle
         private Gob[] gobs;
         private Puddle[] splats;
         private int nextGob;
+        private GoreMonsterWorld monsters;
+        private MonsterDebris debris;
 
         /// <summary>The settings' gore level: 0 off, 1 splatty, 2 extra splatty, 3 ultra gore.</summary>
         public static int Level => GuiSettings.Gore;
 
         public Match Match => match;
+
+        /// <summary>The match's combat (its lightning, for the explosions' sparks); null without one.</summary>
+        public Combat Combat => combat;
+
+        /// <summary>The place the heads' explosions (ticket 46) play in: this gore's gobs, splats and ground, the combat's lightning and effects, and the debris pool.</summary>
+        public IMonsterWorld Monsters => monsters;
 
         /// <summary>The particle pool of combat's effects, which the drops and puffs go into; null without combat.</summary>
         public FxParticles Particles => combat != null && combat.Fx != null ? combat.Fx.Particles : null;
@@ -138,6 +146,23 @@ namespace SdfBattle
             ragdollRoot.SetParent(transform, false);
             gobs = new Gob[gobModels?.Length ?? 0];
             splats = new Puddle[splatModels?.Length ?? 0];
+            // The heads' debris (ticket 46): its pool, its models and its instancing materials, made once here, so a death allocates nothing
+            debris = gameObject.GetComponent<MonsterDebris>() ?? gameObject.AddComponent<MonsterDebris>();
+            debris.Probe = ProbeGround;
+            debris.Prepare();
+            monsters = new GoreMonsterWorld(this, debris);
+        }
+
+        /// <summary>The ground a falling piece of debris comes down on, under <paramref name="from"/>.</summary>
+        private static bool ProbeGround(Vector3 from, out float y)
+        {
+            if (Ground(from, out var point, out _, 2.5f))
+            {
+                y = point.y;
+                return true;
+            }
+            y = 0;
+            return false;
         }
 
         /// <summary>Inactive copies of the goop models, round-robin, without colliders or shadows.</summary>

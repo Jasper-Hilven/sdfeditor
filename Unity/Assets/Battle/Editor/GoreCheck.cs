@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using SdfEffects;
 using SdfGui;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,12 +12,13 @@ using UnityEngine;
 namespace SdfBattle.Editor
 {
     /// <summary>
-    /// The gore's play check and capture (ticket 51): the Meadow in Play mode, a bot killed at each gore level wearing the Yeti and then
-    /// the Jack-o'-Lantern (<see cref="SoldierPuppet.WearHead"/> forces the head), seen from a camera at its side at 0.25 s, 0.7 s, 1.6 s
-    /// and 4.5 s after the kill. Checks, per kill: the head bursts into its own pieces in its own blood colour (none at Off, where it
+    /// The gore's play check and capture (tickets 51 and 46): the Meadow in Play mode, a bot killed at each gore level wearing each of the
+    /// twelve heads in turn (<see cref="SoldierPuppet.WearHead"/> forces the head), seen from a camera at its side at 0.15 s, 0.5 s, 1.2 s,
+    /// 2.4 s and 4.5 s after the kill. Ticket 46's checks: the head's explosion profile is registered and, at Splatty and up, throws its
+    /// debris (the count the gore level gives) without allocating, and at Off throws none. Checks, per kill: the head bursts into its own pieces in its own blood colour (none at Off, where it
     /// puffs), the body becomes a ragdoll of ten bodies with no gib, piece or blood on it, it simulates for 3 s at most and then lies
     /// kinematic; then all seven bots are killed in one frame and at most <see cref="GoreRules.MaxCorpses"/> ragdolls simulate. Writes
-    /// <c>gore-yeti.png</c> and <c>gore-pumpkin.png</c> (a row per level: off, splatty, extra splatty, ultra gore; a column per moment),
+    /// <c>gore-&lt;id&gt;.png</c> for each head (a row per level: off, splatty, extra splatty, ultra gore; a column per moment),
     /// <c>gore-ragdoll.png</c> (the headless corpse from three sides, lying) and <c>gore-check.txt</c> (the trace) to <c>-captureDir</c>.
     /// Batch, with the GPU and no -quit:
     /// <c>tools/unity-batch.sh gore51 -executeMethod SdfBattle.Editor.GoreCheck.Run -captureDir Media/gore-51</c>. Exit code 1 on a failure.
@@ -27,8 +29,8 @@ namespace SdfBattle.Editor
         private const string ActiveKey = "SdfBattle.GoreCheck";
         private const string DirKey = "SdfBattle.GoreCheck.Dir";
         private const string Meadow = "Assets/Scenes/Meadow.unity";
-        private static readonly float[] Moments = { 0.25f, 0.7f, 1.6f, 4.5f };
-        private static readonly string[] Heads = { "yeti", "pumpkin" };
+        private static readonly float[] Moments = { 0.15f, 0.5f, 1.2f, 2.4f, 4.5f };
+        private static readonly string[] Heads = SdfHeads.MonsterHeads.All.Where(h => h.Built).Select(h => h.Id).ToArray();
         private const int Tile = 400;
 
         private static readonly List<string> trace = new List<string>();
@@ -39,10 +41,13 @@ namespace SdfBattle.Editor
         private static Match match;
         private static Player victim;
         private static SoldierRagdoll mine;
-        private static int mostSimulating;
+        private static int mostSimulating, debrisPeak, drawsPeak, particlePeak;
+        private static long allocBefore;
+        private static int spawnedBefore;
         private static string head;
         private static int level;
         private static int shot;
+        private static int firstBursts;
         private static Camera camera;
         private static string directory;
         private static float frames, frameSeconds;
@@ -83,7 +88,7 @@ namespace SdfBattle.Editor
             trace.Add("ok: " + what);
         }
 
-        // 2 heads x 4 levels, then the ragdoll sheet at splatty, then all seven at once
+        // 12 heads x 4 levels, then the ragdoll sheet at splatty, then everyone at once (at ultra gore, each in a different head)
         private static int Scenarios => Heads.Length * 4 + 2;
 
         private static void Update()
@@ -103,7 +108,7 @@ namespace SdfBattle.Editor
                 Finish();
                 return;
             }
-            if (now - started > 240)
+            if (now - started > 900)
             {
                 errors.Add($"timed out in scenario {scenario}, phase {phase}");
                 Finish();
@@ -179,6 +184,7 @@ namespace SdfBattle.Editor
                     var killer = match.Players.First(p => p.State.Team != victim.State.Team);
                     var from = victim.transform.position + victim.transform.right * -2f + Vector3.up * 1.6f;
                     var before = CountObjects("Head of ");
+                    spawnedBefore = match.Gore.Monsters.Debris.Spawned;
                     var damage = new Damage(9999, WeaponIds.Pistol, killer.State.Team, killer.State, killer.name, from, headshot: true);
                     var dealt = match.GetComponentInChildren<Combat>().State.Hurt(victim.State, damage);
                     Log($"hurt dealt {dealt}, alive {victim.State.Alive}, health {victim.State.Health}, protected {match.State.CanHurt(victim.State, killer.State.Team)}");
@@ -197,6 +203,7 @@ namespace SdfBattle.Editor
                     Expect(renderers.All(r => r is SkinnedMeshRenderer), "nothing but the skinned body: no piece, gib or blood on it");
                     Expect(ragdoll.GetComponentInChildren<SdfHeads.HeadWear>(true) == null, "the ragdoll is headless");
                     Expect(pieces == (gore == GoreRules.Off ? 0 : 1), gore == GoreRules.Off ? "gore off: no head pieces, only a puff" : "the head bursts (a head-pieces corpse appears)");
+                    ExplosionChecks(wearing, gore);
                     if (gore != GoreRules.Off)
                     {
                         var corpse = GameObject.FindObjectsByType<Corpse>(FindObjectsSortMode.None).First(c => c.name.StartsWith("Head of "));
@@ -232,6 +239,28 @@ namespace SdfBattle.Editor
             }
         }
 
+        /// <summary>
+        /// Ticket 46: the head's profile is registered (all twelve), and the burst just played threw the debris the gore level gives, none at
+        /// Off, with nothing allocated by the explosion itself (the first of the run may warm something up: its bytes are logged).
+        /// </summary>
+        private static void ExplosionChecks(string id, int gore)
+        {
+            var profile = HeadBurstProfile.Of(id) as ExplosionProfile;
+            Expect(profile != null, $"the {id} has an explosion profile registered");
+            if (gore == GoreRules.Off)
+            {
+                Expect(match.Gore.Monsters.Debris.Spawned == spawnedBefore, "gore off: no debris (the head only puffs)");
+                return;
+            }
+            var expected = SdfHeads.MonsterExplosions.DebrisOf(profile.Explosion, gore);
+            Expect(match.Gore.Monsters != null && match.Gore.Monsters.Debris != null && match.Gore.Monsters.Debris.Ready, "the debris models are ready (MonsterDebrisBuilder)");
+            var thrown = match.Gore.Monsters.Debris.Spawned - spawnedBefore;
+            Expect(thrown == expected && MonsterBurst.LastDebris == expected, $"{id} at gore {gore} threw {thrown} debris pieces, expected {expected}");
+            Log($"{id} at gore {gore}: {MonsterBurst.LastDebris} debris, explosion allocated {MonsterBurst.LastAllocatedBytes} bytes, {match.Gore.Monsters.Debris.Live} alive, peak {match.Gore.Monsters.Debris.Peak}");
+            if (firstBursts++ > 0)
+                Expect(MonsterBurst.LastAllocatedBytes == 0, $"{id} at gore {gore}: the explosion allocated nothing ({MonsterBurst.LastAllocatedBytes} bytes)");
+        }
+
         private static void Everyone(float now)
         {
             if (phase == 2)
@@ -240,11 +269,20 @@ namespace SdfBattle.Editor
             {
                 case 0:
                 {
-                    GuiSettings.Gore = GoreRules.Splatty;
+                    GuiSettings.Gore = GoreRules.UltraGore;
                     var targets = match.Players.Where(p => p.State.Alive).ToList();
+                    var wear = 0;
                     foreach (var each in targets)
+                    {
                         each.State.EndProtection();
-                    Log($"everyone: {targets.Count} killed in one frame");
+                        // The heaviest explosions, one head each: the most debris at once
+                        if (each.soldier != null)
+                            each.soldier.WearHead(new[] { "santa", "leprechaun", "yeti", "pumpkin", "werewolf", "mummy", "frankenstein", "vampire" }[wear++ % 8]);
+                    }
+                    Log($"everyone: {targets.Count} killed in one frame at ultra gore");
+                    match.Gore.Monsters.Debris.Clear();
+                    allocBefore = System.GC.GetTotalMemory(false);
+                    particlePeak = 0;
                     foreach (var target in targets)
                     {
                         var killer = match.Players.First(p => p.State.Team != target.State.Team);
@@ -257,10 +295,18 @@ namespace SdfBattle.Editor
                 case 1:
                 {
                     mostSimulating = Mathf.Max(mostSimulating, match.Gore.Ragdolls.Count(r => r.Simulating));
+                    var debris = match.Gore.Monsters.Debris;
+                    debrisPeak = Mathf.Max(debrisPeak, debris.Live);
+                    drawsPeak = Mathf.Max(drawsPeak, debris.Draws);
+                    if (match.Gore.Particles != null)
+                        particlePeak = Mathf.Max(particlePeak, match.Gore.Particles.Count);
                     if (Time.time - killedAt > 3.6f)
                     {
                         Expect(mostSimulating <= GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount && mostSimulating >= 1, $"{mostSimulating} ragdolls simulated at most at once, never more than {GoreRules.MaxCorpses}");
                         Expect(match.Gore.Ragdolls.All(r => !r.Simulating), "all lie still after 3 s");
+                        Expect(debrisPeak > 0 && debrisPeak <= match.Gore.Monsters.Debris.capacity * SdfMushrooms.QualityExtras.GoreAmount, $"8 deaths at ultra gore: {debrisPeak} debris alive at most (pool {match.Gore.Monsters.Debris.capacity * SdfMushrooms.QualityExtras.GoreAmount}), {match.Gore.Monsters.Debris.Spawned} thrown");
+                        Expect(drawsPeak <= 2 * SdfHeads.DebrisKinds.Count * 3, $"the debris drew in {drawsPeak} instanced calls at most, whatever the pieces");
+                        Log($"everyone: debris peak {debrisPeak}, instanced draws peak {drawsPeak}, particles peak {particlePeak}, managed heap {allocBefore} -> {System.GC.GetTotalMemory(false)} bytes");
                         scenario++;
                     }
                     break;
@@ -308,7 +354,7 @@ namespace SdfBattle.Editor
             {
                 target = soldier.Head != null ? soldier.Head.transform.position : feet + Vector3.up * 1.7f;
                 target = new Vector3(feet.x, feet.y + 1.5f, feet.z);
-                from = ClearView(target, victim.transform, 3.4f);
+                from = ClearView(target, victim.transform, 4.4f);
             }
             camera.transform.position = from;
             camera.transform.LookAt(target);

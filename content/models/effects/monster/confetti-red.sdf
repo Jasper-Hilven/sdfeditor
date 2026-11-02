@@ -1,0 +1,13 @@
+# Red confetti (ticket 46): a small flat red paper square, 4 cm, slightly bent. Evil Santa's.
+format 1
+collider none
+
+Detail detail=1.5
+    Material material=debris_confetti_red
+        Union
+            Translate translation=(0.009, 0, 0)
+                Rotate rotation=(0, 0, 0.15)
+                    Box size=(0.011, 0.0012, 0.02)
+            Translate translation=(-0.009, 0, 0)
+                Rotate rotation=(0, 0, -0.15)
+                    Box size=(0.011, 0.0012, 0.02)

@@ -1,0 +1,35 @@
+# Cartoon bat (ticket 46): a tiny round-bellied bat with pointed ears, red eyes and two scalloped wings spread flat, about 14 cm across.
+# Centred on the origin, facing +z, wings along x. The effect flaps it by squashing x.
+format 1
+collider none
+
+Detail detail=1.2
+    Union
+        Material material=debris_bat
+            Union
+                Ellipsoid radii=(0.016, 0.017, 0.021)
+                Translate translation=(0, 0.014, 0.02)
+                    Sphere radius=0.014
+                Translate translation=(0.009, 0.03, 0.02)
+                    ArbitraryRoundCone a=(0, 0, 0) b=(0.003, 0.016, -0.003) radiusA=0.006 radiusB=0.001
+                Translate translation=(-0.009, 0.03, 0.02)
+                    ArbitraryRoundCone a=(0, 0, 0) b=(-0.003, 0.016, -0.003) radiusA=0.006 radiusB=0.001
+                # Wings: three flattened lobes each side, the outer ones lower and further back, so the edge is scalloped
+                Translate translation=(0.034, 0.006, -0.002)
+                    Ellipsoid radii=(0.022, 0.0035, 0.018)
+                Translate translation=(0.058, 0.002, -0.012)
+                    Ellipsoid radii=(0.02, 0.003, 0.014)
+                Translate translation=(0.074, -0.004, -0.02)
+                    Ellipsoid radii=(0.014, 0.0028, 0.01)
+                Translate translation=(-0.034, 0.006, -0.002)
+                    Ellipsoid radii=(0.022, 0.0035, 0.018)
+                Translate translation=(-0.058, 0.002, -0.012)
+                    Ellipsoid radii=(0.02, 0.003, 0.014)
+                Translate translation=(-0.074, -0.004, -0.02)
+                    Ellipsoid radii=(0.014, 0.0028, 0.01)
+        Material material=debris_bat_eye
+            Union
+                Translate translation=(0.006, 0.017, 0.032)
+                    Sphere radius=0.0045
+                Translate translation=(-0.006, 0.017, 0.032)
+                    Sphere radius=0.0045

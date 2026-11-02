@@ -1,0 +1,28 @@
+# Candy-cane piece (ticket 46): a snapped length of Santa's candy cane, 16 cm, in red and white stripes, one end bent, along z.
+format 1
+collider none
+
+Detail detail=1.2
+    Union
+        Material material=debris_candy_red
+            Union
+                Translate translation=(0, 0, -0.065)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCylinder radius=0.011 height=0.0125
+                Translate translation=(0, 0, -0.015)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCylinder radius=0.011 height=0.0125
+                Translate translation=(0, 0, 0.035)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCylinder radius=0.011 height=0.0125
+        Material material=debris_candy_white
+            Union
+                Translate translation=(0, 0, -0.04)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCylinder radius=0.011 height=0.0125
+                Translate translation=(0, 0, 0.01)
+                    Rotate rotation=(1.5707964, 0, 0)
+                        CappedCylinder radius=0.011 height=0.0125
+                Translate translation=(0, 0.004, 0.0585)
+                    Rotate rotation=(1.2, 0, 0)
+                        CappedCylinder radius=0.011 height=0.0125

@@ -20,6 +20,9 @@ namespace SdfEffects.Editor
     /// <item>explode_intact and explode_frame0: the amanita scout and its pieces put together in its place, the burst's first frame
     /// without the puff over it (the log gives how many pixels differ), then explode_0.05 to explode_2.7 as it bursts and the pieces
     /// shrink away; explode_reset after it is back.</item>
+    /// <item>monster-&lt;id&gt;.png (ticket 46), one strip per head: its burst at 0.05, 0.25, 0.6, 1.2 and 2.4 s, from in front, at the bench's
+    /// gore level (<see cref="SpecialEffectsBench.goreLevel"/>), each on its own seeded run; monsters-all.png has the twelve strips under
+    /// each other, monsters-row.png the whole row at 0.6 s.</item>
     /// </list>
     /// Without a window: <c>Unity -batchmode -quit -projectPath Unity -executeMethod SdfEffects.Editor.SpecialEffectsSnapshot.Capture
     /// -snapshotDir &lt;folder&gt;</c> (without -nographics). It builds the scene first.
@@ -61,7 +64,7 @@ namespace SdfEffects.Editor
             bench.Restart();
             foreach (var (at, effect) in new (float, FxEffect)[]
                      {
-                         (0, Effect<GoopGun>()), (0.3f, Effect<TracerGun>(g => g.label == "Minigun")), (0.45f, Effect<ExplodingMushroom>()),
+                         (0, Effect<GoopGun>()), (0.3f, Effect<TracerGun>(g => g.label == "Minigun")), (0.45f, Effect<ExplodingMonster>()),
                          (0.5f, Effect<LightningGun>()), (0.53f, Effect<TracerGun>(g => g.label == "Pistol")), (0.56f, Effect<TracerGun>(g => g.label == "Sniper")),
                      })
             {
@@ -109,7 +112,7 @@ namespace SdfEffects.Editor
             Shoot("goop_stuck", landing + new Vector3(-1.9f, 1.3f, -1.6f), landing);
 
             // The burst: the intact scout, its pieces in its place, then flying apart
-            var exploding = Effect<ExplodingMushroom>();
+            var exploding = Effect<ExplodingMonster>();
             var holder = exploding.piecesRoot.parent;
             var middle = holder.TransformPoint(new Vector3(0, 0.9f, 0));
             var view = middle + holder.TransformDirection(new Vector3(-0.35f, 0.4f, 1).normalized * 4.2f);
@@ -130,7 +133,64 @@ namespace SdfEffects.Editor
             Run(exploding.resetAfter + 0.5f - bench.Clock);
             Shoot("explode_reset", view, middle);
 
+            MonsterStrips(bench, camera, directory);
+
             Debug.Log($"SDF effects: snapshots written to {directory}");
+        }
+
+        private static readonly float[] StripTimes = { 0.05f, 0.25f, 0.6f, 1.2f, 2.4f };
+        private const int StripTile = 360;
+
+        /// <summary>One strip per monster head (ticket 46): its burst at five moments, and the twelve under each other.</summary>
+        private static void MonsterStrips(SpecialEffectsBench bench, Camera camera, string directory)
+        {
+            if (bench.monsters.Length == 0)
+                return;
+            var rows = new Texture2D[bench.monsters.Length];
+            bench.loop = false;
+            for (var m = 0; m < bench.monsters.Length; m++)
+            {
+                var monster = bench.monsters[m];
+                bench.Restart();
+                monster.goreLevel = bench.goreLevel;
+                var strip = new Texture2D(StripTile * StripTimes.Length, StripTile, TextureFormat.RGB24, false);
+                monster.Fire();
+                var middle = monster.transform.position;
+                // In front of the head (it faces back toward the bench, -z), a little above and to the side
+                var eye = middle + new Vector3(-1.1f, 0.5f, -3.4f);
+                for (var t = 0; t < StripTimes.Length; t++)
+                {
+                    while (bench.Clock < StripTimes[t] - 1e-4f)
+                        bench.Step(Frame);
+                    var path = Path.Combine(directory, $"strip-{monster.headId}-{t}.png");
+                    MushroomSnapshot.RenderView(camera, eye, Quaternion.LookRotation(middle + Vector3.up * 0.15f - eye), path, StripTile, StripTile);
+                    var tile = Load(path);
+                    strip.SetPixels(t * StripTile, 0, StripTile, StripTile, tile.GetPixels());
+                    UnityEngine.Object.DestroyImmediate(tile);
+                    File.Delete(path);
+                    File.Delete(path + ".meta");
+                }
+                strip.Apply();
+                File.WriteAllBytes(Path.Combine(directory, $"monster-{monster.headId}.png"), strip.EncodeToPNG());
+                rows[m] = strip;
+            }
+            var all = new Texture2D(StripTile * StripTimes.Length, StripTile * rows.Length, TextureFormat.RGB24, false);
+            for (var m = 0; m < rows.Length; m++)
+                all.SetPixels(0, (rows.Length - 1 - m) * StripTile, StripTile * StripTimes.Length, StripTile, rows[m].GetPixels());
+            all.Apply();
+            File.WriteAllBytes(Path.Combine(directory, "monsters-all.png"), all.EncodeToPNG());
+            foreach (var row in rows)
+                UnityEngine.Object.DestroyImmediate(row);
+            UnityEngine.Object.DestroyImmediate(all);
+
+            // The whole row at once
+            bench.Restart();
+            for (var m = 0; m < bench.monsters.Length; m++)
+                bench.FireMonster(m);
+            while (bench.Clock < 0.6f)
+                bench.Step(Frame);
+            var view = bench.monsterView;
+            MushroomSnapshot.RenderView(camera, view.position, view.rotation, Path.Combine(directory, "monsters-row.png"), 1920, 1080);
         }
 
         /// <summary>Logs how many pixels of two snapshots differ, and by how much at most.</summary>

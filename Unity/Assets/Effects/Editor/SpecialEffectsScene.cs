@@ -19,6 +19,9 @@ namespace SdfEffects.Editor
     /// sniper (tracers) and the blob gun (goop);</item>
     /// <item>their targets down range: the chanterelle scout for the lightning, a rock as the tracers' backstop, a rock for the goop,
     /// with colliders, and the amanita scout that bursts, with its pieces (content/models/characters/exploding/) waiting under it;</item>
+    /// <item>a row of the twelve monster heads (ticket 46), each on a stand with its seven cut pieces waiting, which burst in their own
+    /// way (<see cref="ExplodingMonster"/>, the profiles of <see cref="SdfHeads.MonsterExplosions"/>, the debris pool, four lightning guns for
+    /// Frankenstein's sparks);</item>
     /// <item>the <see cref="SpecialEffectsBench"/> with the effects, the <see cref="FxBuffer"/> they draw into (SdfEffect.shader, one
     /// draw), the particles, and the pools of goop the blob gun uses, all made here so a shot instantiates nothing.</item>
     /// </list>
@@ -35,6 +38,10 @@ namespace SdfEffects.Editor
 
         public const string BenchName = "Bench";
         public const string ExplodingName = "Exploding Amanita";
+        public const string MonstersName = "Monsters";
+
+        /// <summary>Where the row of heads stands: its z, the spacing and the height of the heads' sockets.</summary>
+        private const float RowZ = 16, RowSpacing = 1.5f, HeadHeight = 1.35f;
 
         /// <summary>Height of the guns' grips above the ground: held at about chest height.</summary>
         private const float GunHeight = 1.05f;
@@ -72,6 +79,7 @@ namespace SdfEffects.Editor
         {
             RenderPipelineSetup.Ensure();
             MushroomBuilder.BuildStale();
+            MonsterDebrisBuilder.Build();
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var camera = MushroomScene.CreateCamera(scene, "Main Camera", 52);
@@ -127,6 +135,18 @@ namespace SdfEffects.Editor
             Pools(root.transform, goop);
 
             var exploding = Exploding(root.transform, effects, camera.transform.position);
+            var monsters = MonsterRow(root.transform, camera.transform.position);
+            var debris = Child(root.transform, "Monster Debris").gameObject.AddComponent<MonsterDebris>();
+            debris.autoRun = false;
+            var bolts = new LightningGun[4];
+            for (var i = 0; i < bolts.Length; i++)
+            {
+                var bolt = Child(root.transform, $"Monster Bolt {i + 1}");
+                var gun = bolt.gameObject.AddComponent<LightningGun>();
+                gun.muzzle = Child(bolt, "Muzzle");
+                gun.width = 0.04f * Mathf.Pow(0.85f, i);
+                bolts[i] = gun;
+            }
 
             // The effects' one draw, and the bench that runs them all
             var fxObject = Child(root.transform, "Effects Draw").gameObject;
@@ -143,11 +163,17 @@ namespace SdfEffects.Editor
             bench.fx = fx;
             bench.particles = particles;
             bench.effects = new FxEffect[] { lightning, pistolGun, minigunGun, sniperGun, goop, exploding };
+            bench.monsters = monsters;
+            bench.debris = debris;
+            bench.bolts = bolts;
+            bench.monsterView = Child(root.transform, "Monster View");
+            bench.monsterView.position = new Vector3(0, 2.1f, RowZ - 13);
+            bench.monsterView.rotation = Quaternion.LookRotation(new Vector3(0, HeadHeight - 0.2f, RowZ) - bench.monsterView.position);
 
             MushroomBuilder.EnsureFolder(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
             AddToBuildSettings();
-            Debug.Log($"SDF effects: built {ScenePath}, {exploding.pieces.Length} pieces, {goop.blobs.Length} gobs and {goop.splats.Length} puddles pooled");
+            Debug.Log($"SDF effects: built {ScenePath}, {exploding.pieces.Length} pieces, {monsters.Length} monster heads, {goop.blobs.Length} gobs and {goop.splats.Length} puddles pooled");
         }
 
         private static GameObject Create(Scene scene, string name)
@@ -255,7 +281,7 @@ namespace SdfEffects.Editor
         /// The amanita scout and, under an object with its transform, an instance of each of its pieces at the same place, inactive;
         /// each piece's middle and size for the burst come from its bounds.
         /// </summary>
-        private static ExplodingMushroom Exploding(Transform root, Transform effects, Vector3 camera)
+        private static ExplodingMonster Exploding(Transform root, Transform effects, Vector3 camera)
         {
             // On its own to the right of the lanes, room round it for the pieces, turned to face the camera
             var holder = Child(root, ExplodingName);
@@ -304,7 +330,7 @@ namespace SdfEffects.Editor
             }
             piecesRoot.gameObject.SetActive(false);
 
-            var exploding = effects.gameObject.AddComponent<ExplodingMushroom>();
+            var exploding = effects.gameObject.AddComponent<ExplodingMonster>();
             exploding.intact = intact;
             exploding.piecesRoot = piecesRoot;
             exploding.pieces = pieces.ToArray();
@@ -316,6 +342,74 @@ namespace SdfEffects.Editor
             exploding.loopInterval = 5;
             exploding.loopOffset = 1.2f;
             return exploding;
+        }
+
+        /// <summary>
+        /// The twelve heads in a row down range: each on a stand, facing back toward the bench, with an instance of each of its seven cut pieces
+        /// (content/models/characters/head-pieces/, ticket 51) in the same place under it, inactive, as for the amanita. Heads that are not
+        /// built or have no pieces are left out.
+        /// </summary>
+        private static ExplodingMonster[] MonsterRow(Transform root, Vector3 camera)
+        {
+            var row = Child(root, MonstersName);
+            var heads = SdfHeads.MonsterHeads.All.Where(h => h.Built).ToArray();
+            var made = new List<ExplodingMonster>();
+            for (var n = 0; n < heads.Length; n++)
+            {
+                var head = heads[n];
+                var x = (n - (heads.Length - 1) / 2f) * RowSpacing;
+                var holder = Child(row, head.Id);
+                holder.SetLocalPositionAndRotation(new Vector3(x, HeadHeight, RowZ), Quaternion.LookRotation(Vector3.back));
+                var intact = (GameObject)PrefabUtility.InstantiatePrefab(Prefab(head.Id + "_fast"), holder);
+                intact.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                var piecesRoot = Child(holder, "Pieces");
+                var pieces = new List<Transform>();
+                var centers = new List<Vector3>();
+                var radii = new List<float>();
+                for (var i = 0; ; i++)
+                {
+                    var path = $"{MushroomBuilder.PrefabFolder}/{head.Id}-head-piece{i}.prefab";
+                    var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (prefab == null)
+                        break;
+                    var piece = (GameObject)PrefabUtility.InstantiatePrefab(prefab, piecesRoot);
+                    var bounds = LocalBounds(piece, piecesRoot);
+                    pieces.Add(piece.transform);
+                    centers.Add(bounds.center);
+                    radii.Add(Mathf.Min(bounds.extents.x, Mathf.Min(bounds.extents.y, bounds.extents.z)));
+                    piece.SetActive(false);
+                }
+                piecesRoot.gameObject.SetActive(false);
+                if (pieces.Count == 0)
+                    continue;
+
+                // The stand under it, no collider: the neck, the soldier's collar
+                var stand = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                stand.name = $"Stand {head.Id}";
+                stand.transform.SetParent(row, false);
+                stand.transform.localPosition = new Vector3(x, (HeadHeight - 0.3f) / 2, RowZ);
+                stand.transform.localScale = new Vector3(0.2f, (HeadHeight - 0.3f) / 2, 0.2f);
+                UnityEngine.Object.DestroyImmediate(stand.GetComponent<Collider>());
+                stand.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+
+                var exploding = holder.gameObject.AddComponent<ExplodingMonster>();
+                exploding.headId = head.Id;
+                exploding.intact = intact;
+                exploding.piecesRoot = piecesRoot;
+                exploding.pieces = pieces.ToArray();
+                exploding.centers = centers.ToArray();
+                exploding.radii = radii.ToArray();
+                exploding.loose = new bool[pieces.Count];
+                exploding.origin = Vector3.zero;
+                exploding.groundLocalY = -HeadHeight;
+                exploding.intactSurfaces = intact.GetComponentsInChildren<Renderer>(true).Where(r => r.name != MushroomBuilder.OutlineObjectName).ToArray();
+                exploding.outlines = pieces.SelectMany(p => p.GetComponentsInChildren<Renderer>(true)).Where(r => r.name == MushroomBuilder.OutlineObjectName).ToArray();
+                exploding.linger = 2.6f;
+                exploding.resetAfter = 5;
+                exploding.loopInterval = 5;
+                made.Add(exploding);
+            }
+            return made.ToArray();
         }
 
         /// <summary>The bounds of a model's finest level in another transform's coordinates, from its meshes.</summary>

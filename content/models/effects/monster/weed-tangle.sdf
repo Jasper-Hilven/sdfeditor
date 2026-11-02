@@ -1,0 +1,18 @@
+# Weed tangle (ticket 46): a snarl of swamp weed, five curling stems and a few leaves, about 14 cm across.
+format 1
+collider none
+
+Detail detail=1.2
+    Material material=swamp_moss
+        Union
+            Capsule a=(-0.06, -0.02, 0.01) b=(0.0, 0.035, -0.02) radius=0.006
+            Capsule a=(0.0, 0.035, -0.02) b=(0.06, -0.01, 0.02) radius=0.006
+            Capsule a=(-0.04, 0.03, 0.04) b=(0.02, -0.04, 0.0) radius=0.006
+            Capsule a=(0.02, -0.04, 0.0) b=(0.055, 0.04, -0.03) radius=0.005
+            Capsule a=(-0.055, -0.035, -0.035) b=(0.03, 0.02, 0.05) radius=0.0055
+            Translate translation=(0.045, 0.01, 0.02)
+                Ellipsoid radii=(0.016, 0.004, 0.009)
+            Translate translation=(-0.045, 0.02, -0.01)
+                Ellipsoid radii=(0.016, 0.004, 0.009)
+            Translate translation=(0.0, -0.03, 0.035)
+                Ellipsoid radii=(0.012, 0.004, 0.016)

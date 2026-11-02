@@ -1,0 +1,9 @@
+# Pumpkin seed (ticket 46): a flat cream teardrop with a rim, about 4 cm, pointed end along +z.
+format 1
+collider none
+
+Detail detail=1.5
+    Material material=debris_seed
+        Union
+            Ellipsoid radii=(0.014, 0.0045, 0.019)
+            ArbitraryRoundCone a=(0, 0, 0.01) b=(0, 0, 0.03) radiusA=0.007 radiusB=0.0015

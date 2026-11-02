@@ -104,6 +104,12 @@ namespace SdfAudio.Editor
             Entry(Cues.Hurt, new[] { "CC0/player/hurt.ogg" }, 0.7f, 0.95f, 1.05f, false, voices: 2, cooldown: 0.25f, priority: 50),
             Entry(Cues.DeathYou, new[] { "Weapons/die.wav" }, 0.8f, 1, 1, false, voices: 1, priority: 40),
             Entry(Cues.DeathGore, new[] { "Weapons/RIPS AND TEARS DESIGNED Humanoid Guts 04.wav" }, 0.9f, 0.9f, 1.1f, true, 4, 60, 3, priority: 110),
+            // Monster head explosions (ticket 46), one cue per family; the ice one has no clip yet (silent), the others reuse the CC0 effects
+            Entry(Cues.MonsterBurstIce, null, 0.7f, 0.95f, 1.05f, true, 3, 50, 3, priority: 115),
+            Entry(Cues.MonsterBurstMist, new[] { "CC0/weapons/poison_spray_b.ogg" }, 0.5f, 0.7f, 0.8f, true, 3, 50, 3, priority: 115),
+            Entry(Cues.MonsterBurstSplash, new[] { "CC0/weapons/blob_splat_impact.ogg", "CC0/weapons/blob_splat_impact_b.ogg" }, 0.6f, 0.75f, 0.9f, true, 3, 50, 3, priority: 115),
+            Entry(Cues.MonsterBurstSparks, new[] { "CC0/weapons/electro_lightning_chain.wav" }, 0.7f, 0.85f, 1f, true, 3, 50, 3, priority: 115),
+            Entry(Cues.MonsterBurstPop, new[] { "CC0/spores/puffball_armour_puff.ogg" }, 0.6f, 1.15f, 1.3f, true, 3, 50, 3, priority: 115),
             Entry(Cues.Respawn, new[] { "CC0/player/respawn.ogg" }, 0.6f, 1, 1, false, voices: 1),
             Entry(Cues.Heartbeat, new[] { "Character/heartbeat.wav" }, 0.9f, 1, 1, false, voices: 1, loop: true, priority: 20),
 

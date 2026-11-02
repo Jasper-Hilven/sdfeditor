@@ -1,0 +1,27 @@
+# Shamrock (ticket 46): a three-leaf clover, each leaf a heart of two lobes, lying flat, about 8 cm across, with a short bent stem.
+# Centred on the origin, flat in the xy plane (thin along z). Debris: confetti.
+format 1
+collider none
+
+Detail detail=1.2
+    Material material=debris_shamrock
+        Union
+            Translate translation=(0, 0.0, 0)
+                Union
+                    Translate translation=(0.011, 0.03, 0)
+                        Ellipsoid radii=(0.013, 0.017, 0.0025)
+                    Translate translation=(-0.011, 0.03, 0)
+                        Ellipsoid radii=(0.013, 0.017, 0.0025)
+            Rotate rotation=(0, 0, 2.0943952)
+                Union
+                    Translate translation=(0.011, 0.03, 0)
+                        Ellipsoid radii=(0.013, 0.017, 0.0025)
+                    Translate translation=(-0.011, 0.03, 0)
+                        Ellipsoid radii=(0.013, 0.017, 0.0025)
+            Rotate rotation=(0, 0, -2.0943952)
+                Union
+                    Translate translation=(0.011, 0.03, 0)
+                        Ellipsoid radii=(0.013, 0.017, 0.0025)
+                    Translate translation=(-0.011, 0.03, 0)
+                        Ellipsoid radii=(0.013, 0.017, 0.0025)
+            ArbitraryRoundCone a=(0, -0.005, 0) b=(0.008, -0.04, 0) radiusA=0.004 radiusB=0.0025
