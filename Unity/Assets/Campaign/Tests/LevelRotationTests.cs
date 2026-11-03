@@ -126,12 +126,52 @@ namespace SdfCampaign.Tests
             for (var i = 0; i < 2000; i++)
                 seen.Add(rotation.First(random));
             CollectionAssert.AreEquivalent(new[] { "Toybox", "Kitchen", "Bathroom", "Computer" }, seen);
-            // A fresh game can start on any of the seven, the Meadow only one of them
-            var fresh = new LevelRotation();
-            var firsts = new HashSet<string>();
+        }
+
+        [Test]
+        public void AFirstPlayStartsInTheFungalLevel()
+        {
+            Assert.AreEqual("Fungal", LevelRotation.FirstPlayLevel);
+            CollectionAssert.Contains(LevelRotation.Levels, LevelRotation.FirstPlayLevel);
+            var random = new System.Random(5);
+            for (var i = 0; i < 200; i++)
+                Assert.AreEqual("Fungal", new LevelRotation().First(random));
+            // A new save, and a save whose levels are all unknown, are first plays
+            Assert.AreEqual("Fungal", new LevelRotation(GameSave.Load(new MemoryCampaignStorage()).lastLevels).First(random));
+            Assert.AreEqual("Fungal", new LevelRotation(new[] { "Gone" }).First(random));
+            // A streamcheck page still forces its level
+            Assert.AreEqual("Kitchen", new LevelRotation().First(random, "http://x/?streamcheck&level=Kitchen"));
+        }
+
+        [Test]
+        public void AfterTheFirstPlayTheRotationGoesOnWithoutTheFungalLevel()
+        {
+            var rotation = new LevelRotation();
+            var random = new System.Random(11);
+            rotation.Played(rotation.First(random));
+            Assert.IsFalse(rotation.IsFirstPlay);
+            var seen = new HashSet<string>();
             for (var i = 0; i < 2000; i++)
-                firsts.Add(fresh.First(random));
-            CollectionAssert.AreEquivalent(LevelRotation.Levels, firsts);
+                seen.Add(rotation.Next(random));
+            CollectionAssert.AreEquivalent(LevelRotation.Levels.Where(l => l != "Fungal"), seen);
+            // A later session's first match is the rotation's pick again, not the Fungal level
+            var later = new LevelRotation(new[] { "Fungal" });
+            for (var i = 0; i < 200; i++)
+                Assert.AreNotEqual("Fungal", later.First(random));
+        }
+
+        [Test]
+        public void TheWarmUpIsInTheFungalLevelOnAFirstPlayOnly()
+        {
+            var fresh = new LevelRotation();
+            Assert.IsTrue(fresh.IsFirstPlay);
+            Assert.IsTrue(fresh.WarmUpOn("Fungal"));
+            Assert.IsTrue(fresh.WarmUpOn(fresh.First(new System.Random(2))));
+            Assert.IsFalse(fresh.WarmUpOn("Meadow"), "a forced first level other than the Fungal one has no warm-up");
+            Assert.IsFalse(fresh.WarmUpOn("Kitchen"));
+            var played = new LevelRotation(new[] { "Kitchen" });
+            Assert.IsFalse(played.IsFirstPlay);
+            Assert.IsFalse(played.WarmUpOn("Fungal"), "a returning player has no warm-up, even in the Fungal level");
         }
 
         [Test]

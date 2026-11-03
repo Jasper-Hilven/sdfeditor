@@ -139,6 +139,9 @@ namespace SdfBattle
         public void Revive()
         {
             lyingElsewhere = false;
+            // The kill burst the head (Gore turns the worn one off): it grows back with the body
+            if (Head != null)
+                Head.gameObject.SetActive(true);
             wasGrounded = true;
             airSeconds = 0;
             Animator.Revive();

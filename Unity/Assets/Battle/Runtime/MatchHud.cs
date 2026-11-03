@@ -120,6 +120,8 @@ namespace SdfBattle
         {
             foreach (var flagHud in gui.GetComponentsInChildren<FlagHud>(true))
                 Destroy(flagHud);
+            foreach (var tags in gui.GetComponentsInChildren<NameTags>(true))
+                Destroy(tags);
             foreach (var hud in gui.GetComponents<MatchHud>())
                 Destroy(hud);
             if (gui.TryGetComponent<MatchView>(out var view))

@@ -68,14 +68,24 @@ namespace SdfMedia.Editor
     /// </summary>
     public static class CoverCapture
     {
-        /// <summary>The level whose ground and sky are the backdrop (Assets/Scenes/&lt;Level&gt;.unity); "fungal" is the other open-air one.</summary>
-        public static string Level = "meadow";
+        /// <summary>The level whose ground and sky are the backdrop (Assets/Scenes/&lt;Level&gt;.unity): the Fungal level (2026-11-02, was "meadow", the other open-air one).</summary>
+        public static string Level = "fungal";
         /// <summary>Each cover is rendered at this many times its size and averaged down.</summary>
         public const int Super = 2;
         /// <summary>Where the covers are written, from the repository root.</summary>
         public const string OutputFolder = "Media/Covers";
         /// <summary>The cover is the game's name; the logo's Second Place ribbon is part of that logo. Set false to leave the ribbon out.</summary>
         public const bool ShowSubtitle = true;
+        /// <summary>
+        /// True puts <see cref="CoverStudio"/>'s split over the scene: tinted red above and blue below, with the minigun in the red half
+        /// and the pumpkin head in the blue half. Off since 2026-11-02: the split did not work; the title's own colours carry red and blue.
+        /// </summary>
+        public const bool Studio = false;
+        /// <summary>
+        /// The scene behind the title is blurred in a soft band across the middle (the way the Cogs &amp; Corpses covers
+        /// set their title off), so the lettering reads while the rest of the scene stays sharp.
+        /// </summary>
+        public const bool TitleBlur = true;
 
         /// <summary>
         /// The three formats of one picture, "mid-air minigun" (see <see cref="CoverStage"/>): the camera is low, a few metres in front of
@@ -88,19 +98,19 @@ namespace SdfMedia.Editor
             new CoverFormat
             {
                 FileName = "cover-landscape.png", Width = 1920, Height = 1080,
-                CameraPosition = new Vector3(-0.6f, 0.5f, -4.2f), Anchor = new Vector2(0.66f, 0.50f), FieldOfView = 42, Roll = -4,
+                CameraPosition = new Vector3(0, 0.5f, -4.2f), Anchor = new Vector2(0.5f, 0.36f), FieldOfView = 42, Roll = -4,
                 LogoCentre = new Vector2(0.265f, 0.2f), LogoShare = 0.47f,
             },
             new CoverFormat
             {
                 FileName = "cover-portrait.png", Width = 800, Height = 1200,
-                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.66f, 0.60f), FieldOfView = 68, Roll = -4,
+                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.5f, 0.36f), FieldOfView = 68, Roll = -4,
                 LogoCentre = new Vector2(0.5f, 0.145f), LogoShare = 0.92f,
             },
             new CoverFormat
             {
                 FileName = "cover-square.png", Width = 800, Height = 800,
-                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.65f, 0.62f), FieldOfView = 60, Roll = -3,
+                CameraPosition = new Vector3(0, 0.5f, -4.0f), Anchor = new Vector2(0.5f, 0.38f), FieldOfView = 60, Roll = -3,
                 LogoCentre = new Vector2(0.5f, 0.165f), LogoShare = 0.78f,
             },
         };
@@ -215,9 +225,25 @@ namespace SdfMedia.Editor
                 CoverStage.YawDegrees = float.Parse(args[yawIndex + 1], System.Globalization.CultureInfo.InvariantCulture);
             var onlyIndex = Array.IndexOf(args, "-coverOnly");
             var only = onlyIndex >= 0 && onlyIndex + 1 < args.Length ? args[onlyIndex + 1] : null;
+            // -coverTitles <id,id,...> renders the formats once per title style of CoverLogo.Styles, each into a folder of its id
+            var titlesIndex = Array.IndexOf(args, "-coverTitles");
+            var titles = titlesIndex >= 0 && titlesIndex + 1 < args.Length ? args[titlesIndex + 1].Split(',') : null;
             try
             {
-                ok = Render(Formats.Concat(VideoFormats).Where(f => only == null || f.FileName.Contains(only)).ToArray(), folder, true);
+                var formats = Formats.Concat(VideoFormats).Where(f => only == null || f.FileName.Contains(only)).ToArray();
+                if (titles == null)
+                    ok = Render(formats, folder, true);
+                else
+                {
+                    ok = true;
+                    var chosen = CoverLogo.Style;
+                    foreach (var id in titles)
+                    {
+                        CoverLogo.Style = CoverLogo.Styles.First(s => s.Id == id);
+                        ok &= Render(formats, Path.Combine(folder ?? OutputPath, id), true);
+                    }
+                    CoverLogo.Style = chosen;
+                }
             }
             catch (Exception exception)
             {
@@ -245,9 +271,13 @@ namespace SdfMedia.Editor
             var asyncCompilation = ShaderUtil.allowAsyncCompilation;
             ShaderUtil.allowAsyncCompilation = false;
             CoverSession session = null;
+            CoverToon toon = null;
             try
             {
+                // High toon for the covers only, put back in the finally below
+                toon = CoverToon.OnAssets();
                 session = CoverSession.Open(true);
+                toon.OnScenes();
                 foreach (var format in formats)
                 {
                     EditorUtility.DisplayProgressBar("SDF media: covers", format.FileName, formats.ToList().IndexOf(format) / (float)formats.Count);
@@ -265,6 +295,7 @@ namespace SdfMedia.Editor
             {
                 EditorUtility.ClearProgressBar();
                 session?.Dispose();
+                toon?.Dispose();
                 ShaderUtil.allowAsyncCompilation = asyncCompilation;
             }
             if (succeeded)
@@ -328,6 +359,14 @@ namespace SdfMedia.Editor
                 Object.DestroyImmediate(cameraObject);
             }
 
+            // The studio's two subjects over the scene, which is tinted red above and blue below
+            if (Studio)
+                world = CoverStudio.Render(format, world);
+            if (TitleBlur)
+                world = BlurBehindTitle(world, format.Width, format.Height);
+            // A dark layer over the whole background, under the title
+            for (var i = 0; i < world.Length; i++)
+                world[i] = Color32.Lerp(world[i], new Color32(0, 0, 0, 255), BackgroundDim);
             CoverLogo.Draw(session.StageScene, format, out var overBlack, out var overWhite);
             File.WriteAllBytes(path, Composite(world, overBlack, overWhite, format.Width, format.Height));
         }
@@ -383,6 +422,88 @@ namespace SdfMedia.Editor
         /// The scene with the logo over it as a PNG: the logo rendered over black is its colour times its coverage, and over white the
         /// same plus what is not covered, so the difference of the two is the transparency and the scene shows through by that much.
         /// </summary>
+        /// <summary>The background under a black layer of this alpha (0.3: 30 %), so the title stands out.</summary>
+        public const float BackgroundDim = 0.3f;
+
+        /// <summary>How far below the picture's middle the title sits, as a fraction of its height (so the heads above it show).</summary>
+        public const float TitleDrop = 0.3f;
+
+        /// <summary>
+        /// How far below the middle the title sits for a format, in pixels: <see cref="TitleDrop"/> of the height, but never so far that
+        /// MONSTERS (down to about 1.3 lettering sizes below the title's middle) comes closer than 3 % of the height to the bottom edge.
+        /// </summary>
+        internal static float TitleOffset(int width, int height)
+        {
+            var size = TitleSize(new CoverFormat { Width = width, Height = height });
+            return Mathf.Max(0, Mathf.Min(TitleDrop * height, height * 0.47f - size * 1.3f));
+        }
+
+        /// <summary>The title's lettering size for a format, in pixels (CoverLogo sizes the words with it).</summary>
+        internal static float TitleSize(CoverFormat format) => Mathf.Min(format.Width * 0.155f, format.Height * 0.2f);
+
+        /// <summary>
+        /// The scene blurred (three box passes, about a Gaussian) in a band across the middle where the title is: full
+        /// strength over the two words, fading out above and below. Rows from the bottom.
+        /// </summary>
+        private static Color32[] BlurBehindTitle(Color32[] world, int width, int height)
+        {
+            var size = TitleSize(new CoverFormat { Width = width, Height = height });
+            var radius = Mathf.Max(2, Mathf.RoundToInt(height / 160f));
+            var channels = new float[3][];
+            for (var c = 0; c < 3; c++)
+            {
+                var a = new float[world.Length];
+                for (var i = 0; i < a.Length; i++)
+                    a[i] = c == 0 ? world[i].r : c == 1 ? world[i].g : world[i].b;
+                var b = new float[a.Length];
+                for (var pass = 0; pass < 3; pass++)
+                {
+                    BoxBlur(a, b, width, height, radius, true);
+                    BoxBlur(b, a, width, height, radius, false);
+                }
+                channels[c] = a;
+            }
+            // The letters span from about 1.1 sizes above the middle to 1.2 below; the band is full there and fades over 0.4 sizes
+            var middle = height * 0.5f - TitleOffset(width, height);
+            var output = new Color32[world.Length];
+            for (var y = 0; y < height; y++)
+            {
+                var offset = y - middle;
+                var outside = offset > 0 ? offset - size * 1.1f : -offset - size * 1.2f;
+                var weight = 1 - Mathf.SmoothStep(0, 1, Mathf.Clamp01(outside / (size * 0.4f)));
+                // (no extra darkening in the band: the whole background is dimmed by BackgroundDim)
+                var dark = 1f;
+                for (var x = 0; x < width; x++)
+                {
+                    var i = y * width + x;
+                    var p = world[i];
+                    output[i] = new Color32(
+                        (byte)Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(p.r, channels[0][i], weight) * dark), 0, 255),
+                        (byte)Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(p.g, channels[1][i], weight) * dark), 0, 255),
+                        (byte)Mathf.Clamp(Mathf.RoundToInt(Mathf.Lerp(p.b, channels[2][i], weight) * dark), 0, 255), 255);
+                }
+            }
+            return output;
+        }
+
+        private static void BoxBlur(float[] source, float[] target, int width, int height, int radius, bool horizontal)
+        {
+            var lines = horizontal ? height : width;
+            var length = horizontal ? width : height;
+            for (var line = 0; line < lines; line++)
+            {
+                int Index(int k) => horizontal ? line * width + Mathf.Clamp(k, 0, length - 1) : Mathf.Clamp(k, 0, length - 1) * width + line;
+                float sum = 0;
+                for (var k = -radius; k <= radius; k++)
+                    sum += source[Index(k)];
+                for (var k = 0; k < length; k++)
+                {
+                    target[Index(k)] = sum / (2 * radius + 1);
+                    sum += source[Index(k + radius + 1)] - source[Index(k - radius)];
+                }
+            }
+        }
+
         private static byte[] Composite(Color32[] world, Color32[] overBlack, Color32[] overWhite, int width, int height)
         {
             var output = new Color32[width * height];

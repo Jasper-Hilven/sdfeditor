@@ -1,46 +1,40 @@
 using System.Linq;
 using TMPro;
+using UnityEngine.TextCore.LowLevel;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using SdfGui;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace SdfMedia.Editor
 {
     /// <summary>
-    /// The game's real logo for a cover: the Logo object of the Loading screen prefab (Assets/GUI/Prefabs/Screens/Loading.prefab: MINIGUN and
-    /// MONSTERS on the rage-red splat, but not the tagline plate under it) taken out of that prefab, with everything else of the screen (the
-    /// buttons, the progress line, the version, the dim) left behind, sized and placed per format, and rendered on its own. It sits on a
-    /// world-space canvas of the cover's own size (one canvas unit a pixel) far below the stage, drawn by an orthographic camera that sees
-    /// only the UI layer, at <see cref="CoverCapture.Super"/> times the size, once over black and once over white; the two give the logo's
-    /// colour and its transparency (the way GuiSnapshot gets a GUI over the world), and <see cref="CoverCapture"/> lays it over the scene.
-    /// The title's own behaviours never run: the prefab is unpacked while its parent is switched off, and only the logo is moved on to
-    /// the canvas.
+    /// The cover's title, in the way of the Cogs &amp; Corpses covers: big, one word a line, meeting at the middle, in the teams' colours:
+    /// MINIGUN red, MONSTERS blue, with black outlines only (the logo lettering of <see cref="SdfGui.Editor.GuiFactory.LogoWord"/> with
+    /// its cream back layer turned to ink, sized to the format). <see cref="CoverCapture"/> blurs and darkens the scene behind it. It sits
+    /// on a world-space canvas of the cover's own size (one canvas unit a pixel) far below everything, drawn by an orthographic camera
+    /// that sees only the UI layer, at <see cref="CoverCapture.Super"/> times the size, once over black and once over white; the two give
+    /// the title's colour and its transparency (the way GuiSnapshot gets a GUI over the world), and <see cref="CoverCapture"/> lays it
+    /// over the picture.
     /// </summary>
     internal static class CoverLogo
     {
         /// <summary>The UI layer, which the logo's objects are on and only its camera sees.</summary>
         public const int UiLayer = 5;
-        public const string TitlePrefab = "Assets/GUI/Prefabs/Screens/Loading.prefab";
         /// <summary>Where the canvas hangs, far from anything else in the scenes.</summary>
         private static readonly Vector3 CanvasPosition = new Vector3(0, -5000, 0);
 
         /// <summary>The logo of a format at the format's size, over black and over white, rows from the bottom.</summary>
         public static void Draw(Scene scene, CoverFormat format, out Color32[] overBlack, out Color32[] overWhite)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(TitlePrefab);
-            if (prefab == null)
-                throw new System.InvalidOperationException($"{TitlePrefab} is missing (Tools > SDF GUI builds the screens)");
-
             var canvasObject = new GameObject("Cover Logo Canvas", typeof(RectTransform), typeof(Canvas));
-            var holder = new GameObject("Cover Logo Holder");
             var cameraObject = EditorUtility.CreateGameObjectWithHideFlags("Cover Logo Camera", HideFlags.HideAndDontSave, typeof(Camera));
             RenderTexture target = null;
             try
             {
                 SceneManager.MoveGameObjectToScene(canvasObject, scene);
-                SceneManager.MoveGameObjectToScene(holder, scene);
                 canvasObject.layer = UiLayer;
                 canvasObject.transform.position = CanvasPosition;
                 var canvas = canvasObject.GetComponent<Canvas>();
@@ -51,34 +45,36 @@ namespace SdfMedia.Editor
                 canvasRect.sizeDelta = new Vector2(format.Width, format.Height);
                 canvasRect.localScale = Vector3.one;
 
-                // The title screen, unpacked under a parent that is switched off (so none of its behaviours runs), then only the logo moved out
-                holder.SetActive(false);
-                var title = (GameObject)PrefabUtility.InstantiatePrefab(prefab, holder.transform);
-                PrefabUtility.UnpackPrefabInstance(title, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-                var logo = title.GetComponentsInChildren<RectTransform>(true).FirstOrDefault(r => r.name == "Logo");
-                if (logo == null)
-                    throw new System.InvalidOperationException($"{TitlePrefab} has no Logo (GuiScreens.Loading builds it)");
-                var design = logo.sizeDelta;
-                logo.SetParent(canvasRect, false);
-                Object.DestroyImmediate(holder);
-
-                // The campaign's gold crown is the title's business, and the ribbon is optional
-                var crown = logo.Find("Crown");
-                if (crown != null)
-                    crown.gameObject.SetActive(false);
-                // The tagline plate ("Last year's champion. Probably still.") is text other than the title: CrazyGames allows none
-                var tagline = logo.Find("Tagline Plate");
-                if (tagline != null)
-                    tagline.gameObject.SetActive(false);
-                var subtitle = logo.Find("Subtitle");
-                if (subtitle != null)
-                    subtitle.gameObject.SetActive(CoverCapture.ShowSubtitle);
-
-                // Centred where the format says, as wide as it says
-                logo.anchorMin = logo.anchorMax = logo.pivot = new Vector2(0.5f, 0.5f);
-                logo.sizeDelta = design;
-                logo.anchoredPosition = new Vector2((format.LogoCentre.x - 0.5f) * format.Width, (0.5f - format.LogoCentre.y) * format.Height);
-                logo.localScale = Vector3.one * (format.Width * format.LogoShare / design.x);
+                // The title in the teams' colours: MINIGUN red just above the middle, MONSTERS blue just below it, black outlines only
+                var factory = new SdfGui.Editor.GuiFactory(SdfGui.Editor.GuiAssets.Load());
+                var title = new GameObject("Cover Title", typeof(RectTransform));
+                var titleRect = (RectTransform)title.transform;
+                titleRect.SetParent(canvasRect, false);
+                titleRect.anchorMin = Vector2.zero;
+                titleRect.anchorMax = Vector2.one;
+                titleRect.sizeDelta = Vector2.zero;
+                float width = format.Width, height = format.Height;
+                var x = CoverCapture.Studio ? (CoverStudio.LayoutOf(format).TitleX - 0.5f) * width : 0;
+                var size = CoverCapture.TitleSize(format);
+                var box = new Vector2(width, size * 1.3f);
+                var drop = CoverCapture.TitleOffset(format.Width, format.Height);
+                factory.LogoWord(titleRect, "Minigun", "MINIGUN", size, GuiPalette.Hex(0xFF5A48), GuiPalette.Hex(0xC41A1E), new Vector2(x, size * 0.5f - drop), box, 0, 0, size * 0.03f);
+                factory.LogoWord(titleRect, "Monsters", "MONSTERS", size, GuiPalette.Hex(0x5EA2FF), GuiPalette.Hex(0x1C4CD2), new Vector2(x, -size * 0.62f - drop), box, 0, 0, size * 0.03f);
+                // Black outlines only: the lettering's cream back layer (the logo's light edge) turned to ink
+                var ink = new Color(0.05f, 0.03f, 0.04f);
+                foreach (var back in titleRect.GetComponentsInChildren<TMP_Text>(true).Where(t => t.name.EndsWith(" Back")))
+                {
+                    var inked = new Material(back.fontSharedMaterial) { hideFlags = HideFlags.HideAndDontSave };
+                    inked.SetColor(ShaderUtilities.ID_OutlineColor, ink);
+                    inked.SetColor(ShaderUtilities.ID_UnderlayColor, ink);
+                    back.fontSharedMaterial = inked;
+                    back.color = ink;
+                }
+                if (Style != null)
+                {
+                    Restyle(titleRect, Style);
+                    Fit(titleRect, width * 0.86f, -drop);
+                }
                 foreach (var child in canvasObject.GetComponentsInChildren<Transform>(true))
                     child.gameObject.layer = UiLayer;
 
@@ -122,9 +118,102 @@ namespace SdfMedia.Editor
                     Object.DestroyImmediate(target);
                 }
                 Object.DestroyImmediate(cameraObject);
-                if (holder != null)
-                    Object.DestroyImmediate(holder);
                 Object.DestroyImmediate(canvasObject);
+            }
+        }
+
+        // ------------------------------------------------------------------------------------------------------------ Title styles
+
+        /// <summary>A look for the title tried on the covers (2026-11-03, "too playful"): a font, a slant, the outline's weight and the colours.</summary>
+        internal sealed class TitleStyle
+        {
+            public string Id;
+            /// <summary>The font file (a cover-only font under Media/Editor/Fonts); null keeps Lilita One.</summary>
+            public string FontPath;
+            /// <summary>The italic shear, in TMP's units (Lilita's own is 35); 0 for upright.</summary>
+            public float Slant;
+            public float Spacing;
+            /// <summary>How chunky the ink outline and shadow are (1: the logo's own).</summary>
+            public float Outline = 1;
+            public Color RedTop, RedBottom, BlueTop, BlueBottom;
+        }
+
+        private static readonly Color DarkRedTop = GuiPalette.Hex(0xFF6B4A), DarkRedBottom = GuiPalette.Hex(0x8A0E12);
+        private static readonly Color SteelTop = GuiPalette.Hex(0x9AD0FF), SteelBottom = GuiPalette.Hex(0x10307E);
+        private const string FontFolder = "Assets/Media/Editor/Fonts/";
+
+        public static readonly TitleStyle[] Styles =
+        {
+            new TitleStyle { Id = "lilita-dark", Slant = 14, Spacing = 0, Outline = 0.7f, RedTop = DarkRedTop, RedBottom = DarkRedBottom, BlueTop = SteelTop, BlueBottom = SteelBottom },
+            new TitleStyle { Id = "anton", FontPath = FontFolder + "Anton-Regular.ttf", Slant = 16, Spacing = 2, Outline = 0.6f, RedTop = DarkRedTop, RedBottom = DarkRedBottom, BlueTop = SteelTop, BlueBottom = SteelBottom },
+            new TitleStyle { Id = "blackops", FontPath = FontFolder + "BlackOpsOne-Regular.ttf", Slant = 0, Spacing = 0, Outline = 0.6f, RedTop = DarkRedTop, RedBottom = DarkRedBottom, BlueTop = SteelTop, BlueBottom = SteelBottom },
+            new TitleStyle { Id = "russo", FontPath = FontFolder + "RussoOne-Regular.ttf", Slant = 16, Spacing = 0, Outline = 0.6f, RedTop = DarkRedTop, RedBottom = DarkRedBottom, BlueTop = SteelTop, BlueBottom = SteelBottom },
+        };
+
+        /// <summary>The title's style (Black Ops One, chosen 2026-11-03); null draws the in-game logo (Lilita One) as it is.</summary>
+        public static TitleStyle Style = Styles.First(s => s.Id == "blackops");
+
+        /// <summary>
+        /// Shrinks the title when its widest word is wider than <paramref name="maxWidth"/> (Black Ops One runs wider than Lilita One and
+        /// touched the edges of the square and portrait covers), the two lines drawn together about the title's middle height.
+        /// </summary>
+        private static void Fit(RectTransform title, float maxWidth, float middle)
+        {
+            var texts = title.GetComponentsInChildren<TMP_Text>(true);
+            foreach (var text in texts)
+                text.ForceMeshUpdate();
+            var widest = texts.Where(t => t.name == "Minigun" || t.name == "Monsters").Max(t => t.textBounds.size.x);
+            if (widest <= maxWidth)
+                return;
+            var f = maxWidth / widest;
+            foreach (var text in texts)
+            {
+                text.fontSize *= f;
+                var rect = text.rectTransform;
+                rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, middle + (rect.anchoredPosition.y - middle) * f);
+            }
+        }
+
+        /// <summary>The title redrawn in a style: each layer's font swapped (its material kept, on the new atlas), sized to the old cap height, slanted and recoloured.</summary>
+        private static void Restyle(RectTransform title, TitleStyle style)
+        {
+            var texts = title.GetComponentsInChildren<TMP_Text>(true);
+            var oldFont = texts[0].font;
+            var font = oldFont;
+            if (style.FontPath != null)
+            {
+                var source = AssetDatabase.LoadAssetAtPath<Font>(style.FontPath) ?? throw new System.InvalidOperationException(style.FontPath + " is missing");
+                font = TMP_FontAsset.CreateFontAsset(source, 90, 12, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, false);
+                font.hideFlags = HideFlags.HideAndDontSave;
+                font.TryAddCharacters("MINGUOSTER");
+            }
+            else
+            {
+                font = Object.Instantiate(oldFont);
+                font.hideFlags = HideFlags.HideAndDontSave;
+            }
+            font.italicStyle = (byte)Mathf.Max(1, style.Slant);
+            float Cap(TMP_FontAsset f) => f.faceInfo.capLine / f.faceInfo.pointSize;
+            var scale = Cap(oldFont) / Cap(font);
+            foreach (var text in texts)
+            {
+                var material = new Material(text.fontSharedMaterial) { hideFlags = HideFlags.HideAndDontSave };
+                text.font = font;
+                material.SetTexture(ShaderUtilities.ID_MainTex, font.atlasTexture);
+                material.SetFloat(ShaderUtilities.ID_TextureWidth, font.atlasWidth);
+                material.SetFloat(ShaderUtilities.ID_TextureHeight, font.atlasHeight);
+                material.SetFloat(ShaderUtilities.ID_GradientScale, font.atlasPadding + 1);
+                foreach (var id in new[] { ShaderUtilities.ID_OutlineWidth, ShaderUtilities.ID_FaceDilate, ShaderUtilities.ID_UnderlayDilate })
+                    material.SetFloat(id, material.GetFloat(id) * style.Outline);
+                text.fontSharedMaterial = material;
+                text.fontSize *= scale;
+                text.characterSpacing = style.Spacing;
+                if (style.Slant > 0)
+                    text.fontStyle |= FontStyles.Italic;
+                if (text.name == "Minigun")
+                    text.colorGradient = new VertexGradient(style.RedTop, style.RedTop, style.RedBottom, style.RedBottom);
+                else if (text.name == "Monsters")
+                    text.colorGradient = new VertexGradient(style.BlueTop, style.BlueTop, style.BlueBottom, style.BlueBottom);
             }
         }
     }

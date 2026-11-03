@@ -9,7 +9,7 @@ namespace SdfCampaign
 {
     /// <summary>
     /// The game's loop (ticket 42), on the persistent Campaign object of Boot.unity next to the <see cref="SceneLoader"/> and the GUI. Boot
-    /// loads the first level (the rotation's pick, see <see cref="LevelRotation.First"/>; in the web build its bundles are fetched behind the Loading screen) with a match on a random team (the loading tip, then the click to play, and the warm-up on the first match). Each
+    /// loads the first level (the rotation's pick, see <see cref="LevelRotation.First"/>; in the web build its bundles are fetched behind the Loading screen) with a match on a random team (the loading tip, then the click to play). A first play (nothing in the save) starts in the Fungal level with the warm-up (<see cref="LevelRotation.WarmUpOn"/>). Each
     /// match is on the level the rotation picked when the one before it went live (<see cref="LevelRotation"/>), prefetched during the match
     /// (<see cref="ContentStreamer"/>); when a match ends its result moves the automatic difficulty (<see cref="AutoDifficulty"/>) and the save
     /// is written (<see cref="GameSave"/>). The end screens' buttons (CONTINUE, RETRY, MENU) start the next match; RESTART in the pause menu
@@ -32,7 +32,6 @@ namespace SdfCampaign
         // The match being played (set when its scene is live) and the level picked for the next one
         private string current, upcoming;
         private Team currentTeam;
-        private bool begun;
         // The end card's next-level step runs once per match end (ticket 48)
         private readonly OncePerMatch nextShot = new OncePerMatch();
 
@@ -66,7 +65,7 @@ namespace SdfCampaign
             // The portal's SDK starts here; the game does not wait for it. Once it is up the save is written to its data store too.
             WebPortal.Init(OnPortalReady);
             var first = rotation.First(random, Application.absoluteURL);
-            Launch(first, RandomTeam(), !begun, new LoadingBriefing { arena = first, tip = WarmUp.HowToScore }, true);
+            Launch(first, RandomTeam(), rotation.WarmUpOn(first), new LoadingBriefing { arena = first, goal = "CAPTURE THE FLAG", tip = WarmUp.HowToScore }, true);
         }
 
         private void OnPortalReady()
@@ -88,7 +87,7 @@ namespace SdfCampaign
         }
 
         /// <summary>The difficulty the next match is made for, as saved.</summary>
-        public Difficulty Difficulty => save != null ? save.Difficulty : SdfCampaign.Difficulty.Normal;
+        public Difficulty Difficulty => save != null ? save.Difficulty : AutoDifficulty.Start;
 
         /// <summary>The device's local date and time; the head rules read the month from it.</summary>
         public static System.Func<System.DateTime> Clock = () => System.DateTime.Now;
@@ -176,7 +175,6 @@ namespace SdfCampaign
             MatchSetup.Pending = null;
             current = level;
             currentTeam = team;
-            begun = true;
             nextShot.Arm();
             if (record)
             {
@@ -191,6 +189,11 @@ namespace SdfCampaign
             if (match == null)
                 return;
             match.Ended += OnEnded;
+            // The Loading screen is still up, waiting for the click: the rosters are known now the match has its players
+            var loading = flow != null ? flow.GetComponentInChildren<GuiLoading>(true) : null;
+            if (loading != null)
+                loading.Rosters(match.State.Players.Where(p => p.Team == Team.Red).Select(p => p.Name).ToArray(),
+                    match.State.Players.Where(p => p.Team == Team.Blue).Select(p => p.Name).ToArray());
             if (warmUp)
                 WarmUpPlayer.Begin(match, flow);
         }

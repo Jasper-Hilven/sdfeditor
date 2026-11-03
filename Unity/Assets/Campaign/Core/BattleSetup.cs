@@ -28,7 +28,7 @@ namespace SdfCampaign
         public float timeLimitSeconds = 600;
         /// <summary>One round only: the result ends the match, there is no next round.</summary>
         public bool singleRound = true;
-        /// <summary>Whether the controls warm-up runs first (the meadow, first play only; the runner clears it on retries).</summary>
+        /// <summary>Whether the controls warm-up prompts show (the Fungal level, first play only; the runner clears it on retries).</summary>
         public bool warmUp;
         /// <summary>Whether the spore powers (25) are on.</summary>
         public bool sporesOn = true;

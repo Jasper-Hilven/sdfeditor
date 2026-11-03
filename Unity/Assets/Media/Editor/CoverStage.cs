@@ -16,9 +16,9 @@ namespace SdfMedia.Editor
 {
     /// <summary>
     /// The staged scene of the covers, built in a scene of its own over the level's ground and sky: one moment of the game, "mid-air
-    /// minigun". The red amanita scout leaps straight at the camera, minigun blazing (a muzzle flash, tracers and flying shell casings),
-    /// his eyes wide on the lens and his hands round the gun; two blue chanterelle scouts dive aside behind him, and behind them a
-    /// blue scout bursts in a toon explosion (flash, rays, cream and cap-red puffs, spores and his pieces flying). Every character is
+    /// minigun". A red soldier with the Cyclops head stands facing the camera, minigun blazing (a muzzle flash, tracers and flying
+    /// shell casings); the Werewolf and the Yeti, red soldiers with pistols, flank him; and behind them a blue soldier with the Vampire
+    /// head is blown back by a burst of purple mist, glints and bats. Every character is
     /// the game's own prefab at its finest level of detail, posed in code: the body leaned and tipped, the floating eyes turned to look
     /// at something, the floating hands put round the gun the way <see cref="WeaponView"/> holds it in a scout's hands. The shots and
     /// the explosion are drawn by the game's own effects shader (SdfEffect.shader, through <see cref="FxBuffer"/>, with the weapon's
@@ -45,14 +45,22 @@ namespace SdfMedia.Editor
 
         // The red hero: where he stands (the ground under him), how high he leaps, how far his cap leans towards the camera and tips sideways
         // (a negative roll tips the cap to the picture's left)
-        private static readonly Vector3 RedPosition = new Vector3(0, 0, 0);
-        private const float RedLift = 0.6f, RedLean = 18, RedRoll = -9;
+        // Since 2026-11-03 he stands centre-right and fires towards the centre-left, crossing the blue sniper's fire (not at him)
+        private static readonly Vector3 RedPosition = new Vector3(1.4f, 0, 0.6f);
+        // Since 2026-11-02 he stands: feet on the ground, upright and square to the camera, steady, looking into the lens like a boss
+        // (he leapt 0.6 m, leaning 18 degrees and tipped -9 before, which read as running)
+        private const float RedLift = 0, RedLean = 2, RedRoll = 0;
         /// <summary>The way he faces (a direction in the stage's space); his gun aims at <see cref="RedAimAt"/>.</summary>
         private static readonly Vector3 RedFacing = new Vector3(-0.45f, 0, -1);
-        /// <summary>Left of the lens and a little low: the minigun points past the camera, so its tracers streak across the foreground.</summary>
-        private static readonly Vector3 RedAimAt = new Vector3(-4f, 1.5f, 1.2f);
+        /// <summary>
+        /// Out to the picture's left, towards the camera and down (out of the picture in front of the blue sniper, who stands further back): the
+        /// minigun fires from the hip.
+        /// Before 2026-11-03: at the lens (between the cameras, as LookAt), from the hip, under his face, its muzzles
+        /// facing the camera (2026-11-02; it fired past the camera to the left before).
+        /// </summary>
+        private static readonly Vector3 RedAimAt = new Vector3(-2.2f, 0.5f, -6f);
         /// <summary>The hero's middle: the point of him the formats' cameras place on the picture (<see cref="CoverFormat.Anchor"/>).</summary>
-        public static readonly Vector3 HeroCentre = new Vector3(0, 1.4f, 0);
+        public static readonly Vector3 HeroCentre = new Vector3(0, 1.4f, 0.6f);
 
         // The two red soldiers beside him (werewolf left, yeti right), a step behind, leaning at the lens, each with a gun aimed past it
         private static readonly Vector3 WolfPosition = new Vector3(-1.45f, 0, 1.7f);
@@ -61,10 +69,21 @@ namespace SdfMedia.Editor
         private const float YetiLift = 0.2f, YetiLean = 10, YetiRoll = -7;
         private static readonly Vector3 WolfFacing = new Vector3(0.35f, 0, -1), YetiFacing = new Vector3(-0.35f, 0, -1);
         private static readonly Vector3 WolfAimAt = new Vector3(-3f, 0.9f, -4f), YetiAimAt = new Vector3(3.5f, 0.8f, -4f);
+        /// <summary>
+        /// The blue sniper (Frankenstein's Monster; the Werewolf before) stands centre-left, the red hero's mirror image (2026-11-03: symmetric,
+        /// as far left as he is right and as deep), aiming across the middle, mostly towards the hero's side so the rifle shows side-on, a
+        /// little towards the camera and about level (it pointed up into the sky before), not firing.
+        /// </summary>
+        private static readonly Vector3 SniperPosition = new Vector3(-1.4f, 0, 0.6f);
+        private static readonly Vector3 SniperFacing = new Vector3(1f, 0, -0.4f), SniperAimAt = new Vector3(6f, 1.0f, -2.2f);
 
-        // The burst behind them: its radius in metres, the head pieces' size on top of the game's, how many bats and how many purple puffs
+        /// <summary>How long ago the head of the soldier on the hero's right (the Vampire) burst, in seconds: the cover shows its explosion this far in (ticket 46's profile).</summary>
+        private const float YetiBurstAge = 1f;
+        /// <summary>Which way that head is thrown (stage space): to its right, up and back, away from the hero.</summary>
+        private static readonly Vector3 YetiBurstAway = new Vector3(0.7f, 0.35f, 0.4f);
+
+        // The burst behind them: its radius in metres, how many bats and how many purple puffs
         private const float ExplosionRadius = 2.7f;
-        private const float DebrisScale = 1.6f;
         private const int Bats = 8, Puffs = 26;
 
         /// <summary>The soft shadow under a character: its radius in metres at scale 1, and how dark.</summary>
@@ -73,11 +92,15 @@ namespace SdfMedia.Editor
         // ------------------------------------------------------------------------------------------------------------ The stage
 
         // The three heads in the picture: the hero's, the two diving soldiers', and the one that bursts (its colours colour the explosion)
-        private const string HeroHead = "pumpkin", LeftHead = "werewolf", RightHead = "yeti", BurstHead = "vampire";
+        private const string HeroHead = "cyclops", LeftHead = "frankenstein", RightHead = "vampire", BurstHead = "vampire";
+        /// <summary>The blue soldier blown back by a purple burst behind the group; off since the Vampire beside the hero bursts (2026-11-02).</summary>
+        private const bool BackgroundVictim = false;
         private const string AimClip = "Assets/Battle/Body/Animations/Locomotion/soldier_loco_aim_idle.anim";
         private const string RunClip = "Assets/Battle/Body/Animations/Locomotion/soldier_loco_run_f.anim";
-        // The headless soldier behind them, lifted and tipped back by the burst
-        private static readonly Vector3 VictimPosition = new Vector3(1.6f, 0, 6.2f);
+        // The blue Vampire soldier behind them, lifted and tipped back by the burst (clear of the Yeti so his head shows)
+        private static readonly Vector3 VictimPosition = new Vector3(2.6f, 0, 6.2f);
+        // Where the burst sits from the Vampire's head (stage space): up and behind it, so the mist frames the head and does not hide it
+        private static readonly Vector3 BurstOffset = new Vector3(0.3f, 0.5f, 1.4f);
         private const float VictimLift = 2.0f, VictimLean = -25, VictimRoll = 15;
         private const string EffectMaterialPath = "Assets/Effects/Materials/Effect.mat";
 
@@ -93,7 +116,7 @@ namespace SdfMedia.Editor
         /// <summary>Each soldier's head bone turned relative to its root in the bind pose, before any clip is sampled.</summary>
         private readonly Dictionary<Transform, Quaternion> restHead = new Dictionary<Transform, Quaternion>();
         /// <summary>Roughly where the cameras are (stage space), which the faces look at.</summary>
-        private static readonly Vector3 LookAt = new Vector3(-0.3f, 0.6f, -4.3f);
+        private static readonly Vector3 LookAt = new Vector3(0, 0.6f, -4.2f);
 
         /// <param name="scene">The empty scene the stage is built in.</param>
         /// <param name="fallbackGroundY">The ground height where the level's ground cannot be hit (the player's feet).</param>
@@ -188,25 +211,23 @@ namespace SdfMedia.Editor
             var fx = CreateEffects();
             fx.Begin();
 
-            // Red: a pumpkin-headed soldier leaping at the camera, the minigun firing past it
+            // Red: a Cyclops-headed soldier standing steady facing the camera, the minigun firing at it (the Jack-o'-Lantern, leaping, until 2026-11-02)
             var red = Soldier(SoldierModels.RedSkin, HeroHead, "Red Hero", AimClip, 0.2f);
             Stand(red.transform, RedPosition, RedFacing, RedLift, RedLean, RedRoll, 1, out var redFeet, out var redNormal);
             var redLook = weapons.LookOf(WeaponIds.Minigun);
-            PoseArms(red.transform, new Vector3(0.28f, 1.22f, 0.5f), ToWorld(RedAimAt), true);
+            // From the hip, so the muzzle and its flash stay under his face
+            PoseArms(red.transform, new Vector3(0.24f, 0.98f, 0.45f), ToWorld(RedAimAt), true);
             FaceCamera(red.transform);
             var redGun = Hold(red.transform, redLook, ToWorld(RedAimAt));
             Shade(redFeet, redNormal, 1);
             Shots(fx, redGun.transform, redLook);
 
-            // Red: the werewolf and the yeti beside him
-            Mate(LeftHead, "Red Werewolf", WolfPosition, WolfFacing, WolfLift, WolfLean, WolfRoll, 0.1f, WeaponIds.Pistol, WolfAimAt, fx);
-            Mate(RightHead, "Red Yeti", YetiPosition, YetiFacing, YetiLift, YetiLean, YetiRoll, 0.3f, WeaponIds.Pistol, YetiAimAt, fx);
+            // Blue: Frankenstein's Monster beside him, of the other team, aiming a sniper rifle out to the side (not firing)
+            SideSniper(fx);
+            // (the blue Vampire soldier on his other side, his head bursting, was removed on 2026-11-03; HeadBurst stages such a burst)
 
-            // Behind them a blue soldier's head bursts
-            var victim = Soldier(SoldierModels.BlueSkin, null, "Blue Soldier Headless", RunClip, 0.35f);
-            Stand(victim.transform, VictimPosition, new Vector3(-0.2f, 0, -1), VictimLift, VictimLean, VictimRoll, 1, out _, out _);
-            var socket = SoldierBody.FindSocket(victim.transform, "head_top");
-            Explosion(fx, socket.position + Vector3.up * 0.1f);
+            if (BackgroundVictim)
+                BlownBack(fx);
 
             fx.End();
             // A capture shows the finest level of every model, whatever the distance
@@ -214,16 +235,142 @@ namespace SdfMedia.Editor
                 group.ForceLOD(0);
         }
 
-        /// <summary>A red soldier with a monster head and a gun, in the aim pose, leaning at the lens.</summary>
-        private void Mate(string head, string name, Vector3 position, Vector3 facing, float lift, float lean, float roll, float phase,
-            string weapon, Vector3 aimAt, FxBuffer fx)
+        /// <summary>Behind the group, a blue Vampire soldier blown back by a purple burst.</summary>
+        private void BlownBack(FxBuffer fx)
         {
-            var soldier = Soldier(SoldierModels.RedSkin, head, name, AimClip, phase);
+            var victim = Soldier(SoldierModels.BlueSkin, BurstHead, "Blue Vampire", RunClip, 0.35f);
+            Stand(victim.transform, VictimPosition, new Vector3(-0.2f, 0, -1), VictimLift, VictimLean, VictimRoll, 1, out _, out _);
+            FaceCamera(victim.transform);
+            var socket = SoldierBody.FindSocket(victim.transform, "head_top");
+            Explosion(fx, socket.position + ToWorldDirection(BurstOffset));
+        }
+
+        /// <summary>A red soldier with a monster head and a gun, in the aim pose, leaning at the lens.</summary>
+        /// <summary>
+        /// The Frankenstein soldier next to the hero, on the blue team (2026-11-03; a red one with a pistol before): turned to the picture's left,
+        /// the sniper rifle shouldered in both hands and aimed out to the side, not firing, the head along the aim.
+        /// </summary>
+        private void SideSniper(FxBuffer fx)
+        {
+            var soldier = Soldier(SoldierModels.BlueSkin, LeftHead, "Blue Frankenstein Sniper", AimClip, 0.1f);
+            Stand(soldier.transform, SniperPosition, SniperFacing, 0, 2, 0, 1, out var feet, out var normal);
+            var look = weapons.LookOf(WeaponIds.Sniper);
+            PoseArms(soldier.transform, new Vector3(0.18f, 1.28f, 0.4f), ToWorld(SniperAimAt), true);
+            var gun = Hold(soldier.transform, look, ToWorld(SniperAimAt), 1.2f);
+            Shade(feet, normal, 0.9f);
+            // Not firing (2026-11-03): no flash, tracers or casings, the rifle only levelled
+        }
+
+        private GameObject Mate(string head, string name, Vector3 position, Vector3 facing, float lift, float lean, float roll, float phase,
+            string weapon, Vector3 aimAt, FxBuffer fx, string skin = null)
+        {
+            var soldier = Soldier(skin ?? SoldierModels.RedSkin, head, name, AimClip, phase);
             Stand(soldier.transform, position, facing, lift, lean, roll, 1, out var feet, out var normal);
             PoseArms(soldier.transform, new Vector3(0.36f, 1.0f, 0.75f), ToWorld(aimAt), false);
             FaceCamera(soldier.transform);
             Hold(soldier.transform, weapons.LookOf(weapon), ToWorld(aimAt), 1.7f);
             Shade(feet, normal, 0.9f);
+            return soldier;
+        }
+
+        /// <summary>A point not below the ground: on it (plus <paramref name="above"/>) when the point has gone under.</summary>
+        private Vector3 Landed(Vector3 point, float above)
+        {
+            var ground = Ground(point, out _) + above;
+            return point.y < ground ? new Vector3(point.x, ground, point.z) : point;
+        }
+
+        /// <summary>
+        /// A worn head <paramref name="age"/> seconds into its burst, as the game plays it (tickets 46 and 51), frozen: the head gone, its
+        /// seven pieces cut from its own mesh just flying apart (out from the head's middle and along <paramref name="away"/>, spun), the
+        /// debris of its explosion profile (the Yeti's ice shards and snowballs) at the distance their speeds take them, the profile's mist
+        /// puffs still small round the head, its glints, and drops of the head's blood colour.
+        /// </summary>
+        private void HeadBurst(Transform soldier, string id, float age, Vector3 away, FxBuffer fx)
+        {
+            var worn = soldier.GetComponentInChildren<HeadWear>(true);
+            var models = MonsterHeadModels.Load();
+            if (worn == null || models == null || !models.TryGet(id, out var entry) || entry.pieces == null || entry.pieces.Length == 0)
+                throw new InvalidOperationException($"the head {id} has no pieces to burst into (build the heads and their pieces first)");
+            var head = worn.transform;
+            var middle = head.TransformPoint(entry.fitCentre);
+            worn.gameObject.SetActive(false);
+            var random = new FxRandom(23);
+            away = away.normalized;
+            var fall = 0.5f * 9.8f * age * age;
+
+            // The pieces, each where the head had it, moved out from the middle and spun about its own centre
+            for (var i = 0; i < entry.pieces.Length; i++)
+            {
+                var piece = (GameObject)PrefabUtility.InstantiatePrefab(entry.pieces[i], root);
+                piece.name = $"{id} piece {i}";
+                foreach (var collider in piece.GetComponentsInChildren<Collider>(true))
+                    collider.enabled = false;
+                piece.transform.SetPositionAndRotation(head.position, head.rotation);
+                piece.transform.localScale = head.lossyScale;
+                var renderers = piece.GetComponentsInChildren<Renderer>();
+                var centre = renderers.Length > 0 ? renderers.Select(r => r.bounds.center).Aggregate(Vector3.zero, (a, b) => a + b) / renderers.Length : middle;
+                var outward = centre - middle;
+                outward = outward.sqrMagnitude > 1e-6f ? outward.normalized : random.OnUnitSphere;
+                var direction = (outward + away * 0.7f + Vector3.up * 0.4f).normalized;
+                var speed = random.Range(3.5f, 6f);
+                piece.transform.RotateAround(centre, random.OnUnitSphere, random.Range(0.4f, 1f) * 720 * Mathf.Min(age, 0.5f));
+                var moved = direction * speed * age + Vector3.down * fall;
+                // Pieces that have come down lie on the ground (the game's pieces bounce and slide to a stop: near enough)
+                var landed = Landed(centre + moved, 0.08f);
+                piece.transform.position += landed - centre;
+            }
+
+            // The profile's debris, thrown out of the head (the debris models are small: drawn larger, as the bats are)
+            var profile = MonsterExplosions.Of(id);
+            var debrisModels = MonsterDebrisModels.Load();
+            foreach (var spec in profile.debris)
+            {
+                var prefab = debrisModels != null ? debrisModels.Prefab(spec.kind) : null;
+                if (prefab == null)
+                    continue;
+                for (var i = 0; i < spec.count; i++)
+                {
+                    var bit = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
+                    bit.name = $"{spec.kind} {i}";
+                    foreach (var collider in bit.GetComponentsInChildren<Collider>(true))
+                        collider.enabled = false;
+                    var direction = random.Around(away + Vector3.up * 0.3f, 1.1f);
+                    var distance = random.Range(spec.speed.x, spec.speed.y) * age;
+                    // Bats fly on (no gravity, rising); fluttering bits fall slowly; thrown ones fall and lie on the ground
+                    var drop = spec.motion == DebrisMotion.Fly ? -0.6f * age : spec.motion == DebrisMotion.Flutter ? fall * 0.25f : fall;
+                    var at = middle + direction * distance + Vector3.down * drop;
+                    bit.transform.position = spec.motion == DebrisMotion.Fly ? at : Landed(at, 0.04f);
+                    bit.transform.rotation = Quaternion.LookRotation(direction) * Quaternion.AngleAxis(random.Range(0f, spec.spin * age), random.OnUnitSphere);
+                    bit.transform.localScale = Vector3.one * random.Range(spec.size.x, spec.size.y) * 1.8f;
+                }
+            }
+
+            // The mist: puffs thrown out (slowing), rising, growing and fading over the profile's life (kept smaller and fainter than the game's,
+            // which at a second in is a cloud that would fill the cover's corner)
+            var life = Mathf.Clamp01(age / Mathf.Max(profile.mistLife, 0.01f));
+            for (var i = 0; i < profile.mistPuffs && life < 1; i++)
+            {
+                var direction = random.Around(away * 0.4f + Vector3.up * 0.3f, 1.4f);
+                var travelled = profile.mistSpeed * Mathf.Min(age, 0.6f) * random.Range(0.4f, 1.1f);
+                var at = middle + direction * travelled + Vector3.up * profile.mistRise * age * 0.5f;
+                var radius = random.Range(profile.mistSize.x, profile.mistSize.y) * Mathf.Lerp(0.6f, 1.1f, Mathf.Sqrt(life));
+                fx.Lit(at, radius, profile.mist, profile.mist * 0.3f, (1 - life) * 0.75f);
+            }
+            // Glints (gone after half a second)
+            for (var i = 0; i < profile.glints && age < 0.5f; i++)
+            {
+                var at = middle + random.OnUnitSphere * random.Range(0.2f, 0.75f);
+                fx.Glow(at, random.Range(0.03f, 0.06f), Hdr(profile.glint, 1.4f), Hdr(Color.white, 1.6f), 0.45f, random.Range(0.6f, 1f));
+            }
+            // Drops of the head's blood colour, flung out with the pieces (landed after half a second)
+            var blood = MonsterHeads.ById(id).Value.Blood;
+            for (var i = 0; i < 14 && age < 0.5f; i++)
+            {
+                var direction = random.Around(away + Vector3.up * 0.2f, 1.2f);
+                var at = middle + direction * random.Range(2.5f, 6f) * age;
+                fx.Lit(at, random.Range(0.025f, 0.055f), blood, blood * 0.3f);
+            }
         }
 
         /// <summary>The team's soldier prefab, with a monster head (none when null), in a pose sampled from a clip.</summary>
@@ -327,7 +474,7 @@ namespace SdfMedia.Editor
                 return;
             var direction = ToWorld(LookAt) - bone.position;
             var flat = new Vector3(direction.x, 0, direction.z);
-            var pitch = Mathf.Clamp(Mathf.Atan2(direction.y, flat.magnitude) * Mathf.Rad2Deg, -12f, 4f);
+            var pitch = Mathf.Clamp(Mathf.Atan2(direction.y, flat.magnitude) * Mathf.Rad2Deg, -30f, 4f);
             var look = Quaternion.LookRotation(flat.normalized, Vector3.up) * Quaternion.Euler(-pitch, 0, 0);
             bone.rotation = look * rest;
         }
@@ -351,17 +498,6 @@ namespace SdfMedia.Editor
             gun.transform.SetPositionAndRotation(grip.position - aim * look.grip * scale, aim);
             gun.transform.localScale = Vector3.one * scale;
             return gun;
-        }
-
-        private static Bounds BoundsOf(GameObject target)
-        {
-            var renderers = target.GetComponentsInChildren<Renderer>().Where(r => !(r is ParticleSystemRenderer)).ToArray();
-            if (renderers.Length == 0)
-                return new Bounds(target.transform.position, Vector3.one);
-            var bounds = renderers[0].bounds;
-            foreach (var renderer in renderers)
-                bounds.Encapsulate(renderer.bounds);
-            return bounds;
         }
 
         // ------------------------------------------------------------------------------------------------------------ Effects
@@ -388,8 +524,8 @@ namespace SdfMedia.Editor
 
         /// <summary>
         /// The minigun's burst as <see cref="TracerGun"/> draws it, in the weapon's own tracer colour, but bigger than in the game (the
-        /// camera is a few metres away): a muzzle flash (a glowing disc, a tongue along the barrel and four spokes), a fan of tracers
-        /// streaking along the barrel's line, and brass casings thrown out of the gun's right side.
+        /// camera is a few metres away): the muzzle flash only (a glowing disc, a tongue along the barrel and four spokes); its tracers
+        /// and brass casings were taken out on 2026-11-03.
         /// </summary>
         private void Shots(FxBuffer fx, Transform gun, WeaponTableAsset.Look look)
         {
@@ -397,55 +533,40 @@ namespace SdfMedia.Editor
             var forward = gun.forward;
             var right = Vector3.Cross(Vector3.up, forward).normalized;
             var up = Vector3.Cross(forward, right).normalized;
-            var band = Hdr(look.tracer, 1.2f);
-            var core = Hdr(new Color(1f, 0.97f, 0.8f), 2.6f);
 
-            // The flash
-            var size = 0.3f;
+            // The flash (small: it faces the lens, in front of the hero, and should not hide the barrels)
+            var size = 0.14f;
             var at = muzzle + forward * size * 0.6f;
             var flashBand = Hdr(look.tracer, 1.3f);
             var flashCore = Hdr(new Color(1f, 0.97f, 0.8f), 3.1f);
+            // Firing at the lens: a flat star facing the camera round the muzzles, and no tracers (coming at the camera they would
+            // only smear across the picture)
+            var atLens = Vector3.Angle(forward, ToWorld(LookAt) - muzzle) < 30;
             fx.Glow(at, size * 0.55f, flashBand, flashCore, 0.55f);
-            fx.Streak(at, at + forward * size * 2.2f, size * 0.5f, 0, flashBand, flashCore, 0.45f);
-            for (var i = 0; i < 4; i++)
+            if (atLens)
             {
-                var spoke = Quaternion.AngleAxis(20 + i * 90, forward) * (up * 0.8f + forward * 0.6f);
-                fx.Streak(at, at + spoke * size * 1.4f, size * 0.35f, 0, flashBand, flashCore, 0.4f);
+                for (var i = 0; i < 6; i++)
+                {
+                    var spoke = Quaternion.AngleAxis(15 + i * 60, forward) * up;
+                    fx.Streak(at, at + spoke * size * (i % 2 == 0 ? 1.5f : 1f), size * 0.3f, 0, flashBand, flashCore, 0.45f);
+                }
+            }
+            else
+            {
+                fx.Streak(at, at + forward * size * 2.2f, size * 0.5f, 0, flashBand, flashCore, 0.45f);
+                for (var i = 0; i < 4; i++)
+                {
+                    var spoke = Quaternion.AngleAxis(20 + i * 90, forward) * (up * 0.8f + forward * 0.6f);
+                    fx.Streak(at, at + spoke * size * 1.4f, size * 0.35f, 0, flashBand, flashCore, 0.4f);
+                }
             }
 
-            // The tracers: slender streaks along slightly different lines, starting at different distances, none going past the lens
-            var fan = new[] { new Vector2(0, 0), new Vector2(0.9f, 0.35f), new Vector2(-0.8f, 0.5f), new Vector2(0.4f, -0.8f), new Vector2(-0.5f, -0.45f),
-                new Vector2(1.3f, -0.2f), new Vector2(-1.2f, -0.15f), new Vector2(0.15f, 1.1f), new Vector2(-0.2f, -1.2f), new Vector2(1.0f, 0.9f),
-                new Vector2(-0.9f, 1.0f), new Vector2(0.6f, -1.3f) };
-            const float width = 0.075f;
-            for (var i = 0; i < fan.Length; i++)
-            {
-                var line = (forward + (right * fan[i].x + up * fan[i].y) * 0.06f).normalized;
-                var start = 0.9f + (i * 0.37f) % 2.6f;
-                var length = Mathf.Min(1.3f + (i % 3) * 0.55f, 4.4f - start);
-                if (length < 0.4f)
-                    continue;
-                fx.Streak(muzzle + line * start, muzzle + line * (start + length), width * 0.25f, width, band, core, 0.5f);
-            }
-
-            // Brass casings, tumbling out of the right side of the gun and up: toon balls with the game's ink line, each with a glint
-            var brass = new Color(0.95f, 0.72f, 0.25f);
-            var brassShade = new Color(0.35f, 0.2f, 0.02f);
-            var port = gun.position - forward * 0.05f + up * 0.05f;
-            for (var i = 0; i < 9; i++)
-            {
-                var out1 = 0.22f + i * 0.17f + (i % 2) * 0.06f;
-                var rise = 0.1f + (i % 4) * 0.13f + i * 0.04f;
-                var back = (i % 3) * 0.14f - 0.1f;
-                var p = port + right * out1 + up * rise - forward * back;
-                fx.Lit(p, 0.034f, brass, brassShade);
-                fx.Streak(p, p - (right * 0.9f + up * 0.35f).normalized * 0.12f, 0.03f, 0.012f, Hdr(brass, 1.0f), Hdr(Color.white, 1.5f), 0.4f, 0.8f);
-            }
+            // Only the flash since 2026-11-03: the tracers and the brass casings (balls with a tail, read as tracers) are gone
         }
 
         /// <summary>
         /// A head's burst as the game plays it for the Vampire (ticket 46's profile): deep purple mist puffs, small and scattered (not one
-        /// disc), glowing purple glints, tiny bats flying outward, and the head's own pieces (ticket 51) thrown out, around the point of the neck.
+        /// disc), glowing purple glints and tiny bats flying outward, behind the Vampire's head.
         /// </summary>
         private void Explosion(FxBuffer fx, Vector3 centre)
         {
@@ -474,7 +595,6 @@ namespace SdfMedia.Editor
                 fx.Glow(at, random.Range(0.04f, 0.09f), glint, Hdr(Color.white, 1.6f), 0.45f, random.Range(0.55f, 1f));
             }
             Bats_(centre, random);
-            Debris(centre, random);
         }
 
         /// <summary>Tiny cartoon bats (the game's debris model) flying out of the burst, wings spread, turned along their flight.</summary>
@@ -498,36 +618,6 @@ namespace SdfMedia.Editor
                 // The bat flies along its direction, its back up and a little rolled
                 bat.transform.rotation = Quaternion.LookRotation(Vector3.Cross(direction, Vector3.up).normalized, Vector3.up) * Quaternion.Euler(0, 0, random.Range(-25f, 25f));
                 bat.transform.position = centre + direction * ExplosionRadius * random.Range(0.8f, 1.5f);
-            }
-        }
-
-        /// <summary>The pieces of a blue scout, the game's own exploding-model pieces, each moved out from where it fits in the model and turned.</summary>
-        private void Debris(Vector3 centre, FxRandom random)
-        {
-            var models = MonsterHeadModels.Load();
-            if (models == null || !models.TryGet(BurstHead, out var entry) || entry.pieces == null)
-                throw new InvalidOperationException($"the head pieces of {BurstHead} are missing (build the heads first)");
-            // The pieces are in the head's own frame, whose origin is the head socket: the burst's centre
-            foreach (var source in entry.pieces)
-            {
-                if (source == null)
-                    continue;
-                var piece = (GameObject)PrefabUtility.InstantiatePrefab(source, root);
-                piece.name = source.name;
-                foreach (var collider in piece.GetComponentsInChildren<Collider>(true))
-                    collider.enabled = false;
-                piece.transform.SetPositionAndRotation(centre, Quaternion.identity);
-                piece.transform.localScale = Vector3.one * DebrisScale;
-                var middle = BoundsOf(piece).center;
-                var fromModel = middle - centre;
-                var away = middle - centre;
-                var outward = away.sqrMagnitude > 1e-4f ? away.normalized : random.OnUnitSphere;
-                var local = Quaternion.Inverse(rotation) * (outward + random.OnUnitSphere * 0.5f).normalized;
-                local.z *= 0.5f;
-                var target = centre + rotation * local.normalized * ExplosionRadius * random.Range(0.45f, 1.0f);
-                var turn = Quaternion.Euler(random.Range(-60f, 60f), random.Range(0f, 360f), random.Range(-60f, 60f));
-                piece.transform.rotation = turn;
-                piece.transform.position = target - turn * fromModel;
             }
         }
 

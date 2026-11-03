@@ -50,10 +50,16 @@ namespace SdfGui
         {
             GuiText.Set(arena, briefing.arena.ToUpperInvariant());
             GuiText.Set(goal, briefing.goal);
-            GuiText.Set(redNames, Roster("RED TEAM", GuiPalette.Red, briefing.red));
-            GuiText.Set(blueNames, Roster("BLUE TEAM", GuiPalette.Sky, briefing.blue));
+            Rosters(briefing.red, briefing.blue);
             GuiText.Set(tip, "TIP  " + (string.IsNullOrEmpty(briefing.tip) ? Tips[tipCounter++ % Tips.Length] : briefing.tip));
             Set(0, false);
+        }
+
+        /// <summary>Both teams by name, once the match behind the screen has its players (the briefing is made before it exists).</summary>
+        public void Rosters(string[] red, string[] blue)
+        {
+            GuiText.Set(redNames, Roster("RED TEAM", GuiPalette.Red, red));
+            GuiText.Set(blueNames, Roster("BLUE TEAM", GuiPalette.Sky, blue));
         }
 
         /// <summary>The bar's fill (0 to 1), and whether to ask for the click instead of showing it.</summary>

@@ -5,11 +5,11 @@ namespace SdfCampaign.Tests
     public sealed class GameSaveTests
     {
         [Test]
-        public void WithNoSaveTheDefaultIsNormalWithNothingPlayed()
+        public void WithNoSaveTheDefaultIsSuperEasyWithNothingPlayed()
         {
             var save = GameSave.Load(new MemoryCampaignStorage());
             Assert.AreEqual(GameSave.CurrentVersion, save.version);
-            Assert.AreEqual(Difficulty.Normal, save.Difficulty);
+            Assert.AreEqual(Difficulty.SuperEasy, save.Difficulty);
             Assert.IsEmpty(save.lastLevels);
         }
 
@@ -61,23 +61,23 @@ namespace SdfCampaign.Tests
             var storage = new MemoryCampaignStorage();
             storage.Set("campaign.v1", "{\"version\":1,\"difficulty\":3}");
             var save = GameSave.Load(storage);
-            Assert.AreEqual(Difficulty.Normal, save.Difficulty);
+            Assert.AreEqual(Difficulty.SuperEasy, save.Difficulty);
             Assert.IsEmpty(save.lastLevels);
         }
 
         [Test]
         public void GarbageReadsAsTheDefault()
         {
-            Assert.AreEqual(Difficulty.Normal, GameSave.Parse("not json at all {").Difficulty);
-            Assert.AreEqual(Difficulty.Normal, GameSave.Parse("").Difficulty);
-            Assert.AreEqual(Difficulty.Normal, GameSave.Parse(null).Difficulty);
+            Assert.AreEqual(Difficulty.SuperEasy, GameSave.Parse("not json at all {").Difficulty);
+            Assert.AreEqual(Difficulty.SuperEasy, GameSave.Parse("").Difficulty);
+            Assert.AreEqual(Difficulty.SuperEasy, GameSave.Parse(null).Difficulty);
         }
 
         [Test]
         public void ASaveOfAnotherVersionReadsAsTheDefault()
         {
             var save = GameSave.Parse("{\"version\":99,\"difficulty\":\"hard\",\"lastLevels\":[\"Fungal\"]}");
-            Assert.AreEqual(Difficulty.Normal, save.Difficulty);
+            Assert.AreEqual(Difficulty.SuperEasy, save.Difficulty);
             Assert.IsEmpty(save.lastLevels);
         }
 

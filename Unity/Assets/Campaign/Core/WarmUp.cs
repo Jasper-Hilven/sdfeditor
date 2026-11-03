@@ -23,18 +23,18 @@ namespace SdfCampaign
     }
 
     /// <summary>
-    /// The meadow's warm-up (ticket 32.7, section 2 of 32) as plain rules: prompts shown one at a time, each cleared by doing what it
+    /// The warm-up (ticket 32.7, section 2 of 32; in the Fungal level on a first play since 2026-11-02, see
+    /// <see cref="LevelRotation.WarmUpOn"/>) as plain rules: prompts shown one at a time, each cleared by doing what it
     /// says (reported by the scene's warm-up player). A thing done before its prompt appears does not count, except taking the minigun
     /// (the pod can be walked onto early): the prompt for it is then cleared at once.
     /// </summary>
     public sealed class WarmUp
     {
-        /// <summary>ToastyMage after the warm-up, done or skipped: what the game is and how a point is scored.</summary>
-        public const string Closer = "It's capture the flag! Grab blue's flag and bring it to ours. That's a point.";
+        /// <summary>The tip after the warm-up, done or skipped: what the game is and how a point is scored. From nobody (there is no chat): no speaker.</summary>
+        public const string Closer = "It's capture the flag! Grab the enemy flag and bring it to your own. That's a point.";
 
-        /// <summary>The meadow's loading tip: the same, before the first match.</summary>
+        /// <summary>The first match's loading tip: the same, before the first match.</summary>
         public const string HowToScore = "Grab blue's flag and carry it to your own flag to score.";
-        public const string CloserSpeaker = "ToastyMage";
 
         /// <summary>The jump prompt goes by itself after this long.</summary>
         public const float JumpSeconds = 10;
@@ -46,7 +46,7 @@ namespace SdfCampaign
 
         public WarmUp(IReadOnlyList<WarmUpPrompt> prompts) => this.prompts = prompts;
 
-        /// <summary>The prompts of the meadow; without a minigun pod to walk onto, only the movement ones.</summary>
+        /// <summary>The prompts; without a minigun pod on your side to walk onto, only the movement ones.</summary>
         public static WarmUp Default(bool minigunPod)
         {
             var list = new List<WarmUpPrompt>

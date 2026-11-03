@@ -1,4 +1,5 @@
 using System.Linq;
+using SdfLevel;
 using SdfPlatform;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -34,9 +35,10 @@ namespace SdfGui
     /// the inspector shows it in the scene exactly as it will be at runtime. At runtime it also follows the match (the round starting,
     /// you being eliminated, the match ending) and the keys: Escape pauses, Tab holds the scoreboard, F1 hides the test panel.
     /// <para>
-    /// Pausing stops the match: the pause screen (and the settings opened from it) sets <c>Time.timeScale</c> to 0 and pauses the audio;
-    /// the GUI itself runs on unscaled time. Losing the pointer lock (the browser gives it up on Escape) or the window's focus while the
-    /// HUD is up pauses too.
+    /// The pause menu does not stop the match: the time and the sound run on under it (and the settings and credits opened from it), only
+    /// your playing keys do nothing (<see cref="GameKeys.Blocked"/>), so you can be shot meanwhile. Dying under the menu shows the death
+    /// screen once you close it; the match ending closes the pause menu (or waits for the settings or credits to close). Losing the
+    /// pointer lock (the browser gives it up on Escape) or the window's focus while the HUD is up opens the menu too.
     /// </para>
     /// <para>
     /// The match's end (ticket 32.6) is a short sequence on unscaled time: the time slows to <see cref="SlowScale"/> for
@@ -80,8 +82,8 @@ namespace SdfGui
         private bool wasAlive = true;
         private GuiScreen held = GuiScreen.Hud;
         private bool wasLocked;
-        private bool paused;
-        private float timeScaleBefore = 1;
+        // You died, or the match ended, while the pause menu (or what opens from it) was up: shown when it closes
+        private bool deathWaiting, endWaiting;
         // Where the credits go back to (the pause menu, when they were opened from it)
         private GuiScreen creditsReturn = GuiScreen.Hud;
         private bool slowing, bannering;
@@ -115,7 +117,7 @@ namespace SdfGui
                 FollowMatch();
                 Keys();
                 PauseOnLostLock();
-                HoldTime();
+                GameKeys.Blocked = IsPaused || ConfirmOpen;
                 TickEnd();
                 // Where the player is, for the web portal's gameplayStart / gameplayStop
                 WebPortal.SetPlaying((screen == GuiScreen.Hud || screen == GuiScreen.Scoreboard || screen == GuiScreen.Death) && !ConfirmOpen && !Ending);
@@ -128,7 +130,7 @@ namespace SdfGui
             if (Application.isPlaying)
                 WebPortal.SetPlaying(false);
             CancelEnd();
-            Hold(false);
+            GameKeys.Blocked = false;
         }
 
         /// <summary>Whether the match's end sequence (the slow-down and the banner) is running.</summary>
@@ -161,20 +163,6 @@ namespace SdfGui
         public bool IsPaused => screen == GuiScreen.Pause || (screen == GuiScreen.Settings && settingsReturn == GuiScreen.Pause) ||
                                 (screen == GuiScreen.Credits && creditsReturn == GuiScreen.Pause);
 
-        private void HoldTime() => Hold(IsPaused);
-
-        // Stops the game's time and sound while paused, and puts back what was there
-        private void Hold(bool hold)
-        {
-            if (hold == paused)
-                return;
-            paused = hold;
-            if (hold)
-                timeScaleBefore = Time.timeScale;
-            Time.timeScale = hold ? 0 : timeScaleBefore;
-            AudioListener.pause = hold;
-        }
-
         private void FollowMatch()
         {
             if (Match == null)
@@ -190,10 +178,35 @@ namespace SdfGui
                 }
                 if (phase == MatchPhase.Over && (Match.YouAreAlive || Match.driven) && (IsInRound(screen) || (Match.driven && screen == GuiScreen.Death)))
                     BeginEnd();
+                // Over the settings or the credits from the pause menu: the end waits for them to close
+                else if (phase == MatchPhase.Over && IsPaused)
+                    endWaiting = true;
+                if (phase != MatchPhase.Over)
+                    endWaiting = false;
                 lastPhase = phase;
             }
-            if (wasAlive && !Match.YouAreAlive && IsInRound(screen) && !Ending)
-                screen = GuiScreen.Death;
+            if (endWaiting && (IsInRound(screen) || screen == GuiScreen.Death))
+            {
+                endWaiting = false;
+                if (Match.phase == MatchPhase.Over && !Ending)
+                    BeginEnd();
+            }
+            if (wasAlive && !Match.YouAreAlive && !Ending)
+            {
+                // The menu stays up over the running match: the death screen when it closes, if you are still dead then
+                if (IsPaused)
+                    deathWaiting = true;
+                else if (IsInRound(screen))
+                    screen = GuiScreen.Death;
+            }
+            if (Match.YouAreAlive)
+                deathWaiting = false;
+            else if (deathWaiting && !IsPaused && !ConfirmOpen)
+            {
+                deathWaiting = false;
+                if (!Ending && (screen == GuiScreen.Hud || screen == GuiScreen.Scoreboard))
+                    screen = GuiScreen.Death;
+            }
             // In a real match you respawn: back to the HUD
             if (!wasAlive && Match.YouAreAlive && screen == GuiScreen.Death)
                 screen = GuiScreen.Hud;
@@ -253,6 +266,10 @@ namespace SdfGui
                 Match.SampleEnd(Match.YourTeamWon());
             if (screen == GuiScreen.Scoreboard || screen == GuiScreen.Pause || screen == GuiScreen.Death)
                 screen = GuiScreen.Hud;
+            // A question asked from the pause menu (leave the match?) goes with it
+            if (ConfirmOpen)
+                CloseConfirm();
+            deathWaiting = false;
             slowing = true;
             bannering = false;
             endTime = 0;
@@ -332,11 +349,7 @@ namespace SdfGui
             RestoreTime();
         }
 
-        private void RestoreTime()
-        {
-            if (!paused)
-                Time.timeScale = 1;
-        }
+        private void RestoreTime() => Time.timeScale = 1;
 
         /// <summary>Whether a screen shows while <see cref="screen"/> is up: the HUD stays under the overlays of a round.</summary>
         public bool Shows(GuiScreen root)

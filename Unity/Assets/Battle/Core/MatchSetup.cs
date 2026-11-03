@@ -32,20 +32,26 @@ namespace SdfBattle
         public float blueRespawnSeconds = 5;
         /// <summary>The match starts held (ticket 32.7): a story beat plays first, and whoever plays it lets the match go.</summary>
         public bool held;
-        /// <summary>The controls warm-up runs first: the match starts held, and the warm-up lets it go (you may move and fire meanwhile).</summary>
+        /// <summary>The controls warm-up runs: its prompts show beside the live match (the match is not held for it).</summary>
         public bool warmUp;
         /// <summary>The team you play in; <see cref="Match"/> takes it at its start (ticket 42: random at every match).</summary>
         public Team yourTeam = Team.Red;
 
         public float SkillOf(Team team) => team == Team.Red ? redSkill : blueSkill;
 
-        /// <summary>The name of a team's <paramref name="number"/>th player (from 1): the setup's, else the cast's.</summary>
-        public string NameOf(Team team, int number)
+        /// <summary>
+        /// The name of a team's <paramref name="number"/>th player (from 1): the setup's, else one drawn from <paramref name="draw"/>, else the
+        /// cast's. A name the setup gives is reserved in the draw, so no bot draws it too.
+        /// </summary>
+        public string NameOf(Team team, int number, NameCast draw = null)
         {
             var names = team == Team.Red ? redNames : blueNames;
-            return names != null && number >= 1 && number <= names.Length && !string.IsNullOrEmpty(names[number - 1])
-                ? names[number - 1]
-                : Cast.Name(team, number);
+            if (names != null && number >= 1 && number <= names.Length && !string.IsNullOrEmpty(names[number - 1]))
+            {
+                draw?.Reserve(names[number - 1]);
+                return names[number - 1];
+            }
+            return draw != null ? draw.Draw() : Cast.Name(team, number);
         }
 
         /// <summary>Writes the match's numbers into <paramref name="rules"/> (the rest of the rules stays as it is).</summary>

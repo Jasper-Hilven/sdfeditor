@@ -22,6 +22,9 @@ namespace SdfGui.Editor
         public const string Folder = GuiAssets.Folder + "/Icons";
         public const string SetPath = Folder + "/Icons.asset";
         private const int Size = 384;
+        /// <summary>The ink outline's width in render pixels (of <see cref="Size"/>), and the shading bands the colours are cut into.</summary>
+        public const int OutlineWidth = 8;
+        public const int Bands = 4;
 
         public static IEnumerable<string> Models => SdfHeads.MonsterHeads.All.Select(h => h.Id).Concat(MatchView.Weapons);
 
@@ -88,7 +91,7 @@ namespace SdfGui.Editor
                     ? new Vector3(0.25f, 0.2f, 1).normalized
                     : bounds.extents.x >= bounds.extents.z ? new Vector3(0.12f, 0.15f, 1).normalized : new Vector3(1, 0.15f, -0.12f).normalized;
                 var radius = bounds.extents.magnitude;
-                var distance = radius / Mathf.Sin(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * 0.98f;
+                var distance = radius / Mathf.Sin(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * 1.12f; // room for the outline
                 camera.transform.position = bounds.center + direction * distance;
                 camera.transform.LookAt(bounds.center);
 
@@ -102,7 +105,7 @@ namespace SdfGui.Editor
                     var alpha = Mathf.Clamp01(1 - ((w.r - b.r) + (w.g - b.g) + (w.b - b.b)) / 3);
                     pixels[i] = alpha > 0.002f ? new Color(b.r / alpha, b.g / alpha, b.b / alpha, alpha) : Color.clear;
                 }
-                var image = Crop(pixels);
+                var image = Crop(Outline(Toon(pixels)));
                 var path = $"{Folder}/{model}.png";
                 File.WriteAllBytes(path, image.EncodeToPNG());
                 Object.DestroyImmediate(image);
@@ -121,6 +124,56 @@ namespace SdfGui.Editor
             {
                 Object.DestroyImmediate(instance);
             }
+        }
+
+        /// <summary>Cel shading: each opaque pixel's brightness is cut into <see cref="Bands"/> flat steps, its hue kept.</summary>
+        public static Color[] Toon(Color[] pixels)
+        {
+            var result = new Color[pixels.Length];
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                var c = pixels[i];
+                var l = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+                if (c.a < 0.02f || l < 0.001f)
+                {
+                    result[i] = c;
+                    continue;
+                }
+                var scale = Mathf.Clamp(Mathf.Ceil(l * Bands) / Bands / l, 0.7f, 1.3f);
+                result[i] = new Color(Mathf.Clamp01(c.r * scale), Mathf.Clamp01(c.g * scale), Mathf.Clamp01(c.b * scale), c.a);
+            }
+            return result;
+        }
+
+        /// <summary>The thick dark ink outline of the toon look: the silhouette grown by <see cref="OutlineWidth"/> pixels in the GUI's ink.</summary>
+        public static Color[] Outline(Color[] pixels)
+        {
+            var ink = GuiPalette.Ink;
+            var reach = OutlineWidth + 1;
+            var result = new Color[pixels.Length];
+            for (var y = 0; y < Size; y++)
+            for (var x = 0; x < Size; x++)
+            {
+                var c = pixels[y * Size + x];
+                var best = float.MaxValue;
+                if (c.a < 0.999f)
+                    for (var dy = -reach; dy <= reach; dy++)
+                    for (var dx = -reach; dx <= reach; dx++)
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= Size || ny >= Size || pixels[ny * Size + nx].a < 0.5f)
+                            continue;
+                        best = Mathf.Min(best, dx * dx + dy * dy);
+                    }
+                var coverage = best == float.MaxValue ? 0 : Mathf.Clamp01(OutlineWidth + 0.5f - Mathf.Sqrt(best));
+                // The model over its ink
+                var a = c.a + coverage * (1 - c.a);
+                result[y * Size + x] = a < 0.002f
+                    ? Color.clear
+                    : new Color((c.r * c.a + ink.r * coverage * (1 - c.a)) / a, (c.g * c.a + ink.g * coverage * (1 - c.a)) / a,
+                        (c.b * c.a + ink.b * coverage * (1 - c.a)) / a, a);
+            }
+            return result;
         }
 
         /// <summary>The icon trimmed to what it shows, a few pixels around it, so it fills the rect it is drawn in.</summary>

@@ -18,13 +18,13 @@ namespace SdfCampaign.Editor
 {
     /// <summary>
     /// The endless game's play test (ticket 42; the campaign play test was removed in 41): Boot in Play mode, five matches driven through the
-    /// GUI's own commands. Match 1 starts on the rotation's first pick with the warm-up (cleared here); the others are the rotation's picks. Match 2 is
+    /// GUI's own commands. Match 1, a first play, starts in the Fungal level with the warm-up (cleared here); the others are the rotation's picks. Match 2 is
     /// restarted from the pause menu (same level and team, nothing recorded). Match 3 opens CREDITS from the pause menu, waits for the
     /// credits, and comes back to the pause menu. Each match ends by captures (you 3-0, 1-3, 0-3, 3-0, 3-2), then the end card's countdown
     /// (ticket 48) runs out by itself, or Space skips it on match 4. The card is checked: the countdown runs from 10, the NEW reveal and the
     /// difficulty line are right, A and D (by physical key, through the Input System's virtual keyboard) switch the head and the head is worn
     /// in the next match, and the midgame ad hook (<c>WebPortal.MidgameBreaks</c>) goes up once per match end. It checks the team, the enemy side's skill for the difficulty the match was made for, the difficulty after each
-    /// result, that no level is among the last three, the warm-up on the first match only, and that the save holds the result.
+    /// result, that no level is among the last three, the warm-up on the first match only (and not on the reload), and that the save holds the result.
     /// <para>
     /// <c>Run</c> plays the five matches from a clean save and writes the trace to <c>sdf-playtest-42-trace.txt</c> in the temporary folder.
     /// <c>CheckReload</c>, in a new process, starts Boot again and checks that the save came back: the first match is the rotation's pick (not one of the
@@ -159,11 +159,12 @@ namespace SdfCampaign.Editor
                     {
                         // The first match's warm-up is cleared here: the test does not move, the match is let go
                         Expect(index == 0, "only the first match has the warm-up");
+                        Expect(!checking, "a reload (not a first play) has no warm-up");
                         warmedFirst = true;
                         warm.Stop();
                         return;
                     }
-                    Expect(index != 0 || warmedFirst, "the first match has the warm-up");
+                    Expect(index != 0 || checking || warmedFirst, "the first match has the warm-up");
                     if (match.Held)
                         return;
                     Live(loop, flow, now);
@@ -187,13 +188,13 @@ namespace SdfCampaign.Editor
                 case 4: // the end card: its checks, then the countdown (or Space) and the next level
                     Card(loop, flow, now);
                     return;
-                case 3: // the credits roll over the paused match and come back to the pause menu
+                case 3: // the credits roll over the running match and come back to the pause menu
                     if (UnityEngine.Object.FindAnyObjectByType<CreditsPlayer>() != null)
                     {
                         if (!creditsChecked && now - since > 0.2f)
                         {
                             creditsChecked = true;
-                            Expect(flow.IsPaused && Mathf.Approximately(Time.timeScale, 0), "the match stays paused under the credits");
+                            Expect(flow.IsPaused && Mathf.Approximately(Time.timeScale, 1), "the match runs on under the credits (the menu does not stop time)");
                         }
                         if (flow.screen != GuiScreen.Credits)
                             errors.Add($"the credits left the screen for {flow.screen}");
@@ -201,7 +202,7 @@ namespace SdfCampaign.Editor
                         return;
                     }
                     Expect(flow.screen == GuiScreen.Pause, "the credits come back to the pause menu");
-                    Expect(flow.IsPaused && Mathf.Approximately(Time.timeScale, 0), "the match is still paused after the credits");
+                    Expect(flow.IsPaused && Mathf.Approximately(Time.timeScale, 1), "back on the pause menu after the credits, the match still running");
                     trace.Add("  credits from the pause menu: rolled, and back on the pause menu");
                     flow.Execute(GuiCommandId.Resume, GuiScreen.Hud);
                     phase = 1;
@@ -239,7 +240,10 @@ namespace SdfCampaign.Editor
             {
                 Expect(System.Array.IndexOf(LevelRotation.Levels, level) >= 0, $"boot starts on one of the seven levels ({level})");
                 if (!checking)
-                    Expect(difficulty == Difficulty.Normal, "a fresh save starts on Normal");
+                {
+                    Expect(difficulty == Difficulty.SuperEasy, "a fresh save starts on Super Easy");
+                    Expect(level == LevelRotation.FirstPlayLevel, $"a fresh save starts in the Fungal level ({level})");
+                }
             }
             if (index == 1 && !restarted)
             {

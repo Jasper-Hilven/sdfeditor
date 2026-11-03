@@ -17,8 +17,11 @@ namespace SdfCampaign
         public const int CurrentVersion = 2;
 
         public int version = CurrentVersion;
-        /// <summary>The difficulty's key ("supereasy", "easy", "normal", "hard"); <see cref="Difficulty"/> reads and writes it.</summary>
-        public string difficulty = DifficultyRules.Key(SdfCampaign.Difficulty.Normal);
+        /// <summary>
+        /// The difficulty's key ("supereasy", "easy", "normal", "hard"); <see cref="Difficulty"/> reads and writes it. A first play (no
+        /// save yet) starts on Super Easy; <see cref="AutoDifficulty"/> moves it up from there.
+        /// </summary>
+        public string difficulty = DifficultyRules.Key(AutoDifficulty.Start);
         /// <summary>The last levels played, oldest first (the rotation's history).</summary>
         public string[] lastLevels = Array.Empty<string>();
 

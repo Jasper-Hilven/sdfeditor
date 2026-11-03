@@ -7,13 +7,17 @@ namespace SdfCampaign
     /// <summary>
     /// The endless rotation (ticket 42): the seven battle levels, and the last few played. The next one is random among the levels not
     /// among those last <see cref="Memory"/>, so no level comes back within four matches. Plain data and a seeded <see cref="Random"/>.
-    /// The level ids are the scene names. The first level of a game (Boot) is the same pick (<see cref="First"/>), from the saved last levels.
+    /// The level ids are the scene names. The first level of a game (Boot) is the same pick (<see cref="First"/>), from the saved last levels,
+    /// except on a first play (nothing played yet): that is always <see cref="FirstPlayLevel"/>, the Fungal level, with the warm-up.
     /// </summary>
     public sealed class LevelRotation
     {
         public const int Memory = 3;
 
         public static readonly string[] Levels = { "Meadow", "Fungal", "Chessboard", "Toybox", "Kitchen", "Bathroom", "Computer" };
+
+        /// <summary>The level of a first play (2026-11-02): someone new starts in the Fungal level, and the warm-up runs there.</summary>
+        public const string FirstPlayLevel = "Fungal";
 
         private readonly List<string> history = new List<string>();
 
@@ -29,6 +33,12 @@ namespace SdfCampaign
         /// <summary>The last levels played, oldest first (at most <see cref="Memory"/>).</summary>
         public IReadOnlyList<string> History => history;
 
+        /// <summary>Nothing played yet: a new save (or one whose levels are all unknown).</summary>
+        public bool IsFirstPlay => history.Count == 0;
+
+        /// <summary>Whether the warm-up runs on <paramref name="level"/> as the first match: on a first play, in the Fungal level only.</summary>
+        public bool WarmUpOn(string level) => IsFirstPlay && level == FirstPlayLevel;
+
         /// <summary>Records a level as played; the history keeps the last <see cref="Memory"/>.</summary>
         public void Played(string level)
         {
@@ -38,13 +48,16 @@ namespace SdfCampaign
         }
 
         /// <summary>
-        /// The level Boot starts on (ticket 52): the rotation's pick, so a saved game does not open on one of its last three. A page whose
-        /// URL contains <c>streamcheck</c> and <c>level=Name</c> forces that level (the web checks); anything else in the URL is ignored.
+        /// The level Boot starts on (ticket 52): the rotation's pick, so a saved game does not open on one of its last three; on a first play
+        /// the Fungal level (<see cref="FirstPlayLevel"/>), and since it is then among the last three the rotation goes on without it. A page
+        /// whose URL contains <c>streamcheck</c> and <c>level=Name</c> forces that level (the web checks); anything else in the URL is ignored.
         /// </summary>
         public string First(Random random, string url = null)
         {
             var forced = Forced(url);
-            return forced ?? Next(random);
+            if (forced != null)
+                return forced;
+            return IsFirstPlay ? FirstPlayLevel : Next(random);
         }
 
         /// <summary>The level a <c>streamcheck</c> page asks for with <c>level=Name</c>, or null.</summary>

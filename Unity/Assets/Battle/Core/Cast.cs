@@ -2,6 +2,8 @@ namespace SdfBattle
 {
     /// <summary>
     /// The names of the players (ticket 32): red starts with you, then three team mates; blue has five. They are players' handles, each with a monster head (ticket 50). Past the lists a player is "Red 5" and the like.
+    /// A match's bots no longer use these lists: each match draws them fresh from <see cref="PlayerNames"/> (<see cref="NameCast"/>); the
+    /// lists stay for you (<see cref="You"/>), the screens' previews and a match made without a draw.
     /// </summary>
     public static class Cast
     {

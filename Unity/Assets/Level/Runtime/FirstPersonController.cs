@@ -61,6 +61,9 @@ namespace SdfLevel
 
         public bool IsGrounded => controller != null && controller.isGrounded;
 
+        /// <summary>How many jumps this player has taken off the ground (counted as they launch, so a watcher's update order does not matter).</summary>
+        public int Jumps { get; private set; }
+
         /// <summary>The way the player aims: the yaw and the pitch together.</summary>
         public Vector3 AimDirection => Quaternion.Euler(pitch, Yaw, 0) * Vector3.forward;
 
@@ -147,6 +150,12 @@ namespace SdfLevel
 
         private void ReadInput()
         {
+            // The menu is open over the running match: you stand still (a click on it must not take the pointer either)
+            if (GameKeys.Blocked)
+            {
+                SetMove(Vector2.zero);
+                return;
+            }
             // A click on the view takes the pointer (one on a button of the GUI does not); Escape lets it go
             if (Input.GetMouseButtonDown(0) && !(EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()))
             {
@@ -225,7 +234,10 @@ namespace SdfLevel
                 // A small push down keeps the controller on the ground going down slopes
                 verticalSpeed = -2;
                 if (jumpWanted && !frozen)
+                {
                     verticalSpeed = Mathf.Sqrt(2 * gravity * jumpHeight);
+                    Jumps++;
+                }
             }
             else
             {

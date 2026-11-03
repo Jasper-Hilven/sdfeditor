@@ -1,17 +1,18 @@
 using System;
 using SdfBattle;
 using SdfGui;
+using SdfLevel;
 using SdfPickups;
 using UnityEngine;
 
 namespace SdfCampaign
 {
     /// <summary>
-    /// The meadow's warm-up in the loaded battle scene (ticket 32.7): the match is held, you may walk, jump and fire, and the caption box
+    /// The warm-up in the loaded battle scene (ticket 32.7; the Fungal level on a first play since 2026-11-02): the match is not held (it starts at once, the clock running and the bots moving), and the caption box
     /// shows one prompt at a time ("WASD to walk, mouse to look", "SPACE to jump", walk onto the minigun pod, "Hold the left button to
-    /// fire"), each cleared by doing it (the rules are <see cref="WarmUp"/>'s). A bobbing arrow shows the minigun pod. When the last is
-    /// cleared the match is let go and Mushroom 7 says what to do. Holding Space or Start for 0.7 s skips it (Escape pauses, as in a
-    /// match). Only on a first play: the runner does not start it on a retry or a replay.
+    /// fire"), each cleared by doing it (the rules are <see cref="WarmUp"/>'s). A bobbing arrow shows your side's minigun pod. When the last is
+    /// cleared a tip says what to do. Holding Space or Start for 0.7 s skips it (Escape pauses, as in a
+    /// match). Only on a first play: the runner does not start it on a retry, a replay or a later session.
     /// </summary>
     public sealed class WarmUpPlayer : MonoBehaviour
     {
@@ -27,14 +28,15 @@ namespace SdfCampaign
         private int prompt = -1;
         private Vector3 walkFrom;
         private float yawFrom, looked;
+        private int jumpsSeen = -1;
         private float closing = -1;
 
         public WarmUp Rules => rules;
 
-        /// <summary>The warm-up is over (done or skipped) and the match let go.</summary>
+        /// <summary>The warm-up is over (done or skipped).</summary>
         public bool Over { get; private set; }
 
-        /// <summary>Holds the match with you free to move and starts the prompts.</summary>
+        /// <summary>Starts the prompts beside the running match.</summary>
         public static WarmUpPlayer Begin(Match match, GuiFlow flow)
         {
             var player = match.gameObject.AddComponent<WarmUpPlayer>();
@@ -42,23 +44,23 @@ namespace SdfCampaign
             player.flow = flow;
             player.pod = FindMinigunPod(match);
             player.rules = WarmUp.Default(player.pod != null);
-            match.Hold(true);
             WeaponPickup.PickedUp += player.OnPickedUp;
             return player;
         }
 
-        /// <summary>The red side's minigun pod, if the scene has one.</summary>
+        /// <summary>Your side's minigun pod (the west's when you are red, the east's when blue), if the scene has one.</summary>
         private static WeaponPickup FindMinigunPod(Match match)
         {
-            if (match.Arena == null || match.Arena.west == null)
+            var side = match.Arena != null ? match.Arena.Side(BattleSide.SideOf(match.You != null ? match.You.Team : Team.Red)) : null;
+            if (side == null)
                 return null;
-            foreach (var pod in match.Arena.west.WeaponPods)
+            foreach (var pod in side.WeaponPods)
                 if (pod.weaponId == "minigun")
                     return pod;
             return null;
         }
 
-        /// <summary>Ends the warm-up where it is, the match let go (a retry, leaving).</summary>
+        /// <summary>Ends the warm-up where it is (a retry, leaving).</summary>
         public void Stop()
         {
             if (!Over)
@@ -86,13 +88,13 @@ namespace SdfCampaign
                 return;
             if (Over)
             {
-                // Mushroom 7's line stays for a few seconds while the match plays
+                // The tip stays for a few seconds while the match plays
                 closing -= Time.deltaTime;
                 if (closing <= 0)
                     Destroy(this);
                 return;
             }
-            if (skip.Tick(Time.deltaTime, Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.JoystickButton7)))
+            if (skip.Tick(Time.deltaTime, !GameKeys.Blocked && (Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.JoystickButton7))))
             {
                 Finish(false);
                 return;
@@ -130,8 +132,11 @@ namespace SdfCampaign
             yawFrom = yaw;
             if (looked >= LookDegrees)
                 rules.Report(WarmUpAction.Look);
-            if (Input.GetButtonDown("Jump") && you.Controller.IsGrounded)
+            // A jump the controller launched since the last look (it may have moved already this frame, off the ground by now)
+            var jumps = you.Controller.Jumps;
+            if (jumpsSeen >= 0 && jumps != jumpsSeen)
                 rules.Report(WarmUpAction.Jump);
+            jumpsSeen = jumps;
             var arsenal = you.GetComponent<Arsenal>();
             if (arsenal != null && arsenal.Firing)
                 rules.Report(WarmUpAction.Fire);
@@ -141,12 +146,11 @@ namespace SdfCampaign
         {
             Over = true;
             DestroyArrow();
-            match.Release();
             var view = flow != null ? flow.Match : null;
             if (view == null)
                 return;
-            // Done or skipped, Mushroom 7 says what the game is: skipping the prompts must not skip how a point is scored
-            view.caption.Set(WarmUp.CloserSpeaker, WarmUp.Closer, 1, 0, "");
+            // Done or skipped, the tip (no speaker) says what the game is: skipping the prompts must not skip how a point is scored
+            view.caption.Set("", WarmUp.Closer, 1, 0, "");
             closing = CloserSeconds;
         }
 

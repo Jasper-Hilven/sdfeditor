@@ -83,3 +83,25 @@ Done in code; EditMode green, the five-match play test passes in Play mode, the 
 - Ticket 47 adds its head fields to `GameSave` with a new `CurrentVersion`.
 - `GuiCommandId.RetryEasier` is still in the enum (removing it would shift the saved values of the other commands); nothing sends it now.
 
+
+**First play in the Fungal level (2026-11-02, user request: "the first time someone plays this game, he should play the fungal scene,
+also move the tutorial to there").**
+- `LevelRotation.First`: on a first play (nothing in the save's last levels, or only unknown ones: `IsFirstPlay`) Boot starts in the Fungal
+  level (`LevelRotation.FirstPlayLevel`) instead of the rotation's pick. A `streamcheck` URL still forces its level. The Fungal level is
+  then in the save's last three like any played level, so the rotation goes on without it for three matches; later sessions start on the
+  rotation's pick as before.
+- The warm-up (`WarmUp`, `WarmUpPlayer`) runs on that first match only: `LevelRotation.WarmUpOn(level)` is a first play and the Fungal
+  level. Before, it ran on the first match of every session, on any level; a returning player no longer gets it, and a forced first level
+  on a new save has none. Its level data is the scene's own: the prompts need nothing placed, and the arrow and the minigun prompt use the
+  minigun pod of your side, which `WarmUpPlayer` now finds by your team (it took the west's, red's, so a blue player was sent across the
+  map). The Fungal level's red pod is at (-46, 0, 38), about 65 m from the red spawn (-70, 0, -22.5), to the spawn's left (the Meadow's was
+  36 m); blue's mirrors it.
+- Tests: `LevelRotationTests` `AFirstPlayStartsInTheFungalLevel`, `AfterTheFirstPlayTheRotationGoesOnWithoutTheFungalLevel`,
+  `TheWarmUpIsInTheFungalLevelOnAFirstPlayOnly`; the fresh-game half of `TheFirstLevelFollowsTheRotationAndNeverTheLastThree` (any of the
+  seven) is gone. `GameLoopPlayTest` expects the Fungal level and the warm-up on the clean save's first match, and no warm-up on the reload.
+  EditMode: 737 passed, 0 failed.
+- Play test (`SDF_NO_QUIT=1 tools/unity-batch.sh playtest42 -executeMethod SdfCampaign.Editor.GameLoopPlayTest.Run`): 0 errors. Levels:
+  Fungal (on Blue, with the warm-up), Meadow, Bathroom, Chessboard, Toybox. Reload (`CheckReload`): 0 errors, first match Bathroom with no
+  warm-up, saved last three Toybox, Kitchen, Bathroom.
+- Not looked at in Play mode by a person: walking to the Fungal pod with the arrow (the distance and the woods between). Losing the first
+  match before the warm-up is done is not a first play any more (the level is recorded when the match goes live): the warm-up is not shown again.

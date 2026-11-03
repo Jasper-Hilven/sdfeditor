@@ -33,6 +33,12 @@ namespace SdfLevel
         /// </summary>
         public static System.Func<Keyboard> Source;
 
+        /// <summary>
+        /// A menu is over the game (the pause menu and what opens from it): the game runs on under it, but your playing keys (walking,
+        /// jumping, picking a weapon) do nothing. The GUI sets it; the readers of those keys check it.
+        /// </summary>
+        public static bool Blocked;
+
 #if ENABLE_INPUT_SYSTEM
         private static Keyboard Board => Source != null ? Source() : Keyboard.current;
 #endif

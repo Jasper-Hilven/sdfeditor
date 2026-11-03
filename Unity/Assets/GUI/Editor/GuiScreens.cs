@@ -599,8 +599,7 @@ namespace SdfGui.Editor
         // ---------------------------------------------------------------- The logo
 
         /// <summary>
-        /// The game's logo (ticket 50): MINIGUN over MONSTERS on a rage-red splat with a violet halo, glints on the letters and a plate
-        /// with the tagline. Named "Logo" so the covers can lift it by name; <paramref name="scale"/> shrinks it from its top edge.
+        /// The game's logo (ticket 50): MINIGUN over MONSTERS on a rage-red splat with a violet halo, and glints on the letters. Named "Logo" so the covers can lift it by name; <paramref name="scale"/> shrinks it from its top edge.
         /// </summary>
         private GameObject Logo(Transform parent, Vector2 position, float scale)
         {
@@ -619,17 +618,6 @@ namespace SdfGui.Editor
             f.Shape(logo.transform, "Glint 2", ToonShapeKind.Burst, Color.white, Centre, new Vector2(352, 0), new Vector2(26, 26), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 2.7f; });
             f.Shape(logo.transform, "Glint 3", ToonShapeKind.Burst, Color.white, Centre, new Vector2(-396, -40), new Vector2(22, 22), s => { s.Outline = 0; s.Shadow = 0; s.Shading = 0; s.Seed = 0.6f; });
             logo.transform.localRotation = Quaternion.Euler(0, 0, 1.5f);
-            var plate = f.Shape(logo.transform, "Tagline Plate", ToonShapeKind.Pill, GuiPalette.Night, Centre, new Vector2(0, -200), new Vector2(640, 56), s =>
-            {
-                s.Outline = 5;
-                s.Shadow = 8;
-                s.Shading = 0;
-            });
-            plate.rectTransform.localRotation = Quaternion.Euler(0, 0, 1);
-            var tagline = f.FillText(plate.transform, "Tagline", "A head for every month.", TextStyle.Title, 34, Color.white);
-            tagline.fontStyle = FontStyles.Italic;
-            tagline.characterSpacing = 2;
-            GuiFactory.Gradient(tagline, GuiPalette.Cream, GuiPalette.Hex(0xFFD98A));
             logo.transform.localScale = Vector3.one * scale;
             return logo;
         }
@@ -702,20 +690,34 @@ namespace SdfGui.Editor
                 Bar("Bar Bottom", Bottom);
                 caption.bars = t.Find("Bar Top").gameObject;
             }
+            // Over the HUD (the warm-up's prompts) a small box near the bottom, between the health and the weapons and under the
+            // pick-up line, so it does not cover the view; a story beat's is the big one over the bottom bar
+            var size = letterbox ? new Vector2(1300, 210) : new Vector2(900, 136);
             var box = Object("Box", t);
-            Place(box.transform, Bottom, new Vector2(0, letterbox ? 150 : 300), new Vector2(1300, 210));
+            Place(box.transform, Bottom, new Vector2(0, letterbox ? 150 : 12), size);
             caption.box = box.AddComponent<CanvasGroup>();
-            f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, new Vector2(1300, 210), 26);
-            caption.speaker = f.Text(box.transform, "Speaker", "TOASTYMAGE", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44));
-            caption.line = f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110));
+            f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, size, letterbox ? 26 : 20);
+            caption.speaker = letterbox
+                ? f.Text(box.transform, "Speaker", "TOASTYMAGE", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44))
+                : f.Text(box.transform, "Speaker", "TOASTYMAGE", TextStyle.Label, 24, GuiPalette.Gold, Top, new Vector2(0, -8), new Vector2(840, 30));
+            caption.line = letterbox
+                ? f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110))
+                : f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 30, GuiPalette.Cream, Bottom, new Vector2(0, 34), new Vector2(860, 64));
             caption.line.textWrappingMode = TextWrappingModes.Normal;
             caption.line.alignment = TextAlignmentOptions.Center;
+            if (!letterbox)
+                AutoSize(caption.line, 20, 30);
 
-            // Over the HUD the corner is the weapons' (and the health's): the hint sits in the box; alone, 5 px from the screen's corner
+            // Over the HUD the corner is the weapons' (and the health's): the hint sits in the box, under the line; alone, 5 px from the screen's corner
             var hintParent = letterbox ? t : box.transform;
-            var corner = letterbox ? new Vector2(-5, 5) : new Vector2(-24, 10);
-            caption.hint = f.Text(hintParent, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, 26, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight, corner + new Vector2(0, 25), new Vector2(500, 40), TextAlignmentOptions.Right);
-            var track = f.Panel(hintParent, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, corner, new Vector2(260, 22), 8);
+            var corner = letterbox ? new Vector2(-5, 5) : new Vector2(-18, 10);
+            var hintSize = letterbox ? 26 : 20;
+            var trackSize = letterbox ? new Vector2(260, 22) : new Vector2(180, 16);
+            caption.hint = f.Text(hintParent, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, hintSize, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight,
+                corner + new Vector2(-trackSize.x - 12, -7), new Vector2(300, 30), TextAlignmentOptions.Right);
+            if (letterbox)
+                caption.hint.rectTransform.anchoredPosition = corner + new Vector2(0, 25);
+            var track = f.Panel(hintParent, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, corner, trackSize, letterbox ? 8 : 6);
             track.Outline = 3;
             track.Shadow = 0;
             var fill = f.Shape(track.transform, "Fill", ToonShapeKind.Box, GuiPalette.Gold, Centre, Vector2.zero, Vector2.zero, s =>

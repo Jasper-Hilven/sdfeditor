@@ -175,6 +175,8 @@ namespace SdfBattle
             triggerHeld = locked && Input.GetMouseButton(0);
             zoomHeld = locked && Input.GetMouseButton(1);
             var inventory = Inventory;
+            if (GameKeys.Blocked)
+                return;
             for (var number = 1; number <= Inventory.SlotCount; number++)
                 if (Input.GetKeyDown(KeyCode.Alpha0 + number) || Input.GetKeyDown(KeyCode.Keypad0 + number))
                     inventory.SelectNumber(number);

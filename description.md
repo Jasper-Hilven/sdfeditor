@@ -8,7 +8,9 @@
 
 Put a monster head on a soldier and give him a minigun.
 
-Minigun Monsters is a first-person capture-the-flag shooter in endless matches. You are dropped on a random team, red or blue, in one of seven arenas, with a field full of weapon and health pods. Grab the enemy flag, carry it home while your own flag is safe, and shoot whoever gets in the way. A match ends on score or the clock, with sudden death if it is tied. Then a 10 second countdown starts the next match on another arena. Everyone on the field has a name and a monster head of their own.
+Minigun Monsters is a first-person capture-the-flag shooter in endless matches. You are dropped on a random team, red or blue, in one of seven arenas, with a field full of weapon and health pods. Grab the enemy flag, carry it home while your own flag is safe, and shoot whoever gets in the way. A match ends on score or the clock, with sudden death if it is tied. Then a 10 second countdown starts the next match on another arena. Everyone on the field has a name over their head and a monster head of their own.
+
+Your very first match is on the fungal island, with a short warm-up beside the live match: walk, jump, grab the minigun and fire, then go for the flag.
 
 Win a match and you unlock another monster head. The head of the month is always yours, and a win unlocks the next head in the calendar, from the Abominable Snowman in January to the Crazed Evil Santa in December. Pick your head on the end card between matches. The game watches how you do: lose and the next opponents are easier, win clean and they get tougher.
 
@@ -20,7 +22,8 @@ Win a match and you unlock another monster head. The head of the month is always
 - A scoreboard on Tab with each player's monster head, kills, deaths and captures.
 - Adaptive difficulty, from Super Easy to Hard, that follows how you play.
 - Adjustable gore (off, splatty, extra splatty, ultra gore): only the monster heads burst, each in its own colour, and the soldiers fall like ragdolls. Quality levels from ultra low up to Epic and Ultra Epic, with an automatic setting.
-- A toon-shaded look with floating eyes and hands.
+- Names over every player's head: your teammates' always, an enemy's while you can see them.
+- A toon-shaded look, with your soldier's gloved hands and team sleeves on every weapon.
 
 ## Controls
 
@@ -38,7 +41,7 @@ Keyboard and mouse
 | Scoreboard (names, heads, kills, deaths, captures) | Hold Tab |
 | Change your monster head on the end card | A and D (by key position, so AZERTY uses Q and D), or click the arrows |
 | Skip the end card's countdown | Space or Enter |
-| Pause / menu / back | Escape |
+| Pause menu / back | Escape (the match keeps running behind the menu) |
 | Skip the credits | Hold Space or Escape |
 
 Gamepad

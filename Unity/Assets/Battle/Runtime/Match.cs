@@ -129,6 +129,9 @@ namespace SdfBattle
             Current = this;
             if (gui != null)
                 Hud = MatchHud.Create(this, gui);
+            // Every other player's name over their head
+            if (Hud != null)
+                NameTags.Create(this);
             // Capture the flag (ticket 21): before the first round, whose reset sends the flags home
             CaptureTheFlag.Attach(this);
             // Combat (ticket 22): before the first round, whose spawns hand out the single pistols
@@ -148,12 +151,12 @@ namespace SdfBattle
             // The sound: after everything it listens to, before the first round's spawns
             SdfAudio.GameAudio.Create(this, combat);
             State.Begin();
-            // A beat or the warm-up plays before the match (ticket 32.7): held from the first frame
-            if (Setup != null && (Setup.held || Setup.warmUp))
+            // A beat plays before the match: held from the first frame. The warm-up does not hold it: its prompts run beside the live match
+            if (Setup != null && Setup.held)
                 Hold();
         }
 
-        /// <summary>The match is held: the clock stands still and nobody moves or fires, except you with <paramref name="youFree"/> (the warm-up).</summary>
+        /// <summary>The match is held: the clock stands still and nobody moves or fires, except you with <paramref name="youFree"/>.</summary>
         public void Hold(bool youFree = false)
         {
             if (State == null)
@@ -171,7 +174,7 @@ namespace SdfBattle
             YouFree = false;
         }
 
-        /// <summary>The match is held but you may walk, jump and fire (the meadow's warm-up).</summary>
+        /// <summary>The match is held but you may walk, jump and fire.</summary>
         public bool YouFree { get; private set; }
 
         /// <summary>The match is held.</summary>
@@ -202,7 +205,10 @@ namespace SdfBattle
             State.Restart();
         }
 
-        /// <summary>You first, then your team's bots (the cast's numbers 2 to 4), then the other team's (1 to 4), named by <see cref="Cast"/>.</summary>
+        /// <summary>
+        /// You first, then your team's bots (numbers 2 to 4), then the other team's (1 to 4). You keep your name; the bots draw fresh ones
+        /// from <see cref="PlayerNames"/> every match, none twice (unseeded, unlike the spawns: a match should not meet the same strangers).
+        /// </summary>
         private void MakePlayers()
         {
             if (you == null)
@@ -210,6 +216,9 @@ namespace SdfBattle
 #if UNITY_EDITOR
             spectate |= UnityEditor.EditorPrefs.GetBool(SpectatePreference, false);
 #endif
+            var names = new NameCast();
+            if (Setup != null)
+                names.Reserve(Setup.redNames).Reserve(Setup.blueNames);
             // Spectating (ticket 23): your camera watches, the match is eight bots
             var spectating = spectate && you != null;
             if (spectating)
@@ -222,7 +231,9 @@ namespace SdfBattle
                 var player = you.GetComponent<Player>();
                 if (player == null)
                     player = you.gameObject.AddComponent<Player>();
-                player.Bind(State.AddPlayer(Setup != null ? Setup.NameOf(yourTeam, 1) : Cast.You, yourTeam, false));
+                var yourName = Setup != null ? Setup.NameOf(yourTeam, 1) : Cast.You;
+                names.Reserve(yourName);
+                player.Bind(State.AddPlayer(yourName, yourTeam, false));
                 players.Add(player);
             }
             else
@@ -237,7 +248,7 @@ namespace SdfBattle
             {
                 var first = team == yourTeam && you != null ? 2 : 1;
                 for (var number = first; number <= rules.SizeOf(team); number++)
-                    players.Add(MakeBot(Setup != null ? Setup.NameOf(team, number) : Cast.Name(team, number), team, root));
+                    players.Add(MakeBot(Setup != null ? Setup.NameOf(team, number, names) : names.Draw(), team, root));
             }
         }
 
