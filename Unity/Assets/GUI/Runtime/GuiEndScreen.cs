@@ -152,10 +152,11 @@ namespace SdfGui
                 shownHead = head;
                 headPreview.Show(head, loop.YourTeam == Team.Blue ? SdfRig.SoldierModels.BlueSkin : SdfRig.SoldierModels.RedSkin);
             }
-            var unlocked = loop != null ? loop.LastUnlockedHead : null;
+            // Outside the game the sample shows the reveal with the longest name, to check it fits
+            var unlocked = loop != null ? loop.LastUnlockedHead : Application.isPlaying ? null : "pumpkin";
             GuiText.Show(newHead, unlocked != null);
             if (unlocked != null)
-                GuiText.Set(newHead, "NEW HEAD!  " + HeadStandIn.Label(unlocked).ToUpperInvariant());
+                GuiText.Set(newHead, "NEW HEAD!\n" + HeadStandIn.Label(unlocked).ToUpperInvariant());
         }
 
         // The winning side's bots dance behind the card: 44's victory emote, or its dance stand-in while there is no victory clip. A body

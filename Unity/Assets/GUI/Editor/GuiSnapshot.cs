@@ -21,14 +21,26 @@ namespace SdfGui.Editor
     /// </summary>
     public static class GuiSnapshot
     {
-        private const int Width = 1920;
-        private const int Height = 1080;
+        // The snapshot's size; -snapshotSize 1728x1080 checks another aspect (a 16:10 laptop, a wide browser window)
+        private static int Width = 1920;
+        private static int Height = 1080;
+        // Only these screens, when -snapshotScreens Victory,Defeat is given
+        private static string[] only;
 
+        /// <summary>Batch entry: -snapshotDir folder, and optionally -snapshotSize WxH and -snapshotScreens A,B.</summary>
         public static void Capture()
         {
             var args = Environment.GetCommandLineArgs();
-            var index = Array.IndexOf(args, "-snapshotDir");
-            var directory = index >= 0 && index + 1 < args.Length ? args[index + 1] : Path.Combine(Path.GetTempPath(), "gui-snapshots");
+            string Arg(string name)
+            {
+                var i = Array.IndexOf(args, name);
+                return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
+            }
+            var directory = Arg("-snapshotDir") ?? Path.Combine(Path.GetTempPath(), "gui-snapshots");
+            var size = Arg("-snapshotSize")?.Split('x');
+            if (size is { Length: 2 } && int.TryParse(size[0], out var w) && int.TryParse(size[1], out var h))
+                (Width, Height) = (w, h);
+            only = Arg("-snapshotScreens")?.Split(',');
             Shoot(EditorSceneManager.OpenScene(GuiScene.ScenePath, OpenSceneMode.Single), directory);
         }
 
@@ -50,10 +62,16 @@ namespace SdfGui.Editor
             WithCameras(scene, (flow, shoot) =>
             {
                 var shown = flow.screen;
+                var testPanel = flow.testPanel;
+                // Shots of chosen screens leave out the developer's test panel, which covers the left of the screen
+                if (only != null)
+                    flow.testPanel = false;
                 try
                 {
                     foreach (GuiScreen screen in Enum.GetValues(typeof(GuiScreen)))
                     {
+                        if (only != null && Array.IndexOf(only, screen.ToString()) < 0)
+                            continue;
                         // The yes/no card shows over a screen: the pause menu, as in a match
                         if (screen == GuiScreen.Confirm)
                             flow.Show(GuiScreen.Pause);
@@ -64,6 +82,7 @@ namespace SdfGui.Editor
                 }
                 finally
                 {
+                    flow.testPanel = testPanel;
                     flow.Show(shown);
                 }
             });
@@ -107,17 +126,23 @@ namespace SdfGui.Editor
         private static void Render(Camera worldCamera, Camera uiCamera, Canvas canvas, string path)
         {
             var world = Shoot(worldCamera);
+            RenderTexture sizing = null;
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = uiCamera;
             canvas.planeDistance = 1;
             try
             {
-                // The scaler sizes the canvas when it is enabled; the views draw when their screen turns on
+                // The scaler sizes the canvas (to the camera's target, the snapshot's size) when it is enabled; the views draw when their screen turns on
+                sizing = new RenderTexture(Width, Height, 24);
+                uiCamera.targetTexture = sizing;
                 var scaler = canvas.GetComponent<CanvasScaler>();
                 scaler.enabled = false;
                 scaler.enabled = true;
+                Canvas.ForceUpdateCanvases();
                 foreach (var view in canvas.GetComponentsInChildren<GuiView>())
                     view.Refresh();
+                foreach (var fit in canvas.GetComponentsInChildren<GuiFitInside>())
+                    fit.Refit();
                 Canvas.ForceUpdateCanvases();
                 uiCamera.backgroundColor = Color.black;
                 var overBlack = Shoot(uiCamera);
@@ -135,6 +160,9 @@ namespace SdfGui.Editor
             {
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 canvas.worldCamera = null;
+                uiCamera.targetTexture = null;
+                if (sizing != null)
+                    Object.DestroyImmediate(sizing);
             }
             var image = new Texture2D(Width, Height, TextureFormat.RGB24, false);
             image.SetPixels(world);

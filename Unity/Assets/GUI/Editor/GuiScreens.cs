@@ -534,9 +534,10 @@ namespace SdfGui.Editor
             var end = root.AddComponent<GuiEndScreen>();
             end.victory = true;
             f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Gold, 0.4f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
-            p.BannerInstance(t, "Title", "VICTORY!", GuiPalette.Moss, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
-            EndNumbers(t, end, 160, -300);
-            CountdownCard(t, end);
+            var card = EndContent(t);
+            p.BannerInstance(card, "Title", "VICTORY!", GuiPalette.Moss, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
+            EndNumbers(card, end, 160, -300);
+            CountdownCard(card, end);
             return Save(root);
         }
 
@@ -548,10 +549,11 @@ namespace SdfGui.Editor
             var end = root.AddComponent<GuiEndScreen>();
             end.victory = false;
             f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiEndScreen.Blue, 0.35f), Centre, new Vector2(0, 80), new Vector2(1500, 1000));
-            p.BannerInstance(t, "Title", "DEFEATED", GuiEndScreen.Blue, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
-            EndNumbers(t, end, 160, -230);
-            end.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -345), new Vector2(1100, 50));
-            CountdownCard(t, end);
+            var card = EndContent(t);
+            p.BannerInstance(card, "Title", "DEFEATED", GuiEndScreen.Blue, Top, new Vector2(0, -95), new Vector2(1100, 150), 100);
+            EndNumbers(card, end, 160, -230);
+            end.tip = f.Text(card, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Centre, new Vector2(0, -345), new Vector2(1100, 50));
+            CountdownCard(card, end);
             return Save(root);
         }
 
@@ -569,9 +571,31 @@ namespace SdfGui.Editor
             end.headPreview = head.AddComponent<GuiHeadPreview>();
             HeadArrow(t, "Previous Head", new Vector2(-840, -200), 180, GuiCommandId.HeadPrevious);
             HeadArrow(t, "Next Head", new Vector2(-680, -200), 0, GuiCommandId.HeadNext);
-            end.headCaption = f.Text(t, "Head Caption", "PUMPKIN", TextStyle.Label, 36, GuiPalette.Cream, Centre, new Vector2(-760, -262), new Vector2(360, 50));
-            end.keyHint = f.Text(t, "Head Keys", "A and D change head", TextStyle.BodyInk, 26, GuiPalette.Cream, Centre, new Vector2(-760, -312), new Vector2(360, 40));
-            end.newHead = f.Text(t, "New Head", "NEW HEAD!", TextStyle.Title, 34, GuiPalette.Gold, Centre, new Vector2(-760, 215), new Vector2(420, 50));
+            // The head's name and the NEW reveal shrink to their box (the longest, Glowing Jack-o'-Lantern, is wider than the column),
+            // and the reveal is two lines, NEW HEAD! over the name (a line break in its text, no wrapping, so a hyphened name stays on one line)
+            end.headCaption = Fitted(f.Text(t, "Head Caption", "PUMPKIN", TextStyle.Label, 36, GuiPalette.Cream, Centre, new Vector2(-760, -262), new Vector2(360, 50)), 20);
+            end.keyHint = Fitted(f.Text(t, "Head Keys", "A and D change head", TextStyle.BodyInk, 26, GuiPalette.Cream, Centre, new Vector2(-760, -312), new Vector2(360, 40)), 18);
+            end.newHead = Fitted(f.Text(t, "New Head", "NEW HEAD!", TextStyle.Title, 34, GuiPalette.Gold, Centre, new Vector2(-760, 222), new Vector2(360, 96)), 20);
+        }
+
+        // The end card's content, laid out at 1920 x 1080 and scaled down to fit the screen (GuiFitInside), so nothing leaves the screen
+        // on a narrower (16:10) or a shorter (a wide browser window) canvas. The dim and the glow behind it stay full-screen.
+        private static Transform EndContent(Transform parent)
+        {
+            var card = Object("Card", parent);
+            Place(card.transform, Centre, Vector2.zero, new Vector2(1920, 1080));
+            card.AddComponent<GuiFitInside>();
+            return card.transform;
+        }
+
+        // A text that shrinks to fit its box, down to minSize, instead of running past it
+        private static TMP_Text Fitted(TMP_Text label, float minSize)
+        {
+            label.enableAutoSizing = true;
+            label.fontSizeMax = label.fontSize;
+            label.fontSizeMin = minSize;
+            label.overflowMode = TextOverflowModes.Overflow;
+            return label;
         }
 
         // A head's ◀ or ▶: the selector's arrow, a button running a command (the head before or after the current one)
