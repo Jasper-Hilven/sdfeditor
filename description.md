@@ -10,10 +10,9 @@ Put a monster head on a soldier and give him a minigun.
 
 Minigun Monsters is a first-person capture-the-flag shooter in endless matches. You are dropped on a random team, red or blue, in one of seven arenas, with a field full of weapon and health pods. Grab the enemy flag, carry it home while your own flag is safe, and shoot whoever gets in the way. A match ends on score or the clock, with sudden death if it is tied. Then a 10 second countdown starts the next match on another arena. Everyone on the field has a name and a monster head of their own.
 
-Win a match and you unlock another monster head. The head of the month is always yours, and a win unlocks the next head in the calendar, from the Abominable Snowman in January to the Crazed Evil Santa in December. Pick your head on the end card between matches. The game watches how you do: lose and the next opponents are easier, win clean and they get tougher.
+The game watches how you do: lose and the next opponents are easier, win clean and they get tougher.
 
 - Seven arenas, each with its own theme, scale and weapons: a meadow, a fungal island, a chessboard, a toy box, a kitchen worktop, a bathroom and the inside of a computer.
-- Twelve monster heads, one for every month: Abominable Snowman, Vampire Count, Leprechaun Mutant, Swamp Thing, Raging Cyclops, Deep-Sea Cthulhu, Acid Alien, Ancient Mummy, Feral Werewolf, Glowing Jack-o'-Lantern, Frankenstein's Monster and Crazed Evil Santa.
 - Weapons by range: pistols, minigun, sniper, electro-gun, flamethrower, poison-gun and blob-gun, in four slots.
 - Monster powers: fight well to fill the rage meter, then spend it on Frenzy (speed), Regenerate (healing) or Thick Hide (less damage).
 - Machines to fight: helicopters, tanks and turrets that shoot at you and respawn.
