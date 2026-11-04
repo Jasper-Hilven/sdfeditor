@@ -114,6 +114,17 @@ namespace SdfAudio
                 sounds.layers = component.musicLayers ?? sounds.layers;
                 sounds.bossTheme = component.bossTheme;
             }
+            // The orchestral layer 1 is the menu music's clip, which is in the player already: the arena's scene does not hold a copy
+            // (ticket 61), so its first layer is left empty and taken from the bank here
+            if (plan.Music == MusicSet.Orchestra && sounds.layers.Length >= MusicIntensity.Layers && sounds.layers[0] == null)
+            {
+                var menu = SoundBank.Load()?.Get(Cues.MusicMenu);
+                if (menu != null && menu.clips != null && menu.clips.Length > 0)
+                {
+                    sounds.layers = (AudioClip[])sounds.layers.Clone();
+                    sounds.layers[0] = menu.clips[0];
+                }
+            }
 #if UNITY_EDITOR
             // A scene not rebuilt yet: the library's files by path (the web build does not have this, see the class's remarks)
             if (!sounds.HasBattleMusic && plan.Music != MusicSet.None)

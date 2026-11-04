@@ -11,6 +11,24 @@ namespace SdfAudio.Editor
     /// </summary>
     public static class ArenaAudioSetup
     {
+        /// <summary>Refreshes the <see cref="ArenaAudio"/> of every arena scene in the build in place (opens and saves each).</summary>
+        public static void RefreshScenes()
+        {
+            foreach (var scene in new[] { "Meadow", "Chessboard", "Fungal", "Kitchen", "Bathroom", "Computer", "Toybox" })
+            {
+                var path = $"Assets/Scenes/{scene}.unity";
+                if (!System.IO.File.Exists(path))
+                    continue;
+                var opened = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(path);
+                foreach (var audio in Object.FindObjectsByType<ArenaAudio>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    Attach(audio.gameObject, scene);
+                    UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(opened);
+                }
+                UnityEditor.SceneManagement.EditorSceneManager.SaveScene(opened);
+            }
+        }
+
         /// <summary>Adds (or refreshes) the <see cref="ArenaAudio"/> on <paramref name="host"/> for the level called <paramref name="levelName"/>.</summary>
         public static ArenaAudio Attach(GameObject host, string levelName)
         {
@@ -26,6 +44,9 @@ namespace SdfAudio.Editor
                 audio.musicLayers = new AudioClip[MusicIntensity.Layers];
                 for (var layer = 0; layer < audio.musicLayers.Length; layer++)
                 {
+                    // The orchestral layer 1 is the menu cue's clip, in the player: not referenced here so no bundle holds a second copy
+                    if (layer == 0 && plan.Music == MusicSet.Orchestra)
+                        continue;
                     var path = ArenaAudio.MusicPath(plan.Music, layer);
                     audio.musicLayers[layer] = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
                     if (audio.musicLayers[layer] == null)

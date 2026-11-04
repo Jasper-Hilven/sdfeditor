@@ -105,20 +105,12 @@ namespace SdfGui.Editor
                     var alpha = Mathf.Clamp01(1 - ((w.r - b.r) + (w.g - b.g) + (w.b - b.b)) / 3);
                     pixels[i] = alpha > 0.002f ? new Color(b.r / alpha, b.g / alpha, b.b / alpha, alpha) : Color.clear;
                 }
-                var image = Crop(Outline(Toon(pixels)));
+                var image = Fit(Crop(Outline(Toon(pixels))), !character);
                 var path = $"{Folder}/{model}.png";
                 File.WriteAllBytes(path, image.EncodeToPNG());
                 Object.DestroyImmediate(image);
                 AssetDatabase.ImportAsset(path);
-                if (AssetImporter.GetAtPath(path) is TextureImporter importer)
-                {
-                    importer.textureType = TextureImporterType.Sprite;
-                    importer.spriteImportMode = SpriteImportMode.Single;
-                    importer.alphaIsTransparency = true;
-                    importer.mipmapEnabled = false;
-                    importer.sRGBTexture = true;
-                    importer.SaveAndReimport();
-                }
+                Configure(path);
             }
             finally
             {
@@ -206,6 +198,105 @@ namespace SdfGui.Editor
             image.SetPixels(cropped);
             image.Apply();
             return image;
+        }
+
+        /// <summary>The longest side an icon is stored at (ticket 61): a head or weapon is drawn at most about 120 px (head) or 200 px
+        /// (weapon) wide at 1080p, so these keep it sharp at 1080p and about 1.3x beyond.</summary>
+        public const int MaxHead = 192;
+        public const int MaxWeapon = 256;
+
+        /// <summary>
+        /// The icon at its stored size: the longest side at most <see cref="MaxHead"/> or <see cref="MaxWeapon"/> (area-averaged, in
+        /// premultiplied colour so the ink edge keeps no halo), and both sides a multiple of 4 (transparent pixels added) because DXT
+        /// and ASTC cannot compress a texture of any other size and Unity then stores it as RGBA32, four times the bytes.
+        /// </summary>
+        public static Texture2D Fit(Texture2D image, bool weapon)
+        {
+            var cap = weapon ? MaxWeapon : MaxHead;
+            var scale = Mathf.Min(1f, cap / (float)Mathf.Max(image.width, image.height));
+            var width = Mathf.Max(4, Mathf.CeilToInt(Mathf.Round(image.width * scale) / 4f) * 4);
+            var height = Mathf.Max(4, Mathf.CeilToInt(Mathf.Round(image.height * scale) / 4f) * 4);
+            if (width == image.width && height == image.height)
+                return image;
+            // The scaled picture's size, centred in the padded canvas
+            var innerW = Mathf.Min(width, Mathf.Max(1, Mathf.RoundToInt(image.width * scale)));
+            var innerH = Mathf.Min(height, Mathf.Max(1, Mathf.RoundToInt(image.height * scale)));
+            var offsetX = (width - innerW) / 2;
+            var offsetY = (height - innerH) / 2;
+            var source = image.GetPixels();
+            var result = new Color[width * height];
+            for (var y = 0; y < innerH; y++)
+            for (var x = 0; x < innerW; x++)
+            {
+                var x0 = x * (float)image.width / innerW;
+                var x1 = (x + 1) * (float)image.width / innerW;
+                var y0 = y * (float)image.height / innerH;
+                var y1 = (y + 1) * (float)image.height / innerH;
+                float r = 0, g = 0, b = 0, a = 0, weight = 0;
+                for (var sy = Mathf.FloorToInt(y0); sy < Mathf.Min(image.height, Mathf.CeilToInt(y1)); sy++)
+                for (var sx = Mathf.FloorToInt(x0); sx < Mathf.Min(image.width, Mathf.CeilToInt(x1)); sx++)
+                {
+                    var w = (Mathf.Min(x1, sx + 1) - Mathf.Max(x0, sx)) * (Mathf.Min(y1, sy + 1) - Mathf.Max(y0, sy));
+                    var c = source[sy * image.width + sx];
+                    r += c.r * c.a * w;
+                    g += c.g * c.a * w;
+                    b += c.b * c.a * w;
+                    a += c.a * w;
+                    weight += w;
+                }
+                result[(y + offsetY) * width + x + offsetX] = a > 0.0001f
+                    ? new Color(r / a, g / a, b / a, a / weight)
+                    : Color.clear;
+            }
+            var fitted = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            fitted.SetPixels(result);
+            fitted.Apply();
+            Object.DestroyImmediate(image);
+            return fitted;
+        }
+
+        /// <summary>Sprite import settings of an icon: no mipmaps, and on the web DXT5 with crunch (WebGL has no other format a
+        /// single build can rely on), which keeps the flat toon colours and ink edge clean at this size.</summary>
+        public static void Configure(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+                return;
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.sRGBTexture = true;
+            importer.maxTextureSize = MaxWeapon;
+            importer.textureCompression = TextureImporterCompression.Compressed;
+            importer.crunchedCompression = true;
+            importer.compressionQuality = 80;
+            importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings
+            {
+                name = "WebGL", overridden = true, maxTextureSize = MaxWeapon, format = TextureImporterFormat.DXT5Crunched,
+                textureCompression = TextureImporterCompression.Compressed, crunchedCompression = true, compressionQuality = 80,
+            });
+            importer.SaveAndReimport();
+        }
+
+        /// <summary>Fits the PNGs already in the folder to their stored size and applies the import settings (no re-render).</summary>
+        [MenuItem("Tools/SDF GUI/Fit Icons")]
+        public static void FitExisting()
+        {
+            foreach (var model in Models)
+            {
+                var path = $"{Folder}/{model}.png";
+                if (!File.Exists(path))
+                    continue;
+                var image = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                image.LoadImage(File.ReadAllBytes(path));
+                var fitted = Fit(image, MatchView.Weapons.Contains(model));
+                if (fitted != image)
+                    File.WriteAllBytes(path, fitted.EncodeToPNG());
+                Object.DestroyImmediate(fitted);
+                AssetDatabase.ImportAsset(path);
+                Configure(path);
+            }
+            AssetDatabase.SaveAssets();
         }
 
         private static Color[] Shoot(Camera camera, Color background)
