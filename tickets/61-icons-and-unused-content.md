@@ -85,8 +85,9 @@ ink edges are as clean.
   scenes after baking (`BattleNavmesh`, level builder). Small once compressed, left for 62.
 - URP's 10 film grain textures (2.5 MB uncompressed in the player) and `PerfectDOSVGA437.ttf` (debug HUD font): in package settings
   (`UniversalRenderPipelineGlobalSettings`), ticket 58's file; not touched.
-- The skybox cubemap copy per level bundle: not found in this build's bundles by name (`Default-Skybox-Cubemap` no longer appears in the
-  bundle reports); nothing to fix.
+- The skybox cubemap copy per level bundle (ticket 59's 3.7 MB, 0.9 LZ4): a built-in asset, so it is not named in the build reports and
+  was not measured again here; it follows from the level bundle layout, so it is for ticket 62 (check `RenderSettings.skybox` of each level
+  scene: a procedural skybox material needs no cubemap).
 
 **Checks**: EditMode 779 pass, 0 fail (incl. `ReadableTextTests`). Desktop play test: five matches, 0 errors. Touch play test: 0 errors
 (the known "waiting for the jump" timeout hit four times in a row while another agent's Unity build kept the machine at load 7-12;
