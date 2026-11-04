@@ -99,8 +99,14 @@ namespace SdfGui.Editor
                             continue;
                         // The yes/no card shows over a screen: the pause menu, as in a match
                         if (screen == GuiScreen.Confirm)
+                        {
+                            // Over Settings with the reset question (ticket 63): the longest question the card holds
                             flow.Show(GuiScreen.Pause);
-                        flow.Show(screen);
+                            flow.Show(GuiScreen.Settings);
+                            flow.Ask(GuiFlow.ResetQuestion, null);
+                        }
+                        else
+                            flow.Show(screen);
                         shoot(Path.Combine(directory, $"{screen}.png"));
                     }
                     flow.Match.end.Clear();

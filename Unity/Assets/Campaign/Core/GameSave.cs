@@ -62,6 +62,18 @@ namespace SdfCampaign
         public static GameSave Load(ICampaignStorage storage) =>
             storage != null && storage.TryGet(Key, out var json) ? Parse(json) : new GameSave();
 
+        /// <summary>
+        /// Reset all progress (ticket 63): the key is deleted in every layer of <paramref name="storage"/>, then a fresh default save is written
+        /// back (so nothing old can be read again, and the portal's store is not left without one). Returns the fresh save.
+        /// </summary>
+        public static GameSave Reset(ICampaignStorage storage)
+        {
+            storage.Remove(Key);
+            var fresh = new GameSave();
+            fresh.Save(storage);
+            return fresh;
+        }
+
         public void Save(ICampaignStorage storage) => storage.Set(Key, ToJson());
     }
 }

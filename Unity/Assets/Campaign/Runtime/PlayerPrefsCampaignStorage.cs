@@ -19,5 +19,11 @@ namespace SdfCampaign
             PlayerPrefs.SetString(key, value);
             PlayerPrefs.Save();
         }
+
+        public void Remove(string key)
+        {
+            PlayerPrefs.DeleteKey(key);
+            PlayerPrefs.Save();
+        }
     }
 }

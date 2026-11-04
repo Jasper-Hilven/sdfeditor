@@ -247,6 +247,21 @@ namespace SdfPlatform
             }
         }
 
+        /// <summary>Deletes a key from the portal's data store (the reset, ticket 63); nothing when the store is not in use.</summary>
+        public static void RemoveData(string key)
+        {
+            if (!CloudSave)
+                return;
+            try
+            {
+                CrazySDK.Data.DeleteKey(key);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"WebPortal: save not deleted ({e.Message})");
+            }
+        }
+
         public static void SetData(string key, string value)
         {
             if (!CloudSave)

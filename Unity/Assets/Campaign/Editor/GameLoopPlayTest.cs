@@ -13,6 +13,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace SdfCampaign.Editor
 {
@@ -49,6 +50,9 @@ namespace SdfCampaign.Editor
         private static readonly List<Difficulty> made = new List<Difficulty>();
         private static readonly List<Difficulty> after = new List<Difficulty>();
 
+        private static bool resetting;
+        private static int resetPhase;
+        private static Match resetBefore;
         private static bool checking, finished, waitReported, creditsChecked;
         private static int index, phase, yoursDone, enemyDone;
         private static float since, started = -1;
@@ -71,6 +75,7 @@ namespace SdfCampaign.Editor
             if (!SessionState.GetBool(ActiveKey, false))
                 return;
             checking = SessionState.GetString(ModeKey, "walk") == "check";
+            resetting = SessionState.GetString(ModeKey, "walk") == "reset";
             SceneLoader.AutoPlay = true;
             Application.logMessageReceived += (message, stack, type) =>
             {
@@ -85,6 +90,21 @@ namespace SdfCampaign.Editor
         {
             PlayerPrefs.DeleteKey(GameSave.Key);
             Begin("walk");
+        }
+
+        /// <summary>
+        /// The reset (ticket 63): from a played save (Hard, three last levels, two heads) a match goes live; SETTINGS from the pause menu, the
+        /// RESET ALL PROGRESS button, NO (nothing changes), the button again, YES. The save on disk is then the fresh default, and the next
+        /// match is the Fungal first play with the warm-up, Super Easy, the default head, and a different upcoming level.
+        /// </summary>
+        public static void RunReset()
+        {
+            var played = new GameSave { Difficulty = Difficulty.Hard, lastLevels = new[] { "Kitchen", "Computer", "Bathroom" } };
+            played.heads.unlocked = new[] { "frankenstein", "yeti" };
+            played.heads.current = "yeti";
+            PlayerPrefs.SetString(GameSave.Key, played.ToJson());
+            PlayerPrefs.Save();
+            Begin("reset");
         }
 
         /// <summary>Checks, in a new process, that the save of the five matches came back.</summary>
@@ -146,6 +166,11 @@ namespace SdfCampaign.Editor
             var loader = UnityEngine.Object.FindAnyObjectByType<SceneLoader>();
             if (loader != null && loader.Busy)
                 return;
+            if (resetting)
+            {
+                ResetStep(loop, flow, now);
+                return;
+            }
             switch (phase)
             {
                 case 0: // a match is live: the loop says this scene, and the match is its new one
@@ -208,6 +233,86 @@ namespace SdfCampaign.Editor
                     phase = 1;
                     since = now;
                     return;
+            }
+        }
+
+        private static Button Find(GuiFlow flow, GuiCommandId command)
+        {
+            foreach (var c in flow.GetComponentsInChildren<GuiCommand>(false))
+                if (c.command == command)
+                    return c.GetComponent<Button>();
+            return null;
+        }
+
+        private static void ResetStep(GameLoop loop, GuiFlow flow, float now)
+        {
+            switch (resetPhase)
+            {
+                case 0: // the played save's match is live
+                {
+                    if (Active == "Boot" || Match.Current == null || now - since < 1)
+                        return;
+                    match = Match.Current;
+                    if (match.State == null || loop.Current != Active || match.Held)
+                        return;
+                    Expect(UnityEngine.Object.FindAnyObjectByType<WarmUpPlayer>() == null, "a played save has no warm-up");
+                    Expect(!new[] { "Kitchen", "Computer", "Bathroom" }.Contains(Active), $"the played save's first level is not one of its last three ({Active})");
+                    Expect(loop.Difficulty == Difficulty.Hard, "the played save is on Hard");
+                    resetBefore = match;
+                    flow.Show(GuiScreen.Pause);
+                    flow.Show(GuiScreen.Settings);
+                    resetPhase = 1;
+                    since = now;
+                    return;
+                }
+                case 1: // Settings is up: the button, NO first, then YES
+                {
+                    if (now - since < 0.5f)
+                        return;
+                    Expect(flow.screen == GuiScreen.Settings, "Settings is up");
+                    var reset = Find(flow, GuiCommandId.ResetProgress);
+                    Expect(reset != null, "Settings has the RESET ALL PROGRESS button");
+                    reset.onClick.Invoke();
+                    Expect(flow.ConfirmOpen && flow.ConfirmQuestion.StartsWith("Reset all progress?"), $"the button asks first ({flow.ConfirmQuestion})");
+                    var no = Find(flow, GuiCommandId.Cancel);
+                    Expect(no != null, "the card has NO");
+                    no.onClick.Invoke();
+                    Expect(!flow.ConfirmOpen && loop.Difficulty == Difficulty.Hard && Match.Current == resetBefore, "NO changes nothing");
+                    Expect(GameSave.Load(new GameStorage()).lastLevels.Length == 3, "NO leaves the save");
+                    reset.onClick.Invoke();
+                    var yes = Find(flow, GuiCommandId.Confirm);
+                    Expect(yes != null, "the card has YES");
+                    yes.onClick.Invoke();
+                    // The save on disk is the fresh default at once, in the string too
+                    Expect(PlayerPrefs.GetString(GameSave.Key) == new GameSave().ToJson(), $"the save on disk is the fresh default ({PlayerPrefs.GetString(GameSave.Key)})");
+                    var saved = GameSave.Load(new GameStorage());
+                    Expect(saved.Difficulty == AutoDifficulty.Start && saved.lastLevels.Length == 0 && saved.heads.unlocked.Length == 0, "the stored save is a first play");
+                    Expect(loop.Difficulty == AutoDifficulty.Start, "the loop is back on the start difficulty");
+                    trace.Add("reset: NO changed nothing; YES wrote the fresh save and started the load");
+                    resetPhase = 2;
+                    since = now;
+                    return;
+                }
+                case 2: // the fresh first play is live
+                {
+                    if (Match.Current == null || Match.Current == resetBefore || now - since < 1)
+                        return;
+                    match = Match.Current;
+                    if (match.State == null || loop.Current != Active)
+                        return;
+                    Expect(Active == LevelRotation.FirstPlayLevel, $"the reset starts the Fungal level ({Active})");
+                    Expect(UnityEngine.Object.FindAnyObjectByType<WarmUpPlayer>() != null, "the reset first play has the warm-up");
+                    var setup = match.Setup;
+                    Expect(Mathf.Abs(setup.SkillOf(match.yourTeam.Other()) - 0.2f) < 0.01f, "the reset match is on Super Easy");
+                    var saved = GameSave.Load(new GameStorage());
+                    Same(new[] { "Fungal" }, saved.lastLevels, "the save holds only the fresh first play");
+                    Expect(saved.heads.unlocked.Length == 0 && saved.heads.current == "", "no heads in the fresh save");
+                    Expect(loop.CurrentHead == HeadUnlocks.Current(GameLoop.Clock(), new HeadProgress()), $"the default head is worn ({loop.CurrentHead})");
+                    Expect(!string.IsNullOrEmpty(loop.Upcoming) && loop.Upcoming != LevelRotation.FirstPlayLevel, $"the upcoming level is a fresh pick ({loop.Upcoming})");
+                    trace.Add($"reset: {Active} first play with the warm-up on Super Easy, upcoming {loop.Upcoming}");
+                    Finish();
+                    return;
+                }
             }
         }
 
@@ -585,7 +690,7 @@ namespace SdfCampaign.Editor
                 Debug.Log("GameLoop play test: " + line);
             foreach (var error in errors)
                 Debug.Log("GameLoop play test error: " + error);
-            Debug.Log($"GameLoop play test ({(checking ? "reload" : "five matches")}): {errors.Count} errors");
+            Debug.Log($"GameLoop play test ({(resetting ? "reset" : checking ? "reload" : "five matches")}): {errors.Count} errors");
             EditorApplication.Exit(errors.Count == 0 ? 0 : 1);
         }
     }

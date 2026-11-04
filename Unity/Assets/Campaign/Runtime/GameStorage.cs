@@ -19,5 +19,11 @@ namespace SdfCampaign
             prefs.Set(key, value);
             portal.Set(key, value);
         }
+
+        public void Remove(string key)
+        {
+            prefs.Remove(key);
+            portal.Remove(key);
+        }
     }
 }

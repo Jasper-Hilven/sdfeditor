@@ -670,7 +670,10 @@ namespace SdfGui.Editor
             menu.autoFire.isOn = true;
             menu.touchRows = new[] { touchLookRow.gameObject, autoFireRow.gameObject };
             ((RectTransform)content.transform).sizeDelta = new Vector2(980, -y);
-            var back = p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(0, 36), new Vector2(320, 86), 42, spots: 0);
+            // BACK on the left, RESET ALL PROGRESS (ticket 63) on the right in danger red; the yes/no card asks first
+            var back = p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(-235, 36), new Vector2(280, 86), 42, spots: 0);
+            var reset = p.ButtonInstance(panel, "RESET ALL PROGRESS", GuiPalette.RedDark, GuiCommandId.ResetProgress, Bottom, new Vector2(155, 36), new Vector2(440, 86), 34, spots: 0);
+            reset.GetComponent<GuiCommand>().confirm = GuiFlow.ResetQuestion;
 
             // On a touch device: a wider panel, rows 110 apart with the controls scaled up (the viewport scrolls), no mouse row, no head
             // preview beside the panel, and a 64 px BACK
@@ -679,7 +682,8 @@ namespace SdfGui.Editor
             {
                 ForTouch(panel, new Vector2(0, -45), new Vector2(1500, 930)),
                 ForTouch(viewport.transform, size: new Vector2(1500, 620)),
-                ForTouch(back, new Vector2(0, 40), new Vector2(460, Thumb)),
+                ForTouch(back, new Vector2(-420, 40), new Vector2(520, Thumb)),
+                ForTouch(reset, new Vector2(300, 40), new Vector2(760, Thumb)),
                 ForTouch(previewObject.transform, hide: true),
                 ForTouch(menu.headCaption, hide: true),
             };

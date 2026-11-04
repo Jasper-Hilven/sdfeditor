@@ -8,5 +8,7 @@ namespace SdfCampaign
         public bool TryGet(string key, out string value) => WebPortal.TryGetData(key, out value);
 
         public void Set(string key, string value) => WebPortal.SetData(key, value);
+
+        public void Remove(string key) => WebPortal.RemoveData(key);
     }
 }

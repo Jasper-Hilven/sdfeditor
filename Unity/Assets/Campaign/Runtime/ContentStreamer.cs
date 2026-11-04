@@ -158,6 +158,13 @@ namespace SdfCampaign
                 Host().StartCoroutine(PrefetchWorker());
         }
 
+        /// <summary>Forgets the levels asked for in the background and not started yet (the reset, ticket 63); the next Release drops what arrived.</summary>
+        public static void ForgetPrefetch()
+        {
+            prefetchKeys.Clear();
+            prefetchQueue.Clear();
+        }
+
         /// <summary>
         /// Lets go of the bundles the loaded scene (<paramref name="keepKey"/>, empty for one in the player) and the prefetch do not need, with their
         /// assets. Called with the new scene live, so nothing in play uses them.

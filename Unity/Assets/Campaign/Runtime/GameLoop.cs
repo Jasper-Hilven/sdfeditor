@@ -64,8 +64,39 @@ namespace SdfCampaign
             HeadSelection.Yours = HeadUnlocks.Current(Now, save.heads);
             // The portal's SDK starts here; the game does not wait for it. Once it is up the save is written to its data store too.
             WebPortal.Init(OnPortalReady);
-            var first = rotation.First(random, Application.absoluteURL);
-            Launch(first, RandomTeam(), rotation.WarmUpOn(first), new LoadingBriefing { arena = first, goal = "CAPTURE THE FLAG", tip = WarmUp.HowToScore }, true);
+            LaunchFirst(Application.absoluteURL);
+        }
+
+        // Boot's first match, and the one after a reset: the rotation's first pick (the Fungal level with the warm-up on a first play)
+        private bool LaunchFirst(string url)
+        {
+            var first = rotation.First(random, url);
+            return Launch(first, RandomTeam(), rotation.WarmUpOn(first), new LoadingBriefing { arena = first, goal = "CAPTURE THE FLAG", tip = WarmUp.HowToScore }, true);
+        }
+
+        /// <summary>
+        /// Settings' RESET ALL PROGRESS (ticket 63): the save is deleted in every layer (the portal's data store and PlayerPrefs) and a fresh one,
+        /// the default, written back; then a first play starts at once (the Fungal level with the warm-up). The match being played is left
+        /// without a result: no difficulty change, no head unlock, no level recorded. Settings (volume, quality, gore...) are not progress and stay.
+        /// False, with nothing changed, while a load is under way.
+        /// </summary>
+        public bool ResetProgress()
+        {
+            if (loader == null || loader.Busy)
+                return false;
+            // A pending end-card countdown must not start another match over the fresh first play
+            nextShot.Take();
+            var live = Match.Current;
+            if (live != null)
+                live.Ended -= OnEnded;
+            save = GameSave.Reset(storage);
+            rotation = new LevelRotation(save.lastLevels);
+            HeadSelection.Yours = CurrentHead;
+            LastUnlockedHead = null;
+            DifficultyBefore = save.Difficulty;
+            upcoming = null;
+            ContentStreamer.ForgetPrefetch();
+            return LaunchFirst(null);
         }
 
         private void OnPortalReady()
@@ -271,6 +302,8 @@ namespace SdfCampaign
                 case GuiCommandId.RetryEasier:
                 case GuiCommandId.QuitToMenu:
                     return Next();
+                case GuiCommandId.ResetProgress:
+                    return ResetProgress();
                 case GuiCommandId.Credits:
                     CreditsPlayer.Begin(flow, () => flow.Show(GuiScreen.Pause));
                     return true;

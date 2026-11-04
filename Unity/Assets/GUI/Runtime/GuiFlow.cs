@@ -69,6 +69,9 @@ namespace SdfGui
         /// <summary>Whether the developer's tools show: the test panel and the component gallery (the editor and development builds).</summary>
         public static bool DevTools => Debug.isDebugBuild;
 
+        /// <summary>The yes/no card's question for Settings' RESET ALL PROGRESS (ticket 63).</summary>
+        public const string ResetQuestion = "Reset all progress?\nYour heads and history are lost.";
+
         /// <summary>Whether the yes/no card is up over <see cref="screen"/> (<see cref="Ask"/>).</summary>
         public bool ConfirmOpen { get; private set; }
 
@@ -463,6 +466,8 @@ namespace SdfGui
                 case GuiCommandId.HeadNext:
                     break;
                 case GuiCommandId.WatchCutscene:
+                // Only the game has a save to reset
+                case GuiCommandId.ResetProgress:
                     break;
                 case GuiCommandId.Back:
                     Show(screen == GuiScreen.Settings ? settingsReturn : GuiScreen.Hud);

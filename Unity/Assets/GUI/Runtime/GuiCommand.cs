@@ -50,6 +50,9 @@ namespace SdfGui
         NextLevel,
         HeadPrevious,
         HeadNext,
+
+        // Settings (ticket 63): wipes the save and starts a fresh first play; asks first
+        ResetProgress,
     }
 
     /// <summary>

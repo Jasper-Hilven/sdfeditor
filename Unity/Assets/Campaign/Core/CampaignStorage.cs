@@ -7,6 +7,8 @@ namespace SdfCampaign
     {
         bool TryGet(string key, out string value);
         void Set(string key, string value);
+        /// <summary>Deletes the key in every layer behind this storage (the reset, ticket 63); nothing when there is none.</summary>
+        void Remove(string key);
     }
 
     public sealed class MemoryCampaignStorage : ICampaignStorage
@@ -16,6 +18,8 @@ namespace SdfCampaign
         public bool TryGet(string key, out string value) => values.TryGetValue(key, out value);
 
         public void Set(string key, string value) => values[key] = value;
+
+        public void Remove(string key) => values.Remove(key);
     }
 
     /// <summary>
@@ -36,5 +40,12 @@ namespace SdfCampaign
         public bool TryGet(string key, out string value) => primary.TryGet(key, out value) || fallback.TryGet(key, out value);
 
         public void Set(string key, string value) => primary.Set(key, value);
+
+        /// <summary>Unlike a write, a removal goes to both layers: else the fallback's old value would be read again.</summary>
+        public void Remove(string key)
+        {
+            primary.Remove(key);
+            fallback.Remove(key);
+        }
     }
 }

@@ -129,5 +129,55 @@ namespace SdfCampaign.Tests
             save.Save(storage);
             Assert.AreEqual("frankenstein", GameSave.Load(storage).heads.unlocked[0]);
         }
+
+        [Test]
+        public void AResetSaveIsAFirstPlayInTheFungalLevelWithTheWarmUpAndTheDefaults()
+        {
+            var storage = new MemoryCampaignStorage();
+            var played = new GameSave { Difficulty = Difficulty.Hard, lastLevels = new[] { "Fungal", "Kitchen", "Computer" } };
+            played.heads.unlocked = new[] { "frankenstein", "yeti" };
+            played.heads.current = "yeti";
+            played.heads.monthsSeen = new[] { 1, 2 };
+            played.Save(storage);
+
+            var fresh = GameSave.Reset(storage);
+            var back = GameSave.Load(storage);
+
+            foreach (var save in new[] { fresh, back })
+            {
+                Assert.AreEqual(AutoDifficulty.Start, save.Difficulty);
+                Assert.IsEmpty(save.lastLevels);
+                Assert.IsEmpty(save.heads.unlocked);
+                Assert.IsEmpty(save.heads.monthsSeen);
+                Assert.AreEqual("", save.heads.current);
+                var rotation = new LevelRotation(save.lastLevels);
+                Assert.IsTrue(rotation.IsFirstPlay);
+                Assert.AreEqual(LevelRotation.FirstPlayLevel, rotation.First(new System.Random(1)));
+                Assert.IsTrue(rotation.WarmUpOn(rotation.First(new System.Random(1))));
+            }
+        }
+
+        [Test]
+        public void ResettingThroughTheLayeredStorageClearsBothLayers()
+        {
+            var portal = new MemoryCampaignStorage();
+            var prefs = new MemoryCampaignStorage();
+            new GameSave { Difficulty = Difficulty.Hard, lastLevels = new[] { "Kitchen" } }.Save(prefs);
+            new GameSave { Difficulty = Difficulty.Normal, lastLevels = new[] { "Meadow" } }.Save(portal);
+            var layered = new LayeredCampaignStorage(portal, prefs);
+
+            GameSave.Reset(layered);
+
+            foreach (var layer in new[] { portal, prefs })
+            {
+                var save = GameSave.Load(layer);
+                Assert.AreEqual(AutoDifficulty.Start, save.Difficulty);
+                Assert.IsEmpty(save.lastLevels);
+            }
+            Assert.IsEmpty(GameSave.Load(layered).lastLevels);
+            // The portal alone being wiped cannot bring the old save back from the fallback
+            portal.Remove(GameSave.Key);
+            Assert.IsEmpty(GameSave.Load(layered).lastLevels);
+        }
     }
 }
