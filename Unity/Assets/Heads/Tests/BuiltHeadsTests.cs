@@ -23,14 +23,16 @@ namespace SdfHeads.Tests
         }
 
         [Test]
-        public void EveryBuiltHeadIsInTheRegistryWithItsPrefabAndFastPrefab()
+        public void EveryBuiltHeadIsInTheRegistryWithItsPrefab()
         {
             var models = Models();
             foreach (var id in MonsterHeads.BuiltIds())
             {
                 Assert.IsTrue(models.TryGet(id, out var entry), id);
                 Assert.IsNotNull(entry.prefab, id);
-                Assert.IsNotNull(entry.fastPrefab, id + " _fast");
+                // The _fast variant is an editor-side asset only (SpecialEffects scene); the registry, which ships in Resources, must not pull it into the player
+                Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<GameObject>(MonsterHeads.ById(id).Value.FastPrefabPath), id + " _fast exists for the editor tools");
+                Assert.AreEqual(0, UnityEditor.AssetDatabase.GetDependencies(Registry, true).Count(d => d.Contains("_fast")), id + ": the registry does not reach a _fast asset");
                 Assert.IsNotNull(entry.prefab.GetComponentInChildren<LODGroup>(true), id + " has levels of detail");
             }
             foreach (var head in MonsterHeads.All.Where(h => !h.Built))

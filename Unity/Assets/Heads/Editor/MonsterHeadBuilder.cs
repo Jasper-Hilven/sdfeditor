@@ -14,7 +14,7 @@ namespace SdfHeads.Editor
     /// of detail) and <c>&lt;id&gt;_fast.glb</c> (one level), and <see cref="SdfMushrooms.Editor.MushroomBuilder"/> makes
     /// Assets/Mushrooms/&lt;id&gt;.prefab and &lt;id&gt;_fast.prefab from them, the same route as the scouts. This is the head side: for every
     /// head of the <see cref="MonsterHeads"/> table that is modelled, it measures the finest level's bounds and triangles in the head's own
-    /// frame (the origin is the soldier's head socket) and lists the prefabs in <c>MonsterHeadModels.asset</c>, which <see cref="HeadWear"/>
+    /// frame (the origin is the soldier's head socket) and lists the prefabs in <c>MonsterHeadModels.asset</c> (the <c>_fast</c> prefabs are not listed: nothing at runtime uses them, and a reference from the registry, which is in Resources, put a second copy of every head mesh in the player), which <see cref="HeadWear"/>
     /// reads. The soldier's own prefabs are not touched: the head is put on the socket when a player is made (SoldierPuppet).
     /// <para>
     /// Run <c>sdf mesh content/models/characters/monsters --into Unity/Assets/Mushrooms/Generated/characters/monsters --resolution 128 --lods 3</c>
@@ -64,7 +64,6 @@ namespace SdfHeads.Editor
                 {
                     id = head.Id,
                     prefab = prefab,
-                    fastPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(head.FastPrefabPath),
                     pieces = Pieces(head),
                     boundsCentre = centre,
                     boundsSize = size,

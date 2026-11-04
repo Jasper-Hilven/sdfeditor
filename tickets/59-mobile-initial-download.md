@@ -99,3 +99,11 @@ while another agent's Unity build used every core, the next two passed). Release
 console has the three unsupported hidden-shader lines of SwiftShader (also in the build before this change) and the synthetic click's pointer-lock error.
 Note for other browser checks: CrazySDK's SiteLock only allows `localhost`, so a page on `127.0.0.1` stops after the SDK lines and never fetches a bundle.
 
+### Part 1b: duplicate heads
+
+The `MonsterHeadModels` registry (in Resources) listed each head's `fastPrefab` next to its `prefab`, so every `_fast` prefab and its meshes shipped
+in the player although nothing at runtime read the field (users: only the registry entry, `MonsterHeadBuilder`, a heads test, and the editor-only
+`SpecialEffects` scene, which is not in the build). The field is removed (builder, test updated; `MonsterHeads.FastPrefabPath` stays for the editor
+scene). Player asset list: 12 `*_fast_*_head.asset` (1.1 MB), 8 `_fast` eye meshes (0.09 MB) and 12 `_fast.prefab` gone, 1.3 MB uncompressed in all;
+no `_fast` asset is left. CrazyGames build, Brotli: `Web.data.br` 9.24 to 9.19 MiB, `Web.wasm.br` 7.04 unchanged, player 16.38 to 16.23 MiB.
+No other model (weapons, soldier, machines) has a `_fast` duplicate in the player.

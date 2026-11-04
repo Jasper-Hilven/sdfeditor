@@ -19,8 +19,6 @@ namespace SdfHeads
             public string id;
             [Tooltip("The head with its levels of detail")]
             public GameObject prefab;
-            [Tooltip("The same head meshed with one level only")]
-            public GameObject fastPrefab;
             [Tooltip("The bounds of the head's finest level in its own frame (the origin is the soldier's head socket)")]
             public Vector3 boundsCentre;
             public Vector3 boundsSize;

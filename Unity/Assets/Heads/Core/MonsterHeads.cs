@@ -33,7 +33,7 @@ namespace SdfHeads
         /// <summary>The prefab the toon importer makes from the model's mesh (<see cref="MonsterHeads.PrefabFolder"/>); with LODs.</summary>
         public string PrefabPath => $"{MonsterHeads.PrefabFolder}/{Id}.prefab";
 
-        /// <summary>The same model meshed with one level of detail only (the <c>_fast</c> variant).</summary>
+        /// <summary>The same model meshed with one level of detail only (the <c>_fast</c> variant). Editor tools only (the SpecialEffects scene): the player does not ship it.</summary>
         public string FastPrefabPath => $"{MonsterHeads.PrefabFolder}/{Id}_fast.prefab";
 
         /// <summary>The model file, relative to the repository root.</summary>
