@@ -8,6 +8,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
+using TMPro;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -57,6 +58,7 @@ namespace SdfGui.Editor
                     SdfPlatform.Device.Refresh();
                 }
                 Shoot(EditorSceneManager.OpenScene(GuiScene.ScenePath, OpenSceneMode.Single), directory);
+                File.WriteAllText(Path.Combine(directory, "audit.txt"), AuditLog.ToString());
             }
             finally
             {
@@ -89,8 +91,7 @@ namespace SdfGui.Editor
                 var shown = flow.screen;
                 var testPanel = flow.testPanel;
                 // Shots of chosen screens leave out the developer's test panel, which covers the left of the screen
-                if (only != null)
-                    flow.testPanel = false;
+                flow.testPanel = false;
                 try
                 {
                     foreach (GuiScreen screen in Enum.GetValues(typeof(GuiScreen)))
@@ -108,6 +109,17 @@ namespace SdfGui.Editor
                         else
                             flow.Show(screen);
                         shoot(Path.Combine(directory, $"{screen}.png"));
+                        // Settings again scrolled to its last row
+                        if (screen == GuiScreen.Settings)
+                        {
+                            var scroll = flow.GetComponentsInChildren<ScrollRect>(false).FirstOrDefault(s => s.isActiveAndEnabled);
+                            if (scroll != null)
+                            {
+                                scroll.verticalNormalizedPosition = 0;
+                                shoot(Path.Combine(directory, "SettingsBottom.png"));
+                                scroll.verticalNormalizedPosition = 1;
+                            }
+                        }
                     }
                     flow.Match.end.Clear();
                 }
@@ -166,6 +178,7 @@ namespace SdfGui.Editor
                 // The scaler sizes the canvas (to the camera's target, the snapshot's size) when it is enabled; the views draw when their screen turns on
                 sizing = new RenderTexture(Width, Height, 24);
                 uiCamera.targetTexture = sizing;
+                canvas.GetComponent<GuiScaleFloor>()?.Apply();
                 var scaler = canvas.GetComponent<CanvasScaler>();
                 scaler.enabled = false;
                 scaler.enabled = true;
@@ -180,6 +193,7 @@ namespace SdfGui.Editor
                 foreach (var fit in canvas.GetComponentsInChildren<GuiFitInside>())
                     fit.Refit();
                 Canvas.ForceUpdateCanvases();
+                Audit(canvas, Path.GetFileNameWithoutExtension(path));
                 uiCamera.backgroundColor = Color.black;
                 var overBlack = Shoot(uiCamera);
                 uiCamera.backgroundColor = Color.white;
@@ -207,6 +221,84 @@ namespace SdfGui.Editor
             image.Apply();
             File.WriteAllBytes(path, image.EncodeToPNG());
             Object.DestroyImmediate(image);
+        }
+
+        // What the fit check lists per screen (audit.txt next to the pictures): texts under 12 px on the screen, texts wider or taller than
+        // their box, and anything drawn past the canvas' edge (full-screen backgrounds, the scrolled rows and the credits' roll aside)
+        private static readonly System.Text.StringBuilder AuditLog = new System.Text.StringBuilder();
+        private const float MinPixels = 12;
+
+        private static void Audit(Canvas canvas, string shot)
+        {
+            var canvasRect = (RectTransform)canvas.transform;
+            var size = canvasRect.rect.size;
+            var toPixels = Height / size.y;
+            var name = shot == "SettingsBottom" ? "Settings" : shot;
+            var found = new System.Collections.Generic.SortedSet<string>();
+            foreach (var root in canvas.GetComponentsInChildren<GuiScreenRoot>(false))
+            {
+                var wanted = root.screen.ToString() == name || (name == "Confirm" && root.screen == GuiScreen.Settings) ||
+                             (name == "Hud" && root.GetComponent<TouchLayer>() != null);
+                if (!wanted || root.alwaysOn)
+                    continue;
+                // What must stay inside: the screen, or its safe area (the root is inset by it)
+                var rootCorners = new Vector3[4];
+                ((RectTransform)root.transform).GetWorldCorners(rootCorners);
+                var lo = (Vector2)canvasRect.InverseTransformPoint(rootCorners[0]);
+                var hi = (Vector2)canvasRect.InverseTransformPoint(rootCorners[2]);
+                foreach (var text in root.GetComponentsInChildren<TMP_Text>(false))
+                {
+                    if (string.IsNullOrWhiteSpace(text.text) || text.GetComponentInParent<CanvasGroup>() is { alpha: < 0.05f })
+                        continue;
+                    var pixels = text.fontSize * (text.transform.lossyScale.y / canvasRect.lossyScale.y) * toPixels;
+                    var rect = text.rectTransform.rect;
+                    var scale = text.transform.lossyScale.y / canvasRect.lossyScale.y;
+                    var label = $"'{text.text.Replace("\n", " ").Trim()}' ({text.gameObject.name})";
+                    if (label.Length > 70)
+                        label = label.Substring(0, 70) + "...)";
+                    if (pixels < MinPixels)
+                        found.Add($"small {pixels:0.0}px {label}");
+                    if (text.textWrappingMode == TextWrappingModes.NoWrap ? text.renderedWidth > rect.width + 2 : text.renderedHeight > rect.height + 2)
+                        found.Add($"overflow {label}: {text.renderedWidth:0}x{text.renderedHeight:0} in {rect.width:0}x{rect.height:0}");
+                    if (name != "Credits" && !InScroll(text.transform))
+                        Edge(text.rectTransform, canvasRect, lo, hi, "text " + label, found, text.renderedWidth * scale, text.renderedHeight * scale);
+                }
+                foreach (var graphic in root.GetComponentsInChildren<Graphic>(false))
+                {
+                    if (graphic is TMP_Text || graphic.color.a < 0.05f || graphic is RawImage || InScroll(graphic.transform))
+                        continue;
+                    var rect = graphic.rectTransform;
+                    var world = new Vector3[4];
+                    rect.GetWorldCorners(world);
+                    var width = (canvasRect.InverseTransformPoint(world[2]).x - canvasRect.InverseTransformPoint(world[0]).x);
+                    if (width >= size.x * 0.95f || graphic.name is "Dim" or "Backdrop" or "Glow" or "Vignette" or "Spore Tint")
+                        continue; // backgrounds and effects fill or pass the screen on purpose
+                    Edge(rect, canvasRect, lo, hi, "shape " + graphic.name, found);
+                }
+            }
+            foreach (var line in found)
+                AuditLog.AppendLine($"{shot}: {line}");
+        }
+
+        private static bool InScroll(Transform t) => t.GetComponentInParent<RectMask2D>() != null;
+
+        private static void Edge(RectTransform rect, RectTransform canvasRect, Vector2 lo, Vector2 hi, string what, System.Collections.Generic.ISet<string> found, float width = -1, float height = -1)
+        {
+            var world = new Vector3[4];
+            rect.GetWorldCorners(world);
+            var a = (Vector2)canvasRect.InverseTransformPoint(world[0]);
+            var b = (Vector2)canvasRect.InverseTransformPoint(world[2]);
+            // A text is as wide as it is drawn, round the middle of its box
+            if (width >= 0)
+            {
+                var middle = (a + b) * 0.5f;
+                var half = new Vector2(Mathf.Min(width, b.x - a.x), Mathf.Min(height, b.y - a.y)) * 0.5f;
+                a = middle - half;
+                b = middle + half;
+            }
+            var slack = 3f;
+            if (a.x < lo.x - slack || b.x > hi.x + slack || a.y < lo.y - slack || b.y > hi.y + slack)
+                found.Add($"off screen {what}: x {a.x - lo.x:0}..{b.x - lo.x:0} of {hi.x - lo.x:0}, y {a.y - lo.y:0}..{b.y - lo.y:0} of {hi.y - lo.y:0}");
         }
 
         // The band the safe area leaves out, tinted red (the snapshots' check that nothing sits in it)

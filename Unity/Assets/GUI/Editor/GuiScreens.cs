@@ -102,7 +102,8 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.7f), -0.3f);
             var view = root.AddComponent<GuiConfirm>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, Vector2.zero, new Vector2(800, 380)).transform;
+            var card = FitCard(t, new Vector2(800, 380));
+            var panel = p.PanelInstance(card, "Panel", GuiPalette.Cream, Centre, Vector2.zero, new Vector2(800, 380)).transform;
             view.question = f.Text(panel, "Question", "Leave the match?\nThe campaign is saved at the start of this arena.", TextStyle.Body, 40, GuiPalette.Ink, Top, new Vector2(0, -50),
                 new Vector2(720, 170));
             view.question.textWrappingMode = TextWrappingModes.Normal;
@@ -110,6 +111,7 @@ namespace SdfGui.Editor
             var no = p.ButtonInstance(panel, "NO", GuiPalette.Dusk, GuiCommandId.Cancel, Bottom, new Vector2(170, 36), new Vector2(280, 90), 46, spots: 0);
             TouchLayout(root, new[]
             {
+                ForTouch(card, size: new Vector2(920, 540)),
                 ForTouch(panel, size: new Vector2(920, 540)),
                 ForTouch(view.question, size: new Vector2(840, 210)),
                 ForTouch(yes, new Vector2(-220, 40), new Vector2(380, Thumb)),
@@ -293,9 +295,9 @@ namespace SdfGui.Editor
                 return button;
             }
 
-            // Right thumb: fire under it, jump and zoom beside it
+            // Right thumb: fire under it, jump and zoom beside it (jump close to the fire button, so it stays clear of the weapon slots on a narrow, 4:3 screen: ticket 64)
             Button("Fire", TouchButtonKind.Fire, 0, BottomRight, new Vector2(-200, 330), Vector2.one * TouchFireSize, GuiPalette.Red, "FIRE", 62).shape.Spots = 0.4f;
-            Button("Jump", TouchButtonKind.Jump, 0, BottomRight, new Vector2(-500, 150), Vector2.one * TouchSmallFireSize, GuiPalette.Amber, "JUMP", 40);
+            Button("Jump", TouchButtonKind.Jump, 0, BottomRight, new Vector2(-360, 150), Vector2.one * TouchSmallFireSize, GuiPalette.Amber, "JUMP", 40);
             Button("Zoom", TouchButtonKind.Zoom, 0, BottomRight, new Vector2(-480, 390), Vector2.one * TouchSmallFireSize, GuiPalette.Sky, "ZOOM", 38);
 
             // Left thumb: a second, smaller fire button over the joystick
@@ -328,10 +330,10 @@ namespace SdfGui.Editor
                 slot.label = f.Text(slot.transform, "Number", (i + 1).ToString(), TextStyle.Label, 34, GuiPalette.Ink, TopLeft, new Vector2(12, -6), new Vector2(80, 44), TextAlignmentOptions.TopLeft);
             }
 
-            // Top left: pause (two bars) and the scoreboard (held)
+            // Top left: the menu (three bars; the match runs on under it) and the scoreboard (held)
             var pause = Button("Pause", TouchButtonKind.Pause, 0, TopLeft, new Vector2(82, -82), Vector2.one * TouchButtonSize, GuiPalette.Dusk, "", 0);
-            foreach (var x in new[] { -20f, 20f })
-                f.Shape(pause.transform, "Bar", ToonShapeKind.Pill, GuiPalette.Cream, Centre, new Vector2(x, 0), new Vector2(20, 64), s =>
+            foreach (var y in new[] { -24f, 0f, 24f })
+                f.Shape(pause.transform, "Bar", ToonShapeKind.Pill, GuiPalette.Cream, Centre, new Vector2(0, y), new Vector2(70, 15), s =>
                 {
                     s.Outline = 3;
                     s.Shadow = 0;
@@ -541,8 +543,9 @@ namespace SdfGui.Editor
             var root = Root("Scoreboard", GuiScreen.Scoreboard);
             var t = root.transform;
             var board = root.AddComponent<GuiScoreboard>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, -10), new Vector2(980, 840)).transform;
-            p.BannerInstance(panel, "Header", "SCOREBOARD", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
+            // 760 high with the banner 36 above it: 932 units in all, so a short, wide screen (a phone at 844 x 390: 943 units) shows it whole at full size
+            var panel = p.PanelInstance(FitCard(t, new Vector2(980, 936)), "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, 0), new Vector2(980, 760)).transform;
+            p.BannerInstance(panel, "Header", "SCOREBOARD", GuiPalette.Amber, Top, new Vector2(0, 36), new Vector2(560, 100), 54);
             board.subtitle = f.Text(panel, "Subtitle", "MEADOW  ·  FIRST TO 3 CAPTURES  ·  10:00", TextStyle.Label, 29, GuiPalette.Dusk, Top, new Vector2(0, -64), new Vector2(900, 40));
             var columns = Object("Columns", panel);
             Place(columns.transform, Top, new Vector2(0, -108), new Vector2(900, 38));
@@ -566,9 +569,10 @@ namespace SdfGui.Editor
             var root = Root("Pause", GuiScreen.Pause);
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
-            // The match stops while this is up (GuiFlow)
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 640)).transform;
-            p.BannerInstance(panel, "Header", "PAUSED", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
+            // The match runs on under this (GuiFlow)
+            var card = FitCard(t, new Vector2(620, 860));
+            var panel = p.PanelInstance(card, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 640)).transform;
+            p.BannerInstance(panel, "Header", "MENU", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
             var resume = p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -90), new Vector2(420, 96), 46, spots: 0.5f);
             // The two that throw the match away ask first
             var restart = p.ButtonInstance(panel, "RESTART", GuiPalette.Red, GuiCommandId.Restart, Top, new Vector2(0, -210), new Vector2(420, 86), 40, spots: 0.4f);
@@ -581,6 +585,7 @@ namespace SdfGui.Editor
             // On a touch device: RESUME across the top, the other four in two columns, every button 64 px tall
             TouchLayout(root, new[]
             {
+                ForTouch(card, size: new Vector2(1100, 860)),
                 ForTouch(panel, size: new Vector2(1100, 640)),
                 ForTouch(resume, new Vector2(0, -80), new Vector2(900, Thumb)),
                 ForTouch(restart, new Vector2(-230, -258), new Vector2(440, Thumb)),
@@ -597,7 +602,9 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
             var menu = root.AddComponent<GuiSettingsMenu>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -20), new Vector2(980, 1030)).transform;
+            // The panel and the head's preview beside it in one card (1960 x 1100: the panel with its banner, and the preview out to the left)
+            var card = FitCard(t, new Vector2(1960, 1100));
+            var panel = p.PanelInstance(card, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -20), new Vector2(980, 1030)).transform;
             p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
 
             // The rows scroll in a viewport (ticket 57): on a desktop all fit, on a touch device they are thumb-sized and a swipe moves them
@@ -639,11 +646,11 @@ namespace SdfGui.Editor
             }
             // Your head (ticket 47): the cycle in the panel, the turning preview and its caption beside it
             menu.head = Control(Instance<GuiSelector>(p.Selector, Row("Head"), "Head", Right, Vector2.zero), 1.5f);
-            var previewObject = Object("Head Preview", t);
+            var previewObject = Object("Head Preview", card);
             Place(previewObject.transform, Centre, new Vector2(-720, 60), new Vector2(400, 500));
             previewObject.AddComponent<UnityEngine.UI.RawImage>().raycastTarget = false;
             menu.headPreview = previewObject.AddComponent<GuiHeadPreview>();
-            menu.headCaption = f.Text(t, "Head Caption", "October", TextStyle.Label, 40, GuiPalette.Cream, Centre, new Vector2(-720, -230), new Vector2(440, 60));
+            menu.headCaption = f.Text(card, "Head Caption", "October", TextStyle.Label, 40, GuiPalette.Cream, Centre, new Vector2(-720, -230), new Vector2(440, 60));
             menu.quality = Control(Instance<GuiSelector>(p.Selector, Row("Quality"), "Quality", Right, Vector2.zero), 1.5f);
             menu.gore = Control(Instance<GuiSelector>(p.Selector, Row("Gore"), "Gore", Right, Vector2.zero), 1.5f);
             menu.gore.options = GuiSettings.GoreLevels;
@@ -680,8 +687,9 @@ namespace SdfGui.Editor
             const float touchRow = 110;
             var entries = new List<GuiTouchLayout.Entry>
             {
+                ForTouch(card, size: new Vector2(1500, 1044)),
                 ForTouch(panel, new Vector2(0, -45), new Vector2(1500, 930)),
-                ForTouch(viewport.transform, size: new Vector2(1500, 620)),
+                ForTouch(viewport.transform, size: new Vector2(1500, 590)),
                 ForTouch(back, new Vector2(-420, 40), new Vector2(520, Thumb)),
                 ForTouch(reset, new Vector2(300, 40), new Vector2(760, Thumb)),
                 ForTouch(previewObject.transform, hide: true),
@@ -713,12 +721,13 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.RedDark, 0.6f), 0.45f);
             var result = root.AddComponent<GuiRoundResult>();
+            var card = FitCard(t, new Vector2(1200, 900));
             result.icons = f.Kit.icons;
-            result.title = f.Text(t, "Title", "SPLATTERED!", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, 340), new Vector2(1200, 170));
-            result.avatar = Instance<GuiAvatar>(p.Avatar, t, "Killer", Centre, new Vector2(-300, 70), new Vector2(120, 120));
-            result.detail = f.Text(t, "Detail", "by Big Gerald\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
-            result.weapon = f.Icon(t, "Weapon", "sniper", Centre, new Vector2(330, 70), new Vector2(200, 110));
-            result.back = f.Text(t, "Back", "Back in 5", TextStyle.Title, 56, GuiPalette.Gold, Centre, new Vector2(0, -90), new Vector2(600, 70));
+            result.title = f.Text(card, "Title", "SPLATTERED!", TextStyle.Title, 150, GuiPalette.Cream, Centre, new Vector2(0, 340), new Vector2(1200, 170));
+            result.avatar = Instance<GuiAvatar>(p.Avatar, card, "Killer", Centre, new Vector2(-300, 70), new Vector2(120, 120));
+            result.detail = f.Text(card, "Detail", "by Big Gerald\nwith the Sniper", TextStyle.BodyInk, 44, GuiPalette.Cream, Centre, new Vector2(0, 70), new Vector2(460, 130));
+            result.weapon = f.Icon(card, "Weapon", "sniper", Centre, new Vector2(330, 70), new Vector2(200, 110));
+            result.back = f.Text(card, "Back", "Back in 5", TextStyle.Title, 56, GuiPalette.Gold, Centre, new Vector2(0, -90), new Vector2(600, 70));
             // No stats: the battle has no places (you respawn), and your kills are on the scoreboard
             return Save(root);
         }
@@ -802,16 +811,18 @@ namespace SdfGui.Editor
             var next = HeadArrow(t, "Next Head", new Vector2(-680, -200), 0, GuiCommandId.HeadNext);
             // The head's name and the NEW reveal shrink to their box (the longest, Glowing Jack-o'-Lantern, is wider than the column),
             // and the reveal is two lines, NEW HEAD! over the name (a line break in its text, no wrapping, so a hyphened name stays on one line)
-            end.headCaption = Fitted(f.Text(t, "Head Caption", "PUMPKIN", TextStyle.Label, 36, GuiPalette.Cream, Centre, new Vector2(-760, -262), new Vector2(360, 50)), 20);
-            end.keyHint = Fitted(f.Text(t, "Head Keys", "A and D change head", TextStyle.BodyInk, 26, GuiPalette.Cream, Centre, new Vector2(-760, -312), new Vector2(360, 40)), 18);
-            end.newHead = Fitted(f.Text(t, "New Head", "NEW HEAD!", TextStyle.Title, 34, GuiPalette.Gold, Centre, new Vector2(-760, 222), new Vector2(360, 96)), 20);
+            end.headCaption = Fitted(f.Text(t, "Head Caption", "PUMPKIN", TextStyle.Label, 36, GuiPalette.Cream, Centre, new Vector2(-745, -262), new Vector2(400, 50)), 20);
+            // The key hint may wrap onto a second line on a touch device ("Tap the arrows to change head")
+            end.keyHint = Fitted(f.Text(t, "Head Keys", "A and D change head", TextStyle.BodyInk, 26, GuiPalette.Cream, Centre, new Vector2(-745, -312), new Vector2(400, 40)), 18);
+            end.keyHint.textWrappingMode = TextWrappingModes.Normal;
+            end.newHead = Fitted(f.Text(t, "New Head", "NEW HEAD!", TextStyle.Title, 34, GuiPalette.Gold, Centre, new Vector2(-745, 222), new Vector2(400, 96)), 20);
             // On a touch device the arrows are thumb-sized (58 x 3 = 174 units, 72 px at 800 x 450), with the caption and hint under them
             TouchLayout(t.parent.gameObject, new[]
             {
-                ForTouch(previous, new Vector2(-890, -215), scale: 3f),
-                ForTouch(next, new Vector2(-630, -215), scale: 3f),
-                ForTouch(end.headCaption, new Vector2(-760, -345)),
-                ForTouch(end.keyHint, new Vector2(-760, -395)),
+                ForTouch(previous, new Vector2(-860, -215), scale: 3f),
+                ForTouch(next, new Vector2(-660, -215), scale: 3f),
+                ForTouch(end.headCaption, new Vector2(-745, -345)),
+                ForTouch(end.keyHint, new Vector2(-745, -398), new Vector2(400, 70)),
             });
         }
 
@@ -821,6 +832,17 @@ namespace SdfGui.Editor
         {
             var card = Object("Card", parent);
             Place(card.transform, Centre, Vector2.zero, new Vector2(1920, 1080));
+            card.AddComponent<GuiFitInside>();
+            return card.transform;
+        }
+
+        // A screen's content, laid out inside a card of the given size round the centre and scaled down to fit the screen (GuiFitInside;
+        // the card's size is the space the content takes, banners above a panel included), so it stays whole on a short or narrow
+        // canvas (ticket 64). The dim and the backgrounds stay outside it, full-screen.
+        private static Transform FitCard(Transform parent, Vector2 size)
+        {
+            var card = Object("Card", parent);
+            Place(card.transform, Centre, Vector2.zero, size);
             card.AddComponent<GuiFitInside>();
             return card.transform;
         }
@@ -901,21 +923,23 @@ namespace SdfGui.Editor
             });
             Stretch(backdrop);
             f.Shape(t, "Glow", ToonShapeKind.Glow, GuiPalette.WithAlpha(GuiPalette.Cyan, 0.18f), Centre, new Vector2(0, 80), new Vector2(1500, 900));
-            Logo(t, new Vector2(0, -8), 0.42f);
-            var banner = p.BannerInstance(t, "Arena Banner", "ARENA", GuiPalette.Red, Top, new Vector2(0, -232), new Vector2(900, 104), 64);
+            // The content in a card scaled to fit a short or narrow screen (the backdrop and glow stay full-screen)
+            var card = FitCard(t, new Vector2(1600, 1080));
+            Logo(card, new Vector2(0, -8), 0.42f);
+            var banner = p.BannerInstance(card, "Arena Banner", "ARENA", GuiPalette.Red, Top, new Vector2(0, -232), new Vector2(900, 104), 64);
             loading.arena = banner.GetComponentInChildren<TMP_Text>();
-            loading.goal = f.Text(t, "Goal", "CAPTURE THE FLAG", TextStyle.BodyInk, 42, GuiPalette.Gold, Top, new Vector2(0, -352), new Vector2(1400, 58));
+            loading.goal = f.Text(card, "Goal", "CAPTURE THE FLAG", TextStyle.BodyInk, 42, GuiPalette.Gold, Top, new Vector2(0, -352), new Vector2(1400, 58));
 
-            var red = p.PanelInstance(t, "Red Roster", GuiPalette.Cream, Centre, new Vector2(-340, -62), new Vector2(520, 360));
+            var red = p.PanelInstance(card, "Red Roster", GuiPalette.Cream, Centre, new Vector2(-340, -62), new Vector2(520, 360));
             loading.redNames = f.Text(red.transform, "Names", "RED TEAM", TextStyle.Body, 38, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 320), TextAlignmentOptions.Top);
-            var blue = p.PanelInstance(t, "Blue Roster", GuiPalette.Cream, Centre, new Vector2(340, -62), new Vector2(520, 360));
+            var blue = p.PanelInstance(card, "Blue Roster", GuiPalette.Cream, Centre, new Vector2(340, -62), new Vector2(520, 360));
             loading.blueNames = f.Text(blue.transform, "Names", "BLUE TEAM", TextStyle.Body, 38, GuiPalette.Ink, Centre, Vector2.zero, new Vector2(460, 320), TextAlignmentOptions.Top);
-            f.Text(t, "Versus", "VS", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(0, -62), new Vector2(140, 90));
+            f.Text(card, "Versus", "VS", TextStyle.Title, 64, GuiPalette.Cream, Centre, new Vector2(0, -62), new Vector2(140, 90));
 
-            loading.tip = f.Text(t, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Bottom, new Vector2(0, 190), new Vector2(1500, 50));
-            loading.progress = p.BarInstance(t, "Progress", GuiPalette.Moss, 0, Bottom, new Vector2(0, 110), new Vector2(900, 56), 30);
+            loading.tip = f.Text(card, "Tip", "TIP", TextStyle.BodyInk, 34, GuiPalette.Cream, Bottom, new Vector2(0, 190), new Vector2(1500, 50));
+            loading.progress = p.BarInstance(card, "Progress", GuiPalette.Moss, 0, Bottom, new Vector2(0, 110), new Vector2(900, 56), 30);
             loading.progress.format = "{0:0}%";
-            loading.clickToPlay = f.Text(t, "Click To Play", "CLICK TO PLAY", TextStyle.Title, 80, GuiPalette.Gold, Bottom, new Vector2(0, 90), new Vector2(1000, 110));
+            loading.clickToPlay = f.Text(card, "Click To Play", "CLICK TO PLAY", TextStyle.Title, 80, GuiPalette.Gold, Bottom, new Vector2(0, 90), new Vector2(1000, 110));
             loading.clickToPlay.gameObject.SetActive(false);
             return Save(root);
         }
@@ -969,6 +993,16 @@ namespace SdfGui.Editor
             caption.line.alignment = TextAlignmentOptions.Center;
             if (!letterbox)
                 AutoSize(caption.line, 29, 30);
+            // On a touch device the box is narrower and sits above the weapon slots, so it clears the joystick, JUMP and ZOOM (ticket 64)
+            var touchSize = new Vector2(720, 196);
+            if (!letterbox)
+                TouchLayout(root, new[]
+                {
+                    ForTouch(box.transform, new Vector2(0, 186), touchSize),
+                    ForTouch(box.transform.Find("Panel"), size: touchSize),
+                    ForTouch(caption.speaker, size: new Vector2(700, 38)),
+                    ForTouch(caption.line, size: new Vector2(680, 84)),
+                });
 
             // Over the HUD the corner is the weapons' (and the health's): the hint sits in the box, under the line; alone, 5 px from the screen's corner
             var hintParent = letterbox ? t : box.transform;
@@ -991,6 +1025,10 @@ namespace SdfGui.Editor
             Stretch(fill, 3);
             fill.GetComponent<RectTransform>().anchorMax = new Vector2(0, 1);
             caption.skipBar = fill.GetComponent<RectTransform>();
+            // A caption only informs: a finger on it goes through to the touch buttons behind (JUMP can sit under its edge on a narrow screen)
+            caption.box.blocksRaycasts = false;
+            foreach (var graphic in box.GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget = false;
         }
 
         // Behind the credits: a dim night over the scene, as dim as the text needs
@@ -1263,7 +1301,7 @@ namespace SdfGui.Editor
             Heading("Screens");
             Add("HUD", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Hud);
             Add("SCORES", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Scoreboard);
-            Add("PAUSE", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Pause);
+            Add("MENU", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Pause);
             Add("GALLERY", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Gallery);
             Add("SETTINGS", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Settings);
             Add("DEATH", GuiPalette.Dusk, GuiCommandId.Show, GuiScreen.Death);

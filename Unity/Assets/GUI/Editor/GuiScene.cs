@@ -81,6 +81,8 @@ namespace SdfGui.Editor
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
+            // A short, wide window (a small phone) scales no smaller than the smallest text can be read (ticket 64)
+            root.AddComponent<GuiScaleFloor>();
             root.AddComponent<GraphicRaycaster>();
             SampleRound(root.AddComponent<MatchView>());
             var flow = root.AddComponent<GuiFlow>();

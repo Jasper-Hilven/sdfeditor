@@ -99,6 +99,7 @@ section says what is left.
 | 5 | [61 Smaller GUI icons, unused content out of the player](61-icons-and-unused-content.md) | 60 | 59 part 1 |
 | 6 | [62 The common LOD0 and the gore pieces after the start](62-common-lod0-and-gore-later.md) | — | 60, 61 |
 | 7 | [63 Reset all progress](63-reset-progress.md) | — | 42, 47 |
+| 8 | [64 Menu wording and fit at every screen size](64-menu-wording-and-fit.md) | — | 54, 56, 57, 63 |
 
 The first play stays on the Fungal level (the user's decision): the 20 MB has to come from the download, not a lighter first level.
 

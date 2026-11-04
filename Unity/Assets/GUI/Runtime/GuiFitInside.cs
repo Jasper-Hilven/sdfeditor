@@ -12,12 +12,10 @@ namespace SdfGui
     public sealed class GuiFitInside : MonoBehaviour
     {
         private RectTransform rect;
-        private Vector2 lastParent = new Vector2(-1, -1);
 
         private void OnEnable()
         {
             rect = (RectTransform)transform;
-            lastParent = new Vector2(-1, -1);
             Fit();
         }
 
@@ -26,7 +24,6 @@ namespace SdfGui
         /// <summary>Fits again now, even if the parent's size has not changed (a snapshot calls it after sizing the canvas).</summary>
         public void Refit()
         {
-            lastParent = new Vector2(-1, -1);
             Fit();
         }
 
@@ -36,14 +33,13 @@ namespace SdfGui
             if (rect.parent is not RectTransform parent)
                 return;
             var size = parent.rect.size;
-            if (size == lastParent)
-                return;
-            lastParent = size;
             var own = rect.sizeDelta;
             if (own.x <= 0 || own.y <= 0 || size.x <= 0 || size.y <= 0)
                 return;
+            // Read every frame (a touch layout may have resized or reset the card): setting an unchanged scale costs nothing
             var scale = Mathf.Min(1, Mathf.Min(size.x / own.x, size.y / own.y));
-            rect.localScale = new Vector3(scale, scale, 1);
+            if (!Mathf.Approximately(rect.localScale.x, scale))
+                rect.localScale = new Vector3(scale, scale, 1);
         }
     }
 }

@@ -36,7 +36,7 @@ Keyboard and mouse
 | Monster powers (when the rage meter is full) | Q: Frenzy, F: Regenerate, C: Thick Hide (by key position, so AZERTY uses A, F, C; the HUD shows your own letters) |
 | Scoreboard (names, heads, kills, deaths, captures) | Hold Tab |
 | Skip the end card's countdown | Space or Enter |
-| Pause menu / back | Escape or P (the match keeps running behind the menu) |
+| Menu / back | Escape or P (the match keeps running behind the menu) |
 | Skip the credits | Hold Space, Escape or P |
 
 Touch (phones and tablets, landscape)
@@ -51,7 +51,7 @@ Touch (phones and tablets, landscape)
 | Switch weapon | The four weapon icons along the bottom: tap one |
 | Monster powers (when the rage meter is full) | Three buttons in a row above the right thumb's buttons: Frenzy, Regenerate, Thick Hide |
 | Scoreboard | Hold SCORE at the top left |
-| Pause menu | The pause button at the top left |
+| Menu | The menu button at the top left |
 | End card | Tap the arrows to change head, tap anywhere else to skip the countdown; hold a finger to skip the credits |
 
 The menus have thumb-sized buttons, and the controls stay clear of notches and rounded corners.
