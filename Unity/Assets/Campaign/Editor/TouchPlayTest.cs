@@ -129,19 +129,24 @@ namespace SdfCampaign.Editor
 
         private static IEnumerator Until(Func<bool> done, float seconds, string what)
         {
+            // A busy machine (another Unity build running) runs the editor at a few frames a second: the wait is over only when
+            // both the real time (three times the limit) and the frames (30 a limit second) are used up.
             var from = Time.realtimeSinceStartup;
+            var fromFrame = Time.frameCount;
             while (!done())
             {
-                if (Time.realtimeSinceStartup - from > seconds)
-                    throw new Exception($"timed out ({seconds} s) waiting for {what}");
+                if (Time.realtimeSinceStartup - from > seconds * 3 && Time.frameCount - fromFrame > seconds * 30)
+                    throw new Exception($"timed out ({seconds} s, {Time.frameCount - fromFrame} frames) waiting for {what}");
                 yield return null;
             }
         }
 
         private static IEnumerator For(float seconds)
         {
+            // Real time and at least a few frames, so a tap is seen by the game whatever the frame rate
             var from = Time.realtimeSinceStartup;
-            while (Time.realtimeSinceStartup - from < seconds)
+            var fromFrame = Time.frameCount;
+            while (Time.realtimeSinceStartup - from < seconds || Time.frameCount - fromFrame < 4)
                 yield return null;
         }
 
@@ -309,7 +314,15 @@ namespace SdfCampaign.Editor
             yield return Until(() => warm.Rules.Prompt != null && warm.Rules.Prompt.text == WarmUp.TouchJump, 5, "the jump prompt");
             yield return For(0.5f);
             var jumps = you.Controller.Jumps;
-            yield return TapButton(TouchButtonKind.Jump);
+            // A jump asked while airborne is forgotten (no double jump), and a slow editor may take the tap in the air: tap again
+            for (var attempt = 0; attempt < 3 && you.Controller.Jumps == jumps; attempt++)
+            {
+                yield return TapButton(TouchButtonKind.Jump);
+                var tapped = Time.realtimeSinceStartup;
+                var tappedFrame = Time.frameCount;
+                while (you.Controller.Jumps == jumps && (Time.realtimeSinceStartup - tapped < 1.5f || Time.frameCount - tappedFrame < 30))
+                    yield return null;
+            }
             yield return Until(() => you.Controller.Jumps > jumps, 3, "the jump");
             trace.Add("jump: a tap on JUMP jumped");
 
