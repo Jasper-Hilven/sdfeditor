@@ -171,7 +171,7 @@ namespace SdfGui.Editor
             selector.next = Arrow("Next", Right, -36, 0);
             selector.label = f.Text(background.transform, "Label", "High", TextStyle.Title, 34, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(270, 60));
             selector.label.enableAutoSizing = true;
-            selector.label.fontSizeMin = 18;
+            selector.label.fontSizeMin = GuiFactory.Readable(18);
             selector.label.fontSizeMax = 34;
             return Save(background.gameObject, PathOf("Selector"));
         }
@@ -235,17 +235,17 @@ namespace SdfGui.Editor
             row.rank = f.Text(t, "Rank", "1", TextStyle.Label, 28, GuiPalette.Dusk, Left, new Vector2(12, 0), new Vector2(40, 50));
             row.avatar = Instance<GuiAvatar>(Avatar, t, "Avatar", Left, new Vector2(58, 0), new Vector2(50, 50));
             row.playerName = f.Text(t, "Name", "Player", TextStyle.Body, 28, GuiPalette.Ink, Left, new Vector2(122, 0), new Vector2(260, 50), TextAlignmentOptions.Left);
-            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-250, 0), new Vector2(80, 50));
-            row.deaths = f.Text(t, "Deaths", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-150, 0), new Vector2(80, 50));
-            row.captures = f.Text(t, "Captures", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-30, 0), new Vector2(80, 50));
-            row.status = f.Text(t, "Status", "", TextStyle.Label, 24, GuiPalette.Gold, Right, new Vector2(-340, 0), new Vector2(110, 50));
+            row.kills = f.Text(t, "Kills", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-320, 0), new Vector2(80, 50));
+            row.deaths = f.Text(t, "Deaths", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-190, 0), new Vector2(80, 50));
+            row.captures = f.Text(t, "Captures", "0", TextStyle.Label, 30, GuiPalette.Ink, Right, new Vector2(-45, 0), new Vector2(80, 50));
+            row.status = f.Text(t, "Status", "", TextStyle.Label, 29, GuiPalette.Gold, Right, new Vector2(-420, 0), new Vector2(100, 50));
             return Save(background.gameObject, PathOf("Player Row"));
         }
 
         private GameObject BuildKillFeedEntry()
         {
             var background = f.Shape(null, "Kill Feed Entry", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, 0.82f), Centre, Vector2.zero,
-                new Vector2(460, 52), s =>
+                new Vector2(460, 56), s =>
                 {
                     s.CornerRadius = 14;
                     s.Outline = 3.5f;
@@ -264,7 +264,7 @@ namespace SdfGui.Editor
             entry.group.blocksRaycasts = false;
             entry.icons = f.Kit.icons;
             var t = background.transform;
-            entry.killer = f.Text(t, "Killer", "Killer", TextStyle.BodyInk, 27, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(100, 40));
+            entry.killer = f.Text(t, "Killer", "Killer", TextStyle.BodyInk, 29, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(100, 40));
             entry.weapon = f.Icon(t, "Weapon", "minigun", Centre, Vector2.zero, new Vector2(110, 44));
             Fixed(entry.weapon, 110, 44);
             entry.headshot = f.Shape(t, "Headshot", ToonShapeKind.Cap, GuiPalette.Red, Centre, Vector2.zero, new Vector2(38, 28), s =>
@@ -274,7 +274,7 @@ namespace SdfGui.Editor
                 s.Spots = 1;
             });
             Fixed(entry.headshot, 38, 28);
-            entry.victim = f.Text(t, "Victim", "Victim", TextStyle.BodyInk, 27, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(100, 40));
+            entry.victim = f.Text(t, "Victim", "Victim", TextStyle.BodyInk, 29, GuiPalette.Cream, Centre, Vector2.zero, new Vector2(100, 40));
             return Save(background.gameObject, PathOf("Kill Feed Entry"));
         }
 
@@ -303,7 +303,7 @@ namespace SdfGui.Editor
             }
             var label = button.GetComponentInChildren<TMP_Text>();
             label.text = text;
-            label.fontSize = fontSize;
+            label.fontSize = GuiFactory.Readable(fontSize);
             var gui = button.GetComponent<GuiCommand>();
             gui.command = command;
             gui.screen = screen;
@@ -323,7 +323,7 @@ namespace SdfGui.Editor
             banner.color = color;
             var title = banner.GetComponentInChildren<TMP_Text>();
             title.text = text;
-            title.fontSize = fontSize;
+            title.fontSize = GuiFactory.Readable(fontSize);
             return banner;
         }
 
@@ -333,7 +333,7 @@ namespace SdfGui.Editor
             bar.bar.color = color;
             bar.value = value;
             bar.bar.FillAmount = value;
-            bar.label.fontSize = fontSize;
+            bar.label.fontSize = GuiFactory.Readable(fontSize);
             bar.label.text = Mathf.RoundToInt(value * 100).ToString();
             return bar;
         }

@@ -30,6 +30,18 @@ namespace SdfGui.Editor
 
         public GuiFactory(GuiAssets.Kit kit) => Kit = kit;
 
+        /// <summary>
+        /// The smallest font size any player-visible text has in the 1920 x 1080 layout (ticket 54). CrazyGames wants text readable at
+        /// 800 x 450, where the canvas scales by 450/1080 = 0.4167; 12 px tall there is 28.8, so 29. Texts built through
+        /// <see cref="Readable"/> are raised to it; auto-sizing texts use it as their minimum.
+        /// </summary>
+        public const float MinReadable = 29;
+
+        /// <summary>False while building the developer-only screens (Gallery, Test Panel), which are out of scope.</summary>
+        public static bool EnforceMinimum = true;
+
+        public static float Readable(float size) => EnforceMinimum ? Mathf.Max(size, MinReadable) : size;
+
         public static readonly Vector2 TopLeft = new Vector2(0, 1);
         public static readonly Vector2 Top = new Vector2(0.5f, 1);
         public static readonly Vector2 TopRight = new Vector2(1, 1);
@@ -123,7 +135,7 @@ namespace SdfGui.Editor
                 _ => label.font.material,
             };
             label.text = text;
-            label.fontSize = size;
+            label.fontSize = Readable(size);
             label.color = color;
             label.alignment = alignment;
             label.textWrappingMode = TextWrappingModes.NoWrap;

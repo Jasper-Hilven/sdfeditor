@@ -39,12 +39,16 @@ namespace SdfGui.Editor
             Screens[GuiScreen.MatchEnd] = MatchEnd();
             Screens[GuiScreen.Victory] = Victory();
             Screens[GuiScreen.Defeat] = Defeat();
+            GuiFactory.EnforceMinimum = false;
             Screens[GuiScreen.Gallery] = Gallery();
+            GuiFactory.EnforceMinimum = true;
             Screens[GuiScreen.Loading] = Loading();
             Screens[GuiScreen.Confirm] = Confirm();
             Screens[GuiScreen.Caption] = Caption();
             Screens[GuiScreen.Credits] = Credits();
+            GuiFactory.EnforceMinimum = false;
             TestPanel = Test();
+            GuiFactory.EnforceMinimum = true;
         }
 
         private static GameObject Root(string name, GuiScreen screen)
@@ -136,7 +140,7 @@ namespace SdfGui.Editor
 
             // Top left, 5 px from the screen's edges like the rest of the HUD: the frame rate, when the settings show it, or the hint to
             // change the quality level, which is wider
-            hud.fps = f.Text(t, "FPS", "60 FPS", TextStyle.BodyInk, 24, GuiPalette.Moss, TopLeft, new Vector2(10, -5), new Vector2(560, 30), TextAlignmentOptions.Left);
+            hud.fps = f.Text(t, "FPS", "60 FPS", TextStyle.BodyInk, 29, GuiPalette.Moss, TopLeft, new Vector2(10, -5), new Vector2(700, 38), TextAlignmentOptions.Left);
 
             // Top centre, 5 px under the screen's top: the round's clock, the team score either side and the flags' statuses outside it
             // See-through like the other HUD panels, the time in cream on it
@@ -147,7 +151,7 @@ namespace SdfGui.Editor
 
             // Top right: the kill feed
             var feed = Object("Kill Feed", t);
-            Place(feed.transform, TopRight, new Vector2(-5, -5), new Vector2(700, 340));
+            Place(feed.transform, TopRight, new Vector2(-5, -75), new Vector2(700, 380));
             var layout = feed.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 10;
             layout.childAlignment = TextAnchor.UpperRight;
@@ -175,9 +179,9 @@ namespace SdfGui.Editor
             hud.spectatingLabel = spectating.GetComponentInChildren<TMP_Text>();
 
             // Bottom left: health, its name and then its bar on one line
-            var health = f.Panel(t, "Health", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), BottomLeft, new Vector2(5, 5), new Vector2(340, 48), 16);
-            f.Text(health.transform, "Label", "HEALTH", TextStyle.BodyInk, 20, GuiPalette.Paper, Left, new Vector2(14, 0), new Vector2(86, 30), TextAlignmentOptions.Left);
-            hud.health = p.BarInstance(health.transform, "Bar", GuiPalette.Moss, 0.72f, Left, new Vector2(102, 0), new Vector2(226, 28), 20);
+            var health = f.Panel(t, "Health", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), BottomLeft, new Vector2(5, 5), new Vector2(440, 60), 16);
+            f.Text(health.transform, "Label", "HEALTH", TextStyle.BodyInk, 29, GuiPalette.Paper, Left, new Vector2(14, 0), new Vector2(130, 40), TextAlignmentOptions.Left);
+            hud.health = p.BarInstance(health.transform, "Bar", GuiPalette.Moss, 0.72f, Left, new Vector2(150, 0), new Vector2(276, 38), 29);
             hud.health.bar.Outline = 3;
             hud.health.bar.Shadow = 3;
             // Flat: no gloss spot, which at this size is a white blob taking room from the value
@@ -198,8 +202,8 @@ namespace SdfGui.Editor
         /// </summary>
         private void Weapons(GuiHud hud)
         {
-            var panel = f.Panel(hud.transform, "Weapons", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), BottomRight, new Vector2(-5, 5), new Vector2(430, 140), 24);
-            hud.weaponLabel = f.Text(panel.transform, "Label", "PISTOL", TextStyle.BodyInk, 24, GuiPalette.Paper, TopRight, new Vector2(-22, -10), new Vector2(390, 30), TextAlignmentOptions.Right);
+            var panel = f.Panel(hud.transform, "Weapons", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), BottomRight, new Vector2(-5, 5), new Vector2(430, 164), 24);
+            hud.weaponLabel = f.Text(panel.transform, "Label", "PISTOL", TextStyle.BodyInk, 29, GuiPalette.Paper, TopRight, new Vector2(-22, -10), new Vector2(390, 38), TextAlignmentOptions.Right);
             var count = SdfBattle.Inventory.SlotCount;
             hud.weaponSlots = new ToonShape[count];
             hud.weaponIcons = new Image[count];
@@ -208,7 +212,7 @@ namespace SdfGui.Editor
             {
                 var held = i == 0;
                 var box = f.Shape(panel.transform, $"Slot {i + 1}", ToonShapeKind.Box, held ? GuiPalette.Gold : GuiPalette.WithAlpha(GuiPalette.Night, 0.55f),
-                    Centre, new Vector2(-153 + i * 102, -10), new Vector2(88, 88), s => { s.CornerRadius = 12; s.Outline = 4; s.Shadow = 5; });
+                    Centre, new Vector2(-153 + i * 102, -18), new Vector2(88, 88), s => { s.CornerRadius = 12; s.Outline = 4; s.Shadow = 5; });
                 if (held)
                     box.transform.localScale = Vector3.one * 1.12f;
                 var icon = f.Icon(box.transform, "Icon", held ? "pistol" : null, Centre, Vector2.zero, Vector2.zero);
@@ -216,8 +220,8 @@ namespace SdfGui.Editor
                 icon.rectTransform.offsetMin = new Vector2(8, 6);
                 icon.rectTransform.offsetMax = new Vector2(-6, -10);
                 icon.enabled = held;
-                var number = f.Text(box.transform, "Number", (i + 1).ToString(), TextStyle.Label, 22, held ? GuiPalette.Ink : GuiPalette.WithAlpha(GuiPalette.Paper, 0.6f),
-                    TopLeft, new Vector2(7, -3), new Vector2(70, 28), TextAlignmentOptions.TopLeft);
+                var number = f.Text(box.transform, "Number", (i + 1).ToString(), TextStyle.Label, 29, held ? GuiPalette.Ink : GuiPalette.WithAlpha(GuiPalette.Paper, 0.6f),
+                    TopLeft, new Vector2(7, -3), new Vector2(70, 38), TextAlignmentOptions.TopLeft);
                 hud.weaponSlots[i] = box;
                 hud.weaponIcons[i] = icon;
                 hud.weaponNumbers[i] = number;
@@ -236,8 +240,8 @@ namespace SdfGui.Editor
 
             var meter = f.Panel(t, "Spore Meter", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), BottomLeft, corner, health.sizeDelta, 16);
             meter.Shading = 0;
-            f.Text(meter.transform, "Label", "RAGE", TextStyle.BodyInk, 20, GuiPalette.Paper, Left, new Vector2(14, 0), new Vector2(86, 30), TextAlignmentOptions.Left);
-            hud.sporeBar = p.BarInstance(meter.transform, "Bar", GuiPalette.Rage, 0, Left, new Vector2(102, 0), new Vector2(226, 28), 20);
+            f.Text(meter.transform, "Label", "RAGE", TextStyle.BodyInk, 29, GuiPalette.Paper, Left, new Vector2(14, 0), new Vector2(130, 40), TextAlignmentOptions.Left);
+            hud.sporeBar = p.BarInstance(meter.transform, "Bar", GuiPalette.Rage, 0, Left, new Vector2(150, 0), new Vector2(276, 38), 29);
             hud.sporeBar.bar.Outline = 3;
             hud.sporeBar.bar.Shadow = 3;
             hud.sporeBar.bar.Shading = 0;
@@ -252,25 +256,25 @@ namespace SdfGui.Editor
             for (var i = 0; i < powers.Length; i++)
             {
                 var card = SporePanel(t, $"Spore {powers[i]}", corner + new Vector2(i * (SporeCard.x + SporeGap), 0), SporeCard);
-                var key = f.Shape(card.transform, "Key", ToonShapeKind.Box, SdfBattle.Spores.ColourOf(powers[i]), Left, new Vector2(6, 0), new Vector2(32, 32), s =>
+                var key = f.Shape(card.transform, "Key", ToonShapeKind.Box, SdfBattle.Spores.ColourOf(powers[i]), Left, new Vector2(8, 0), new Vector2(40, 40), s =>
                 {
-                    s.CornerRadius = 6;
+                    s.CornerRadius = 7;
                     s.Outline = 2;
                     s.Shadow = 2;
                     s.Shading = 0;
                 });
-                hud.sporeLetters[i] = f.FillText(key.transform, "Letter", SdfBattle.Spores.Keys[i].ToString(), TextStyle.Label, 20, GuiPalette.Ink);
-                var label = f.Text(card.transform, "Label", SdfBattle.SporeRules.NameOf(powers[i]), TextStyle.BodyInk, 18, GuiPalette.Cream, Left, new Vector2(44, 0),
-                    new Vector2(SporeCard.x - 50, 32), TextAlignmentOptions.Left);
-                AutoSize(label, 11, 18);
+                hud.sporeLetters[i] = f.FillText(key.transform, "Letter", SdfBattle.Spores.Keys[i].ToString(), TextStyle.Label, 29, GuiPalette.Ink);
+                var label = f.Text(card.transform, "Label", SdfBattle.SporeRules.NameOf(powers[i]), TextStyle.BodyInk, 29, GuiPalette.Cream, Left, new Vector2(56, 0),
+                    new Vector2(SporeCard.x - 62, 42), TextAlignmentOptions.Left);
+                AutoSize(label, 11, 29);
                 hud.sporeCards[i] = card.gameObject;
                 card.gameObject.SetActive(false);
             }
 
             var power = SporePanel(t, "Spore Power", corner, new Vector2(health.sizeDelta.x, SporeCard.y));
-            hud.sporePowerLabel = f.Text(power.transform, "Label", "FRENZY  12", TextStyle.BodyInk, 22, SdfBattle.Spores.FrenzyColour, Left, new Vector2(14, 0),
-                new Vector2(health.sizeDelta.x - 28, 32), TextAlignmentOptions.Left);
-            AutoSize(hud.sporePowerLabel, 12, 22);
+            hud.sporePowerLabel = f.Text(power.transform, "Label", "FRENZY  12", TextStyle.BodyInk, 29, SdfBattle.Spores.FrenzyColour, Left, new Vector2(14, 0),
+                new Vector2(health.sizeDelta.x - 28, 42), TextAlignmentOptions.Left);
+            AutoSize(hud.sporePowerLabel, 12, 29);
             hud.sporePower = power.gameObject;
             power.gameObject.SetActive(false);
 
@@ -280,7 +284,7 @@ namespace SdfGui.Editor
         }
 
         /// <summary>A power's card: the key, then the name; and the line of a power on, as big as the health panel.</summary>
-        private static readonly Vector2 SporeCard = new Vector2(165, 44);
+        private static readonly Vector2 SporeCard = new Vector2(215, 56);
 
         /// <summary>Between the health panel and the spores, and between the cards.</summary>
         private const float SporeGap = 5;
@@ -297,8 +301,8 @@ namespace SdfGui.Editor
         private static void AutoSize(TMP_Text text, float min, float max)
         {
             text.enableAutoSizing = true;
-            text.fontSizeMin = min;
-            text.fontSizeMax = max;
+            text.fontSizeMin = GuiFactory.Readable(min);
+            text.fontSizeMax = GuiFactory.Readable(max);
         }
 
         /// <summary>
@@ -330,7 +334,7 @@ namespace SdfGui.Editor
                 hud.teamScores[i] = f.Text(row.transform, $"{name} Score", "0", TextStyle.Title, 52, colour, Centre, new Vector2(sign * (edge + 25), 2), new Vector2(50, 60));
 
                 var panel = f.Shape(t, $"{name} Flag Status", ToonShapeKind.Box, GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), Top,
-                    new Vector2(sign * (edge + SdfBattle.FlagHud.StatusGap), centreY), new Vector2(SdfBattle.FlagHud.StatusWidth, 52), s =>
+                    new Vector2(sign * (edge + SdfBattle.FlagHud.StatusGap), centreY), new Vector2(SdfBattle.FlagHud.StatusWidth, 60), s =>
                     {
                         s.CornerRadius = 18;
                         s.Outline = 4;
@@ -349,10 +353,11 @@ namespace SdfGui.Editor
                     s.Outline = 2.5f;
                     s.Shadow = 0;
                 });
-                hud.flagStatus[i] = f.Text(panel.transform, "Status", "At home", TextStyle.BodyInk, 24, GuiPalette.Cream, Left, new Vector2(62, 0),
+                hud.flagStatus[i] = f.Text(panel.transform, "Status", "At home", TextStyle.BodyInk, 29, GuiPalette.Cream, Left, new Vector2(62, 0),
                     new Vector2(SdfBattle.FlagHud.StatusWidth - 74, 44), TextAlignmentOptions.Left);
                 // A long carrier's name shrinks to fit rather than run out of the panel
-                AutoSize(hud.flagStatus[i], 14, 24);
+                AutoSize(hud.flagStatus[i], 14, 29);
+                hud.flagStatus[i].overflowMode = TextOverflowModes.Ellipsis;
                 hud.flagStatusPanels[i] = panel.rectTransform;
 
                 var marker = Object($"{name} Flag Marker", t);
@@ -370,14 +375,14 @@ namespace SdfGui.Editor
                 });
                 arrow.rectTransform.pivot = new Vector2(-0.6f, 0.5f);
                 hud.flagMarkerArrows[i] = arrow.rectTransform;
-                hud.flagMarkerLabels[i] = f.Text(marker.transform, "Distance", "", TextStyle.BodyInk, 24, GuiPalette.Cream, Centre, new Vector2(0, -34), new Vector2(120, 30));
+                hud.flagMarkerLabels[i] = f.Text(marker.transform, "Distance", "", TextStyle.BodyInk, 29, GuiPalette.Cream, Centre, new Vector2(0, -36), new Vector2(140, 38));
                 hud.flagMarkers[i] = (RectTransform)marker.transform;
                 marker.SetActive(false);
             }
 
             // Under the row, where FlagHud puts it for the screen's width
             var bottom = centreY - clock.sizeDelta.y * 0.5f;
-            hud.flagBanner = p.BannerInstance(t, "Flag Banner", "YOU HAVE THE FLAG!", GuiPalette.Red, Top, new Vector2(0, bottom - 18), new Vector2(900, 92), 46);
+            hud.flagBanner = p.BannerInstance(t, "Flag Banner", "YOU HAVE THE FLAG!", GuiPalette.Red, Top, new Vector2(0, bottom - 18), new Vector2(760, 92), 46);
             hud.flagBannerText = hud.flagBanner.GetComponentInChildren<TMP_Text>();
             hud.flagBanner.gameObject.SetActive(false);
         }
@@ -391,19 +396,19 @@ namespace SdfGui.Editor
             var board = root.AddComponent<GuiScoreboard>();
             var panel = p.PanelInstance(t, "Panel", GuiPalette.WithAlpha(GuiPalette.Cream, 0.96f), Centre, new Vector2(0, -10), new Vector2(980, 840)).transform;
             p.BannerInstance(panel, "Header", "SCOREBOARD", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(560, 100), 54);
-            board.subtitle = f.Text(panel, "Subtitle", "MEADOW  ·  FIRST TO 3 CAPTURES  ·  10:00", TextStyle.Label, 28, GuiPalette.Dusk, Top, new Vector2(0, -66), new Vector2(900, 40));
+            board.subtitle = f.Text(panel, "Subtitle", "MEADOW  ·  FIRST TO 3 CAPTURES  ·  10:00", TextStyle.Label, 29, GuiPalette.Dusk, Top, new Vector2(0, -64), new Vector2(900, 40));
             var columns = Object("Columns", panel);
-            Place(columns.transform, Top, new Vector2(0, -110), new Vector2(900, 30));
-            f.Text(columns.transform, "Player", "PLAYER", TextStyle.Label, 22, GuiPalette.Dusk, Left, new Vector2(122, 0), new Vector2(200, 30), TextAlignmentOptions.Left);
-            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-240, 0), new Vector2(100, 30));
-            f.Text(columns.transform, "Deaths", "DEATHS", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-135, 0), new Vector2(110, 30));
-            f.Text(columns.transform, "Captures", "CAPTURES", TextStyle.Label, 22, GuiPalette.Dusk, Right, new Vector2(-10, 0), new Vector2(120, 30));
+            Place(columns.transform, Top, new Vector2(0, -108), new Vector2(900, 38));
+            f.Text(columns.transform, "Player", "PLAYER", TextStyle.Label, 29, GuiPalette.Dusk, Left, new Vector2(122, 0), new Vector2(200, 38), TextAlignmentOptions.Left);
+            f.Text(columns.transform, "Kills", "KILLS", TextStyle.Label, 29, GuiPalette.Dusk, Right, new Vector2(-310, 0), new Vector2(100, 38));
+            f.Text(columns.transform, "Deaths", "DEATHS", TextStyle.Label, 29, GuiPalette.Dusk, Right, new Vector2(-165, 0), new Vector2(130, 38));
+            f.Text(columns.transform, "Captures", "CAPTURES", TextStyle.Label, 29, GuiPalette.Dusk, Right, new Vector2(5, 0), new Vector2(160, 38));
             var rows = Object("Players", panel);
-            Place(rows.transform, Top, new Vector2(0, -146), new Vector2(900, MatchView.ScoreboardRows * 60));
+            Place(rows.transform, Top, new Vector2(0, -150), new Vector2(900, MatchView.ScoreboardRows * 60));
             board.rows = Enumerable.Range(0, MatchView.ScoreboardRows)
                 .Select(i => Instance<GuiPlayerRow>(p.PlayerRow, rows.transform, $"Player {i + 1}", Top, new Vector2(0, -i * 60), new Vector2(900, 52)))
                 .ToArray();
-            f.Text(panel, "Hint", "hold TAB", TextStyle.Body, 24, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(300, 30));
+            f.Text(panel, "Hint", "hold TAB", TextStyle.Body, 29, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(300, 38));
             return Save(root);
         }
 
@@ -593,7 +598,7 @@ namespace SdfGui.Editor
         {
             label.enableAutoSizing = true;
             label.fontSizeMax = label.fontSize;
-            label.fontSizeMin = minSize;
+            label.fontSizeMin = GuiFactory.Readable(minSize);
             label.overflowMode = TextOverflowModes.Overflow;
             return label;
         }
@@ -716,29 +721,29 @@ namespace SdfGui.Editor
             }
             // Over the HUD (the warm-up's prompts) a small box near the bottom, between the health and the weapons and under the
             // pick-up line, so it does not cover the view; a story beat's is the big one over the bottom bar
-            var size = letterbox ? new Vector2(1300, 210) : new Vector2(900, 136);
+            var size = letterbox ? new Vector2(1300, 210) : new Vector2(1000, 196);
             var box = Object("Box", t);
             Place(box.transform, Bottom, new Vector2(0, letterbox ? 150 : 12), size);
             caption.box = box.AddComponent<CanvasGroup>();
             f.Panel(box.transform, "Panel", GuiPalette.WithAlpha(GuiPalette.Night, 0.9f), Centre, Vector2.zero, size, letterbox ? 26 : 20);
             caption.speaker = letterbox
                 ? f.Text(box.transform, "Speaker", "TOASTYMAGE", TextStyle.Label, 34, GuiPalette.Gold, Top, new Vector2(0, -16), new Vector2(1200, 44))
-                : f.Text(box.transform, "Speaker", "TOASTYMAGE", TextStyle.Label, 24, GuiPalette.Gold, Top, new Vector2(0, -8), new Vector2(840, 30));
+                : f.Text(box.transform, "Speaker", "TOASTYMAGE", TextStyle.Label, 29, GuiPalette.Gold, Top, new Vector2(0, -8), new Vector2(940, 38));
             caption.line = letterbox
                 ? f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 42, GuiPalette.Cream, Bottom, new Vector2(0, 50), new Vector2(1220, 110))
-                : f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 30, GuiPalette.Cream, Bottom, new Vector2(0, 34), new Vector2(860, 64));
+                : f.Text(box.transform, "Line", "Fill your rage and activate Frenzy. Trust me.", TextStyle.BodyInk, 30, GuiPalette.Cream, Bottom, new Vector2(0, 54), new Vector2(960, 84));
             caption.line.textWrappingMode = TextWrappingModes.Normal;
             caption.line.alignment = TextAlignmentOptions.Center;
             if (!letterbox)
-                AutoSize(caption.line, 20, 30);
+                AutoSize(caption.line, 29, 30);
 
             // Over the HUD the corner is the weapons' (and the health's): the hint sits in the box, under the line; alone, 5 px from the screen's corner
             var hintParent = letterbox ? t : box.transform;
             var corner = letterbox ? new Vector2(-5, 5) : new Vector2(-18, 10);
-            var hintSize = letterbox ? 26 : 20;
+            var hintSize = 29;
             var trackSize = letterbox ? new Vector2(260, 22) : new Vector2(180, 16);
             caption.hint = f.Text(hintParent, "Hint", "Hold SPACE to skip", TextStyle.BodyInk, hintSize, GuiPalette.WithAlpha(GuiPalette.Cream, 0.8f), BottomRight,
-                corner + new Vector2(-trackSize.x - 12, -7), new Vector2(300, 30), TextAlignmentOptions.Right);
+                corner + new Vector2(-trackSize.x - 12, -7), new Vector2(300, 38), TextAlignmentOptions.Right);
             if (letterbox)
                 caption.hint.rectTransform.anchoredPosition = corner + new Vector2(0, 25);
             var track = f.Panel(hintParent, "Skip Track", GuiPalette.WithAlpha(GuiPalette.Night, 0.8f), BottomRight, corner, trackSize, letterbox ? 8 : 6);

@@ -18,7 +18,7 @@ namespace SdfBattle
         [Tooltip("Names further than this from the camera are not drawn, in metres")]
         public float maxDistance = 70;
         [Tooltip("The name's font size close up and at the furthest distance")]
-        public float nearSize = 26, farSize = 15;
+        public float nearSize = 40, farSize = 29;
         [Tooltip("The black border round the letters, as a share of the font's SDF range (0 to 1)")]
         public float outline = 0.32f;
         [Tooltip("The name sits this far over the top of the soldier's head, in the body's metres")]
