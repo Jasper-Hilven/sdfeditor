@@ -97,10 +97,10 @@ namespace SdfBattle
         {
             var you = match.You;
             // As firing: only with the pointer locked, which a menu lets go
-            if (you == null || Cursor.lockState != CursorLockMode.Locked || !State.CanSporulate(you.State))
+            if (you == null || !PlayerInput.Engaged || !State.CanSporulate(you.State))
                 return;
             for (var i = 0; i < Keys.Length; i++)
-                if (GameKeys.Pressed(Keys[i]))
+                if (PlayerInput.PowerPressed(SporeRules.All[i]))
                 {
                     State.Sporulate(you.State, SporeRules.All[i]);
                     return;

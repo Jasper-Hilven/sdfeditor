@@ -1,3 +1,4 @@
+using SdfLevel;
 using UnityEngine;
 
 namespace SdfEffects
@@ -122,25 +123,25 @@ namespace SdfEffects
         private void Update()
         {
             for (var i = 0; i < effects.Length && i < 9; i++)
-                if (Input.GetKeyDown(KeyCode.Alpha1 + i))
+                if (PlayerInput.DebugPressed(KeyCode.Alpha1 + i))
                     effects[i].Fire();
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (PlayerInput.DebugPressed(KeyCode.Space))
                 foreach (var effect in effects)
                     effect.Fire();
-            if (Input.GetKeyDown(KeyCode.M))
+            if (PlayerInput.DebugPressed(KeyCode.M))
                 for (var i = 0; i < monsters.Length; i++)
                     FireMonster(i);
-            if (Input.GetKeyDown(KeyCode.Period) && monsters.Length > 0)
+            if (PlayerInput.DebugPressed(KeyCode.Period) && monsters.Length > 0)
                 FireMonster(nextMonster++ % monsters.Length);
-            if (Input.GetKeyDown(KeyCode.Comma) && monsters.Length > 0)
+            if (PlayerInput.DebugPressed(KeyCode.Comma) && monsters.Length > 0)
                 FireMonster(((nextMonster -= 2) % monsters.Length + monsters.Length) % monsters.Length);
-            if (Input.GetKeyDown(KeyCode.V))
+            if (PlayerInput.DebugPressed(KeyCode.V))
                 ToggleView();
-            if (Input.GetKeyDown(KeyCode.L))
+            if (PlayerInput.DebugPressed(KeyCode.L))
                 loop = !loop;
-            if (Input.GetKeyDown(KeyCode.R))
+            if (PlayerInput.DebugPressed(KeyCode.R))
                 Restart();
-            if (Input.GetKeyDown(KeyCode.P))
+            if (PlayerInput.DebugPressed(KeyCode.P))
                 paused = !paused;
             if (!paused)
                 Step(Mathf.Min(Time.deltaTime, 0.05f));

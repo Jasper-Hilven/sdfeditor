@@ -94,7 +94,7 @@ namespace SdfCampaign
                     Destroy(this);
                 return;
             }
-            if (skip.Tick(Time.deltaTime, !GameKeys.Blocked && (Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.JoystickButton7))))
+            if (skip.Tick(Time.deltaTime, !GameKeys.Blocked && PlayerInput.SkipHeld))
             {
                 Finish(false);
                 return;

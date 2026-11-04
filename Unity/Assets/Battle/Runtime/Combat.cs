@@ -1,3 +1,4 @@
+using SdfLevel;
 using System;
 using System.Collections.Generic;
 using SdfPickups;
@@ -182,7 +183,7 @@ namespace SdfBattle
             StepProjectiles(dt);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             // A test key, as the bots do not shoot yet: F9 hurts you for 30, from in front, so the health pod can be tried
-            if (Input.GetKeyDown(KeyCode.F9))
+            if (PlayerInput.DebugPressed(KeyCode.F9))
                 HurtYou();
 #endif
         }

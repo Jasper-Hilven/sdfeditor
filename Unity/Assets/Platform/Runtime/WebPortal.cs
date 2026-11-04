@@ -97,6 +97,7 @@ namespace SdfPlatform
                 {
                     Active = true;
                     initDone = true;
+                    Device.SdkReady();
                     tracker.Forget();
                     Apply();
                     var callback = onReady;

@@ -16,6 +16,7 @@ namespace SdfLevel
         Q,
         F,
         C,
+        P,
     }
 
     /// <summary>
@@ -115,6 +116,7 @@ namespace SdfLevel
             KeyPlace.D => InputKey.D,
             KeyPlace.Q => InputKey.Q,
             KeyPlace.F => InputKey.F,
+            KeyPlace.P => InputKey.P,
             _ => InputKey.C,
         };
 #else
@@ -126,6 +128,7 @@ namespace SdfLevel
             KeyPlace.D => KeyCode.D,
             KeyPlace.Q => KeyCode.Q,
             KeyPlace.F => KeyCode.F,
+            KeyPlace.P => KeyCode.P,
             _ => KeyCode.C,
         };
 #endif

@@ -46,4 +46,35 @@ effects bench. Make one layer that every gameplay reader uses:
 
 ## Status
 
-Not started.
+Done (code); a real phone or tablet check is left for a human.
+
+**Device detection.** `SdfPlatform.DeviceRule` (Platform/Core, tested in `DeviceRuleTests`) decides `DeviceKind` and its `DeviceSource`.
+Order: 1. the URL (`?device=mobile|tablet|desktop`, from `Application.absoluteURL`); 2. the editor's Tools > Portal > Simulate mobile
+(EditorPrefs `sdf.portal.editorMobile`; it sits above the SDK because the editor's simulated SDK always answers "desktop" and would
+otherwise cancel the toggle); 3. `CrazySDK.User.SystemInfo.device.type` once the SDK is up; 4. `Application.isMobilePlatform`;
+else Desktop. `SdfPlatform.Device` (Platform/Runtime) holds `Kind`, `Source`, `IsTouch` and the `Changed` event; it is decided on first
+read (URL, editor, platform) and again once when `WebPortal` calls `Device.SdkReady()`. The kind and source are logged
+("Device: Desktop (from Default)"). Nothing else reads `isMobilePlatform` or the SDK's device. Force it: add `?device=mobile` to the page
+address, or tick Tools > Portal > Simulate mobile in the editor.
+
+**Input layer.** `SdfLevel.PlayerInput` (Level/Runtime) asks what the game needs: `Move`, `Look` (per-frame, at sensitivity 1; the
+controller multiplies by `lookSensitivity`, so mouse feel and the sniper zoom are as before), `FireHeld`, `ZoomHeld`, `JumpPressed`,
+`SlotPressed(n)`, `SlotScroll`, `PowerPressed(SporePower)`, `ReloadPressed`, `UsePressed`, `ScoreboardHeld`, `PausePressed` / `PauseHeld`
+(Escape or P), `SkipHeld`, `HeadPreviousHeld` / `HeadNextHeld`, `PointerHeld` / `PointerPressed`, `Engaged` (pointer locked, or a
+touch device), the spectator camera and `DebugPressed(KeyCode)` for the test keys. Sources derive from `PlayerInputSource` (every
+member optional); `PlayerInput.Add/Remove` registers one (56's touch source) and the values add up. `KeyboardMouseInput` is the
+keyboard-and-mouse source, the only gameplay code besides `GameKeys` that reads `UnityEngine.Input`. `GameKeys.Blocked` zeroes
+Move, Jump, slot and power presses. `KeyPlace.P` added. Readers moved: FirstPersonController, Arsenal, Spores, Combat, Match,
+BotSpectator, GuiHud, GuiFlow, GuiEndScreen, WarmUpPlayer, CreditsPlayer, SceneLoader, SpecialEffectsBench (Cheats' legacy
+`inputString` branch removed; it reads the Input System keyboard).
+
+**Touch device:** no pointer lock is taken (FirstPersonController) and a lost lock does not pause (`GuiFlow`); Arsenal and Spores
+treat a touch device as engaged. **Small desktop differences:** Enter and the pad's start now also skip the warm-up (one skip
+definition), P also lets the pointer go and closes the confirm box like Escape, the credits skip with Space/Enter/pad start or
+Escape/P. description.md and control.html say "Escape or P".
+
+**Checks:** EditMode tests 751/751 passed (18 new device cases); five-match play test: 0 errors. Search for `Input.` in runtime
+code outside CrazySDK: only `KeyboardMouseInput.cs` and `GameKeys.cs` (legacy fallback branch).
+
+**Left for a human:** try `?device=mobile` / `Simulate mobile` in a build and on a real Android phone (no touch controls yet, so the
+view cannot be turned there until 56); confirm P pauses in the web build.

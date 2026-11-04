@@ -1,3 +1,4 @@
+using SdfLevel;
 using System;
 using SdfGui;
 using UnityEngine;
@@ -35,7 +36,7 @@ namespace SdfCampaign
         {
             if (Finished)
                 return;
-            var held = Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Escape) || Input.GetKey(KeyCode.JoystickButton7);
+            var held = PlayerInput.SkipHeld || PlayerInput.PauseHeld;
             scroll.Tick(Time.unscaledDeltaTime, held);
             if (view != null)
                 view.Show(scroll.Progress, scroll.SkipProgress);

@@ -144,7 +144,7 @@ namespace SdfBattle
                 return;
 
             var alive = state.Alive;
-            var canFire = alive && (combat.Match.State.CanMove || Player.IsYou && combat.Match.YouFree) && (!Player.IsYou || scripted || Cursor.lockState == CursorLockMode.Locked);
+            var canFire = alive && (combat.Match.State.CanMove || Player.IsYou && combat.Match.YouFree) && (!Player.IsYou || scripted || PlayerInput.Engaged);
             var held = triggerHeld && canFire;
             UpdateZoom(alive && zoomHeld && stats.zoomFieldOfView > 0);
 
@@ -171,17 +171,16 @@ namespace SdfBattle
 
         private void ReadInput()
         {
-            var locked = Cursor.lockState == CursorLockMode.Locked;
-            triggerHeld = locked && Input.GetMouseButton(0);
-            zoomHeld = locked && Input.GetMouseButton(1);
+            triggerHeld = PlayerInput.FireHeld;
+            zoomHeld = PlayerInput.ZoomHeld;
             var inventory = Inventory;
             if (GameKeys.Blocked)
                 return;
             for (var number = 1; number <= Inventory.SlotCount; number++)
-                if (Input.GetKeyDown(KeyCode.Alpha0 + number) || Input.GetKeyDown(KeyCode.Keypad0 + number))
+                if (PlayerInput.SlotPressed(number))
                     inventory.SelectNumber(number);
-            var scroll = Input.mouseScrollDelta.y;
-            if (locked && Mathf.Abs(scroll) > 0.01f)
+            var scroll = PlayerInput.SlotScroll;
+            if (Mathf.Abs(scroll) > 0.01f)
                 inventory.Scroll(scroll < 0 ? 1 : -1);
         }
 

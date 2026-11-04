@@ -51,21 +51,23 @@ namespace SdfBattle
             if (match == null || view == null)
                 return;
             var count = match.Players.Count;
-            if (Input.GetKeyDown(KeyCode.Tab) && count > 0)
+            var nextPlayer = PlayerInput.SpectatePlayer;
+            if (nextPlayer != 0 && count > 0)
             {
-                var back = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                var back = nextPlayer < 0;
                 index = (index + (back ? count - 1 : 1)) % count;
                 free = false;
                 machineIndex = -1;
             }
             var machines = Machines.Current != null ? Machines.Current.All : null;
-            if (Input.GetKeyDown(KeyCode.M) && machines != null && machines.Count > 0)
+            var nextMachine = PlayerInput.SpectateMachine;
+            if (nextMachine != 0 && machines != null && machines.Count > 0)
             {
-                var back = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                var back = nextMachine < 0;
                 machineIndex = machineIndex < 0 ? (back ? machines.Count - 1 : 0) : (machineIndex + (back ? machines.Count - 1 : 1)) % machines.Count;
                 free = false;
             }
-            if (Input.GetKeyDown(KeyCode.F))
+            if (PlayerInput.SpectateFreeToggled)
                 free = !free;
             if (free)
                 Fly();
@@ -102,18 +104,15 @@ namespace SdfBattle
         private void Fly()
         {
             var t = view.transform;
-            if (Input.GetMouseButton(1))
+            if (PlayerInput.FlyLookHeld)
             {
-                yaw += Input.GetAxis("Mouse X") * lookSensitivity;
-                pitch = Mathf.Clamp(pitch - Input.GetAxis("Mouse Y") * lookSensitivity, -85, 85);
+                var look = PlayerInput.Look;
+                yaw += look.x * lookSensitivity;
+                pitch = Mathf.Clamp(pitch - look.y * lookSensitivity, -85, 85);
             }
             t.rotation = Quaternion.Euler(pitch, yaw, 0);
-            var move = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
-            if (Input.GetKey(KeyCode.E))
-                move.y += 1;
-            if (Input.GetKey(KeyCode.Q))
-                move.y -= 1;
-            var speed = flySpeed * (Input.GetKey(KeyCode.LeftShift) ? 2.5f : 1);
+            var move = PlayerInput.Fly;
+            var speed = flySpeed * (PlayerInput.FlyFastHeld ? 2.5f : 1);
             t.position += t.rotation * move * (speed * Time.deltaTime);
         }
 

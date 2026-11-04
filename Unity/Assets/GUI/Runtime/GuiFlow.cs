@@ -82,6 +82,7 @@ namespace SdfGui
         private bool wasAlive = true;
         private GuiScreen held = GuiScreen.Hud;
         private bool wasLocked;
+        private bool scoreboardWasHeld;
         // You died, or the match ended, while the pause menu (or what opens from it) was up: shown when it closes
         private bool deathWaiting, endWaiting;
         // Where the credits go back to (the pause menu, when they were opened from it)
@@ -139,8 +140,9 @@ namespace SdfGui
         // The browser lets the pointer go on Escape without the key reaching the game; a lock lost while playing is a pause
         private void PauseOnLostLock()
         {
+            // A touch device has no pointer lock to lose
             var locked = Cursor.lockState == CursorLockMode.Locked;
-            if (screen == GuiScreen.Hud && !Ending && wasLocked && !locked)
+            if (!SdfPlatform.Device.IsTouch && screen == GuiScreen.Hud && !Ending && wasLocked && !locked)
                 screen = GuiScreen.Pause;
             wasLocked = locked;
         }
@@ -217,13 +219,13 @@ namespace SdfGui
         {
             if (ConfirmOpen)
             {
-                if (Input.GetKeyDown(KeyCode.Escape))
+                if (PlayerInput.PausePressed)
                     CloseConfirm();
                 return;
             }
-            if (Input.GetKeyDown(KeyCode.F1) && DevTools)
+            if (PlayerInput.DebugPressed(KeyCode.F1) && DevTools)
                 testPanel = !testPanel;
-            if (Input.GetKeyDown(KeyCode.Escape) && !Ending)
+            if (PlayerInput.PausePressed && !Ending)
             {
                 if (screen == GuiScreen.Hud)
                     screen = GuiScreen.Pause;
@@ -232,23 +234,25 @@ namespace SdfGui
                 else if (screen == GuiScreen.Settings)
                     screen = settingsReturn;
                             }
-            if (Input.GetKeyDown(KeyCode.Tab) && screen == GuiScreen.Hud)
+            var scoreboardHeld = PlayerInput.ScoreboardHeld;
+            if (scoreboardHeld && !scoreboardWasHeld && screen == GuiScreen.Hud)
             {
                 held = screen;
                 screen = GuiScreen.Scoreboard;
             }
-            if (Input.GetKeyUp(KeyCode.Tab) && screen == GuiScreen.Scoreboard)
+            if (!scoreboardHeld && scoreboardWasHeld && screen == GuiScreen.Scoreboard)
                 screen = held;
+            scoreboardWasHeld = scoreboardHeld;
 
             // Hold the left button to fire, R to reload, E to take what is offered, while the HUD is up and the pointer not on a button
             if (screen == GuiScreen.Hud && Match != null)
             {
                 var overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-                if (Input.GetMouseButton(0) && !overUi)
+                if (PlayerInput.PointerHeld && !overUi)
                     Match.Fire(Time.deltaTime);
-                if (Input.GetKeyDown(KeyCode.R))
+                if (PlayerInput.ReloadPressed)
                     Match.Reload();
-                if (Input.GetKeyDown(KeyCode.E) && !string.IsNullOrEmpty(Match.pickup))
+                if (PlayerInput.UsePressed && !string.IsNullOrEmpty(Match.pickup))
                     Match.pickup = "";
             }
         }

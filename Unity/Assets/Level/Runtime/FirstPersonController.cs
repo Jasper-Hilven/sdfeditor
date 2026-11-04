@@ -156,22 +156,25 @@ namespace SdfLevel
                 SetMove(Vector2.zero);
                 return;
             }
-            // A click on the view takes the pointer (one on a button of the GUI does not); Escape lets it go
-            if (Input.GetMouseButtonDown(0) && !(EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()))
+            // A click on the view takes the pointer (one on a button of the GUI does not); Escape or P lets it go
+            // (not on a touch device: it has no pointer to take, and the touch controls look and fire)
+            var touch = SdfPlatform.Device.IsTouch;
+            if (!touch && PlayerInput.PointerPressed && !(EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()))
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (!touch && PlayerInput.PausePressed)
             {
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
-            if (Cursor.lockState == CursorLockMode.Locked)
-                SetAim(Yaw + Input.GetAxis("Mouse X") * lookSensitivity, pitch - Input.GetAxis("Mouse Y") * lookSensitivity);
+            var look = PlayerInput.Look;
+            if (look != Vector2.zero)
+                SetAim(Yaw + look.x * lookSensitivity, pitch - look.y * lookSensitivity);
 
-            SetMove(GameKeys.Walk());
-            if (Input.GetButtonDown("Jump"))
+            SetMove(PlayerInput.Move);
+            if (PlayerInput.JumpPressed)
                 Jump();
         }
 

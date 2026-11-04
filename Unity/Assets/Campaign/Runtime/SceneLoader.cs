@@ -1,3 +1,4 @@
+using SdfLevel;
 using System;
 using System.Collections;
 using SdfGui;
@@ -139,7 +140,7 @@ namespace SdfCampaign
                     yield return null;
                 }
                 loading.Set(1, true);
-                while (!AutoPlay && !Input.GetMouseButtonDown(0))
+                while (!AutoPlay && !PlayerInput.PointerPressed)
                     yield return null;
                 // The click is the web's one chance to lock the pointer
                 Cursor.lockState = CursorLockMode.Locked;
@@ -183,7 +184,7 @@ namespace SdfCampaign
                 }
                 loading.Message("DOWNLOAD FAILED - CLICK TO RETRY");
                 loading.Set(0, true);
-                while (!Input.GetMouseButtonDown(0))
+                while (!PlayerInput.PointerPressed)
                     yield return null;
                 loading.ClearMessage();
                 loading.Set(0, false);

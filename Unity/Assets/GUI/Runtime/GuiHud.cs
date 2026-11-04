@@ -1,3 +1,4 @@
+using SdfLevel;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -217,7 +218,7 @@ namespace SdfGui
             var eligible = level > 0 && GuiQualityRule.UpFps(level - 1) > SdfMushrooms.QualityHintRule.SteadyFps + 5;
             if (!hintRule.Tick(Time.unscaledDeltaTime, level, eligible, upDue))
                 return null;
-            if (Input.GetKeyDown(IncreaseQualityKey))
+            if (PlayerInput.DebugPressed(IncreaseQualityKey))
             {
                 QualitySettings.SetQualityLevel(level - 1, true);
                 qualityRule.Reset();

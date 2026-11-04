@@ -36,8 +36,8 @@ Keyboard and mouse
 | Monster powers (when the rage meter is full) | Q: Frenzy, F: Regenerate, C: Thick Hide (by key position, so AZERTY uses A, F, C; the HUD shows your own letters) |
 | Scoreboard (names, heads, kills, deaths, captures) | Hold Tab |
 | Skip the end card's countdown | Space or Enter |
-| Pause menu / back | Escape (the match keeps running behind the menu) |
-| Skip the credits | Hold Space or Escape |
+| Pause menu / back | Escape or P (the match keeps running behind the menu) |
+| Skip the credits | Hold Space, Escape or P |
 
 Gamepad
 

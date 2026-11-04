@@ -45,12 +45,6 @@ namespace SdfBattle
             if (keyboard != null)
                 keyboard.onTextInput += Typed;
         }
-#else
-        private void Update()
-        {
-            foreach (var c in Input.inputString)
-                Typed(c);
-        }
 #endif
 
         private void Typed(char c)

@@ -76,9 +76,9 @@ namespace SdfGui
             timer = new NextLevelCountdown();
             shownHead = null;
             // Keys already held when the card shows do not count as presses
-            previousHeld = GameKeys.Held(KeyPlace.A);
-            nextHeld = GameKeys.Held(KeyPlace.D);
-            skipHeld = GameKeys.SkipHeld();
+            previousHeld = PlayerInput.HeadPreviousHeld;
+            nextHeld = PlayerInput.HeadNextHeld;
+            skipHeld = PlayerInput.SkipHeld;
             base.OnEnable();
         }
 
@@ -93,12 +93,12 @@ namespace SdfGui
             // The pause menu (and the settings or credits from it) holds the card still
             var paused = flow.IsPaused;
             // Space or Enter going down skips the rest of the countdown
-            var skipHeldNow = GameKeys.SkipHeld();
+            var skipHeldNow = PlayerInput.SkipHeld;
             var skip = skipHeldNow && !skipHeld;
             skipHeld = skipHeldNow;
             // A and D by place: a press (the key going down) steps the head once, however long the key is held
-            var previous = GameKeys.Held(KeyPlace.A);
-            var next = GameKeys.Held(KeyPlace.D);
+            var previous = PlayerInput.HeadPreviousHeld;
+            var next = PlayerInput.HeadNextHeld;
             if (!paused)
             {
                 if (previous && !previousHeld)

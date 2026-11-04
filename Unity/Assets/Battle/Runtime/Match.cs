@@ -279,7 +279,7 @@ namespace SdfBattle
             }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             // A test key, as the walls keep everyone on the island: F8 drops you off it
-            if (Input.GetKeyDown(KeyCode.F8))
+            if (PlayerInput.DebugPressed(KeyCode.F8))
                 DropYouOffTheIsland();
 #endif
         }
