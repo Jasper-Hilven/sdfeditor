@@ -49,6 +49,14 @@ namespace SdfEffects
             _ => Cues.MonsterBurstPop,
         };
 
+        // The web player has no per-thread allocation counter (its icall logs an error and costs an exception every burst); the test hook reads 0 there
+        private static long AllocatedBytes() =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            0;
+#else
+            System.GC.GetAllocatedBytesForCurrentThread();
+#endif
+
         /// <summary>
         /// The explosion at <paramref name="at"/> (the middle of the head), thrown away from <paramref name="away"/> (flat; zero for any way) with the
         /// weapon's <paramref name="strength"/> (1 for a rifle), at gore <paramref name="level"/>.
@@ -58,7 +66,7 @@ namespace SdfEffects
             LastDebris = 0;
             if (world == null || e == null || level <= 0)
                 return;
-            var before = System.GC.GetAllocatedBytesForCurrentThread();
+            var before = AllocatedBytes();
             var ground = world.Ground(at, out var groundPoint, out _) ? groundPoint.y : at.y - 1.5f;
             var reach = Mathf.Sqrt(Mathf.Max(0.5f, strength)) * MonsterExplosions.SpeedScale(level);
 
@@ -158,7 +166,7 @@ namespace SdfEffects
 
             if (playSound)
                 Audio.Play(CueOf(e.sound), at);
-            LastAllocatedBytes = System.GC.GetAllocatedBytesForCurrentThread() - before;
+            LastAllocatedBytes = AllocatedBytes() - before;
         }
 
         /// <summary>The way a piece of debris leaves the head: out, up and away from the hit; a bat flies out nearly level.</summary>

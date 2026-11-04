@@ -142,9 +142,12 @@ namespace SdfCampaign
                 loading.Set(1, true);
                 while (!AutoPlay && !PlayerInput.PointerPressed)
                     yield return null;
-                // The click is the web's one chance to lock the pointer
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
+                // The click is the web's one chance to lock the pointer (a touch device has none: the request only raises an error there)
+                if (!Device.IsTouch)
+                {
+                    Cursor.lockState = CursorLockMode.Locked;
+                    Cursor.visible = false;
+                }
                 Time.timeScale = 1;
             }
             else

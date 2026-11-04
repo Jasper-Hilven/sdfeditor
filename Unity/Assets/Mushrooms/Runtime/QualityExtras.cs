@@ -27,6 +27,7 @@ namespace SdfMushrooms
         /// <summary>The most frames a second the desktop game draws.</summary>
         public const int MaxFrameRate = 240;
 
+        private static readonly int InkOffId = Shader.PropertyToID("_SdfInkOff");
         private static Volume volume;
         private static float projectStep;
 
@@ -67,6 +68,27 @@ namespace SdfMushrooms
         /// <summary>How many more times each set of the sky's spores and motes is drawn: 2 on Ultra Epic, 1 on Epic, none below.</summary>
         public static int SporeCopies => Current switch { UltraEpic => 2, Epic => 1, _ => 0 };
 
+        /// <summary>A touch device on its lowest level (<see cref="MobileQualityRule"/>): the cuts below apply.</summary>
+        private static bool Cuts => MobileQualityRule.Cuts(SdfPlatform.Device.IsTouch, Current);
+
+        /// <summary>Whether the ink outline is drawn at all: off on a touch device's lowest level.</summary>
+        public static bool InkOff => Cuts;
+
+        /// <summary>Whether the level's fixed sun shadow is off: on a touch device's lowest level.</summary>
+        public static bool SunShadowOff => Cuts;
+
+        /// <summary>The factor on the foliage the low preset keeps: 0.6 on a touch device's lowest level, 1 else.</summary>
+        public static float FoliageThinning => Cuts ? MobileQualityRule.FoliageThinning : 1;
+
+        /// <summary>The factor on the low preset's foliage distances: 0.8 on a touch device's lowest level, 1 else.</summary>
+        public static float FoliageNearing => Cuts ? MobileQualityRule.FoliageNearing : 1;
+
+        /// <summary>The share of the gore's pools and corpse limits kept: half on a touch device's lowest level, 1 else.</summary>
+        public static float GoreShare => Cuts ? MobileQualityRule.GoreShare : 1;
+
+        /// <summary>Whether post-processing is off: on a touch device's lowest level.</summary>
+        public static bool PostOff => Cuts;
+
         /// <summary>Whether the bloom is high-quality filtered (bicubic upsampling, no blocky halo round bright pixels): Epic and up.</summary>
         public static bool BloomHighQuality => Current is Epic or UltraEpic;
 
@@ -82,10 +104,45 @@ namespace SdfMushrooms
             QualitySettings.activeQualityLevelChanged += (_, _) => Apply();
             SceneManager.sceneLoaded += (_, _) => ApplySpores();
             Apply();
+            Mobile();
+            var host = new GameObject("Mobile Quality") { hideFlags = HideFlags.HideInHierarchy };
+            Object.DontDestroyOnLoad(host);
+            host.AddComponent<MobileQuality>();
+        }
+
+        private static bool mobileStarted;
+
+        // Before the first scene, so Boot does not even allocate an Ultra Epic target on a phone; the SDK may say "touch" later (Changed)
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Early()
+        {
+            SdfPlatform.Device.Changed += _ => Mobile();
+            Mobile();
+        }
+
+        /// <summary>
+        /// Once, the first time the device is a touch one (the page address or the SDK says so): the lowest level, from which the automatic
+        /// rule climbs. Later changes of level are the player's or the rule's.
+        /// </summary>
+        private static void Mobile()
+        {
+            if (mobileStarted || !SdfPlatform.Device.IsTouch)
+                return;
+            mobileStarted = true;
+            var url = Application.absoluteURL;
+            if (!string.IsNullOrEmpty(url) && url.IndexOf(MobileQualityRule.OptOut, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return;
+            var index = MobileQualityRule.StartIndex(QualitySettings.names);
+            if (index >= 0 && QualitySettings.GetQualityLevel() != index)
+            {
+                Debug.Log($"Quality: touch device, starting on {MobileQualityRule.StartLevel}");
+                QualitySettings.SetQualityLevel(index, true);
+            }
         }
 
         private static void Apply()
         {
+            Shader.SetGlobalFloat(InkOffId, InkOff ? 1 : 0);
             ApplyBloom();
             Time.fixedDeltaTime = PhysicsRate > 0 ? 1f / PhysicsRate : projectStep;
             ApplySpores();
@@ -158,5 +215,48 @@ namespace SdfMushrooms
             }
             volume.enabled = true;
         }
+    }
+
+    /// <summary>
+    /// A touch device's render target and post-processing, kept right once a second (the window can turn or resize): the render scale of the
+    /// current URP asset capped by <see cref="MobileQualityRule.RenderScale"/> and the cameras' post-processing off on the lowest level.
+    /// Not in the editor, where the URP asset is a project file the play must not change.
+    /// </summary>
+    public sealed class MobileQuality : MonoBehaviour
+    {
+        private readonly System.Collections.Generic.Dictionary<UniversalRenderPipelineAsset, float> presets = new System.Collections.Generic.Dictionary<UniversalRenderPipelineAsset, float>();
+        private float next;
+
+        private void Update()
+        {
+            if (Time.unscaledTime < next || !SdfPlatform.Device.IsTouch)
+                return;
+            Shader.SetGlobalFloat(Shader.PropertyToID("_SdfInkOff"), QualityExtras.InkOff ? 1 : 0);
+            next = Time.unscaledTime + 1;
+            if (Application.isEditor)
+                return;
+            if (QualitySettings.renderPipeline is UniversalRenderPipelineAsset asset)
+            {
+                if (!presets.TryGetValue(asset, out var preset))
+                    presets[asset] = preset = asset.renderScale;
+                var scale = MobileQualityRule.RenderScale(preset, Screen.height);
+                if (!Mathf.Approximately(asset.renderScale, scale))
+                    asset.renderScale = scale;
+            }
+            var off = QualityExtras.PostOff;
+            foreach (var camera in Camera.allCameras)
+            {
+                var data = camera.GetUniversalAdditionalCameraData();
+                if (off && data.renderPostProcessing)
+                {
+                    data.renderPostProcessing = false;
+                    wasOff.Add(camera);
+                }
+                else if (!off && wasOff.Remove(camera))
+                    data.renderPostProcessing = true;
+            }
+        }
+
+        private readonly System.Collections.Generic.HashSet<Camera> wasOff = new System.Collections.Generic.HashSet<Camera>();
     }
 }

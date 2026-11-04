@@ -139,9 +139,9 @@ namespace SdfBattle
             root.SetParent(transform, false);
             gobModels = Pool(root, "Gobs", assets != null ? assets.blobModels : null, GobPool);
             // Epic and up keep more blood and corpses about (SdfMushrooms.QualityExtras), for the match: the pools are made once
-            splatModels = Pool(root, "Splats", assets != null ? assets.splatModels : null, SplatPool * SdfMushrooms.QualityExtras.GoreAmount);
-            corpses = new CorpseBudget<Corpse>(GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount);
-            ragdolls = new CorpseBudget<SoldierRagdoll>(GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount);
+            splatModels = Pool(root, "Splats", assets != null ? assets.splatModels : null, Mathf.Max(1, Mathf.RoundToInt(SplatPool * SdfMushrooms.QualityExtras.GoreAmount * SdfMushrooms.QualityExtras.GoreShare)));
+            corpses = new CorpseBudget<Corpse>(Mathf.RoundToInt(GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount * SdfMushrooms.QualityExtras.GoreShare));
+            ragdolls = new CorpseBudget<SoldierRagdoll>(Mathf.RoundToInt(GoreRules.MaxCorpses * SdfMushrooms.QualityExtras.GoreAmount * SdfMushrooms.QualityExtras.GoreShare));
             ragdollRoot = new GameObject("Ragdolls").transform;
             ragdollRoot.SetParent(transform, false);
             gobs = new Gob[gobModels?.Length ?? 0];

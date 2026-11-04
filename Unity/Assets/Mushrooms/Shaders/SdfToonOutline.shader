@@ -27,6 +27,9 @@ Shader "SdfMushrooms/Toon Outline"
     #include "SdfScatter.hlsl"
 #include "SdfComic.hlsl"
 
+    // 1 on a phone's lowest quality level (QualityExtras.InkOff): every hull is clipped away, so no fragment is shaded
+    float _SdfInkOff;
+
     CBUFFER_START(UnityPerMaterial)
         float _OutlineWidth;
         float4 _OutlineTone;
@@ -71,6 +74,8 @@ Shader "SdfMushrooms/Toon Outline"
             float pixels = _OutlineWidth * _ScreenSize.y / 1080.0 * lerp(1.0, _SdfComic.z, step(0.5, _SdfComic.x));
             positionCS.xy += normalPixels * rsqrt(length2) * pixels * 2.0 * _ScreenSize.zw * positionCS.w;
         }
+        if (_SdfInkOff > 0.5)
+            positionCS = float4(2, 2, 2, 1);
         output.positionCS = positionCS;
         output.color = input.color.rgb;
         output.normalWS = normalWS;

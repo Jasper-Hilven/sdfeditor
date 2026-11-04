@@ -468,7 +468,7 @@ namespace SdfLevel
         /// <summary>A group's rings for this preset: each ring's fade in (from, to) and fade out (from, to), in metres from the camera.</summary>
         private static Vector4[] Rings(ScatterDrawGroup group, bool low)
         {
-            var scale = low ? group.lowDistance : SdfMushrooms.QualityExtras.FoliageDistance;
+            var scale = low ? group.lowDistance * SdfMushrooms.QualityExtras.FoliageNearing : SdfMushrooms.QualityExtras.FoliageDistance;
             var count = group.rings.Length;
             var result = new Vector4[count];
             var half = group.blend * scale / 2;
@@ -522,7 +522,7 @@ namespace SdfLevel
                     var p = instancePrototypes[i];
                     var g = prototypeGroups[p];
                     var group = groups[g];
-                    if (low && shares[i] >= group.lowDensity)
+                    if (low && shares[i] >= group.lowDensity * SdfMushrooms.QualityExtras.FoliageThinning)
                         continue;
                     var distance = Vector3.Distance(eye, positions[i]);
                     var rings = groupRings[g];
@@ -570,7 +570,7 @@ namespace SdfLevel
                     var group = groups[g];
                     var level = levels[p][Mathf.Min(k, levels[p].Length - 1)];
                     var shadows = k < (low ? group.lowShadowRings : group.shadowRings);
-                    var outlined = k < group.outlineRings && outline != null;
+                    var outlined = k < group.outlineRings && outline != null && !SdfMushrooms.QualityExtras.InkOff;
                     foreach (var part in level.parts)
                     {
                         if (part.mesh == null)
@@ -645,7 +645,7 @@ namespace SdfLevel
                 if (p < 0)
                     continue;
                 var group = groups[prototypeGroups[p]];
-                if ((low ? group.lowShadowRings : group.shadowRings) == 0 || low && shares[i] >= group.lowDensity)
+                if ((low ? group.lowShadowRings : group.shadowRings) == 0 || low && shares[i] >= group.lowDensity * SdfMushrooms.QualityExtras.FoliageThinning)
                     continue;
                 (casting[p] ??= new List<int>()).Add(i);
                 bounds(matrices[i].MultiplyPoint3x4(prototypeCentres[p]), prototypeRadii[p] * Mathf.Abs(scales[i]));

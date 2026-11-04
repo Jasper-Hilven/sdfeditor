@@ -97,7 +97,8 @@ namespace SdfLevel
             // Every frame: other scenes or a domain reload may have changed the globals
             Shader.SetGlobalTexture(MapId, map);
             Shader.SetGlobalMatrix(MatrixId, worldToMap);
-            Shader.SetGlobalVector(ParamsId, new Vector4(1, texel, 0, 0));
+            // Off on the phone's lowest level: the shaders then skip the map's lookups (it is kept, for a climb back up)
+            Shader.SetGlobalVector(ParamsId, SdfMushrooms.QualityExtras.SunShadowOff ? Vector4.zero : new Vector4(1, texel, 0, 0));
         }
 
         /// <summary>The map's texels a side: <see cref="lowResolution"/> on the low preset, else <see cref="resolution"/>, larger on Epic and up
