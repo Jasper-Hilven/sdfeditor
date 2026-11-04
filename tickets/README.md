@@ -95,6 +95,7 @@ section says what is left.
 | 3 | [57 The mobile page: safe areas, CSS, touch-sized menus](57-mobile-page-and-layout.md) | 58 | 56 |
 | 3 | [58 Mobile performance and memory](58-mobile-performance.md) | 57 | 55 |
 | 4 | [59 Initial download under 20 MB](59-mobile-initial-download.md) | — | 55-58 |
+| 5 | [60 Each level's LOD0 streamed after the match starts](60-lod0-streamed-after-start.md) | — | 59 part 1 |
 
 All six: `sonnet` agents, under the rules below.
 
