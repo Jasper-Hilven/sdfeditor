@@ -9,8 +9,8 @@ namespace SdfCampaign
 {
     /// <summary>
     /// The warm-up in the loaded battle scene (ticket 32.7; the Fungal level on a first play since 2026-11-02): the match is not held (it starts at once, the clock running and the bots moving), and the caption box
-    /// shows one prompt at a time ("WASD to walk, mouse to look", "SPACE to jump", walk onto the minigun pod, "Hold the left button to
-    /// fire"), each cleared by doing it (the rules are <see cref="WarmUp"/>'s). A bobbing arrow shows your side's minigun pod. When the last is
+    /// shows one prompt at a time ("WASD to walk, mouse to look", "SPACE to jump", "Hold the left button to fire"; picking up a weapon is
+    /// optional, so there is no pod step), each cleared by doing it (the rules are <see cref="WarmUp"/>'s). When the last is
     /// cleared a tip says what to do. Holding Space or Start for 0.7 s skips it (Escape pauses, as in a
     /// match). Only on a first play: the runner does not start it on a retry, a replay or a later session.
     /// </summary>
@@ -23,8 +23,6 @@ namespace SdfCampaign
         private GuiFlow flow;
         private WarmUp rules;
         private readonly SkipHold skip = new SkipHold();
-        private WeaponPickup pod;
-        private GameObject arrow;
         private int prompt = -1;
         private Vector3 walkFrom;
         private float yawFrom, looked;
@@ -42,22 +40,8 @@ namespace SdfCampaign
             var player = match.gameObject.AddComponent<WarmUpPlayer>();
             player.match = match;
             player.flow = flow;
-            player.pod = FindMinigunPod(match);
-            player.rules = WarmUp.Default(player.pod != null, SdfPlatform.Device.IsTouch);
-            WeaponPickup.PickedUp += player.OnPickedUp;
+            player.rules = WarmUp.Default(SdfPlatform.Device.IsTouch);
             return player;
-        }
-
-        /// <summary>Your side's minigun pod (the west's when you are red, the east's when blue), if the scene has one.</summary>
-        private static WeaponPickup FindMinigunPod(Match match)
-        {
-            var side = match.Arena != null ? match.Arena.Side(BattleSide.SideOf(match.You != null ? match.You.Team : Team.Red)) : null;
-            if (side == null)
-                return null;
-            foreach (var pod in side.WeaponPods)
-                if (pod.weaponId == "minigun")
-                    return pod;
-            return null;
         }
 
         /// <summary>Ends the warm-up where it is (a retry, leaving).</summary>
@@ -70,16 +54,8 @@ namespace SdfCampaign
 
         private void OnDestroy()
         {
-            WeaponPickup.PickedUp -= OnPickedUp;
-            DestroyArrow();
             if (flow != null && flow.Match != null)
                 flow.Match.caption.Clear();
-        }
-
-        private void OnPickedUp(WeaponPickup taken, GameObject who)
-        {
-            if (rules != null && taken.weaponId == "minigun" && match.You != null && who == match.You.gameObject)
-                rules.Report(WarmUpAction.TakeMinigun);
         }
 
         private void Update()
@@ -109,7 +85,6 @@ namespace SdfCampaign
             var view = flow != null ? flow.Match : null;
             if (view != null)
                 view.caption.Set("", rules.Prompt.text, 1, skip.Progress, SdfPlatform.Device.IsTouch ? "" : SkipHint);
-            Arrow();
         }
 
         // What you do, as the rules want to hear it
@@ -145,60 +120,12 @@ namespace SdfCampaign
         private void Finish(bool completed)
         {
             Over = true;
-            DestroyArrow();
             var view = flow != null ? flow.Match : null;
             if (view == null)
                 return;
             // Done or skipped, the tip (no speaker) says what the game is: skipping the prompts must not skip how a point is scored
             view.caption.Set("", WarmUp.Closer, 1, 0, "");
             closing = CloserSeconds;
-        }
-
-        // ---------------------------------------------------------------- The arrow over the minigun pod
-
-        private void Arrow()
-        {
-            var wanted = pod != null && rules.Prompt != null && (rules.Prompt.needs & WarmUpAction.TakeMinigun) != 0;
-            if (!wanted)
-            {
-                DestroyArrow();
-                return;
-            }
-            if (arrow == null)
-                arrow = MakeArrow();
-            var bob = Mathf.Sin(Time.time * 4) * 0.25f;
-            arrow.transform.position = pod.transform.position + Vector3.up * (3.2f + bob);
-            arrow.transform.rotation = Quaternion.Euler(0, Time.time * 90, 0);
-        }
-
-        private void DestroyArrow()
-        {
-            if (arrow != null)
-                Destroy(arrow);
-            arrow = null;
-        }
-
-        // A gold pyramid pointing down, double sided and unlit (a material that is always in a build)
-        private static GameObject MakeArrow()
-        {
-            var go = new GameObject("Minigun Arrow");
-            var mesh = new Mesh { name = "Arrow" };
-            const float r = 0.55f, h = 1.1f, top = 1.1f;
-            var tip = new Vector3(0, 0, 0);
-            var ring = new[]
-            {
-                new Vector3(r, top, 0), new Vector3(0, top, r), new Vector3(-r, top, 0), new Vector3(0, top, -r),
-            };
-            var vertices = new[] { tip, ring[0], ring[1], ring[2], ring[3], new Vector3(0, top + h * 0.2f, 0) };
-            mesh.vertices = vertices;
-            mesh.triangles = new[] { 0, 2, 1, 0, 3, 2, 0, 4, 3, 0, 1, 4, 5, 1, 2, 5, 2, 3, 5, 3, 4, 5, 4, 1 };
-            var colour = new Color(1f, 0.78f, 0.15f);
-            mesh.colors = new[] { colour, colour, colour, colour, colour, colour };
-            mesh.RecalculateNormals();
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            var shader = Shader.Find("Sprites/Default");
-            go.AddComponent<MeshRenderer>().sharedMaterial = shader != null ? new Material(shader) { color = Color.white } : null;
-            return go;
         }
     }
 }

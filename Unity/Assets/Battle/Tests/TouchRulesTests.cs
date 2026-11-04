@@ -61,7 +61,7 @@ namespace SdfBattle.Tests
         {
             var a = new TouchRules.AutoFire();
             var enemy = new object();
-            Run(a, enemy, TouchRules.AutoFireDwell - 0.05f);
+            Run(a, enemy, TouchRules.AutoFireDwell * 0.5f);
             Assert.IsFalse(a.Firing);
             Run(a, enemy, 0.1f);
             Assert.IsTrue(a.Firing);
@@ -83,9 +83,9 @@ namespace SdfBattle.Tests
         {
             var a = new TouchRules.AutoFire();
             var enemy = new object();
-            Run(a, enemy, TouchRules.AutoFireDwell - 0.05f);
+            Run(a, enemy, TouchRules.AutoFireDwell * 0.5f);
             Run(a, enemy, 0.02f, TouchRules.SwipeRate * 2);
-            Run(a, enemy, 0.1f);
+            Run(a, enemy, TouchRules.AutoFireDwell * 0.5f);
             Assert.IsFalse(a.Firing, "the dwell started again");
             Run(a, enemy, TouchRules.AutoFireDwell);
             Assert.IsTrue(a.Firing);
@@ -100,9 +100,9 @@ namespace SdfBattle.Tests
             Run(a, new object(), TouchRules.AutoFireDwell + 0.1f);
             Assert.IsTrue(a.Firing);
             var other = new object();
-            a.Update(other, 0, 0.02f);
+            a.Update(other, 0, 0.005f);
             Assert.IsFalse(a.Firing);
-            Run(a, other, TouchRules.AutoFireDwell - 0.1f);
+            Run(a, other, TouchRules.AutoFireDwell * 0.5f, 0, 0.005f);
             Assert.IsFalse(a.Firing);
             Run(a, other, 0.15f);
             Assert.IsTrue(a.Firing);
@@ -126,9 +126,9 @@ namespace SdfBattle.Tests
         {
             var a = new TouchRules.AutoFire();
             var enemy = new object();
-            Run(a, enemy, 0.2f);
-            Run(a, null, 0.04f);
-            Run(a, enemy, 0.2f);
+            Run(a, enemy, TouchRules.AutoFireDwell * 0.7f);
+            Run(a, null, TouchRules.AutoFireDwell * 0.2f);
+            Run(a, enemy, TouchRules.AutoFireDwell * 0.7f);
             Assert.IsTrue(a.Firing);
         }
     }

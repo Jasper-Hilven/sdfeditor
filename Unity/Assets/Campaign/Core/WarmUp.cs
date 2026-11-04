@@ -51,21 +51,16 @@ namespace SdfCampaign
 
         public WarmUp(IReadOnlyList<WarmUpPrompt> prompts) => this.prompts = prompts;
 
-        /// <summary>The prompts; without a minigun pod on your side to walk onto, only the movement ones.</summary>
-        public static WarmUp Default(bool minigunPod, bool touch = false)
+        /// <summary>
+        /// The prompts: walk and look, jump, fire (with what you hold: the pistol). Picking up a weapon is optional, so the warm-up does not
+        /// send you to a pod (the user, 2026-11-04).
+        /// </summary>
+        public static WarmUp Default(bool touch = false) => new WarmUp(new List<WarmUpPrompt>
         {
-            var list = new List<WarmUpPrompt>
-            {
-                new WarmUpPrompt(touch ? TouchWalkLook : "WASD to walk, mouse to look", WarmUpAction.Walk | WarmUpAction.Look),
-                new WarmUpPrompt(touch ? TouchJump : "SPACE to jump", WarmUpAction.Jump, JumpSeconds),
-            };
-            if (minigunPod)
-            {
-                list.Add(new WarmUpPrompt("Walk onto the MINIGUN pod", WarmUpAction.TakeMinigun));
-                list.Add(new WarmUpPrompt(touch ? TouchFire : "Hold the left button to fire", WarmUpAction.Fire));
-            }
-            return new WarmUp(list);
-        }
+            new WarmUpPrompt(touch ? TouchWalkLook : "WASD to walk, mouse to look", WarmUpAction.Walk | WarmUpAction.Look),
+            new WarmUpPrompt(touch ? TouchJump : "SPACE to jump", WarmUpAction.Jump, JumpSeconds),
+            new WarmUpPrompt(touch ? TouchFire : "Hold the left button to fire", WarmUpAction.Fire),
+        });
 
         public int Index { get; private set; }
 

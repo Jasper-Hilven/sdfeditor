@@ -326,8 +326,9 @@ namespace SdfCampaign.Editor
             yield return Until(() => you.Controller.Jumps > jumps, 3, "the jump");
             trace.Add("jump: a tap on JUMP jumped");
 
+            // The warm-up's last prompt is fire (no pod step: picking up is optional); walking onto the minigun pod with the stick is still checked
+            yield return Until(() => warm.Rules.Prompt != null && warm.Rules.Prompt.text == WarmUp.TouchFire, 5, "the fire prompt");
             // Walk onto the minigun pod: stood a few metres off, facing it, the stick forward
-            yield return Until(() => warm.Rules.Prompt != null && (warm.Rules.Prompt.needs & WarmUpAction.TakeMinigun) != 0, 5, "the pod prompt");
             WeaponPickup pod = null;
             foreach (var p in UnityEngine.Object.FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None))
                 if (p.weaponId == "minigun" && (pod == null || (p.transform.position - you.transform.position).sqrMagnitude < (pod.transform.position - you.transform.position).sqrMagnitude))

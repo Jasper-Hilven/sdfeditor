@@ -56,10 +56,10 @@ namespace SdfBattle
         public const float AutoFireHold = 0.12f;
 
         /// <summary>
-        /// Seconds the crosshair must stay on the same enemy before the auto-fire starts: a swipe across an enemy (a few hundredths of a
-        /// second on it) never fires, a deliberate aim (a third of a second) does, and it still feels responsive.
+        /// Seconds the crosshair must stay on the same enemy before the auto-fire starts. Short (0.3 s felt too hard, the user): what stops
+        /// a swipe from firing is mostly <see cref="SwipeRate"/>, a fast turn resets the dwell; this only asks the aim to rest a moment.
         /// </summary>
-        public const float AutoFireDwell = 0.3f;
+        public const float AutoFireDwell = 0.06f;
 
         /// <summary>
         /// Degrees per second of the finger's turn above which the view is being swiped, not aimed: the dwell restarts and the aim
