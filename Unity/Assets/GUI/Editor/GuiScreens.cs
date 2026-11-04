@@ -22,6 +22,8 @@ namespace SdfGui.Editor
 
         public readonly Dictionary<GuiScreen, GameObject> Screens = new Dictionary<GuiScreen, GameObject>();
         public GameObject TestPanel;
+        /// <summary>The touch controls (ticket 56): a layer over the HUD, not a screen of its own (<see cref="GuiScreenRoot.touchLayer"/>).</summary>
+        public GameObject TouchControls;
 
         public GuiScreens(GuiPrefabs prefabs)
         {
@@ -32,6 +34,7 @@ namespace SdfGui.Editor
         public void Build()
         {
             Screens[GuiScreen.Hud] = Hud();
+            TouchControls = Touch();
             Screens[GuiScreen.Scoreboard] = Scoreboard();
             Screens[GuiScreen.Pause] = Pause();
             Screens[GuiScreen.Settings] = Settings();
@@ -170,6 +173,7 @@ namespace SdfGui.Editor
             var pickup = f.Panel(t, "Pick Up", GuiPalette.WithAlpha(GuiPalette.Night, 0.85f), Bottom, new Vector2(0, 220), new Vector2(520, 76), 20);
             var key = f.Shape(pickup.transform, "Key", ToonShapeKind.Box, GuiPalette.Paper, Left, new Vector2(16, 0), new Vector2(56, 56), s => { s.CornerRadius = 12; s.Outline = 4; s.Shadow = 5; });
             f.FillText(key.transform, "Letter", "E", TextStyle.Label, 36, GuiPalette.Ink);
+            hud.pickupKey = key.gameObject;
             hud.pickupLabel = f.Text(pickup.transform, "Label", "Pick up Minigun", TextStyle.BodyInk, 34, GuiPalette.Cream, Left, new Vector2(92, 0), new Vector2(410, 60), TextAlignmentOptions.Left);
             hud.pickupPrompt = pickup.gameObject;
 
@@ -193,6 +197,119 @@ namespace SdfGui.Editor
 
             // Bottom right: the four weapon slots, the one in hand marked and named
             Weapons(hud);
+            return Save(root);
+        }
+
+        // ---------------------------------------------------------------- Touch controls (ticket 56)
+
+        /// <summary>A touch button's sizes in canvas units (the canvas scales by 450/1080 at 800 x 450: 154 is 64 px, 9 mm on CrazyGames' mobile size).</summary>
+        public const float TouchButtonSize = 154, TouchFireSize = 250, TouchSmallFireSize = 170, TouchStickSize = 384;
+
+        /// <summary>
+        /// The touch controls, a layer over the HUD (<see cref="GuiScreenRoot.touchLayer"/>) shown on a touch device only. The thumbs: left,
+        /// the floating joystick (drawn where the finger lands) with the small fire button and the powers over it; right, the big fire
+        /// button with jump and zoom beside it; along the bottom the four weapon slots; at the top left the pause and the scoreboard.
+        /// Centres are given from the corner they anchor to.
+        /// </summary>
+        private GameObject Touch()
+        {
+            var root = Object("Touch Controls", null);
+            Stretch(root.transform);
+            root.AddComponent<GuiScreenRoot>().touchLayer = true;
+            var layer = root.AddComponent<TouchLayer>();
+            var t = root.transform;
+            var buttons = new List<TouchButton>();
+
+            // The floating joystick: a ring round a faint disc, and the knob; placed by the layer where the thumb lands
+            var stick = f.Shape(t, "Stick Base", ToonShapeKind.Ring, GuiPalette.WithAlpha(GuiPalette.Cream, 0.55f), BottomLeft, Vector2.zero, Vector2.one * TouchStickSize, s =>
+            {
+                s.Thickness = 10;
+                s.Outline = 3;
+                s.Shadow = 0;
+            });
+            stick.rectTransform.pivot = Centre;
+            var disc = f.Shape(stick.transform, "Disc", ToonShapeKind.Pill, GuiPalette.WithAlpha(GuiPalette.Night, 0.3f), Centre, Vector2.zero, Vector2.one * (TouchStickSize - 24), s =>
+            {
+                s.Outline = 0;
+                s.Shadow = 0;
+                s.Shading = 0;
+            });
+            disc.rectTransform.pivot = Centre;
+            var knob = f.Shape(stick.transform, "Knob", ToonShapeKind.Pill, GuiPalette.WithAlpha(GuiPalette.Cream, 0.9f), Centre, Vector2.zero, Vector2.one * 150, s =>
+            {
+                s.Outline = 5;
+                s.Shadow = 6;
+            });
+            knob.rectTransform.pivot = Centre;
+            layer.stickBase = stick.rectTransform;
+            layer.stickKnob = knob.rectTransform;
+            layer.stickRadius = (TouchStickSize - 24) * 0.5f;
+
+            TouchButton Button(string name, TouchButtonKind kind, int index, Vector2 anchor, Vector2 centre, Vector2 size, Color colour, string text, float textSize)
+            {
+                var shape = f.Shape(t, name, ToonShapeKind.Pill, colour, anchor, centre, size, s =>
+                {
+                    s.Outline = 5;
+                    s.Shadow = 8;
+                });
+                shape.rectTransform.pivot = Centre;
+                shape.rectTransform.anchoredPosition = centre;
+                var button = shape.gameObject.AddComponent<TouchButton>();
+                button.kind = kind;
+                button.index = index;
+                button.shape = shape;
+                button.rest = colour;
+                if (!string.IsNullOrEmpty(text))
+                    button.label = f.FillText(shape.transform, "Label", text, TextStyle.Title, textSize, GuiPalette.Cream);
+                buttons.Add(button);
+                return button;
+            }
+
+            // Right thumb: fire under it, jump and zoom beside it
+            Button("Fire", TouchButtonKind.Fire, 0, BottomRight, new Vector2(-200, 330), Vector2.one * TouchFireSize, GuiPalette.Red, "FIRE", 62).shape.Spots = 0.4f;
+            Button("Jump", TouchButtonKind.Jump, 0, BottomRight, new Vector2(-500, 150), Vector2.one * TouchSmallFireSize, GuiPalette.Amber, "JUMP", 40);
+            Button("Zoom", TouchButtonKind.Zoom, 0, BottomRight, new Vector2(-480, 390), Vector2.one * TouchSmallFireSize, GuiPalette.Sky, "ZOOM", 38);
+
+            // Left thumb: a second, smaller fire button over the joystick
+            Button("Fire Left", TouchButtonKind.FireLeft, 0, BottomLeft, new Vector2(150, 600), Vector2.one * TouchSmallFireSize, GuiPalette.RedDark, "FIRE", 40);
+
+            // The powers, over the rage meter (shown when it is full): a box each, in the power's colour
+            var powers = SdfBattle.SporeRules.All;
+            for (var i = 0; i < powers.Length; i++)
+            {
+                var power = Button($"Power {powers[i]}", TouchButtonKind.Power, i, BottomLeft, new Vector2(105 + i * 205, 212), new Vector2(200, TouchButtonSize),
+                    SdfBattle.Spores.ColourOf(powers[i]), "", 0);
+                power.label = f.FillText(power.transform, "Label", SdfBattle.SporeRules.NameOf(powers[i]), TextStyle.Label, 34, GuiPalette.Ink);
+                AutoSize(power.label, 29, 34);
+            }
+
+            // The four weapon slots along the bottom, mirroring the HUD's own slot boxes
+            for (var i = 0; i < SdfBattle.Inventory.SlotCount; i++)
+            {
+                var slot = Button($"Slot {i + 1}", TouchButtonKind.Slot, i, Bottom, new Vector2(-246 + i * 164, 82), Vector2.one * TouchButtonSize,
+                    GuiPalette.WithAlpha(GuiPalette.Night, 0.55f), "", 0);
+                slot.shape.Kind = ToonShapeKind.Box;
+                slot.shape.CornerRadius = 22;
+                slot.icon = f.Icon(slot.transform, "Icon", null, Centre, Vector2.zero, Vector2.zero);
+                Stretch(slot.icon);
+                slot.icon.rectTransform.offsetMin = new Vector2(12, 10);
+                slot.icon.rectTransform.offsetMax = new Vector2(-10, -22);
+                slot.icon.enabled = false;
+                slot.label = f.Text(slot.transform, "Number", (i + 1).ToString(), TextStyle.Label, 34, GuiPalette.Ink, TopLeft, new Vector2(12, -6), new Vector2(80, 44), TextAlignmentOptions.TopLeft);
+            }
+
+            // Top left: pause (two bars) and the scoreboard (held)
+            var pause = Button("Pause", TouchButtonKind.Pause, 0, TopLeft, new Vector2(82, -82), Vector2.one * TouchButtonSize, GuiPalette.Dusk, "", 0);
+            foreach (var x in new[] { -20f, 20f })
+                f.Shape(pause.transform, "Bar", ToonShapeKind.Pill, GuiPalette.Cream, Centre, new Vector2(x, 0), new Vector2(20, 64), s =>
+                {
+                    s.Outline = 3;
+                    s.Shadow = 0;
+                    s.Shading = 0;
+                });
+            Button("Scoreboard", TouchButtonKind.Scoreboard, 0, TopLeft, new Vector2(260, -82), Vector2.one * TouchButtonSize, GuiPalette.Dusk, "SCORE", 36);
+
+            layer.buttons = buttons.ToArray();
             return Save(root);
         }
 
@@ -408,7 +525,7 @@ namespace SdfGui.Editor
             board.rows = Enumerable.Range(0, MatchView.ScoreboardRows)
                 .Select(i => Instance<GuiPlayerRow>(p.PlayerRow, rows.transform, $"Player {i + 1}", Top, new Vector2(0, -i * 60), new Vector2(900, 52)))
                 .ToArray();
-            f.Text(panel, "Hint", "hold TAB", TextStyle.Body, 29, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(300, 38));
+            board.hint = f.Text(panel, "Hint", "hold TAB", TextStyle.Body, 29, GuiPalette.Dusk, Bottom, new Vector2(0, 14), new Vector2(300, 38));
             return Save(root);
         }
 
@@ -440,17 +557,17 @@ namespace SdfGui.Editor
             var t = root.transform;
             Dim(t, GuiPalette.WithAlpha(GuiPalette.Night, 0.75f), -0.3f);
             var menu = root.AddComponent<GuiSettingsMenu>();
-            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -10), new Vector2(980, 1010)).transform;
+            var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -20), new Vector2(980, 1030)).transform;
             p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
 
             var y = -104f;
             Transform Row(string label)
             {
                 var row = Object(label, panel);
-                // Twelve rows close together, so the last stays clear of the back button
-                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 58));
+                // Fourteen rows close together (the last two for touch devices), so the last stays clear of the back button
+                Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 56));
                 f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 56), TextAlignmentOptions.Left);
-                y -= 60;
+                y -= 56;
                 return row.transform;
             }
             // Your head (ticket 47): the cycle in the panel, the turning preview and its caption beside it
@@ -477,6 +594,13 @@ namespace SdfGui.Editor
             menu.showFps.isOn = false;
             menu.dismissQualityHints = Instance<Toggle>(p.Toggle, Row("Disable auto quality adjustment"), "Dismiss Quality Hints", Right, new Vector2(-180, 0));
             menu.dismissQualityHints.isOn = false;
+            // Touch devices only: how far a swipe turns the view, and the auto-fire
+            var touchLookRow = Row("Touch look");
+            menu.touchLook = Instance<Slider>(p.Slider, touchLookRow, "Touch Look", Right, new Vector2(-10, 0));
+            var autoFireRow = Row("Auto-fire");
+            menu.autoFire = Instance<Toggle>(p.Toggle, autoFireRow, "Auto Fire", Right, new Vector2(-180, 0));
+            menu.autoFire.isOn = true;
+            menu.touchRows = new[] { touchLookRow.gameObject, autoFireRow.gameObject };
             p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(0, 36), new Vector2(320, 86), 42, spots: 0);
             return Save(root);
         }

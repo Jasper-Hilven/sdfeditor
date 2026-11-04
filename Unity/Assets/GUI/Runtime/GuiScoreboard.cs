@@ -8,11 +8,14 @@ namespace SdfGui
     public sealed class GuiScoreboard : GuiView
     {
         public TMP_Text subtitle;
+        [Tooltip("\"hold TAB\", or the touch button's words")]
+        public TMP_Text hint;
         public GuiPlayerRow[] rows = new GuiPlayerRow[0];
 
         protected override void Render(MatchView m)
         {
             GuiText.Set(subtitle, $"{m.arena}  ·  {m.goal}  ·  {GuiText.Clock(m.timeLeft)}".ToUpperInvariant());
+            GuiText.Set(hint, TouchWording.Pick("hold TAB", TouchWording.ScoreboardHint));
             var ordered = m.players
                 .OrderBy(p => p.placement == 1 ? 0 : p.alive ? 1 : 2)
                 .ThenByDescending(p => p.alive ? p.kills : -p.placement)

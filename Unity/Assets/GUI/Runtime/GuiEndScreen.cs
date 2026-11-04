@@ -130,7 +130,7 @@ namespace SdfGui
             Label(deaths, "DEATHS");
             Label(time, "TIME");
             if (!victory)
-                GuiText.Set(tip, "TIP  " + (tipText ?? Tips[0]));
+                GuiText.Set(tip, "TIP  " + TouchWording.Tip(tipText ?? Tips[0]));
             RenderNext();
         }
 
@@ -143,7 +143,7 @@ namespace SdfGui
             var change = loop != null ? NextLevelCard.DifficultyLine(loop.DifficultyBefore, loop.Difficulty) : null;
             GuiText.Set(difficultyLine, change ?? "");
             GuiText.Show(difficultyLine, change != null);
-            GuiText.Set(keyHint, $"{GameKeys.Label(KeyPlace.A)} and {GameKeys.Label(KeyPlace.D)} change head");
+            GuiText.Set(keyHint, TouchWording.Touch ? TouchWording.HeadKeys : $"{GameKeys.Label(KeyPlace.A)} and {GameKeys.Label(KeyPlace.D)} change head");
 
             var head = loop != null ? loop.CurrentHead : HeadStandIn.Of("pumpkin") ?? "";
             GuiText.Set(headCaption, HeadStandIn.Label(head));

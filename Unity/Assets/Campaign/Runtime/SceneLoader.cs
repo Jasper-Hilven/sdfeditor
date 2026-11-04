@@ -182,7 +182,7 @@ namespace SdfCampaign
                     result(false);
                     yield break;
                 }
-                loading.Message("DOWNLOAD FAILED - CLICK TO RETRY");
+                loading.Message(TouchWording.Pick("DOWNLOAD FAILED - CLICK TO RETRY", "DOWNLOAD FAILED - TAP TO RETRY"));
                 loading.Set(0, true);
                 while (!PlayerInput.PointerPressed)
                     yield return null;

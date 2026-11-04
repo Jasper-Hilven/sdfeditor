@@ -39,6 +39,8 @@ namespace SdfGui
         public ToonShape[] damageSplats = new ToonShape[0];
         public ToonShape vignette;
         public GameObject pickupPrompt;
+        [Tooltip("The key box of the prompt (E): a touch device has no key to press")]
+        public GameObject pickupKey;
         public TMP_Text pickupLabel;
         public GameObject spectating;
         public TMP_Text spectatingLabel;
@@ -153,6 +155,7 @@ namespace SdfGui
             }
             var offered = aliveYou && !string.IsNullOrEmpty(m.pickup);
             GuiText.Show(pickupPrompt, offered);
+            GuiText.Show(pickupKey, !TouchWording.Touch);
             GuiText.Set(pickupLabel, $"Pick up <color=#{GuiPalette.HexOf(GuiPalette.Gold)}>{m.pickup}</color>");
             // Only while watching someone: the battle's death camera watches nobody, and "spectating the island" says nothing
             var watched = aliveYou ? null : m.Player(m.spectating);
@@ -215,6 +218,9 @@ namespace SdfGui
         private string QualityOffer()
         {
             var level = QualitySettings.GetQualityLevel();
+            // The hint names a key; a touch device has none
+            if (TouchWording.Touch)
+                return null;
             var eligible = level > 0 && GuiQualityRule.UpFps(level - 1) > SdfMushrooms.QualityHintRule.SteadyFps + 5;
             if (!hintRule.Tick(Time.unscaledDeltaTime, level, eligible, upDue))
                 return null;

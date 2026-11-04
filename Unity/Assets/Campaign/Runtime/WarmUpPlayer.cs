@@ -43,7 +43,7 @@ namespace SdfCampaign
             player.match = match;
             player.flow = flow;
             player.pod = FindMinigunPod(match);
-            player.rules = WarmUp.Default(player.pod != null);
+            player.rules = WarmUp.Default(player.pod != null, SdfPlatform.Device.IsTouch);
             WeaponPickup.PickedUp += player.OnPickedUp;
             return player;
         }
@@ -108,7 +108,7 @@ namespace SdfCampaign
             }
             var view = flow != null ? flow.Match : null;
             if (view != null)
-                view.caption.Set("", rules.Prompt.text, 1, skip.Progress, SkipHint);
+                view.caption.Set("", rules.Prompt.text, 1, skip.Progress, SdfPlatform.Device.IsTouch ? "" : SkipHint);
             Arrow();
         }
 

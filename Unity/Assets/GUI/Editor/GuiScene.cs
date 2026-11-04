@@ -85,6 +85,8 @@ namespace SdfGui.Editor
             SampleRound(root.AddComponent<MatchView>());
             var flow = root.AddComponent<GuiFlow>();
             flow.screen = GuiScreen.Hud;
+            // The touch controls' brain (ticket 56): a source of the player input on a touch device, and nothing elsewhere
+            root.AddComponent<TouchControls>();
 
             // Lowest first: the HUD under the screens that show over it
             var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.MatchEnd, GuiScreen.Victory, GuiScreen.Defeat, GuiScreen.Settings,
@@ -94,6 +96,13 @@ namespace SdfGui.Editor
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(screens.Screens[screen], root.transform);
                 Stretch(instance.transform);
                 instance.SetActive(flow.Shows(screen));
+                // The touch layer sits over the HUD, under the screens that show over it
+                if (screen == GuiScreen.Hud)
+                {
+                    var touch = (GameObject)PrefabUtility.InstantiatePrefab(screens.TouchControls, root.transform);
+                    Stretch(touch.transform);
+                    touch.SetActive(flow.TouchShown);
+                }
             }
             var test = (GameObject)PrefabUtility.InstantiatePrefab(screens.TestPanel, root.transform);
             Stretch(test.transform);

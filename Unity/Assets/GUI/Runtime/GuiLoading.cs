@@ -51,7 +51,7 @@ namespace SdfGui
             GuiText.Set(arena, briefing.arena.ToUpperInvariant());
             GuiText.Set(goal, briefing.goal);
             Rosters(briefing.red, briefing.blue);
-            GuiText.Set(tip, "TIP  " + (string.IsNullOrEmpty(briefing.tip) ? Tips[tipCounter++ % Tips.Length] : briefing.tip));
+            GuiText.Set(tip, "TIP  " + TouchWording.Tip(string.IsNullOrEmpty(briefing.tip) ? Tips[tipCounter++ % Tips.Length] : briefing.tip));
             Set(0, false);
         }
 
@@ -69,6 +69,9 @@ namespace SdfGui
             progress?.Set(fraction);
             GuiText.Show(progress, !ready);
             GuiText.Show(clickToPlay, ready);
+            // A touch device taps (a message in its place, like a failed download, keeps its own words)
+            if (ready && clickText == null && clickToPlay != null && TouchWording.Touch)
+                GuiText.Set(clickToPlay, TouchWording.ClickToPlay);
         }
 
         private string clickText;

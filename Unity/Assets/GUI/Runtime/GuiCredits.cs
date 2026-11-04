@@ -21,6 +21,8 @@ namespace SdfGui
 
         private void OnEnable()
         {
+            if (Application.isPlaying && hint != null)
+                GuiText.Set(hint, TouchWording.Pick(hint.text, TouchWording.SkipHint));
             if (!Application.isPlaying)
                 Show(EditorProgress, 0);
         }

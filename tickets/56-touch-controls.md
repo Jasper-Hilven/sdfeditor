@@ -41,4 +41,36 @@ Shown only when `Device.IsTouch`; desktop is unchanged.
 
 ## Status
 
-Not started.
+Done in code, built and checked in batch; left for a human: a try on a real Android phone (CrazyGames preview, or localhost with `?device=mobile`).
+
+- **Layout** (canvas 1920x1080; at 800x450 multiply by 0.4167; buttons are 154 = 64 px): left thumb, a floating joystick on the left half
+  (base 384 = 160 px, rim 180 units; appears where the thumb lands, the base follows the thumb past the rim) with a small fire button
+  (170, 71 px) over it at the left edge and, over the rage meter, the three power buttons (200x154, in the power's colour; shown only
+  when the meter is full, the HUD's key cards are hidden); right thumb, the big FIRE (250 = 104 px) at the lower right, JUMP (170)
+  and ZOOM (170, only with the sniper in hand; a tap zooms in, the next out) to its left; along the bottom centre the four weapon
+  slots (154 each, mirroring the HUD's slot colours and icons, the weapon's name over them); top left PAUSE and SCORE (hold, 154 each),
+  the FPS hint moved under them. Right half, off the buttons: the look. A drag that starts on a fire button looks as well.
+- **Built as** `TouchLayer` (a `GuiView`, `GuiScreenRoot.touchLayer`, shown by `GuiFlow.TouchShown` over the HUD and the scoreboard on a
+  touch device, built by `GuiScreens.Touch()` into `Touch Controls.prefab`), `TouchButton`, and `TouchControls` on the GUI's root: a
+  `PlayerInputSource` fed by Enhanced Touch (a mouse button is one finger when a touch device has no touchscreen, for `?device=mobile`
+  on a desktop and the editor). `TouchControls.Feed` replaces the touchscreen for checks. Each finger keeps the control it started on.
+- **Look**: a full screen-width swipe is 180 degrees at the default "Touch look" (`TouchRules.SwipeDegrees`, slider 0.4x to 2.5x); the
+  controller's own sensitivity (and the sniper zoom's slowing) still multiplies it.
+- **Auto-fire** ("Auto-fire", on by default): `TouchAssist.OnEnemy` is `Combat.Trace` along the aim for the weapon's range; the trigger is
+  held while the first thing hit is an enemy player (body or head) or enemy machine, so a teammate or a wall in front stops it; it
+  holds 0.12 s after the crosshair leaves. Not for the lobbed poison- and blob-guns (their shot is an arc). Fire buttons still work.
+- **Aim assist** (touch only, always on): `TouchAssist.LookScale` slows the look to 50% while an enemy in sight (a trace from the eye to
+  its middle ends on it) is within a circle round the crosshair (0.9 m seen from the eye, clamped to 1.5-10 degrees), back to full at twice
+  that. It never moves the view.
+- **Wording**: warm-up prompts ("Left thumb to walk, right thumb to look", "Tap JUMP", "Hold FIRE, or aim at an enemy"; no skip hint),
+  scoreboard hint, loading tips, "TAP TO PLAY", the end card's "Tap the arrows to change head" (a tap off the buttons skips its
+  countdown; a held touch skips the credits), no "Press H" hint, no E key box on the pick-up prompt (`TouchWording`).
+- **Settings**: "Touch look" and "Auto-fire" rows (shown only on a touch device); the panel's rows are 56 apart (14 rows).
+- **Checks**: new `TouchRulesTests` (EditMode 761 pass, 0 fail); `TouchPlayTest` (`SDF_NO_QUIT=1 tools/unity-batch.sh touchtest
+  -executeMethod SdfCampaign.Editor.TouchPlayTest.Run`): forced touch device and a fake finger feed, a first match with its warm-up: both
+  thumbs at once, jump, the walk onto the pod, fire with a drag, slots, sniper zoom, a power, scoreboard, pause, settings rows,
+  auto-fire (none at the sky or on a teammate or with the setting off; fires on an enemy), the assist's 0.5 scale, the end card's tap
+  skip: 0 errors. Desktop five-match play test: 0 errors. Snapshots (`-snapshotTouch` forces the touch device): `Media/touch-56/`
+  (`Hud-800x450.png`, `Hud-1080x607.png`, `Settings-1080x607.png`).
+- **Uncertain**: Enhanced Touch itself (the real touchscreen) is not exercised in batch, only the fake feed; the layout's thumb reach on a
+  real phone; the touch look's default feel; the touch layer in the snapshot shows the joystick and all powers as a preview.

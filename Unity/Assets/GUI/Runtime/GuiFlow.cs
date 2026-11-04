@@ -370,12 +370,15 @@ namespace SdfGui
                    (screen == GuiScreen.Settings && settingsReturn == GuiScreen.Pause);
         }
 
+        /// <summary>The touch controls show: on a touch device, over the HUD and the scoreboard (the held button stays under the finger), not under a menu or the yes/no card.</summary>
+        public bool TouchShown => SdfPlatform.Device.IsTouch && (screen == GuiScreen.Hud || screen == GuiScreen.Scoreboard) && !ConfirmOpen && !Ending;
+
         private void Apply()
         {
             foreach (var root in GetComponentsInChildren<GuiScreenRoot>(true))
             {
                 // The gallery fills the whole screen and has its own way back, so the test panel leaves it alone
-                var visible = root.alwaysOn ? testPanel && DevTools && screen != GuiScreen.Gallery : Shows(root.screen);
+                var visible = root.touchLayer ? TouchShown : root.alwaysOn ? testPanel && DevTools && screen != GuiScreen.Gallery : Shows(root.screen);
                 if (root.gameObject.activeSelf != visible)
                     root.gameObject.SetActive(visible);
             }

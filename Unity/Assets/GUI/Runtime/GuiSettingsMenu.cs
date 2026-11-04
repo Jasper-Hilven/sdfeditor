@@ -9,7 +9,7 @@ namespace SdfGui
     /// <summary>
     /// The settings: the render quality (the project's quality levels: ultra high, high, integrated GPU / web and ultra low), the gore
     /// level, mouse sensitivity, the master, music and sound volumes,
-    /// screen shake, the FPS counter and disabling the automatic quality adjustment (with its hints). Shows the current values in the editor too.
+    /// screen shake, the touch look and auto-fire (touch devices only), the FPS counter and disabling the automatic quality adjustment (with its hints). Shows the current values in the editor too.
     /// </summary>
     [ExecuteAlways]
     public sealed class GuiSettingsMenu : MonoBehaviour
@@ -32,6 +32,11 @@ namespace SdfGui
         public Toggle screenShake;
         public Toggle showFps;
         public Toggle dismissQualityHints;
+        [Header("Touch devices only (ticket 56)")]
+        public Slider touchLook;
+        public Toggle autoFire;
+        [Tooltip("The rows of the touch settings, shown on a touch device only")]
+        public GameObject[] touchRows = new GameObject[0];
 
         private void Awake()
         {
@@ -50,6 +55,8 @@ namespace SdfGui
             screenShake?.onValueChanged.AddListener(v => GuiSettings.ScreenShake = v);
             showFps?.onValueChanged.AddListener(v => GuiSettings.ShowFps = v);
             dismissQualityHints?.onValueChanged.AddListener(v => GuiSettings.DismissQualityHints = v);
+            touchLook?.onValueChanged.AddListener(v => GuiSettings.TouchLook = v);
+            autoFire?.onValueChanged.AddListener(v => GuiSettings.AutoFire = v);
         }
 
         /// <summary>
@@ -125,6 +132,13 @@ namespace SdfGui
             screenShake?.SetIsOnWithoutNotify(GuiSettings.ScreenShake);
             showFps?.SetIsOnWithoutNotify(GuiSettings.ShowFps);
             dismissQualityHints?.SetIsOnWithoutNotify(GuiSettings.DismissQualityHints);
+            touchLook?.SetValueWithoutNotify(GuiSettings.TouchLook);
+            autoFire?.SetIsOnWithoutNotify(GuiSettings.AutoFire);
+            // The look and the auto-fire mean nothing without a touchscreen
+            var touch = SdfPlatform.Device.IsTouch;
+            foreach (var row in touchRows)
+                if (row != null)
+                    row.SetActive(touch);
         }
     }
 }

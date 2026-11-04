@@ -36,6 +36,11 @@ namespace SdfCampaign
         /// <summary>The first match's loading tip: the same, before the first match.</summary>
         public const string HowToScore = "Grab blue's flag and carry it to your own flag to score.";
 
+        /// <summary>The prompts' words on a touch device (ticket 56).</summary>
+        public const string TouchWalkLook = "Left thumb to walk, right thumb to look";
+        public const string TouchJump = "Tap JUMP";
+        public const string TouchFire = "Hold FIRE, or aim at an enemy";
+
         /// <summary>The jump prompt goes by itself after this long.</summary>
         public const float JumpSeconds = 10;
 
@@ -47,17 +52,17 @@ namespace SdfCampaign
         public WarmUp(IReadOnlyList<WarmUpPrompt> prompts) => this.prompts = prompts;
 
         /// <summary>The prompts; without a minigun pod on your side to walk onto, only the movement ones.</summary>
-        public static WarmUp Default(bool minigunPod)
+        public static WarmUp Default(bool minigunPod, bool touch = false)
         {
             var list = new List<WarmUpPrompt>
             {
-                new WarmUpPrompt("WASD to walk, mouse to look", WarmUpAction.Walk | WarmUpAction.Look),
-                new WarmUpPrompt("SPACE to jump", WarmUpAction.Jump, JumpSeconds),
+                new WarmUpPrompt(touch ? TouchWalkLook : "WASD to walk, mouse to look", WarmUpAction.Walk | WarmUpAction.Look),
+                new WarmUpPrompt(touch ? TouchJump : "SPACE to jump", WarmUpAction.Jump, JumpSeconds),
             };
             if (minigunPod)
             {
                 list.Add(new WarmUpPrompt("Walk onto the MINIGUN pod", WarmUpAction.TakeMinigun));
-                list.Add(new WarmUpPrompt("Hold the left button to fire", WarmUpAction.Fire));
+                list.Add(new WarmUpPrompt(touch ? TouchFire : "Hold the left button to fire", WarmUpAction.Fire));
             }
             return new WarmUp(list);
         }

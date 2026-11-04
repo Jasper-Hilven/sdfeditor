@@ -30,6 +30,20 @@ namespace SdfGui
             set => PlayerPrefs.SetFloat("gui.sensitivity", value);
         }
 
+        /// <summary>How far a swipe turns the view on a touch device, 0 to 1 (ticket 56); the middle is half a turn across the screen (<c>SdfBattle.TouchRules</c>).</summary>
+        public static float TouchLook
+        {
+            get => PlayerPrefs.GetFloat("gui.touchLook", SdfBattle.TouchRules.DefaultLook);
+            set => PlayerPrefs.SetFloat("gui.touchLook", value);
+        }
+
+        /// <summary>Whether the touch controls fire by themselves while the crosshair is on an enemy (on by default).</summary>
+        public static bool AutoFire
+        {
+            get => PlayerPrefs.GetInt("gui.autoFire", 1) == 1;
+            set => PlayerPrefs.SetInt("gui.autoFire", value ? 1 : 0);
+        }
+
         public static float Volume
         {
             get => PlayerPrefs.GetFloat("gui.volume", 0.8f);

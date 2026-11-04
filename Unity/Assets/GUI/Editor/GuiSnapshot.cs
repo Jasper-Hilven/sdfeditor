@@ -41,7 +41,26 @@ namespace SdfGui.Editor
             if (size is { Length: 2 } && int.TryParse(size[0], out var w) && int.TryParse(size[1], out var h))
                 (Width, Height) = (w, h);
             only = Arg("-snapshotScreens")?.Split(',');
-            Shoot(EditorSceneManager.OpenScene(GuiScene.ScenePath, OpenSceneMode.Single), directory);
+            // -snapshotTouch: as on a touch device (the touch controls over the HUD), by the editor's mobile switch put back after
+            var touch = Array.IndexOf(args, "-snapshotTouch") >= 0;
+            var before = EditorPrefs.GetBool(SdfPlatform.Device.EditorMobileKey, false);
+            try
+            {
+                if (touch)
+                {
+                    EditorPrefs.SetBool(SdfPlatform.Device.EditorMobileKey, true);
+                    SdfPlatform.Device.Refresh();
+                }
+                Shoot(EditorSceneManager.OpenScene(GuiScene.ScenePath, OpenSceneMode.Single), directory);
+            }
+            finally
+            {
+                if (touch)
+                {
+                    EditorPrefs.SetBool(SdfPlatform.Device.EditorMobileKey, before);
+                    SdfPlatform.Device.Refresh();
+                }
+            }
         }
 
         [MenuItem("Tools/SDF GUI/Save Snapshots")]
