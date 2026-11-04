@@ -2,16 +2,16 @@ using NUnit.Framework;
 
 namespace SdfMushrooms.Tests
 {
-    /// <summary>What a touch device gets in quality (ticket 58): the lowest level to start, the cuts only there and only on touch, a capped render target.</summary>
+    /// <summary>What a touch device gets in quality (ticket 58): it starts one above the lowest level, the cuts only on the lowest and only on touch, a capped render target.</summary>
     public sealed class MobileQualityRuleTests
     {
         private static readonly string[] Names = { "Ultra Epic", "Epic", "Ultra High", "High", "Integrated GPU / Web", "Ultra Low" };
 
         [Test]
-        public void StartsOnTheLowestLevel() => Assert.AreEqual(Names.Length - 1, MobileQualityRule.StartIndex(Names));
+        public void StartsOneAboveTheLowestLevel() => Assert.AreEqual(Names.Length - 2, MobileQualityRule.StartIndex(Names));
 
         [Test]
-        public void CutsOnlyOnTouchOnTheStartLevel()
+        public void CutsOnlyOnTouchOnTheLowestLevel()
         {
             Assert.IsTrue(MobileQualityRule.Cuts(true, "Ultra Low"));
             Assert.IsFalse(MobileQualityRule.Cuts(false, "Ultra Low"), "desktop is unchanged");
