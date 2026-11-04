@@ -55,6 +55,72 @@ namespace SdfBattle
         /// <summary>Seconds the auto-fire holds the trigger after the crosshair leaves the enemy (so a wobble on its edge does not stutter the minigun's spin-up).</summary>
         public const float AutoFireHold = 0.12f;
 
+        /// <summary>
+        /// Seconds the crosshair must stay on the same enemy before the auto-fire starts: a swipe across an enemy (a few hundredths of a
+        /// second on it) never fires, a deliberate aim (a third of a second) does, and it still feels responsive.
+        /// </summary>
+        public const float AutoFireDwell = 0.3f;
+
+        /// <summary>
+        /// Degrees per second of the finger's turn above which the view is being swiped, not aimed: the dwell restarts and the aim
+        /// assist does not slow the look. A swipe across a quarter of the screen in a fifth of a second is about 225; settling the
+        /// crosshair on a target is well under 90.
+        /// </summary>
+        public const float SwipeRate = 90f;
+
+        /// <summary>
+        /// The auto-fire's trigger (ticket 56): fires only after the crosshair has stayed on the same enemy for <see cref="AutoFireDwell"/>
+        /// without a swipe, then keeps <see cref="AutoFireHold"/> after the crosshair leaves. A different enemy restarts the dwell.
+        /// </summary>
+        public sealed class AutoFire
+        {
+            private object target;
+            private float dwell, hold;
+
+            /// <summary>The trigger is held.</summary>
+            public bool Firing => hold > 0;
+
+            public void Reset()
+            {
+                target = null;
+                dwell = 0;
+                hold = 0;
+            }
+
+            /// <summary>One frame: the enemy under the crosshair (null for none), the turn rate in degrees per second, and the frame's time.</summary>
+            public void Update(object enemy, float turnRate, float dt)
+            {
+                if (turnRate > SwipeRate)
+                {
+                    // A swipe: no dwell, no new fire; a shot already going stops with the hold
+                    target = null;
+                    dwell = 0;
+                    hold = 0;
+                    return;
+                }
+                if (enemy == null)
+                {
+                    // Off the target: the dwell is kept as long as the hold is, so a wobble on its edge does not restart it
+                    hold = Math.Max(0, hold - dt);
+                    dwell = Math.Max(0, dwell - dt);
+                    if (dwell <= 0)
+                        target = null;
+                    return;
+                }
+                if (!ReferenceEquals(enemy, target))
+                {
+                    target = enemy;
+                    dwell = 0;
+                    hold = 0;
+                }
+                dwell += dt;
+                if (dwell >= AutoFireDwell)
+                    hold = AutoFireHold;
+                else
+                    hold = Math.Max(0, hold - dt);
+            }
+        }
+
         private static float Clamp01(float x) => x < 0 ? 0 : x > 1 ? 1 : x;
     }
 }

@@ -474,8 +474,39 @@ namespace SdfCampaign.Editor
             trace.Add($"auto-fire: none at the sky or on a teammate ({checkedFrames} frames checked)");
             // On an enemy: it fires, and the look slows
             Expect(Face(you, enemy, 14), "a clear view of an enemy");
+            // A quick swipe across the enemy (the finger sweeps 400 degrees a second through it): no shot, and no slowing of the swipe
+            {
+                AimAt(you, Chest(enemy));
+                var enemyYaw = you.Controller.Yaw;
+                var pitch = you.Controller.Pitch;
+                you.Controller.SetAim(enemyYaw - 25, pitch);
+                yield return Frames(2);
+                var swipeFrom = FreePoint(false);
+                fingers[2] = swipeFrom;
+                yield return Frames(2);
+                var swipeStart = Time.realtimeSinceStartup;
+                var swipeFired = false;
+                var swipeSlowed = false;
+                while (Mathf.DeltaAngle(enemyYaw, you.Controller.Yaw) < 25 && Time.realtimeSinceStartup - swipeStart < 3)
+                {
+                    var degrees = (Time.realtimeSinceStartup - swipeStart) * 400;
+                    fingers[2] = swipeFrom + Vector2.right * (degrees / 180 * Screen.width);
+                    yield return null;
+                    swipeFired |= Controls.AutoFiring;
+                    swipeSlowed |= Controls.LookScale < 0.99f;
+                }
+                fingers.Remove(2);
+                yield return Frames(2);
+                trace.Add($"swipe across an enemy: fired {swipeFired}, slowed {swipeSlowed}");
+                Expect(Mathf.DeltaAngle(enemyYaw, you.Controller.Yaw) >= 25, "the swipe went across the enemy");
+                Expect(!swipeFired, "a quick swipe across an enemy fires no shot");
+                Expect(!swipeSlowed, "the aim assist does not slow a quick swipe");
+                yield return For(0.3f);
+            }
             var fired = false;
             var slowed = 1f;
+            var onSince = -1f;
+            var dwelled = 0f;
             var until = Time.realtimeSinceStartup + 6;
             while (Time.realtimeSinceStartup < until && !(fired && slowed < 1))
             {
@@ -486,11 +517,16 @@ namespace SdfCampaign.Editor
                 var hit = combat.Trace(arsenal.EyePosition, arsenal.AimDirection, 100, you);
                 if (hit.hit && hit.player == enemy)
                 {
+                    if (onSince < 0)
+                        onSince = Time.realtimeSinceStartup;
+                    if (!fired && Controls.AutoFiring)
+                        dwelled = Time.realtimeSinceStartup - onSince;
                     fired |= Controls.AutoFiring;
                     slowed = Mathf.Min(slowed, Controls.LookScale);
                 }
             }
-            trace.Add($"auto-fire on an enemy: fired {fired}, look scale {slowed:0.00}");
+            trace.Add($"auto-fire on an enemy: fired {fired} after {dwelled:0.00} s, look scale {slowed:0.00}");
+            Expect(!fired || dwelled >= TouchRules.AutoFireDwell * 0.7f, $"holding on an enemy fires only after the dwell ({dwelled} s)");
             Expect(fired || !enemy.State.Alive || !you.State.Alive, "the auto-fire fires with the crosshair on an enemy");
             Expect(slowed <= TouchRules.AssistSlowest + 0.05f || !enemy.State.Alive || !you.State.Alive, $"the aim assist slows the look on an enemy ({slowed})");
             // The setting off: no auto-fire on an enemy

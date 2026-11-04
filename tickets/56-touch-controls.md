@@ -74,3 +74,12 @@ Done in code, built and checked in batch; left for a human: a try on a real Andr
   (`Hud-800x450.png`, `Hud-1080x607.png`, `Settings-1080x607.png`).
 - **Uncertain**: Enhanced Touch itself (the real touchscreen) is not exercised in batch, only the fake feed; the layout's thumb reach on a
   real phone; the touch look's default feel; the touch layer in the snapshot shows the joystick and all powers as a preview.
+- **Auto-fire dwell**: the auto-fire no longer fires the moment the crosshair crosses an enemy. `TouchRules.AutoFire` starts the trigger
+  only after the crosshair has stayed on the same enemy for `AutoFireDwell` (0.3 s); a different enemy restarts the dwell; the 0.12 s hold
+  after leaving stays (the dwell also survives a gap that short). While the finger turns the view faster than `SwipeRate` (90 degrees per
+  second, measured from the finger's own input before the assist scales it) the dwell resets, nothing starts and a shot going stops, and
+  the aim assist's slowdown is not applied either (so a swipe is never turned into a lock-on). The trace is the bullet's own along the
+  aim (`TouchAssist.EnemyUnder`); there was no head bias (the assist aims at the chest and the auto-fire only asks whether the crosshair
+  is on an enemy), so nothing was removed. The fire buttons and the desktop are unchanged. Tests: `TouchRulesTests` (dwell, swipe,
+  target change, hold, wobble) and `TouchPlayTest` (a 400 degrees per second swipe through an enemy fires nothing and is not slowed;
+  holding on it fires after ~0.3 s).

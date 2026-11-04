@@ -69,7 +69,8 @@ namespace SdfGui
         private readonly bool[] powers = new bool[3];
         private int stickFinger = -1;
         private Vector2 stickBase;
-        private float autoFireLeft, lookScale = 1;
+        private readonly TouchRules.AutoFire autoFire = new TouchRules.AutoFire();
+        private float lookScale = 1;
 
         public TouchControls() => source = new Source(this);
 
@@ -77,7 +78,7 @@ namespace SdfGui
         public Vector2 Move => move;
 
         /// <summary>The auto-fire has the trigger (a check reads it).</summary>
-        public bool AutoFiring => autoFireLeft > 0;
+        public bool AutoFiring => autoFire.Firing;
 
         /// <summary>The share of the look the aim assist leaves (1: none).</summary>
         public float LookScale => lookScale;
@@ -332,7 +333,7 @@ namespace SdfGui
                     Lift(id);
             }
             fire = 0;
-            autoFireLeft = 0;
+            autoFire.Reset();
             lookScale = 1;
             scoreboard = false;
             move = Vector2.zero;
@@ -372,15 +373,16 @@ namespace SdfGui
             var combat = Combat.Current;
             var you = combat != null && combat.Match != null ? combat.Match.You : null;
             var arsenal = you != null ? combat.ArsenalOf(you) : null;
-            lookScale = arsenal != null ? TouchAssist.LookScale(combat, arsenal) : 1;
+            // The finger's own turn rate (before the assist scales it), so the assist cannot lower it under the swipe threshold
+            var width = Mathf.Max(1, Screen.width);
+            var turned = new Vector2(TouchRules.SwipeDegrees(look.x, width, GuiSettings.TouchLook), TouchRules.SwipeDegrees(look.y, width, GuiSettings.TouchLook)).magnitude;
+            var rate = dt > 0 ? turned / dt : 0;
+            // A swipe is not an aim: no slowdown (so no lock-on), and the auto-fire waits for the crosshair to settle on an enemy
+            lookScale = arsenal != null && rate <= TouchRules.SwipeRate ? TouchAssist.LookScale(combat, arsenal) : 1;
             if (arsenal == null || !GuiSettings.AutoFire)
-            {
-                autoFireLeft = 0;
-            }
-            else if (TouchAssist.OnEnemy(combat, arsenal))
-                autoFireLeft = TouchRules.AutoFireHold;
+                autoFire.Reset();
             else
-                autoFireLeft = Mathf.Max(0, autoFireLeft - dt);
+                autoFire.Update(TouchAssist.EnemyUnder(combat, arsenal), rate, dt);
             // The zoom is the sniper's: another weapon in hand zooms out
             if (zoomOn && (arsenal == null || arsenal.Weapon == null || arsenal.Weapon.zoomFieldOfView <= 0))
                 zoomOn = false;
@@ -409,7 +411,7 @@ namespace SdfGui
                 }
             }
 
-            public override bool FireHeld => c.fire > 0 || c.autoFireLeft > 0;
+            public override bool FireHeld => c.fire > 0 || c.autoFire.Firing;
             public override bool ZoomHeld => c.zoomOn;
             public override bool JumpPressed => c.jump;
             public override bool SlotPressed(int number) => number >= 1 && number <= c.slots.Length && c.slots[number - 1];

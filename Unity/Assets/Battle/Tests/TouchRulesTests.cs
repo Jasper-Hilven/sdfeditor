@@ -49,5 +49,87 @@ namespace SdfBattle.Tests
             Assert.Greater(mid, TouchRules.AssistSlowest);
             Assert.Less(mid, 1f);
         }
+
+        private static void Run(TouchRules.AutoFire a, object enemy, float seconds, float rate = 0, float dt = 0.02f)
+        {
+            for (var t = 0f; t < seconds - 1e-4f; t += dt)
+                a.Update(enemy, rate, dt);
+        }
+
+        [Test]
+        public void AutoFireWaitsForTheDwellThenFires()
+        {
+            var a = new TouchRules.AutoFire();
+            var enemy = new object();
+            Run(a, enemy, TouchRules.AutoFireDwell - 0.05f);
+            Assert.IsFalse(a.Firing);
+            Run(a, enemy, 0.1f);
+            Assert.IsTrue(a.Firing);
+        }
+
+        [Test]
+        public void ASwipeAcrossAnEnemyNeverFires()
+        {
+            var a = new TouchRules.AutoFire();
+            var enemy = new object();
+            Run(a, enemy, 0.1f, TouchRules.SwipeRate * 3);
+            Assert.IsFalse(a.Firing);
+            Run(a, enemy, 0.2f, TouchRules.SwipeRate * 3);
+            Assert.IsFalse(a.Firing);
+        }
+
+        [Test]
+        public void AFastTurnResetsTheDwellAndStopsAShotInProgress()
+        {
+            var a = new TouchRules.AutoFire();
+            var enemy = new object();
+            Run(a, enemy, TouchRules.AutoFireDwell - 0.05f);
+            Run(a, enemy, 0.02f, TouchRules.SwipeRate * 2);
+            Run(a, enemy, 0.1f);
+            Assert.IsFalse(a.Firing, "the dwell started again");
+            Run(a, enemy, TouchRules.AutoFireDwell);
+            Assert.IsTrue(a.Firing);
+            a.Update(enemy, TouchRules.SwipeRate * 2, 0.02f);
+            Assert.IsFalse(a.Firing);
+        }
+
+        [Test]
+        public void ANewEnemyRestartsTheDwell()
+        {
+            var a = new TouchRules.AutoFire();
+            Run(a, new object(), TouchRules.AutoFireDwell + 0.1f);
+            Assert.IsTrue(a.Firing);
+            var other = new object();
+            a.Update(other, 0, 0.02f);
+            Assert.IsFalse(a.Firing);
+            Run(a, other, TouchRules.AutoFireDwell - 0.1f);
+            Assert.IsFalse(a.Firing);
+            Run(a, other, 0.15f);
+            Assert.IsTrue(a.Firing);
+        }
+
+        [Test]
+        public void AutoFireHoldsAfterTheCrosshairLeavesThenStops()
+        {
+            var a = new TouchRules.AutoFire();
+            var enemy = new object();
+            Run(a, enemy, TouchRules.AutoFireDwell + 0.05f);
+            Assert.IsTrue(a.Firing);
+            Run(a, null, TouchRules.AutoFireHold - 0.05f);
+            Assert.IsTrue(a.Firing);
+            Run(a, null, 0.1f);
+            Assert.IsFalse(a.Firing);
+        }
+
+        [Test]
+        public void AWobbleOffTheEdgeDoesNotRestartTheDwell()
+        {
+            var a = new TouchRules.AutoFire();
+            var enemy = new object();
+            Run(a, enemy, 0.2f);
+            Run(a, null, 0.04f);
+            Run(a, enemy, 0.2f);
+            Assert.IsTrue(a.Firing);
+        }
     }
 }

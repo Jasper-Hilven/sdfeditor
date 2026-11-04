@@ -18,20 +18,26 @@ namespace SdfBattle
         /// in front of it: a teammate or a wall in the way ends the trace on that. The lobbed weapons are left to the player (their
         /// shot is an arc, not the line the crosshair draws).
         /// </summary>
-        public static bool OnEnemy(Combat combat, Arsenal arsenal)
+        public static bool OnEnemy(Combat combat, Arsenal arsenal) => EnemyUnder(combat, arsenal) != null;
+
+        /// <summary>
+        /// The enemy (a player or a machine) under the crosshair as <see cref="OnEnemy"/> sees it, else null. The trace is the one a bullet
+        /// takes, along the aim: head and body count alike, nothing is snapped to the head.
+        /// </summary>
+        public static object EnemyUnder(Combat combat, Arsenal arsenal)
         {
             var stats = arsenal != null ? arsenal.Weapon : null;
             var you = arsenal != null ? arsenal.Player : null;
             if (combat == null || stats == null || you == null || you.State == null || !you.State.Alive)
-                return false;
+                return null;
             if (stats.mode == FireMode.Cloud || stats.mode == FireMode.Blob)
-                return false;
+                return null;
             var hit = combat.Trace(arsenal.EyePosition, arsenal.AimDirection, stats.range, you);
             if (!hit.hit)
-                return false;
+                return null;
             if (hit.player != null)
-                return hit.player.Team != you.Team && hit.player.State != null && hit.player.State.Alive;
-            return hit.target != null && hit.target.Alive && hit.target.Team != you.Team;
+                return hit.player.Team != you.Team && hit.player.State != null && hit.player.State.Alive ? hit.player : null;
+            return hit.target != null && hit.target.Alive && hit.target.Team != you.Team ? hit.target : null;
         }
 
         /// <summary>
