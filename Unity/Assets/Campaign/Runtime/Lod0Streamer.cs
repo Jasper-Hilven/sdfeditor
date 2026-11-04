@@ -184,6 +184,17 @@ namespace SdfCampaign
 
         private static IEnumerator Sequence(string level, int id)
         {
+            // CrazyGames counts the initial download up to the first gameplayStart: nothing streams before it has gone (the HUD shows a
+            // frame or so earlier), and a second more lets the browser's count close. Off the portal (no SDK) there is nothing to wait for.
+            var waitUntil = Time.realtimeSinceStartup + 5;
+            while (WebPortal.Active && WebPortal.GameplayStarts == 0 && Time.realtimeSinceStartup < waitUntil)
+                yield return null;
+            if (WebPortal.Active)
+            {
+                var settle = Time.realtimeSinceStartup + 1;
+                while (Time.realtimeSinceStartup < settle)
+                    yield return null;
+            }
             if (CommonEnabled && !CommonDone)
             {
                 // The common meshes come first: they are on screen in every match

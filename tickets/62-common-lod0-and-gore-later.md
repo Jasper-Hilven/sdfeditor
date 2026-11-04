@@ -112,3 +112,10 @@ The player grew 0.03 MiB by the new code.) All bundles: 41.0 MiB in 38 files. Af
   electronic levels have no skybox material and Fungal/Meadow's is its own, so the cubemap copy is about 0.13 MiB a level: not worth changing a scene's reflection source blind.
 - A touch phone still downloads the common and level LOD0 bundles (`Lod0Streamer.SkipOnTouch` is the one switch). The first play is 19.04 MB for every device; the player is 13.83 MiB of it (the wasm is 7.05).
 - Margin to 20 MB is 0.96 MB; the next savings would be URP's film grain textures (2.5 MB uncompressed, ticket 58's file) or the wasm.
+
+**Lead's follow-up (timing).** The streamed downloads began when the HUD showed, a frame or so before the SDK's `gameplayStart`, so on a fast
+connection 2.3 MB of `common-lod0` arrived before it (21.37 MB counted at the SDK's line). And the next level's prefetch started 8 s after the
+scene went live, which can be while the first Loading card still waits for its click. Now `WebPortal.GameplayStarts` counts the starts sent;
+`Lod0Streamer` waits for the first one (at most 5 s) plus 1 s, and `ContentStreamer`'s prefetch waits for it too (only with the SDK up).
+Headless count (Fungal first play, card clicked after about 8 s): **19,071,759 bytes before the first `gameplayStart`** (19.07 MB, 18.19 MiB);
+`common-lod0` fetched 1.0 s after it; nothing else in between. EditMode 780 pass; desktop play test 0 errors; CrazyGames build passes.

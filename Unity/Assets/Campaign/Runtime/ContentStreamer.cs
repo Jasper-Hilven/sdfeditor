@@ -261,6 +261,10 @@ namespace SdfCampaign
             var until = Time.realtimeSinceStartup + PrefetchDelay;
             while (Time.realtimeSinceStartup < until)
                 yield return null;
+            // Nothing ahead of the first gameplayStart: CrazyGames counts the initial download up to it, and the first Loading card
+            // waits for a click, so the next level would otherwise download while the card is up
+            while (SdfPlatform.WebPortal.Active && SdfPlatform.WebPortal.GameplayStarts == 0)
+                yield return null;
             while (prefetchQueue.Count > 0)
             {
                 while (HoldPrefetch)

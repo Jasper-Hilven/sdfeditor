@@ -21,6 +21,12 @@ namespace SdfPlatform
         /// <summary>The SDK is initialised and usable.</summary>
         public static bool Active { get; private set; }
 
+        /// <summary>
+        /// How many gameplayStart events were sent this session. The downloads that wait for the start (ticket 60/62's LOD0, gore pieces,
+        /// music layers) wait for this to go up, because CrazyGames counts the initial download up to the first gameplayStart.
+        /// </summary>
+        public static int GameplayStarts { get; private set; }
+
         /// <summary>A midgame ad is being requested or shown; the game's UI must not act meanwhile.</summary>
         public static bool AdPlaying { get; private set; }
 
@@ -149,7 +155,10 @@ namespace SdfPlatform
             try
             {
                 if (change == GameplayChange.Start)
+                {
                     CrazySDK.Game.GameplayStart();
+                    GameplayStarts++;
+                }
                 else
                     CrazySDK.Game.GameplayStop();
             }
