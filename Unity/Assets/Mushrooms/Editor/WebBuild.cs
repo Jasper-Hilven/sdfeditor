@@ -55,6 +55,9 @@ namespace SdfMushrooms.Editor
             PlayerSettings.SetGraphicsAPIs(BuildTarget.WebGL, new[] { GraphicsDeviceType.OpenGLES3 });
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
             PlayerSettings.WebGL.decompressionFallback = !crazyGames;
+            // No Unity splash screen and no Unity logo (ticket 59), also if someone turns them back on in the settings window
+            PlayerSettings.SplashScreen.show = false;
+            PlayerSettings.SplashScreen.showUnityLogo = false;
             // No .unityweb files of an earlier build with the fallback left in the upload
             var built = Path.Combine(OutputFolder, "Build");
             if (crazyGames && Directory.Exists(built))
