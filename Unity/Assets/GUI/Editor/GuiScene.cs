@@ -87,6 +87,8 @@ namespace SdfGui.Editor
             flow.screen = GuiScreen.Hud;
             // The touch controls' brain (ticket 56): a source of the player input on a touch device, and nothing elsewhere
             root.AddComponent<TouchControls>();
+            // Keeps every screen inside the device's safe area, on a touch device (ticket 57)
+            root.AddComponent<GuiSafeArea>();
 
             // Lowest first: the HUD under the screens that show over it
             var order = new[] { GuiScreen.Hud, GuiScreen.Scoreboard, GuiScreen.Pause, GuiScreen.Death, GuiScreen.MatchEnd, GuiScreen.Victory, GuiScreen.Defeat, GuiScreen.Settings,

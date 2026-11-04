@@ -62,6 +62,27 @@ namespace SdfGui.Editor
             return root;
         }
 
+        // ---------------------------------------------------------------- Touch layouts (ticket 57)
+
+        /// <summary>A thumb-sized button in the 1920 x 1080 layout: 64 px at 800 x 450.</summary>
+        private const float Thumb = GuiTouchLayout.ThumbHeight;
+
+        private static GuiTouchLayout.Entry ForTouch(Component target, Vector2? position = null, Vector2? size = null, float scale = 0, bool hide = false) =>
+            new GuiTouchLayout.Entry
+            {
+                target = (RectTransform)target.transform,
+                hide = hide,
+                move = position.HasValue,
+                position = position ?? default,
+                resize = size.HasValue,
+                size = size ?? default,
+                scale = scale,
+            };
+
+        /// <summary>How the screen looks on a touch device: the entries are applied while one is in use (<see cref="GuiTouchLayout"/>).</summary>
+        private static void TouchLayout(GameObject root, IEnumerable<GuiTouchLayout.Entry> entries) =>
+            root.AddComponent<GuiTouchLayout>().entries = entries.ToArray();
+
         private static GameObject Save(GameObject root) => GuiFactory.Save(root, $"{Folder}/{root.name}.prefab");
 
         private ToonShape Dim(Transform parent, Color color, float start = 0.05f)
@@ -85,8 +106,15 @@ namespace SdfGui.Editor
             view.question = f.Text(panel, "Question", "Leave the match?\nThe campaign is saved at the start of this arena.", TextStyle.Body, 40, GuiPalette.Ink, Top, new Vector2(0, -50),
                 new Vector2(720, 170));
             view.question.textWrappingMode = TextWrappingModes.Normal;
-            p.ButtonInstance(panel, "YES", GuiPalette.Moss, GuiCommandId.Confirm, Bottom, new Vector2(-170, 36), new Vector2(280, 90), 46, spots: 0.5f);
-            p.ButtonInstance(panel, "NO", GuiPalette.Dusk, GuiCommandId.Cancel, Bottom, new Vector2(170, 36), new Vector2(280, 90), 46, spots: 0);
+            var yes = p.ButtonInstance(panel, "YES", GuiPalette.Moss, GuiCommandId.Confirm, Bottom, new Vector2(-170, 36), new Vector2(280, 90), 46, spots: 0.5f);
+            var no = p.ButtonInstance(panel, "NO", GuiPalette.Dusk, GuiCommandId.Cancel, Bottom, new Vector2(170, 36), new Vector2(280, 90), 46, spots: 0);
+            TouchLayout(root, new[]
+            {
+                ForTouch(panel, size: new Vector2(920, 540)),
+                ForTouch(view.question, size: new Vector2(840, 210)),
+                ForTouch(yes, new Vector2(-220, 40), new Vector2(380, Thumb)),
+                ForTouch(no, new Vector2(220, 40), new Vector2(380, Thumb)),
+            });
             return Save(root);
         }
 
@@ -203,12 +231,12 @@ namespace SdfGui.Editor
         // ---------------------------------------------------------------- Touch controls (ticket 56)
 
         /// <summary>A touch button's sizes in canvas units (the canvas scales by 450/1080 at 800 x 450: 154 is 64 px, 9 mm on CrazyGames' mobile size).</summary>
-        public const float TouchButtonSize = 154, TouchFireSize = 250, TouchSmallFireSize = 170, TouchStickSize = 384;
+        public const float TouchButtonSize = 154, TouchFireSize = 250, TouchSmallFireSize = 170, TouchStickSize = 384, TouchPowerY = 575;
 
         /// <summary>
         /// The touch controls, a layer over the HUD (<see cref="GuiScreenRoot.touchLayer"/>) shown on a touch device only. The thumbs: left,
-        /// the floating joystick (drawn where the finger lands) with the small fire button and the powers over it; right, the big fire
-        /// button with jump and zoom beside it; along the bottom the four weapon slots; at the top left the pause and the scoreboard.
+        /// the floating joystick (drawn where the finger lands) with the small fire button over it; right, the big fire
+        /// button with jump and zoom beside it and the three powers in a row above them; along the bottom the four weapon slots; at the top left the pause and the scoreboard.
         /// Centres are given from the corner they anchor to.
         /// </summary>
         private GameObject Touch()
@@ -273,11 +301,13 @@ namespace SdfGui.Editor
             // Left thumb: a second, smaller fire button over the joystick
             Button("Fire Left", TouchButtonKind.FireLeft, 0, BottomLeft, new Vector2(150, 600), Vector2.one * TouchSmallFireSize, GuiPalette.RedDark, "FIRE", 40);
 
-            // The powers, over the rage meter (shown when it is full): a box each, in the power's colour
+            // The powers (shown when the rage meter is full): a box each, in the power's colour, in a row above the right thumb's buttons.
+            // Not over the rage meter at the lower left: that is the joystick's ground, and a thumb landing there must not fire a power
+            // (ticket 57); not under the kill feed at the top right either.
             var powers = SdfBattle.SporeRules.All;
             for (var i = 0; i < powers.Length; i++)
             {
-                var power = Button($"Power {powers[i]}", TouchButtonKind.Power, i, BottomLeft, new Vector2(105 + i * 205, 212), new Vector2(200, TouchButtonSize),
+                var power = Button($"Power {powers[i]}", TouchButtonKind.Power, i, BottomRight, new Vector2(-(105 + (powers.Length - 1 - i) * 205), TouchPowerY), new Vector2(200, TouchButtonSize),
                     SdfBattle.Spores.ColourOf(powers[i]), "", 0);
                 power.label = f.FillText(power.transform, "Label", SdfBattle.SporeRules.NameOf(powers[i]), TextStyle.Label, 34, GuiPalette.Ink);
                 AutoSize(power.label, 29, 34);
@@ -539,15 +569,25 @@ namespace SdfGui.Editor
             // The match stops while this is up (GuiFlow)
             var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, 0), new Vector2(620, 640)).transform;
             p.BannerInstance(panel, "Header", "PAUSED", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(420, 100), 54);
-            p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -90), new Vector2(420, 96), 46, spots: 0.5f);
+            var resume = p.ButtonInstance(panel, "RESUME", GuiPalette.Moss, GuiCommandId.Resume, Top, new Vector2(0, -90), new Vector2(420, 96), 46, spots: 0.5f);
             // The two that throw the match away ask first
-            p.ButtonInstance(panel, "RESTART", GuiPalette.Red, GuiCommandId.Restart, Top, new Vector2(0, -210), new Vector2(420, 86), 40, spots: 0.4f)
-                .GetComponent<GuiCommand>().confirm = "Restart this match?";
-            p.ButtonInstance(panel, "SETTINGS", GuiPalette.Amber, GuiCommandId.Show, Top, new Vector2(0, -312), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
+            var restart = p.ButtonInstance(panel, "RESTART", GuiPalette.Red, GuiCommandId.Restart, Top, new Vector2(0, -210), new Vector2(420, 86), 40, spots: 0.4f);
+            restart.GetComponent<GuiCommand>().confirm = "Restart this match?";
+            var settings = p.ButtonInstance(panel, "SETTINGS", GuiPalette.Amber, GuiCommandId.Show, Top, new Vector2(0, -312), new Vector2(420, 86), 40, GuiScreen.Settings, 0.4f);
             // The credits roll over the paused match and come back here (ticket 42)
-            p.ButtonInstance(panel, "CREDITS", GuiPalette.Moss, GuiCommandId.Credits, Top, new Vector2(0, -414), new Vector2(420, 86), 40, spots: 0.3f);
-            p.ButtonInstance(panel, "QUIT TO MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Top, new Vector2(0, -516), new Vector2(420, 86), 40, spots: 0)
-                .GetComponent<GuiCommand>().confirm = "Leave the match?";
+            var credits = p.ButtonInstance(panel, "CREDITS", GuiPalette.Moss, GuiCommandId.Credits, Top, new Vector2(0, -414), new Vector2(420, 86), 40, spots: 0.3f);
+            var quit = p.ButtonInstance(panel, "QUIT TO MENU", GuiPalette.Dusk, GuiCommandId.QuitToMenu, Top, new Vector2(0, -516), new Vector2(420, 86), 40, spots: 0);
+            quit.GetComponent<GuiCommand>().confirm = "Leave the match?";
+            // On a touch device: RESUME across the top, the other four in two columns, every button 64 px tall
+            TouchLayout(root, new[]
+            {
+                ForTouch(panel, size: new Vector2(1100, 640)),
+                ForTouch(resume, new Vector2(0, -80), new Vector2(900, Thumb)),
+                ForTouch(restart, new Vector2(-230, -258), new Vector2(440, Thumb)),
+                ForTouch(settings, new Vector2(230, -258), new Vector2(440, Thumb)),
+                ForTouch(credits, new Vector2(-230, -436), new Vector2(440, Thumb)),
+                ForTouch(quit, new Vector2(230, -436), new Vector2(440, Thumb)),
+            });
             return Save(root);
         }
 
@@ -560,48 +600,104 @@ namespace SdfGui.Editor
             var panel = p.PanelInstance(t, "Panel", GuiPalette.Cream, Centre, new Vector2(0, -20), new Vector2(980, 1030)).transform;
             p.BannerInstance(panel, "Header", "SETTINGS", GuiPalette.Amber, Top, new Vector2(0, 50), new Vector2(500, 104), 58);
 
-            var y = -104f;
-            Transform Row(string label)
+            // The rows scroll in a viewport (ticket 57): on a desktop all fit, on a touch device they are thumb-sized and a swipe moves them
+            var viewport = Object("Rows", panel);
+            Place(viewport.transform, Top, new Vector2(0, -104), new Vector2(980, 804));
+            viewport.AddComponent<RectMask2D>();
+            var catcher = viewport.AddComponent<Image>();
+            catcher.color = Color.clear;
+            var content = Object("Content", viewport.transform);
+            Place(content.transform, Top, Vector2.zero, new Vector2(980, 784));
+            var contentCatcher = content.AddComponent<Image>();
+            contentCatcher.color = Color.clear;
+            var scroll = viewport.AddComponent<ScrollRect>();
+            scroll.viewport = (RectTransform)viewport.transform;
+            scroll.content = (RectTransform)content.transform;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40;
+
+            var y = 0f;
+            var touchRows = new List<(Transform row, Component control, float scale, bool shown)>();
+            Transform Row(string label, bool touchShown = true)
             {
-                var row = Object(label, panel);
+                var row = Object(label, content.transform);
                 // Fourteen rows close together (the last two for touch devices), so the last stays clear of the back button
                 Place(row.transform, Top, new Vector2(0, y), new Vector2(860, 56));
                 f.Text(row.transform, "Label", label, TextStyle.Label, 38, GuiPalette.Ink, Left, Vector2.zero, new Vector2(520, 56), TextAlignmentOptions.Left);
                 y -= 56;
+                touchRows.Add((row.transform, null, 1, touchShown));
                 return row.transform;
             }
+            // The control just built sits in the last row; on a touch device it grows with the row
+            T Control<T>(T control, float scale) where T : Component
+            {
+                var last = touchRows[touchRows.Count - 1];
+                touchRows[touchRows.Count - 1] = (last.row, control, scale, last.shown);
+                return control;
+            }
             // Your head (ticket 47): the cycle in the panel, the turning preview and its caption beside it
-            menu.head = Instance<GuiSelector>(p.Selector, Row("Head"), "Head", Right, Vector2.zero);
+            menu.head = Control(Instance<GuiSelector>(p.Selector, Row("Head"), "Head", Right, Vector2.zero), 1.5f);
             var previewObject = Object("Head Preview", t);
             Place(previewObject.transform, Centre, new Vector2(-720, 60), new Vector2(400, 500));
             previewObject.AddComponent<UnityEngine.UI.RawImage>().raycastTarget = false;
             menu.headPreview = previewObject.AddComponent<GuiHeadPreview>();
             menu.headCaption = f.Text(t, "Head Caption", "October", TextStyle.Label, 40, GuiPalette.Cream, Centre, new Vector2(-720, -230), new Vector2(440, 60));
-            menu.quality = Instance<GuiSelector>(p.Selector, Row("Quality"), "Quality", Right, Vector2.zero);
-            menu.gore = Instance<GuiSelector>(p.Selector, Row("Gore"), "Gore", Right, Vector2.zero);
+            menu.quality = Control(Instance<GuiSelector>(p.Selector, Row("Quality"), "Quality", Right, Vector2.zero), 1.5f);
+            menu.gore = Control(Instance<GuiSelector>(p.Selector, Row("Gore"), "Gore", Right, Vector2.zero), 1.5f);
             menu.gore.options = GuiSettings.GoreLevels;
             menu.gore.index = 1;
             menu.gore.label.text = GuiSettings.GoreLevels[1];
-            menu.sensitivity = Instance<Slider>(p.Slider, Row("Mouse sensitivity"), "Sensitivity", Right, new Vector2(-10, 0));
-            menu.volume = Instance<Slider>(p.Slider, Row("Master volume"), "Volume", Right, new Vector2(-10, 0));
+            // The mouse's sensitivity means nothing on a touch device (its row is hidden there; "Touch look" is its row)
+            menu.sensitivity = Instance<Slider>(p.Slider, Row("Mouse sensitivity", touchShown: false), "Sensitivity", Right, new Vector2(-10, 0));
+            menu.volume = Control(Instance<Slider>(p.Slider, Row("Master volume"), "Volume", Right, new Vector2(-10, 0)), 1.5f);
             menu.volume.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
-            menu.music = Instance<Slider>(p.Slider, Row("Music"), "Music", Right, new Vector2(-10, 0));
+            menu.music = Control(Instance<Slider>(p.Slider, Row("Music"), "Music", Right, new Vector2(-10, 0)), 1.5f);
             menu.music.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
-            menu.sound = Instance<Slider>(p.Slider, Row("Sound effects"), "Sound", Right, new Vector2(-10, 0));
+            menu.sound = Control(Instance<Slider>(p.Slider, Row("Sound effects"), "Sound", Right, new Vector2(-10, 0)), 1.5f);
             menu.sound.fillRect.GetComponent<ToonShape>().color = GuiPalette.Sky;
-            menu.screenShake = Instance<Toggle>(p.Toggle, Row("Screen shake"), "Screen Shake", Right, new Vector2(-180, 0));
-            menu.showFps = Instance<Toggle>(p.Toggle, Row("Show FPS"), "Show FPS", Right, new Vector2(-180, 0));
+            menu.screenShake = Control(Instance<Toggle>(p.Toggle, Row("Screen shake"), "Screen Shake", Right, new Vector2(-180, 0)), 1.6f);
+            menu.showFps = Control(Instance<Toggle>(p.Toggle, Row("Show FPS"), "Show FPS", Right, new Vector2(-180, 0)), 1.6f);
             menu.showFps.isOn = false;
-            menu.dismissQualityHints = Instance<Toggle>(p.Toggle, Row("Disable auto quality adjustment"), "Dismiss Quality Hints", Right, new Vector2(-180, 0));
+            menu.dismissQualityHints = Control(Instance<Toggle>(p.Toggle, Row("Disable auto quality adjustment"), "Dismiss Quality Hints", Right, new Vector2(-180, 0)), 1.6f);
             menu.dismissQualityHints.isOn = false;
             // Touch devices only: how far a swipe turns the view, and the auto-fire
             var touchLookRow = Row("Touch look");
-            menu.touchLook = Instance<Slider>(p.Slider, touchLookRow, "Touch Look", Right, new Vector2(-10, 0));
+            menu.touchLook = Control(Instance<Slider>(p.Slider, touchLookRow, "Touch Look", Right, new Vector2(-10, 0)), 1.5f);
             var autoFireRow = Row("Auto-fire");
-            menu.autoFire = Instance<Toggle>(p.Toggle, autoFireRow, "Auto Fire", Right, new Vector2(-180, 0));
+            menu.autoFire = Control(Instance<Toggle>(p.Toggle, autoFireRow, "Auto Fire", Right, new Vector2(-180, 0)), 1.6f);
             menu.autoFire.isOn = true;
             menu.touchRows = new[] { touchLookRow.gameObject, autoFireRow.gameObject };
-            p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(0, 36), new Vector2(320, 86), 42, spots: 0);
+            ((RectTransform)content.transform).sizeDelta = new Vector2(980, -y);
+            var back = p.ButtonInstance(panel, "BACK", GuiPalette.Dusk, GuiCommandId.Back, Bottom, new Vector2(0, 36), new Vector2(320, 86), 42, spots: 0);
+
+            // On a touch device: a wider panel, rows 110 apart with the controls scaled up (the viewport scrolls), no mouse row, no head
+            // preview beside the panel, and a 64 px BACK
+            const float touchRow = 110;
+            var entries = new List<GuiTouchLayout.Entry>
+            {
+                ForTouch(panel, new Vector2(0, -45), new Vector2(1500, 930)),
+                ForTouch(viewport.transform, size: new Vector2(1500, 620)),
+                ForTouch(back, new Vector2(0, 40), new Vector2(460, Thumb)),
+                ForTouch(previewObject.transform, hide: true),
+                ForTouch(menu.headCaption, hide: true),
+            };
+            var shownRows = 0;
+            foreach (var (row, control, scale, shown) in touchRows)
+            {
+                if (!shown)
+                {
+                    entries.Add(ForTouch(row, hide: true));
+                    continue;
+                }
+                entries.Add(ForTouch(row, new Vector2(0, -shownRows * touchRow), new Vector2(1380, touchRow)));
+                if (control != null)
+                    entries.Add(ForTouch(control, scale: scale));
+                shownRows++;
+            }
+            entries.Add(ForTouch(content.transform, Vector2.zero, new Vector2(1500, shownRows * touchRow)));
+            TouchLayout(root, entries);
             return Save(root);
         }
 
@@ -698,13 +794,21 @@ namespace SdfGui.Editor
             Place(head.transform, Centre, new Vector2(-760, 0), new Vector2(240, 300));
             head.AddComponent<UnityEngine.UI.RawImage>().raycastTarget = false;
             end.headPreview = head.AddComponent<GuiHeadPreview>();
-            HeadArrow(t, "Previous Head", new Vector2(-840, -200), 180, GuiCommandId.HeadPrevious);
-            HeadArrow(t, "Next Head", new Vector2(-680, -200), 0, GuiCommandId.HeadNext);
+            var previous = HeadArrow(t, "Previous Head", new Vector2(-840, -200), 180, GuiCommandId.HeadPrevious);
+            var next = HeadArrow(t, "Next Head", new Vector2(-680, -200), 0, GuiCommandId.HeadNext);
             // The head's name and the NEW reveal shrink to their box (the longest, Glowing Jack-o'-Lantern, is wider than the column),
             // and the reveal is two lines, NEW HEAD! over the name (a line break in its text, no wrapping, so a hyphened name stays on one line)
             end.headCaption = Fitted(f.Text(t, "Head Caption", "PUMPKIN", TextStyle.Label, 36, GuiPalette.Cream, Centre, new Vector2(-760, -262), new Vector2(360, 50)), 20);
             end.keyHint = Fitted(f.Text(t, "Head Keys", "A and D change head", TextStyle.BodyInk, 26, GuiPalette.Cream, Centre, new Vector2(-760, -312), new Vector2(360, 40)), 18);
             end.newHead = Fitted(f.Text(t, "New Head", "NEW HEAD!", TextStyle.Title, 34, GuiPalette.Gold, Centre, new Vector2(-760, 222), new Vector2(360, 96)), 20);
+            // On a touch device the arrows are thumb-sized (58 x 3 = 174 units, 72 px at 800 x 450), with the caption and hint under them
+            TouchLayout(t.parent.gameObject, new[]
+            {
+                ForTouch(previous, new Vector2(-890, -215), scale: 3f),
+                ForTouch(next, new Vector2(-630, -215), scale: 3f),
+                ForTouch(end.headCaption, new Vector2(-760, -345)),
+                ForTouch(end.keyHint, new Vector2(-760, -395)),
+            });
         }
 
         // The end card's content, laid out at 1920 x 1080 and scaled down to fit the screen (GuiFitInside), so nothing leaves the screen
@@ -728,7 +832,7 @@ namespace SdfGui.Editor
         }
 
         // A head's ◀ or ▶: the selector's arrow, a button running a command (the head before or after the current one)
-        private void HeadArrow(Transform parent, string name, Vector2 position, float angle, GuiCommandId command)
+        private RectTransform HeadArrow(Transform parent, string name, Vector2 position, float angle, GuiCommandId command)
         {
             var holder = Object(name, parent);
             Place(holder.transform, Centre, position, new Vector2(58, 58), Centre);
@@ -747,6 +851,7 @@ namespace SdfGui.Editor
             var click = holder.AddComponent<GuiCommand>();
             click.command = command;
             click.screen = GuiScreen.Hud;
+            return (RectTransform)holder.transform;
         }
 
         // ---------------------------------------------------------------- The logo

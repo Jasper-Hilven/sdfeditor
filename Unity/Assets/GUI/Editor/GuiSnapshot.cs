@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using SdfMushrooms;
+using SdfPlatform;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -43,6 +44,10 @@ namespace SdfGui.Editor
             only = Arg("-snapshotScreens")?.Split(',');
             // -snapshotTouch: as on a touch device (the touch controls over the HUD), by the editor's mobile switch put back after
             var touch = Array.IndexOf(args, "-snapshotTouch") >= 0;
+            // -snapshotSafeArea: a pretend notch (6% of the width at each side, 5% at the bottom, 2% at the top, a landscape phone's), the
+            // unsafe band tinted red in the picture
+            var safe = Array.IndexOf(args, "-snapshotSafeArea") >= 0;
+            GuiSafeArea.Simulated = safe ? new SafeInsets(0.06f, 0.05f, 0.06f, 0.02f) : (SafeInsets?)null;
             var before = EditorPrefs.GetBool(SdfPlatform.Device.EditorMobileKey, false);
             try
             {
@@ -55,6 +60,7 @@ namespace SdfGui.Editor
             }
             finally
             {
+                GuiSafeArea.Simulated = null;
                 if (touch)
                 {
                     EditorPrefs.SetBool(SdfPlatform.Device.EditorMobileKey, before);
@@ -158,6 +164,11 @@ namespace SdfGui.Editor
                 scaler.enabled = false;
                 scaler.enabled = true;
                 Canvas.ForceUpdateCanvases();
+                foreach (var area in canvas.GetComponentsInChildren<GuiSafeArea>())
+                    area.Apply(true);
+                foreach (var layout in canvas.GetComponentsInChildren<GuiTouchLayout>(true))
+                    layout.Apply();
+                Canvas.ForceUpdateCanvases();
                 foreach (var view in canvas.GetComponentsInChildren<GuiView>())
                     view.Refresh();
                 foreach (var fit in canvas.GetComponentsInChildren<GuiFitInside>())
@@ -183,11 +194,25 @@ namespace SdfGui.Editor
                 if (sizing != null)
                     Object.DestroyImmediate(sizing);
             }
+            if (GuiSafeArea.Simulated is { } unsafeBand)
+                Tint(world, unsafeBand);
             var image = new Texture2D(Width, Height, TextureFormat.RGB24, false);
             image.SetPixels(world);
             image.Apply();
             File.WriteAllBytes(path, image.EncodeToPNG());
             Object.DestroyImmediate(image);
+        }
+
+        // The band the safe area leaves out, tinted red (the snapshots' check that nothing sits in it)
+        private static void Tint(Color[] pixels, SafeInsets insets)
+        {
+            for (var y = 0; y < Height; y++)
+                for (var x = 0; x < Width; x++)
+                {
+                    var outside = x < insets.Left * Width || x >= (1 - insets.Right) * Width || y < insets.Bottom * Height || y >= (1 - insets.Top) * Height;
+                    if (outside)
+                        pixels[y * Width + x] = Color.Lerp(pixels[y * Width + x], Color.red, 0.35f);
+                }
         }
 
         private static Color[] Shoot(Camera camera)
