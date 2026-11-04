@@ -85,6 +85,19 @@ section says what is left.
 | 14 | [52 Every level in its own bundle](52-every-level-streamed.md) | 43-47, 49, 51 | 41, 42 |
 | 15 | [50 Rebrand](50-rebrand-gui-and-description.md) | — | all of 41-49, 51, 52 |
 
+## Mobile (landscape) and the small CrazyGames windows
+
+| Order | Ticket | Runs alongside | After |
+|---|---|---|---|
+| 1 | [54 Readable at CrazyGames' small window sizes](54-readable-at-small-iframes.md) | 55 | — |
+| 1 | [55 Device detection and one input layer](55-device-detection-and-input-layer.md) | 54 | — |
+| 2 | [56 Touch controls (landscape)](56-touch-controls.md) | — | 54, 55 |
+| 3 | [57 The mobile page: safe areas, CSS, touch-sized menus](57-mobile-page-and-layout.md) | 58 | 56 |
+| 3 | [58 Mobile performance and memory](58-mobile-performance.md) | 57 | 55 |
+| 4 | [59 Initial download under 20 MB](59-mobile-initial-download.md) | — | 55-58 |
+
+All six: `sonnet` agents, under the rules below.
+
 Rules for every agent:
 - One ticket per agent; it commits its ticket's work when done (the user pushes or asks to). Model per ticket: `haiku` for the
   plain-code tickets (41, 42, 48), `sonnet` for modelling, rigging, GUI and visual tickets (43-47, 49, 50). The lead reviews each
