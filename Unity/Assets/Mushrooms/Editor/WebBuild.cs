@@ -58,6 +58,9 @@ namespace SdfMushrooms.Editor
             // No Unity splash screen and no Unity logo (ticket 59), also if someone turns them back on in the settings window
             PlayerSettings.SplashScreen.show = false;
             PlayerSettings.SplashScreen.showUnityLogo = false;
+            // The game runs on when the page loses focus (a click outside the game's frame, another window in front): the match goes on,
+            // as the menu does not pause it. A hidden tab is the browser's to throttle; nothing can run there.
+            PlayerSettings.runInBackground = true;
             // No .unityweb files of an earlier build with the fallback left in the upload
             var built = Path.Combine(OutputFolder, "Build");
             if (crazyGames && Directory.Exists(built))
