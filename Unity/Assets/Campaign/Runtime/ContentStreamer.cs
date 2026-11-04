@@ -26,8 +26,11 @@ namespace SdfCampaign
     public sealed class ContentStreamer : MonoBehaviour
     {
         public const string Folder = "Bundles";
-        /// <summary>A background fetch waits this long after the battle started, so the match's first seconds have the bandwidth.</summary>
-        public const float PrefetchDelay = 8;
+        /// <summary>
+        /// A background fetch waits this long after it is asked for. The next level is asked for when the match ends (the end card and,
+        /// later, the ad break between levels download it; the next Loading screen covers what is left), so there is nothing to wait for.
+        /// </summary>
+        public const float PrefetchDelay = 0;
         /// <summary>A download that moves no byte for this long fails (the Loading screen then offers a retry).</summary>
         public const float StallSeconds = 40;
 
@@ -134,16 +137,13 @@ namespace SdfCampaign
             return request;
         }
 
-        /// <summary>Fetches keys in the background, one bundle at a time, after <see cref="PrefetchDelay"/>; failures are only logged.</summary>
+        /// <summary>Fetches keys in the background, one bundle at a time; failures are only logged. GameLoop asks for the next level when a match ends.</summary>
         public static void Prefetch(IEnumerable<string> keys)
         {
             if (!Enabled)
                 return;
+            // Only the level's own bundles: its LOD0 meshes come after its match starts (Lod0Streamer, ticket 60), as for every level
             var list = new List<string>(keys);
-            // A level's bundles first, then (ticket 60) the LOD0 meshes of each
-            foreach (var key in new List<string>(list))
-                if (key.StartsWith("scene:") && Manifest.Has(StreamManifest.Lod0Key(key.Substring("scene:".Length))))
-                    list.Add(StreamManifest.Lod0Key(key.Substring("scene:".Length)));
             foreach (var key in list)
             {
                 if (!Manifest.Has(key) || IsReady(key))

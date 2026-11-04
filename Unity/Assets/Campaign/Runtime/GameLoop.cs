@@ -188,8 +188,8 @@ namespace SdfCampaign
                 rotation.Played(level);
                 save.lastLevels = rotation.History.ToArray();
                 save.Save(storage);
+                // Picked now (the end card names it); downloaded only when this match ends (OnEnded), not during play
                 upcoming = rotation.Next(random);
-                ContentStreamer.Prefetch(new[] { StreamManifest.SceneKey(upcoming) });
             }
             var match = Match.Current;
             if (match == null)
@@ -226,6 +226,10 @@ namespace SdfCampaign
             save.Difficulty = AutoDifficulty.Next(save.Difficulty, new CaptureResult(yours, enemy));
             save.Save(storage);
             WebPortal.BattleFinished(result.Seconds);
+            // The next level downloads from now: under the result banner and the end card (and, once ads are on, the ad break), the
+            // next Loading screen showing only what is left
+            if (!string.IsNullOrEmpty(upcoming))
+                ContentStreamer.Prefetch(new[] { StreamManifest.SceneKey(upcoming) });
             Debug.Log($"GameLoop: {current} ended {yours}-{enemy} for {currentTeam}; next difficulty {DifficultyRules.Key(save.Difficulty)}");
         }
 
