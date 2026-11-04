@@ -75,6 +75,13 @@ namespace SdfAudio
         /// <summary>The clips of the music this battle plays (the arena's four layers, or the boss theme); null for none.</summary>
         public AudioClip[] MusicClips => musicClips;
 
+        /// <summary>The late layers of the arena's music have arrived (ticket 62): the track in play takes them in, in step with its first layer.</summary>
+        public void MusicArrived()
+        {
+            arena = ArenaAudio.Resolve();
+            musicClips = arena.HasBattleMusic ? arena.Loaded() : null;
+        }
+
         /// <summary>How loud each layer should be, 0 to 1, by the fight's intensity.</summary>
         public IReadOnlyList<float> LayerShares => shares;
 
@@ -147,7 +154,7 @@ namespace SdfAudio
                     machine.State.Died += OnMachineDied;
                 }
             // The music: the arena's four layers; none, and the menu's track plays on
-            musicClips = arena.HasBattleMusic ? arena.layers : null;
+            musicClips = arena.HasBattleMusic ? arena.Loaded() : null;
             Current = this;
         }
 

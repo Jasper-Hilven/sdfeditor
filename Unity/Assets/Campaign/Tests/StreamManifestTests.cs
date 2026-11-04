@@ -147,6 +147,25 @@ namespace SdfCampaign.Tests
             Assert.AreEqual("lod0:Fungal", StreamManifest.Lod0Key("Fungal"));
         }
 
+        [Test]
+        public void TheCommonAndMusicKeysAreTheirOwnEntriesAndNoLevelsScene()
+        {
+            var manifest = new StreamManifest
+            {
+                bundles = new[] { new StreamedBundle { name = "common-lod0", size = 5 }, new StreamedBundle { name = "music-orchestra", size = 7 } },
+                entries = new[]
+                {
+                    new StreamedEntry { key = StreamManifest.CommonKey, bundles = new[] { "common-lod0" } },
+                    new StreamedEntry { key = StreamManifest.MusicKey("Fungal"), bundles = new[] { "music-orchestra" } },
+                },
+            };
+            Assert.AreEqual("music:Fungal", StreamManifest.MusicKey("Fungal"));
+            Assert.IsTrue(manifest.Has(StreamManifest.CommonKey));
+            Assert.AreEqual(5, manifest.Remaining(StreamManifest.CommonKey, null));
+            Assert.AreEqual(7, manifest.Remaining(StreamManifest.MusicKey("Fungal"), null));
+            Assert.IsFalse(manifest.Has(StreamManifest.SceneKey("Fungal")), "neither is a level's scene entry, so the Loading screen never waits for them");
+        }
+
         static StreamedEntry Entry(string key) => new StreamedEntry { key = key, bundles = new[] { "x" } };
     }
 }

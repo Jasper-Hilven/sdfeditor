@@ -127,7 +127,8 @@ namespace SdfBattle
             SdfHeads.HeadSelection.BeginMatch();
             MakePlayers();
             Current = this;
-            if (gui != null)
+            // The web build's scenes have no GUI of their own (ticket 62): the campaign's serves them
+            if (gui != null || SdfGui.GuiFlow.Persistent != null)
                 Hud = MatchHud.Create(this, gui);
             // Every other player's name over their head
             if (Hud != null)

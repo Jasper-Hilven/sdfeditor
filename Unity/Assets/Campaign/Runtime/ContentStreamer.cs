@@ -170,11 +170,13 @@ namespace SdfCampaign
             var keepLod0 = !string.IsNullOrEmpty(keepKey) && keepKey.StartsWith("scene:") ? StreamManifest.Lod0Key(keepKey.Substring("scene:".Length)) : "";
             prefetchKeys.Remove(keepKey);
             prefetchKeys.Remove(keepLod0);
-            var keys = new List<string>(prefetchKeys);
+            var keys = new List<string>(prefetchKeys) { StreamManifest.CommonKey };
             if (!string.IsNullOrEmpty(keepKey))
             {
                 keys.Add(keepKey);
                 keys.Add(keepLod0);
+                if (keepKey.StartsWith("scene:"))
+                    keys.Add(StreamManifest.MusicKey(keepKey.Substring("scene:".Length)));
             }
             foreach (var key in keys)
                 foreach (var bundle in Manifest.Bundles(key))

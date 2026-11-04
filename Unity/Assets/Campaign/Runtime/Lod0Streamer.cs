@@ -16,6 +16,9 @@ namespace SdfCampaign
     /// fetches the bundles in the background, loads their meshes, lets go of the bundles' file data and swaps the meshes in, a few milliseconds a frame:
     /// every MeshFilter in a LOD0 slot, loaded prefabs included (what spawns later is made from them), and the instanced renderer's prototypes.
     /// Nothing happens in the editor and in builds that do not stream, where the real meshes are in the scene.
+    /// Ticket 62: the player itself carries stubs for the LOD0 meshes of heads, weapons and pods and for the head pieces; the one
+    /// <c>common</c> bundle (<see cref="StreamManifest.CommonKey"/>) holds the real ones, is fetched once after the first match started (before the
+    /// level's own), and is swapped in by mesh name: LOD0 slots first show LOD1, a burst before it arrives has no pieces (<see cref="Lod0Meshes.PiecesReady"/>).
     /// </summary>
     public sealed class Lod0Streamer : MonoBehaviour
     {
@@ -33,6 +36,11 @@ namespace SdfCampaign
 
         private static Lod0Streamer instance;
         private static int generation;
+        private static bool commonRunning;
+        private static bool standInsRunning;
+
+        /// <summary>The common bundle's meshes (heads, weapons, pods, head pieces) have been swapped in; true as well where there is no common bundle (editor, desktop).</summary>
+        public static bool CommonDone { get; private set; } = true;
 
         /// <summary>The scene of <paramref name="level"/> is live and covered: LOD1 stands in for the LOD0 stubs.</summary>
         public static void Prepare(string level)
@@ -45,10 +53,27 @@ namespace SdfCampaign
                 SwappedMeshes = 0;
             }
             ContentStreamer.Lod0Pending = false;
-            if (!Enabled(level))
+            var levelStreams = Enabled(level);
+            var commonStreams = CommonEnabled;
+            if (!levelStreams && !commonStreams)
                 return;
+            if (commonStreams && CommonDone && Lod0Meshes.Common.Count == 0)
+                CommonDone = false;
             Done = false;
-            ContentStreamer.Lod0Pending = true;
+            ContentStreamer.Lod0Pending = levelStreams;
+            var changed = StandIns();
+            // Prefabs loaded since the common bundle arrived (a level's bundles) carry stubs again
+            if (Lod0Meshes.Common.Count > 0)
+                SwapStubFilters();
+            Invalidate();
+            Debug.Log($"Lod0Streamer: {level} shows LOD1 in {changed} LOD0 slots until its LOD0 meshes arrive");
+            if (!CommonDone && !standInsRunning)
+                Host().StartCoroutine(StandInLoop());
+        }
+
+        // LOD1 (or the real mesh, where it has arrived) in every LOD0 slot that holds a stub
+        private static int StandIns()
+        {
             var changed = 0;
             foreach (var group in Resources.FindObjectsOfTypeAll<LODGroup>())
             {
@@ -62,7 +87,7 @@ namespace SdfCampaign
                     if (renderer == null || !renderer.TryGetComponent<MeshFilter>(out var filter) || !Lod0Meshes.IsStub(filter.sharedMesh))
                         continue;
                     var key = Lod0Meshes.RealName(filter.sharedMesh.name);
-                    var real = Lod0Meshes.Loaded.TryGetValue(key, out var loaded) ? loaded : null;
+                    var real = Lod0Meshes.TryReal(key, out var loaded) ? loaded : null;
                     var use = real != null ? real : Finer(lods[1], key);
                     if (use != null)
                     {
@@ -71,21 +96,49 @@ namespace SdfCampaign
                     }
                 }
             }
-            Invalidate();
-            Debug.Log($"Lod0Streamer: {level} shows LOD1 in {changed} LOD0 slots until its LOD0 meshes arrive");
+            return changed;
         }
 
-        /// <summary>The match of <paramref name="level"/> is running (the HUD is up): fetch its LOD0 meshes and swap them in.</summary>
+        // Until the common bundle is in, a prefab loaded late may bring stubs in: look again now and then (the prefab assets and what was made from them)
+        private static IEnumerator StandInLoop()
+        {
+            standInsRunning = true;
+            while (!CommonDone)
+            {
+                var until = Time.realtimeSinceStartup + 2;
+                while (Time.realtimeSinceStartup < until)
+                    yield return null;
+                if (!CommonDone)
+                    StandIns();
+            }
+            standInsRunning = false;
+        }
+
+        // The real mesh for every MeshFilter that holds a common stub outside the LOD groups (the head pieces)
+        private static int SwapStubFilters()
+        {
+            var swapped = 0;
+            foreach (var filter in Resources.FindObjectsOfTypeAll<MeshFilter>())
+                if (filter != null && Lod0Meshes.IsStub(filter.sharedMesh) && Lod0Meshes.Common.TryGetValue(Lod0Meshes.RealName(filter.sharedMesh.name), out var real))
+                {
+                    filter.sharedMesh = real;
+                    swapped++;
+                }
+            return swapped;
+        }
+
+        /// <summary>The match of <paramref name="level"/> is running (the HUD is up): fetch the common meshes (once) and the level's LOD0 meshes and swap them in.</summary>
         public static void Begin(string level)
         {
-            if (!Enabled(level))
+            StreamCheck.Begin();
+            if (!Enabled(level) && !(CommonEnabled && !CommonDone) && !MusicPending(level))
             {
                 Finish();
                 return;
             }
             generation++;
             Done = false;
-            Host().StartCoroutine(Run(level, StreamManifest.Lod0Key(level), generation));
+            Host().StartCoroutine(Sequence(level, generation));
         }
 
         private static void Finish()
@@ -97,6 +150,9 @@ namespace SdfCampaign
 
         private static bool Enabled(string level) =>
             ContentStreamer.Enabled && ContentStreamer.Manifest.Has(StreamManifest.Lod0Key(level)) && !(SkipOnTouch && Device.IsTouch);
+
+        private static bool CommonEnabled =>
+            ContentStreamer.Enabled && ContentStreamer.Manifest.Has(StreamManifest.CommonKey) && !(SkipOnTouch && Device.IsTouch);
 
         private static Mesh Finer(LOD lod, string key)
         {
@@ -125,6 +181,136 @@ namespace SdfCampaign
         }
 
         private static bool Stale(string level, int id) => id != generation || SceneManager.GetActiveScene().name != level;
+
+        private static IEnumerator Sequence(string level, int id)
+        {
+            if (CommonEnabled && !CommonDone)
+            {
+                // The common meshes come first: they are on screen in every match
+                while (commonRunning)
+                    yield return null;
+                if (!CommonDone)
+                    yield return RunCommon();
+            }
+            if (Stale(level, id))
+                yield break;
+            if (Enabled(level))
+                yield return Run(level, StreamManifest.Lod0Key(level), id);
+            else
+                Finish();
+            // Last: layers 2 to 4 of the battle music (nobody hears them in the first seconds of a match)
+            yield return RunMusic(level);
+        }
+
+        private static string loadedMusic = "";
+
+        private static bool MusicPending(string level) =>
+            ContentStreamer.Enabled && ContentStreamer.Manifest.Has(StreamManifest.MusicKey(level)) && MusicId(level) != loadedMusic;
+
+        private static string MusicId(string level)
+        {
+            var names = new List<string>();
+            foreach (var bundle in ContentStreamer.Manifest.Bundles(StreamManifest.MusicKey(level)))
+                names.Add(bundle.name);
+            return string.Join("+", names);
+        }
+
+        // The music layers 2 to 4 (ticket 62): fetched after everything else of the match, handed to the arena's sounds and the track in play
+        private static IEnumerator RunMusic(string level)
+        {
+            if (!MusicPending(level))
+                yield break;
+            var key = StreamManifest.MusicKey(level);
+            var id = MusicId(level);
+            var started = Time.realtimeSinceStartup;
+            ContentStreamer.HoldPrefetch = true;
+            var request = ContentStreamer.Fetch(key);
+            while (!request.Done)
+                yield return null;
+            ContentStreamer.HoldPrefetch = false;
+            if (request.Failed)
+            {
+                Debug.LogWarning($"Lod0Streamer: the music layers of {level} failed ({request.Error}); the track plays its first layer only");
+                yield break;
+            }
+            var clips = new List<AudioClip>();
+            foreach (var bundle in ContentStreamer.Open(key))
+            {
+                var load = bundle.LoadAllAssetsAsync<AudioClip>();
+                yield return load;
+                foreach (var asset in load.allAssets)
+                    if (asset is AudioClip clip)
+                        clips.Add(clip);
+            }
+            ContentStreamer.Consume(key);
+            SdfAudio.ArenaAudio.Late.Clear();
+            foreach (var clip in clips)
+                SdfAudio.ArenaAudio.Late[clip.name] = clip;
+            loadedMusic = id;
+            if (SdfAudio.GameAudio.Current != null)
+                SdfAudio.GameAudio.Current.MusicArrived();
+            Debug.Log($"Lod0Streamer: {level} music layers fetched ({clips.Count} clips) in {Time.realtimeSinceStartup - started:0.0} s");
+        }
+
+        private static IEnumerator RunCommon()
+        {
+            commonRunning = true;
+            var started = Time.realtimeSinceStartup;
+            ContentStreamer.HoldPrefetch = true;
+            ContentStreamer.Lod0Pending = true;
+            var request = ContentStreamer.Fetch(StreamManifest.CommonKey);
+            while (!request.Done)
+                yield return null;
+            if (request.Failed)
+            {
+                // Heads, weapons and pods stay at LOD1 and bursts go without pieces; the next match tries again
+                Debug.LogWarning($"Lod0Streamer: the common bundle failed ({request.Error}); heads, weapons and pieces stay as stand-ins");
+                commonRunning = false;
+                ContentStreamer.HoldPrefetch = false;
+                yield break;
+            }
+            var fetched = Time.realtimeSinceStartup - started;
+            var meshes = new List<Mesh>();
+            foreach (var bundle in ContentStreamer.Open(StreamManifest.CommonKey))
+            {
+                var load = bundle.LoadAllAssetsAsync<Mesh>();
+                yield return load;
+                foreach (var asset in load.allAssets)
+                    if (asset is Mesh mesh)
+                        meshes.Add(mesh);
+            }
+            ContentStreamer.Consume(StreamManifest.CommonKey);
+            foreach (var mesh in meshes)
+                Lod0Meshes.Common[mesh.name] = mesh;
+            // Your own weapon and the heads first (the LOD groups), then the pieces
+            var swapped = 0;
+            var clock = Stopwatch.StartNew();
+            foreach (var group in Resources.FindObjectsOfTypeAll<LODGroup>())
+            {
+                if (group != null)
+                {
+                    var lods = group.GetLODs();
+                    if (lods.Length > 0)
+                        foreach (var renderer in lods[0].renderers)
+                            if (renderer != null && renderer.TryGetComponent<MeshFilter>(out var filter) && Lod0Meshes.RealFor(filter.sharedMesh) is { } real)
+                            {
+                                filter.sharedMesh = real;
+                                swapped++;
+                            }
+                }
+                if (clock.Elapsed.TotalMilliseconds > SliceMilliseconds)
+                {
+                    yield return null;
+                    clock.Restart();
+                }
+            }
+            swapped += SwapStubFilters();
+            Invalidate();
+            CommonDone = true;
+            commonRunning = false;
+            ContentStreamer.HoldPrefetch = false;
+            Debug.Log($"Lod0Streamer: common bundle fetched {meshes.Count} meshes in {fetched:0.0} s, swapped {swapped} in {Time.realtimeSinceStartup - started:0.0} s");
+        }
 
         private static IEnumerator Run(string level, string key, int id)
         {

@@ -20,6 +20,14 @@ namespace SdfCampaign.Editor
     /// <see cref="BackupFolder"/>; <see cref="RecoverLeftovers"/> does the same for a build that died with stubs on disk (the meshes are generated, git-ignored,
     /// and not to be re-meshed).
     /// </summary>
+    /// <summary>What <see cref="Lod0Split.Find"/> found: the levels' LOD0 meshes (a <c>-lod0</c> bundle each) and the player's own (the common bundle).</summary>
+    public sealed class Lod0Plan
+    {
+        public HashSet<string> level = new HashSet<string>();
+        public HashSet<string> common = new HashSet<string>();
+        public IEnumerable<string> All => level.Concat(common);
+    }
+
     public sealed class Lod0Split : IDisposable
     {
         public const string BackupFolder = "Library/Lod0Backup";
@@ -102,13 +110,14 @@ namespace SdfCampaign.Editor
         /// The mesh assets (paths) that are LOD0 slot meshes only: see the class. <paramref name="closure"/> is every asset the scenes need (the bundles'),
         /// <paramref name="player"/> the assets the player carries too.
         /// </summary>
-        public static HashSet<string> Find(IEnumerable<string> scenes, IEnumerable<string> closure, HashSet<string> player)
+        public static Lod0Plan Find(IEnumerable<string> scenes, IEnumerable<string> closure, HashSet<string> player, ICollection<string> piecePrefabs = null, IDictionary<string, SortedSet<string>> uses = null)
         {
             var assets = closure.ToList();
             var lod0 = new HashSet<string>();
             var other = new HashSet<string>();
+            var gore = new HashSet<string>();
 
-            void Classify(Component[] components, GameObject[] roots)
+            void Classify(Component[] components, GameObject[] roots, bool pieces = false)
             {
                 var slot0 = new HashSet<Component>();
                 foreach (var root in roots)
@@ -140,7 +149,11 @@ namespace SdfCampaign.Editor
                             var m = Regex.Match(it.propertyPath, @"^(prototypes\.Array\.data\[\d+\])\.levels\.Array\.data\[0\]\.parts\.Array\.data\[\d+\]\.mesh$");
                             isLod0 = m.Success && so.FindProperty(m.Groups[1].Value + ".levels.Array.size").intValue >= 2;
                         }
-                        (isLod0 ? lod0 : other).Add(path);
+                        // The head pieces' prefabs (ticket 62): a MeshFilter's mesh there is a piece, built into the common bundle
+                        if (pieces && !isLod0 && component is MeshFilter && it.propertyPath == "m_Mesh")
+                            gore.Add(path);
+                        else
+                            (isLod0 ? lod0 : other).Add(path);
                     }
                 }
             }
@@ -158,7 +171,7 @@ namespace SdfCampaign.Editor
                 {
                     var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                     if (prefab != null)
-                        Classify(prefab.GetComponentsInChildren<Component>(true), new[] { prefab });
+                        Classify(prefab.GetComponentsInChildren<Component>(true), new[] { prefab }, piecePrefabs != null && piecePrefabs.Contains(path));
                 }
                 else if (!IsPlain(path))
                 {
@@ -171,17 +184,34 @@ namespace SdfCampaign.Editor
 
             long Size(IEnumerable<string> paths) => paths.Where(File.Exists).Sum(f => new FileInfo(f).Length);
             Debug.Log($"Lod0Split: {lod0.Count} meshes ({Size(lod0) / 1048576f:0.0} MB of assets) are in a LOD0 slot; also used elsewhere: {lod0.Count(other.Contains)} ({Size(lod0.Where(other.Contains)) / 1048576f:0.0} MB), " +
-                      $"in the player: {lod0.Count(player.Contains)} ({Size(lod0.Where(player.Contains)) / 1048576f:0.0} MB), not a mesh .asset: {lod0.Count(p => !p.EndsWith(".asset"))}");
-            var eligible = lod0.Where(p => !other.Contains(p) && !player.Contains(p) && p.StartsWith("Assets/") && p.EndsWith(".asset")
-                                           && AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Mesh)).ToList();
-            // The runtime finds a real mesh by its name: a name two meshes share, or one that looks like a LOD1 mesh, stays in the level bundle
-            var names = eligible.GroupBy(p => AssetDatabase.LoadAssetAtPath<Mesh>(p).name).ToList();
-            var dropped = names.Where(g => g.Count() > 1 || g.Key.EndsWith("_LOD1") || g.Key.EndsWith(Lod0Meshes.StubSuffix)).SelectMany(g => g).ToList();
+                      $"in the player: {lod0.Count(player.Contains)} ({Size(lod0.Where(player.Contains)) / 1048576f:0.0} MB), not a mesh .asset: {lod0.Count(p => !p.EndsWith(".asset"))}; head piece meshes: {gore.Count} ({Size(gore) / 1048576f:0.0} MB)");
+            bool IsMeshAsset(string p) => p.StartsWith("Assets/") && p.EndsWith(".asset") && AssetDatabase.GetMainAssetTypeAtPath(p) == typeof(Mesh);
+            // The level bundles' own (not in the player), and the player's (the common bundle: LOD0 slots of heads, weapons and pods, and the head pieces)
+            var eligibleLevel = lod0.Where(p => !other.Contains(p) && !player.Contains(p) && IsMeshAsset(p)).ToList();
+            var eligibleCommon = lod0.Where(p => !other.Contains(p) && player.Contains(p) && IsMeshAsset(p))
+                .Concat(gore.Where(p => !other.Contains(p) && !lod0.Contains(p) && IsMeshAsset(p))).Distinct().ToList();
+            // The runtime finds a real mesh by its name among the ones of the level in play and the common ones: a name two meshes share in one level
+            // (or with a common mesh), or one that looks like a LOD1 mesh, stays where it is. The same name in two levels is fine (ground chunks:
+            // chunk_0_0_ground in each level's folder; the level's meshes are dropped from the lookup when the next level starts)
+            IEnumerable<string> ScenesOf(string p) => common(p) || uses == null || !uses.TryGetValue(p, out var set) ? Enumerable.Empty<string>() : set;
+            bool common(string p) => eligibleCommon.Contains(p);
+            var dropped = new List<string>();
+            foreach (var group in eligibleLevel.Concat(eligibleCommon).GroupBy(p => AssetDatabase.LoadAssetAtPath<Mesh>(p).name))
+            {
+                var members = group.ToList();
+                if (group.Key.EndsWith("_LOD1") || group.Key.EndsWith(Lod0Meshes.StubSuffix))
+                    dropped.AddRange(members);
+                else if (members.Count > 1)
+                    foreach (var p in members)
+                        if (members.Any(q => q != p && (common(p) || common(q) || uses == null || ScenesOf(p).Intersect(ScenesOf(q)).Any())))
+                            dropped.Add(p);
+            }
             if (dropped.Count > 0)
-                Debug.LogWarning($"Lod0Split: {dropped.Count} LOD0 meshes stay in the level bundles (name clash), first {dropped[0]}");
-            var result = new HashSet<string>(eligible.Except(dropped));
-            Debug.Log($"Lod0Split: {result.Count} LOD0 meshes split off ({Size(result) / 1048576f:0.0} MB of assets); {dropped.Count} stay for their names ({Size(dropped) / 1048576f:0.0} MB)");
-            return result;
+                Debug.LogWarning($"Lod0Split: {dropped.Count} LOD0 meshes stay where they are (name clash), first {dropped[0]}");
+            var plan = new Lod0Plan { level = new HashSet<string>(eligibleLevel.Except(dropped)), common = new HashSet<string>(eligibleCommon.Except(dropped)) };
+            Debug.Log($"Lod0Split: {plan.level.Count} level LOD0 meshes split off ({Size(plan.level) / 1048576f:0.0} MB of assets), {plan.common.Count} common meshes ({Size(plan.common) / 1048576f:0.0} MB of assets: " +
+                      $"{plan.common.Count(gore.Contains)} head pieces); {dropped.Count} stay for their names ({Size(dropped) / 1048576f:0.0} MB)");
+            return plan;
         }
 
         private static bool IsPlain(string path) =>

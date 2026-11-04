@@ -39,6 +39,12 @@ namespace SdfCampaign
         /// <summary>The key of a level's LOD0 meshes (ticket 60): the <c>-lod0</c> bundles fetched after the match started.</summary>
         public static string Lod0Key(string scene) => "lod0:" + scene;
 
+        /// <summary>The key of a level's late music layers (ticket 62): layers 2 to 4 of its battle track, fetched after the match started.</summary>
+        public static string MusicKey(string scene) => "music:" + scene;
+
+        /// <summary>The key of the common bundle (ticket 62): the LOD0 meshes of heads, weapons and pods that the player carries as stubs, and the head pieces; fetched once, after the first match started.</summary>
+        public const string CommonKey = "common";
+
         public static StreamManifest Parse(string json)
         {
             if (string.IsNullOrWhiteSpace(json))

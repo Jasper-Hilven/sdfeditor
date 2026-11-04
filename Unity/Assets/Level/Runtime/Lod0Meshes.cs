@@ -18,6 +18,31 @@ namespace SdfLevel
         /// <summary>The real LOD0 meshes of the level in play by name, once they have arrived.</summary>
         public static readonly Dictionary<string, Mesh> Loaded = new Dictionary<string, Mesh>();
 
+        /// <summary>
+        /// The real meshes of the player's own LOD0 slots (heads, weapons, pods) and of the head pieces (ticket 62), by name, once the common
+        /// bundle has arrived: kept for the whole session, whatever level is in play.
+        /// </summary>
+        public static readonly Dictionary<string, Mesh> Common = new Dictionary<string, Mesh>();
+
+        /// <summary>The real mesh of a name from the level's bundles or the common bundle; false while neither has arrived.</summary>
+        public static bool TryReal(string name, out Mesh mesh) => Loaded.TryGetValue(name, out mesh) || Common.TryGetValue(name, out mesh);
+
+        /// <summary>
+        /// Whether head <paramref name="pieces"/> (prefabs) hold their real meshes (ticket 62: the web player carries stubs until the common bundle has
+        /// arrived). A burst before that goes without pieces. True in the editor and in builds without stubs.
+        /// </summary>
+        public static bool PiecesReady(GameObject[] pieces)
+        {
+            if (pieces == null)
+                return false;
+            foreach (var piece in pieces)
+                if (piece != null)
+                    foreach (var filter in piece.GetComponentsInChildren<MeshFilter>(true))
+                        if (IsStub(filter.sharedMesh))
+                            return false;
+            return true;
+        }
+
         public static bool IsStub(Mesh mesh) => mesh != null && mesh.name.EndsWith(StubSuffix, StringComparison.Ordinal);
 
         /// <summary>The name of the real mesh a stub stands for (the name itself for any other mesh).</summary>
@@ -36,7 +61,7 @@ namespace SdfLevel
         /// </summary>
         public static Mesh RealFor(Mesh inSlot)
         {
-            if (inSlot == null || Loaded.Count == 0)
+            if (inSlot == null || Loaded.Count == 0 && Common.Count == 0)
                 return null;
             var name = inSlot.name;
             string key = null;
@@ -44,7 +69,7 @@ namespace SdfLevel
                 key = RealName(name);
             else if (name.EndsWith(Lod1Suffix, StringComparison.Ordinal))
                 key = name.Substring(0, name.Length - Lod1Suffix.Length);
-            return key != null && Loaded.TryGetValue(key, out var real) && real != inSlot ? real : null;
+            return key != null && TryReal(key, out var real) && real != inSlot ? real : null;
         }
 
         /// <summary>
@@ -70,7 +95,7 @@ namespace SdfLevel
                     continue;
                 var key = RealName(part.mesh.name);
                 Mesh use = null;
-                if (Loaded.TryGetValue(key, out var real))
+                if (TryReal(key, out var real))
                     use = real;
                 else
                     foreach (var finer in levels[1].parts)

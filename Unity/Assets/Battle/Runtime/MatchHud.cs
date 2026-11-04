@@ -36,21 +36,24 @@ namespace SdfBattle
 
         /// <summary>
         /// Puts <paramref name="gui"/> on the HUD, with its test panel off, fed by <paramref name="match"/>: the scene's own GUI (the
-        /// level builder places the GUI prefab in the scene), or, given the prefab itself, a copy of it.
+        /// level builder places the GUI prefab in the scene), or, given the prefab itself, a copy of it; the campaign's GUI when there is one (<paramref name="gui"/> may then be null).
         /// </summary>
         public static MatchHud Create(Match match, GameObject gui)
         {
             // The campaign's GUI (ticket 32.4) survives the scene loads: it serves every battle, and the scene's own copy goes
             var persistent = GuiFlow.Persistent;
-            if (persistent != null && gui != persistent.gameObject)
+            if (persistent != null)
             {
-                if (gui.scene.IsValid())
+                // The web build's level scenes carry no GUI of their own (ticket 62): gui is null there, and the campaign's serves
+                if (gui != null && gui != persistent.gameObject && gui.scene.IsValid())
                     Destroy(gui);
                 gui = persistent.gameObject;
                 Release(gui);
             }
             else
                 persistent = null;
+            if (gui == null)
+                return null;
             if (!gui.scene.IsValid())
             {
                 var prefab = gui;

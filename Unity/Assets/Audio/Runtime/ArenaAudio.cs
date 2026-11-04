@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SdfLevel;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -45,6 +46,15 @@ namespace SdfAudio
         /// <summary>The path of a layer (0 to 3) of a battle track.</summary>
         public static string MusicPath(MusicSet set, int layer) =>
             $"{LibraryFolder}/Music/music_lvl_02_{(set == MusicSet.Electronic ? "electronic" : "orchestra")}_layer_{layer + 1:00}.ogg";
+
+        /// <summary>The file name (the clip's name) of a layer (0 to 3) of a battle track.</summary>
+        public static string MusicName(MusicSet set, int layer) => $"music_lvl_02_{(set == MusicSet.Electronic ? "electronic" : "orchestra")}_layer_{layer + 1:00}";
+
+        /// <summary>
+        /// The layers 2 to 4 that the web build streams after the match started (ticket 62), by clip name, once they have arrived: the scenes
+        /// built for the bundles have those entries of <see cref="musicLayers"/> empty. Kept until another music set arrives.
+        /// </summary>
+        public static readonly Dictionary<string, AudioClip> Late = new Dictionary<string, AudioClip>();
 
         /// <summary>The path of the boss theme.</summary>
         public const string BossThemePath = LibraryFolder + "/Music/music_lvl_03_doma_east_theme_bpm_140.ogg";
@@ -97,6 +107,21 @@ namespace SdfAudio
             public AudioClip[] layers = System.Array.Empty<AudioClip>();
             public AudioClip bossTheme;
 
+            /// <summary>The layers that are there to play: up to the first empty one (the late layers come a while after the match started).</summary>
+            public AudioClip[] Loaded()
+            {
+                if (layers == null)
+                    return layers;
+                var count = 0;
+                while (count < layers.Length && layers[count] != null)
+                    count++;
+                if (count == layers.Length || count == 0)
+                    return layers;
+                var loaded = new AudioClip[count];
+                System.Array.Copy(layers, loaded, count);
+                return loaded;
+            }
+
             /// <summary>Whether the arena has a battle track of all four layers.</summary>
             public bool HasBattleMusic => layers != null && layers.Length >= MusicIntensity.Layers && layers[0] != null;
         }
@@ -125,6 +150,14 @@ namespace SdfAudio
                     sounds.layers[0] = menu.clips[0];
                 }
             }
+            // Layers 2 to 4 of a streamed web build come after the start (ticket 62)
+            if (plan.Music != MusicSet.None && sounds.layers.Length >= MusicIntensity.Layers && Late.Count > 0)
+                for (var i = 1; i < MusicIntensity.Layers; i++)
+                    if (sounds.layers[i] == null && Late.TryGetValue(MusicName(plan.Music, i), out var late))
+                    {
+                        sounds.layers = (AudioClip[])sounds.layers.Clone();
+                        sounds.layers[i] = late;
+                    }
 #if UNITY_EDITOR
             // A scene not rebuilt yet: the library's files by path (the web build does not have this, see the class's remarks)
             if (!sounds.HasBattleMusic && plan.Music != MusicSet.None)

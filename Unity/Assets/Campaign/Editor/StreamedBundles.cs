@@ -29,12 +29,18 @@ namespace SdfCampaign.Editor
     public sealed class StreamedBundles : IDisposable
     {
         public const string RawFolder = "Library/StreamedBundles";
+        public const string CommonBundle = "common-lod0";
         public const string ManifestAsset = "Assets/Campaign/Resources/StreamedContent.json";
         public const string LinkAsset = "Assets/Campaign/link.xml";
 
         public StreamManifest Manifest { get; private set; } = new StreamManifest();
         /// <summary>Bundle file name to source path (in <see cref="RawFolder"/>) for the copy to the build folder.</summary>
         public Dictionary<string, string> Files { get; } = new Dictionary<string, string>();
+
+        // Ticket 62: the stubs stay on disk through the player build too (the player carries heads, weapons, pods and head pieces as stubs); Dispose puts every original back
+        private Lod0Split split;
+        // Ticket 62: the level scenes without their GUI copy, while the bundles are planned and built
+        private SceneGuiStrip strip;
 
         public StreamedBundles(BuildTarget target)
         {
@@ -51,6 +57,11 @@ namespace SdfCampaign.Editor
 
         public void Dispose()
         {
+            // The originals first: the manifest and link files below are only deleted
+            split?.Dispose();
+            split = null;
+            strip?.Dispose();
+            strip = null;
             if (File.Exists(ManifestAsset))
                 AssetDatabase.DeleteAsset(ManifestAsset);
             if (File.Exists(LinkAsset))
@@ -84,6 +95,10 @@ namespace SdfCampaign.Editor
             var playerScenes = LevelBuildScenes.PlayerPaths().ToList();
             if (scenes.Count == 0)
                 throw new Exception("StreamedBundles: no levels to stream");
+
+            // The GUI is in the player (Boot): the bundles of the levels do not carry a second copy (restored below, once they are built)
+            strip = new SceneGuiStrip();
+            strip.Strip(scenes);
 
             // What every level needs
             var uses = new Dictionary<string, SortedSet<string>>();
@@ -130,9 +145,26 @@ namespace SdfCampaign.Editor
             // Ticket 60: the LOD0 meshes only the finest level of a LOD group uses are built first, as they are, into the -lod0 bundles;
             // the level bundles are then built with stubs in their place (put back at once, whatever happens)
             Lod0Split.RecoverLeftovers();
-            var lod0Meshes = Lod0Split.Find(scenes, uses.Keys, PlayerAssets(playerScenes));
-            StreamLayout.PlanLod0(planned, plannedEntries, lod0Meshes, out var lod0Planned, out var lod0Entries);
-            Debug.Log($"StreamedBundles: {lod0Meshes.Count} LOD0 meshes go to {lod0Planned.Count} -lod0 bundles");
+            var playerAssets = PlayerAssets(playerScenes);
+            var plan = Lod0Split.Find(scenes.Concat(playerScenes), uses.Keys.Concat(playerAssets).Distinct(), playerAssets, PiecePrefabs(), uses);
+            StreamLayout.PlanLod0(planned, plannedEntries, plan.level, out var lod0Planned, out var lod0Entries);
+            // The player's own LOD0 meshes and the head pieces: one common bundle (ticket 62), listed under its own key
+            if (plan.common.Count > 0)
+            {
+                lod0Planned.Add(new PlannedBundle { name = CommonBundle, assets = plan.common.OrderBy(p => p, StringComparer.Ordinal).ToArray() });
+                lod0Entries.Add(new StreamedEntry { key = StreamManifest.CommonKey, bundles = new[] { CommonBundle } });
+            }
+            // The battle music's layers 2 to 4 (taken out of the scenes above): one bundle per distinct set of clips, listed under each level's music key
+            foreach (var group in strip.Music.GroupBy(m => string.Join("|", m.Value)))
+            {
+                var first = group.First().Value;
+                var set = first[0].Contains("orchestra") ? "orchestra" : first[0].Contains("electronic") ? "electronic" : "set" + lod0Planned.Count;
+                var name = "music-" + set;
+                lod0Planned.Add(new PlannedBundle { name = name, assets = first.ToArray() });
+                foreach (var scenePath in group.Select(m => m.Key))
+                    lod0Entries.Add(new StreamedEntry { key = StreamManifest.MusicKey(realNames[Path.GetFileNameWithoutExtension(scenePath).ToLowerInvariant()]), bundles = new[] { name } });
+            }
+            Debug.Log($"StreamedBundles: {plan.level.Count} level LOD0 meshes go to {lod0Planned.Count(b => b.name.EndsWith("-lod0") && b.name != CommonBundle)} -lod0 bundles, {plan.common.Count} common meshes to {CommonBundle}");
 
             var raw = Path.Combine(RawFolder, target.ToString());
             var rawLod0 = raw + "-lod0";
@@ -155,11 +187,12 @@ namespace SdfCampaign.Editor
             }
             Debug.Log($"StreamedBundles: building {builds.Count} bundles ({uses.Count} assets, {scenes.Count} scenes) for {target}");
             AssetBundleManifest built;
-            using (var split = new Lod0Split())
-            {
-                split.Stub(lod0Meshes);
-                built = BuildPipeline.BuildAssetBundles(raw, builds.ToArray(), BuildAssetBundleOptions.ChunkBasedCompression, target);
-            }
+            // The stubs stay until Dispose (after the player build)
+            split = new Lod0Split();
+            split.Stub(plan.All);
+            built = BuildPipeline.BuildAssetBundles(raw, builds.ToArray(), BuildAssetBundleOptions.ChunkBasedCompression, target);
+            strip.Dispose();
+            strip = null;
             if (built == null)
                 throw new Exception("StreamedBundles: BuildAssetBundles failed (see the errors above)");
 
@@ -194,7 +227,7 @@ namespace SdfCampaign.Editor
             foreach (var bundle in Manifest.bundles.OrderByDescending(b => b.size))
                 text.AppendLine($"  {bundle.size / 1048576f,7:0.0} MB  {bundle.name}");
             text.AppendLine($"  {Manifest.bundles.Sum(b => b.size) / 1048576f,7:0.0} MB  total ({Manifest.bundles.Length} files)");
-            foreach (var entry in Manifest.entries.Where(e => e.key.StartsWith("scene:") || e.key.StartsWith("lod0:")))
+            foreach (var entry in Manifest.entries.Where(e => e.key.StartsWith("scene:") || e.key.StartsWith("lod0:") || e.key == StreamManifest.CommonKey || e.key.StartsWith("music:")))
                 text.AppendLine($"  {entry.key}: {string.Join(", ", entry.bundles)} = {Manifest.Remaining(entry.key, null) / 1048576f:0.0} MB");
             Debug.Log(text.ToString());
         }
@@ -207,6 +240,19 @@ namespace SdfCampaign.Editor
             foreach (var path in AssetDatabase.GetDependencies(resources, true))
                 player.Add(path);
             return player;
+        }
+
+        // The head pieces' prefabs (the registry's), whose meshes the common bundle takes
+        private static HashSet<string> PiecePrefabs()
+        {
+            var set = new HashSet<string>();
+            var models = AssetDatabase.LoadAssetAtPath<SdfHeads.MonsterHeadModels>("Assets/Heads/Generated/Resources/MonsterHeadModels.asset");
+            if (models != null)
+                foreach (var entry in models.entries)
+                    foreach (var piece in entry.pieces ?? new GameObject[0])
+                        if (piece != null)
+                            set.Add(AssetDatabase.GetAssetPath(piece));
+            return set;
         }
 
         private static void ReportDuplicates(Dictionary<string, SortedSet<string>> uses, List<string> playerScenes)

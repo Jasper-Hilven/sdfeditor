@@ -256,6 +256,12 @@ namespace SdfBattle
             var burst = new HeadBurst(this, headId, middle, head.transform.rotation, away, blood, level, death.Weapon, death.Headshot);
             var models = SdfHeads.MonsterHeadModels.Load();
             var pieces = models != null && models.TryGet(headId, out var entry) && !(profile != null && profile.ReplacesPieces) ? entry.pieces : null;
+            // The web player carries stubs for the pieces until the common bundle arrives (ticket 62): the burst has no pieces then, only the blood
+            if (pieces != null && !SdfLevel.Lod0Meshes.PiecesReady(pieces))
+            {
+                pieces = null;
+                Poof(middle, blood);
+            }
             var corpse = Corpse.Make(this, death.Victim, death, pieces, head.transform, middle, blood, away, GoreRules.Flings(level));
             if (corpse != null)
             {
