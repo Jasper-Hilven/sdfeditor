@@ -62,6 +62,16 @@ namespace SdfBattle
         public const float AutoFireDwell = 0.06f;
 
         /// <summary>
+        /// The minigun's early auto-fire (the user: its spin-up makes it hard to start by aiming exactly): it starts as soon as an enemy in
+        /// sight is within <see cref="AssistAngle"/> times this of the crosshair (its spread is the miss factor), with
+        /// <see cref="MinigunDwell"/> seconds of rest instead of <see cref="AutoFireDwell"/>. The swipe rule still holds.
+        /// </summary>
+        public const float MinigunNearScale = 1.5f, MinigunDwell = 0f;
+
+        /// <summary>The angle in degrees inside which an enemy <paramref name="distance"/> metres away starts the minigun's auto-fire.</summary>
+        public static float MinigunNearAngle(float distance) => AssistAngle(distance) * MinigunNearScale;
+
+        /// <summary>
         /// Degrees per second of the finger's turn above which the view is being swiped, not aimed: the dwell restarts and the aim
         /// assist does not slow the look. A swipe across a quarter of the screen in a fifth of a second is about 225; settling the
         /// crosshair on a target is well under 90.
@@ -88,7 +98,7 @@ namespace SdfBattle
             }
 
             /// <summary>One frame: the enemy under the crosshair (null for none), the turn rate in degrees per second, and the frame's time.</summary>
-            public void Update(object enemy, float turnRate, float dt)
+            public void Update(object enemy, float turnRate, float dt, float dwellNeeded = AutoFireDwell)
             {
                 if (turnRate > SwipeRate)
                 {
@@ -114,7 +124,7 @@ namespace SdfBattle
                     hold = 0;
                 }
                 dwell += dt;
-                if (dwell >= AutoFireDwell)
+                if (dwell >= dwellNeeded)
                     hold = AutoFireHold;
                 else
                     hold = Math.Max(0, hold - dt);

@@ -527,7 +527,7 @@ namespace SdfCampaign.Editor
                 }
             }
             trace.Add($"auto-fire on an enemy: fired {fired} after {dwelled:0.00} s, look scale {slowed:0.00}");
-            Expect(!fired || dwelled >= TouchRules.AutoFireDwell * 0.7f, $"holding on an enemy fires only after the dwell ({dwelled} s)");
+            Expect(!fired || dwelled >= TouchRules.MinigunDwell * 0.7f, $"holding on an enemy fires only after the minigun's dwell ({dwelled} s)");
             Expect(fired || !enemy.State.Alive || !you.State.Alive, "the auto-fire fires with the crosshair on an enemy");
             Expect(slowed <= TouchRules.AssistSlowest + 0.05f || !enemy.State.Alive || !you.State.Alive, $"the aim assist slows the look on an enemy ({slowed})");
             // The setting off: no auto-fire on an enemy
@@ -551,6 +551,61 @@ namespace SdfCampaign.Editor
             }
             GuiSettings.AutoFire = true;
 
+            // The minigun's early auto-fire: an enemy NEAR the crosshair (not under it) starts it; a teammate in the line of fire stops it
+            if (enemy.State.Alive && you.State.Alive && mate.State.Alive && Face(you, enemy, 14))
+            {
+                inventory.Select(minigunSlot);
+                yield return For(0.6f);
+                var nearFired = false;
+                var framesNear = 0;
+                for (var i = 0; i < 60 && !nearFired && enemy.State.Alive && you.State.Alive; i++)
+                {
+                    AimAt(you, Chest(enemy));
+                    you.Controller.SetAim(you.Controller.Yaw + 3.5f, you.Controller.Pitch);
+                    yield return null;
+                    var hit = combat.Trace(arsenal.EyePosition, arsenal.AimDirection, 100, you);
+                    if (hit.hit && hit.player == enemy)
+                        continue;
+                    framesNear++;
+                    nearFired |= Controls.AutoFiring;
+                }
+                trace.Add($"minigun near an enemy: fired {nearFired} ({framesNear} frames off the body)");
+                Expect(nearFired || !enemy.State.Alive || !you.State.Alive, "the minigun auto-fires with an enemy near the crosshair, not under it");
+                // A teammate on the line to the enemy: no fire, though the enemy is near the crosshair
+                if (enemy.State.Alive && you.State.Alive && mate.State.Alive && Face(you, enemy, 14))
+                {
+                    yield return For(0.5f);
+                    var blockedFrames = 0;
+                    var blockStart = Time.realtimeSinceStartup;
+                    for (var i = 0; i < 400 && blockedFrames < 6 && enemy.State.Alive && you.State.Alive && mate.State.Alive; i++)
+                    {
+                        var eye = arsenal.EyePosition;
+                        var middle = eye + (Chest(enemy) - eye) * 0.45f;
+                        if (Ground(middle, out var groundAt))
+                            mate.Controller.Teleport(groundAt + Vector3.up * 0.05f, mate.Controller.Yaw);
+                        AimAt(you, Chest(enemy));
+                        you.Controller.SetAim(you.Controller.Yaw + 0.8f, you.Controller.Pitch);
+                        yield return null;
+                        var hit = combat.Trace(arsenal.EyePosition, arsenal.AimDirection, 100, you);
+                        if (i >= 4 && Time.realtimeSinceStartup - blockStart > 0.4f && hit.hit && hit.player == mate)
+                        {
+                            blockedFrames++;
+                            Expect(!Controls.AutoFiring, "the minigun does not auto-fire with a teammate in the line of fire");
+                        }
+                    }
+                    trace.Add($"minigun with a teammate in the way: no fire ({blockedFrames} frames checked)");
+                }
+            }
+
+            // The poison-gun and the blob-gun by touch: pick up (a pod when the level has one), select by slot, tap and hold FIRE, auto-fire on their arc
+            if (enemy.State.Alive && you.State.Alive)
+            {
+                yield return LobbedGun(WeaponIds.PoisonGun, match, you, enemy, mate, minigunSlot);
+                yield return LobbedGun(WeaponIds.BlobGun, match, you, enemy, mate, minigunSlot);
+                inventory.Select(minigunSlot);
+            }
+            GuiSettings.AutoFire = true;
+
             // The end: three captures, then the card's touch wording and a tap that skips the countdown
             if (!you.State.Alive)
                 yield return Until(() => you.State.Alive, 15, "your respawn");
@@ -569,6 +624,143 @@ namespace SdfCampaign.Editor
             yield return Until(() => card.CountdownDone, 4, "the tap that skips the countdown");
             fingers.Remove(5);
             trace.Add("end card: tap the arrows, and a tap skipped the countdown");
+        }
+
+        // Teleports you a few metres off a pod, facing it and with a clear run
+        private static bool PlaceBefore(Player you, WeaponPickup pod)
+        {
+            for (var k = 0; k < 16; k++)
+            {
+                var angle = k * 22.5f * Mathf.Deg2Rad;
+                var around = pod.transform.position + new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle)) * 6;
+                if (!Ground(around, out var ground) || Mathf.Abs(ground.y - pod.transform.position.y) > 1)
+                    continue;
+                if (Physics.Linecast(ground + Vector3.up, pod.transform.position + Vector3.up, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                    continue;
+                var toPod = pod.transform.position - ground;
+                you.Controller.Teleport(ground + Vector3.up * 0.05f, Mathf.Atan2(toPod.x, toPod.z) * Mathf.Rad2Deg);
+                return true;
+            }
+            return false;
+        }
+
+        // The aim that lands a lobbed shot of the weapon in hand on a point
+        private static void LobAt(Player you, Arsenal arsenal, Vector3 point)
+        {
+            var to = point - arsenal.EyePosition;
+            Ballistics.AimPitch(arsenal.Weapon, arsenal.EyePosition, point, out var pitch, out _);
+            you.Controller.SetAim(Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg, pitch);
+        }
+
+        private static IEnumerator LobbedGun(string gun, Match match, Player you, Player enemy, Player mate, WeaponSlot minigunSlot)
+        {
+            var combat = Combat.Current;
+            var arsenal = combat.ArsenalOf(you);
+            var inventory = arsenal.Inventory;
+            var slot = WeaponIds.SlotOf(gun).Value;
+            // The pod, if the level has one: walked onto with the stick
+            WeaponPickup pod = null;
+            foreach (var p in UnityEngine.Object.FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None))
+                if (p.weaponId == gun && p.Available && (pod == null || (p.transform.position - you.transform.position).sqrMagnitude < (pod.transform.position - you.transform.position).sqrMagnitude))
+                    pod = p;
+            if (pod != null && PlaceBefore(you, pod))
+            {
+                yield return For(0.3f);
+                var start = FreePoint(true);
+                fingers[1] = start;
+                yield return Frames(2);
+                fingers[1] = start + Vector2.up * Layer.StickPixels * 1.2f;
+                yield return Until(() => inventory.Holds(gun), 12, $"the {gun} from its pod");
+                fingers.Remove(1);
+                trace.Add($"{gun}: walked onto its pod with the stick");
+            }
+            else
+            {
+                inventory.Take(gun);
+                trace.Add($"{gun}: this level has no free pod for it, taken by code");
+            }
+            yield return For(0.3f);
+            Expect(inventory.Holds(gun), $"the {gun} is held");
+            yield return TapButton(TouchButtonKind.Slot, (int)minigunSlot);
+            yield return TapButton(TouchButtonKind.Slot, (int)slot);
+            Expect(inventory.CurrentWeapon == gun, $"a tap on slot {(int)slot + 1} takes the {gun} ({inventory.CurrentWeapon})");
+            yield return For(0.6f);
+            var stats = arsenal.Weapon;
+            var lobs = 0;
+            var landed = 0;
+            Action<FireMode, Transform> onLob = (mode, muzzle) => lobs++;
+            Action<Area> onArea = area => landed++;
+            combat.Fx.Lobbed += onLob;
+            combat.State.AreaAdded += onArea;
+            var wasAuto = GuiSettings.AutoFire;
+            GuiSettings.AutoFire = false;
+            if (!Face(you, enemy, 12))
+            {
+                combat.Fx.Lobbed -= onLob;
+                combat.State.AreaAdded -= onArea;
+                GuiSettings.AutoFire = wasAuto;
+                trace.Add($"{gun}: no clear view of an enemy, the firing steps skipped");
+                yield break;
+            }
+            // A tap on FIRE lobs one; the button held keeps lobbing; the shots land
+            LobAt(you, arsenal, Chest(enemy));
+            yield return Tap(CentreOf(TouchButtonKind.Fire), 0.15f);
+            yield return For(1.2f);
+            Expect(lobs >= 1, $"a tap on FIRE lobs a {gun} shot ({lobs})");
+            fingers[3] = CentreOf(TouchButtonKind.Fire);
+            var holdUntil = Time.realtimeSinceStartup + 3.2f;
+            while (Time.realtimeSinceStartup < holdUntil)
+            {
+                LobAt(you, arsenal, Chest(enemy));
+                yield return null;
+            }
+            fingers.Remove(3);
+            yield return For(1.5f);
+            trace.Add($"{gun}: tap and hold FIRE lobbed {lobs} shots, {landed} landed");
+            Expect(lobs >= 3, $"FIRE held keeps lobbing the {gun} ({lobs})");
+            Expect(landed >= 1, $"the {gun} shots land ({landed})");
+            // Auto-fire on the arc: aimed so the lob lands on an enemy it starts, on a teammate or at the sky it does not
+            GuiSettings.AutoFire = true;
+            yield return For(0.5f);
+            var auto = false;
+            if (enemy.State.Alive && you.State.Alive && Face(you, enemy, 12))
+            {
+                for (var i = 0; i < 90 && !auto && enemy.State.Alive && you.State.Alive; i++)
+                {
+                    LobAt(you, arsenal, Chest(enemy));
+                    yield return null;
+                    var predicted = combat.PredictLob(arsenal, arsenal.EyePosition, arsenal.AimDirection);
+                    if (predicted.hit && predicted.player == enemy)
+                        auto |= Controls.AutoFiring;
+                }
+                trace.Add($"{gun} auto-fire with the arc on an enemy: {auto}");
+                Expect(auto || !enemy.State.Alive || !you.State.Alive, $"the {gun} auto-fires when its arc hits an enemy");
+            }
+            GuiSettings.AutoFire = true;
+            yield return For(arsenal.Weapon.shotsPerSecond > 0 ? 1.5f : 0.5f);
+            // A level aim at the enemy does not make the lob hit it: no fire (the crosshair is on the enemy, the arc falls short)
+            if (enemy.State.Alive && you.State.Alive && mate.State.Alive && Face(you, mate, 8))
+            {
+                var checkedFrames = 0;
+                for (var i = 0; i < 40 && checkedFrames < 5 && mate.State.Alive; i++)
+                {
+                    LobAt(you, arsenal, Chest(mate));
+                    yield return null;
+                    var predicted = combat.PredictLob(arsenal, arsenal.EyePosition, arsenal.AimDirection);
+                    if (predicted.hit && predicted.player == mate)
+                    {
+                        checkedFrames++;
+                        Expect(!Controls.AutoFiring, $"no {gun} auto-fire with the arc on a teammate");
+                    }
+                }
+                trace.Add($"{gun} auto-fire: none with the arc on a teammate ({checkedFrames} frames)");
+            }
+            you.Controller.SetAim(you.Controller.Yaw, -80);
+            yield return For(0.4f);
+            Expect(!Controls.AutoFiring, $"no {gun} auto-fire at the sky");
+            combat.Fx.Lobbed -= onLob;
+            combat.State.AreaAdded -= onArea;
+            GuiSettings.AutoFire = wasAuto;
         }
 
         private static void Finish()

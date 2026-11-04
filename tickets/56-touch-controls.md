@@ -83,3 +83,18 @@ Done in code, built and checked in batch; left for a human: a try on a real Andr
   is on an enemy), so nothing was removed. The fire buttons and the desktop are unchanged. Tests: `TouchRulesTests` (dwell, swipe,
   target change, hold, wobble) and `TouchPlayTest` (a 400 degrees per second swipe through an enemy fires nothing and is not slowed;
   holding on it fires after ~0.3 s).
+- **Poison-gun and blob-gun on touch** (checked by code and by `TouchPlayTest`): both already worked with the fire buttons. Neither has a
+  charge or release-fire (`WeaponTrigger` fires while the trigger is held, at the weapon's rate after its 0.3 s draw), pods are walk-on, the
+  slots are tappable; shots fly and land (the test: walk onto the pod, tap slot, tap and hold FIRE, the shots land as clouds/splats). Levels
+  with the poison-gun: chessboard, computer, fungal; with the blob-gun: bathroom, chessboard (neutral centre pod), kitchen, toybox. Only the
+  auto-fire skipped them, and now supports them: `Combat.PredictLob` steps the projectile's own path (same lift, muzzle start, gravity and
+  0.12 m sweep as `StepProjectiles`, no spread) and `TouchAssist.LobbedEnemy` starts the trigger when that path ends on an enemy player or
+  machine (a teammate or a wall first: no); the poison cloud also counts when it lands within 0.8 of its radius of an enemy and no teammate
+  is inside its radius. Same dwell and swipe rules. The lob needs the crosshair above the target (the shot leaves 5-8 degrees above the
+  aim and drops); desktop has no arc preview or aim hint, so there is none on touch either (nothing was added).
+- **Minigun fires early on touch**: its spin-up made it hard to start on an exact aim. `TouchAssist.NearEnemy`: an enemy player in sight
+  within `TouchRules.MinigunNearAngle` (the aim assist's circle times `MinigunNearScale` 1.5) of the crosshair and in range starts the
+  auto-fire at once (`MinigunDwell` 0); the line the bullets take must not meet a teammate or a wall in front of the enemy, a fast swipe
+  (`SwipeRate`) still stops it, the hold is the usual 0.12 s. The shots go where the crosshair is (the minigun's spread is the miss
+  factor). Other weapons keep their rules. Tests: `TouchRulesTests` (no dwell, swipe, angle) and `TouchPlayTest` (an enemy 3.5 degrees off
+  the crosshair starts the minigun; a teammate in the line of fire does not; the lobbed guns by touch and their auto-fire).

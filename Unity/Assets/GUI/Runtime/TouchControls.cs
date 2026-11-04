@@ -382,7 +382,7 @@ namespace SdfGui
             if (arsenal == null || !GuiSettings.AutoFire)
                 autoFire.Reset();
             else
-                autoFire.Update(TouchAssist.EnemyUnder(combat, arsenal), rate, dt);
+                autoFire.Update(TouchAssist.EnemyUnder(combat, arsenal), rate, dt, TouchAssist.DwellFor(arsenal.Weapon));
             // The zoom is the sniper's: another weapon in hand zooms out
             if (zoomOn && (arsenal == null || arsenal.Weapon == null || arsenal.Weapon.zoomFieldOfView <= 0))
                 zoomOn = false;

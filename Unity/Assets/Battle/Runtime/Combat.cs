@@ -353,7 +353,8 @@ namespace SdfBattle
             return length;
         }
 
-        private void Launch(Arsenal arsenal, WeaponStats stats, Vector3 eye, Vector3 direction)
+        /// <summary>Where a lobbed shot leaves and with what velocity, for a shot along <paramref name="direction"/> (no spread): the lift over the aim, from the muzzle unless a wall stands between it and the eye.</summary>
+        private static void LobStart(Arsenal arsenal, WeaponStats stats, Vector3 eye, Vector3 direction, out Vector3 start, out Vector3 velocity)
         {
             // Lifted over the aim, so even a level shot arcs
             var right = Vector3.Cross(Vector3.up, direction);
@@ -361,19 +362,56 @@ namespace SdfBattle
                 right = arsenal.transform.right;
             direction = Quaternion.AngleAxis(-stats.projectileLift, right.normalized) * direction;
             var muzzle = arsenal.Muzzle;
-            // From the muzzle unless a wall stands between it and the eye
-            var start = eye;
+            start = eye;
             if (muzzle != null && !Physics.Linecast(eye, muzzle.position, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                 start = muzzle.position;
+            velocity = direction * stats.projectileSpeed;
+        }
+
+        /// <summary>
+        /// Where the arsenal's lobbed shot (poison cloud, blob) would land if fired now along <paramref name="aim"/> with no spread: the
+        /// projectile's own path, stepped like <see cref="StepProjectiles"/> with the same sweep, up to the weapon's range across. The touch
+        /// auto-fire asks it. The result's <c>hit</c> is false when the shot flies out of range or off the world.
+        /// </summary>
+        public ShotHit PredictLob(Arsenal arsenal, Vector3 eye, Vector3 aim)
+        {
+            var stats = arsenal.Weapon;
+            if (stats == null || stats.mode != FireMode.Cloud && stats.mode != FireMode.Blob)
+                return default;
+            LobStart(arsenal, stats, eye, aim.normalized, out var position, out var velocity);
+            var origin = position;
+            const float dt = 1f / 30;
+            for (var age = 0f; age < 8; age += dt)
+            {
+                var next = velocity + Vector3.down * (stats.projectileGravity * dt);
+                var step = (velocity + next) * (0.5f * dt);
+                var length = step.magnitude;
+                var hit = length > 1e-5f ? Trace(position, step / length, length, arsenal.Player, projectileRadius) : default;
+                if (hit.hit)
+                {
+                    hit.distance = Vector3.Distance(origin, hit.point);
+                    return hit;
+                }
+                position += step;
+                velocity = next;
+                if (position.y < -500 || new Vector2(position.x - origin.x, position.z - origin.z).magnitude > stats.range)
+                    break;
+            }
+            return default;
+        }
+
+        private void Launch(Arsenal arsenal, WeaponStats stats, Vector3 eye, Vector3 direction)
+        {
+            LobStart(arsenal, stats, eye, direction, out var start, out var velocity);
             projectiles.Add(new Projectile
             {
                 owner = arsenal.Player,
                 stats = stats,
                 position = start,
-                velocity = direction * stats.projectileSpeed,
+                velocity = velocity,
                 gob = stats.mode == FireMode.Blob ? Fx.TakeGob() : -1,
             });
-            Fx.Lob(stats.mode, muzzle);
+            Fx.Lob(stats.mode, arsenal.Muzzle);
         }
 
         private void StepProjectiles(float dt)

@@ -131,5 +131,29 @@ namespace SdfBattle.Tests
             Run(a, enemy, TouchRules.AutoFireDwell * 0.7f);
             Assert.IsTrue(a.Firing);
         }
+
+        [Test]
+        public void TheMinigunStartsAtOnceOnAnEnemyNearTheCrosshair()
+        {
+            var a = new TouchRules.AutoFire();
+            a.Update(new object(), 0, 0.016f, TouchRules.MinigunDwell);
+            Assert.IsTrue(a.Firing, "no dwell for the minigun");
+        }
+
+        [Test]
+        public void AFastSwipeStillDoesNotStartTheMinigun()
+        {
+            var a = new TouchRules.AutoFire();
+            a.Update(new object(), TouchRules.SwipeRate * 2, 0.016f, TouchRules.MinigunDwell);
+            Assert.IsFalse(a.Firing);
+        }
+
+        [Test]
+        public void TheMinigunNearAngleIsWiderThanTheAssistAndGrowsWithTheEnemy()
+        {
+            Assert.Greater(TouchRules.MinigunNearAngle(20), TouchRules.AssistAngle(20));
+            Assert.Greater(TouchRules.MinigunNearAngle(5), TouchRules.MinigunNearAngle(40));
+            Assert.LessOrEqual(TouchRules.MinigunNearAngle(0.5f), TouchRules.AssistMaxDegrees * TouchRules.MinigunNearScale + 0.01f);
+        }
     }
 }
