@@ -165,7 +165,12 @@ namespace SdfCampaign
             setup = DifficultyRules.Apply(setup, save.Difficulty, team.Other());
             MatchSetup.Pending = setup.ToMatchSetup();
             // The HUD comes back once the match is playable: after the click on the Loading screen, or the fade in (the end screens and the pause menu leave it)
-            loader.Load(level, briefing, onLoaded: () => Live(level, team, warmUp, record), onPlay: () => flow.Show(GuiScreen.Hud));
+            loader.Load(level, briefing, onLoaded: () => Live(level, team, warmUp, record), onPlay: () =>
+            {
+                flow.Show(GuiScreen.Hud);
+                // The HUD is up, so gameplayStart has gone: the level's LOD0 meshes come in the background (ticket 60)
+                Lod0Streamer.Begin(level);
+            });
             return true;
         }
 
@@ -173,6 +178,7 @@ namespace SdfCampaign
         private void Live(string level, Team team, bool warmUp, bool record)
         {
             MatchSetup.Pending = null;
+            Lod0Streamer.Prepare(level);
             current = level;
             currentTeam = team;
             nextShot.Arm();

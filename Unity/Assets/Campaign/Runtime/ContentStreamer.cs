@@ -31,6 +31,11 @@ namespace SdfCampaign
         /// <summary>A download that moves no byte for this long fails (the Loading screen then offers a retry).</summary>
         public const float StallSeconds = 40;
 
+        /// <summary>True while the match in play fetches its own LOD0 bundles (ticket 60): the background fetch of the next level waits.</summary>
+        public static bool HoldPrefetch;
+        /// <summary>True from a level going live until its LOD0 swap is done: the next level's LOD0 bundles wait, its base bundles do not.</summary>
+        public static bool Lod0Pending;
+
         /// <summary>For checks: stream outside a WebGL player too.</summary>
         public static bool ForceEnabled;
         /// <summary>For checks: the folder URL of the bundles (no trailing slash) instead of the page's.</summary>
@@ -43,6 +48,9 @@ namespace SdfCampaign
             public string error = "";
             public float progress;
             public long size;
+            /// <summary>The bundle was opened, its assets taken and its file data let go (<see cref="Consume"/>); the assets stay loaded.</summary>
+            public bool consumed;
+            public bool Have => bundle != null || consumed;
         }
 
         private static StreamManifest manifest;
@@ -78,9 +86,34 @@ namespace SdfCampaign
         public static bool IsReady(string key)
         {
             foreach (var bundle in Manifest.Bundles(key))
-                if (!states.TryGetValue(bundle.name, out var state) || state.bundle == null)
+                if (!states.TryGetValue(bundle.name, out var state) || !state.Have)
                     return false;
             return true;
+        }
+
+        /// <summary>The bundles of a fetched key that are still open (not <see cref="Consume"/>d).</summary>
+        public static List<AssetBundle> Open(string key)
+        {
+            var list = new List<AssetBundle>();
+            foreach (var bundle in Manifest.Bundles(key))
+                if (states.TryGetValue(bundle.name, out var state) && state.bundle != null)
+                    list.Add(state.bundle);
+            return list;
+        }
+
+        /// <summary>
+        /// Lets go of the file data of a key's bundles once their assets are loaded (ticket 60: the LOD0 meshes), keeping the loaded assets; the
+        /// bundles count as fetched until <see cref="Release"/>, which frees the assets with the scene's.
+        /// </summary>
+        public static void Consume(string key)
+        {
+            foreach (var bundle in Manifest.Bundles(key))
+                if (states.TryGetValue(bundle.name, out var state) && state.bundle != null)
+                {
+                    state.bundle.Unload(false);
+                    state.bundle = null;
+                    state.consumed = true;
+                }
         }
 
         /// <summary>Fetches everything a key needs; a failed bundle fails the request, and asking again retries it.</summary>
@@ -106,14 +139,19 @@ namespace SdfCampaign
         {
             if (!Enabled)
                 return;
-            foreach (var key in keys)
+            var list = new List<string>(keys);
+            // A level's bundles first, then (ticket 60) the LOD0 meshes of each
+            foreach (var key in new List<string>(list))
+                if (key.StartsWith("scene:") && Manifest.Has(StreamManifest.Lod0Key(key.Substring("scene:".Length))))
+                    list.Add(StreamManifest.Lod0Key(key.Substring("scene:".Length)));
+            foreach (var key in list)
             {
                 if (!Manifest.Has(key) || IsReady(key))
                     continue;
                 if (!prefetchKeys.Contains(key))
                     prefetchKeys.Add(key);
                 foreach (var bundle in Manifest.Bundles(key))
-                    if (!states.ContainsKey(bundle.name))
+                    if (!states.ContainsKey(bundle.name) && !prefetchQueue.Contains(bundle))
                         prefetchQueue.Enqueue(bundle);
             }
             if (!prefetching && prefetchQueue.Count > 0)
@@ -129,20 +167,27 @@ namespace SdfCampaign
             if (!Enabled)
                 return;
             var keep = new HashSet<string>();
+            var keepLod0 = !string.IsNullOrEmpty(keepKey) && keepKey.StartsWith("scene:") ? StreamManifest.Lod0Key(keepKey.Substring("scene:".Length)) : "";
             prefetchKeys.Remove(keepKey);
+            prefetchKeys.Remove(keepLod0);
             var keys = new List<string>(prefetchKeys);
             if (!string.IsNullOrEmpty(keepKey))
+            {
                 keys.Add(keepKey);
+                keys.Add(keepLod0);
+            }
             foreach (var key in keys)
                 foreach (var bundle in Manifest.Bundles(key))
                     keep.Add(bundle.name);
             var drop = new List<string>();
             foreach (var pair in states)
-                if (pair.Value.bundle != null && !keep.Contains(pair.Key))
+                if (pair.Value.Have && !keep.Contains(pair.Key))
                     drop.Add(pair.Key);
             foreach (var name in drop)
             {
-                states[name].bundle.Unload(true);
+                // A consumed bundle has no file data left; its meshes go with the last scene using them (UnloadUnusedAssets)
+                if (states[name].bundle != null)
+                    states[name].bundle.Unload(true);
                 states.Remove(name);
                 Debug.Log($"ContentStreamer: released {name}");
             }
@@ -193,8 +238,8 @@ namespace SdfCampaign
                         request.Done = true;
                         yield break;
                     }
-                    bytes += bundle.size * (state.bundle != null ? 1 : state.progress);
-                    if (state.bundle != null)
+                    bytes += bundle.size * (state.Have ? 1 : state.progress);
+                    if (state.Have)
                         done++;
                 }
                 request.Progress = total > 0 ? (float)(bytes / total) : 1;
@@ -216,11 +261,15 @@ namespace SdfCampaign
                 yield return null;
             while (prefetchQueue.Count > 0)
             {
+                while (HoldPrefetch)
+                    yield return null;
                 var bundle = prefetchQueue.Dequeue();
+                while (Lod0Pending && bundle.name.EndsWith("-lod0"))
+                    yield return null;
                 if (states.ContainsKey(bundle.name))
                 {
                     // Taken up by a foreground fetch; wait for it so only one runs at a time
-                    while (states.TryGetValue(bundle.name, out var running) && running.bundle == null && !running.failed)
+                    while (states.TryGetValue(bundle.name, out var running) && !running.Have && !running.failed)
                         yield return null;
                     continue;
                 }

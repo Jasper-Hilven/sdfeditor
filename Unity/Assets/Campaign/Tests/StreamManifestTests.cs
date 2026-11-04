@@ -119,6 +119,34 @@ namespace SdfCampaign.Tests
             CollectionAssert.AreEqual(new[] { meadow[0], "meadow-assets", "meadow" }, meadow);
         }
 
+        [Test]
+        public void Lod0MeshesGoToTheirBundlesTwinAndEachLevelListsItsOwn()
+        {
+            var map = Sevens();
+            StreamLayout.Plan(map, out var bundles, out var entries, LevelRotation.Levels.ToDictionary(l => l.ToLowerInvariant()));
+            var lod0 = new HashSet<string> { "Fungal.mesh", "Tiles.mat", "Soldier.mesh" };
+            StreamLayout.PlanLod0(bundles, entries, lod0, out var lod0Bundles, out var lod0Entries);
+            var all = lod0Bundles.Single(b => b.assets.Contains("Soldier.mesh"));
+            StringAssert.EndsWith("-lod0", all.name);
+            Assert.AreEqual("fungal-lod0", lod0Bundles.Single(b => b.assets.Contains("Fungal.mesh")).name);
+            Assert.IsFalse(lod0Bundles.Any(b => b.assets.Except(lod0).Any()), "only the LOD0 assets");
+            CollectionAssert.AreEqual(new[] { all.name, "fungal-lod0" }, lod0Entries.Single(e => e.key == "lod0:Fungal").bundles);
+            // A level with only the all-levels meshes lists that one bundle; none has a scene bundle's twin
+            CollectionAssert.AreEqual(new[] { all.name }, lod0Entries.Single(e => e.key == "lod0:Meadow").bundles);
+            Assert.AreEqual(7, lod0Entries.Count);
+            Assert.AreEqual(lod0Bundles.Count, lod0Bundles.Select(b => b.name).Distinct().Count());
+        }
+
+        [Test]
+        public void ALevelWithNoLod0MeshesHasNoLod0Entry()
+        {
+            StreamLayout.Plan(Sevens(), out var bundles, out var entries);
+            StreamLayout.PlanLod0(bundles, entries, new HashSet<string>(), out var lod0Bundles, out var lod0Entries);
+            Assert.IsEmpty(lod0Bundles);
+            Assert.IsEmpty(lod0Entries);
+            Assert.AreEqual("lod0:Fungal", StreamManifest.Lod0Key("Fungal"));
+        }
+
         static StreamedEntry Entry(string key) => new StreamedEntry { key = key, bundles = new[] { "x" } };
     }
 }

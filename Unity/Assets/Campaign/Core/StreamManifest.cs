@@ -36,6 +36,9 @@ namespace SdfCampaign
 
         public static string SceneKey(string scene) => "scene:" + scene;
 
+        /// <summary>The key of a level's LOD0 meshes (ticket 60): the <c>-lod0</c> bundles fetched after the match started.</summary>
+        public static string Lod0Key(string scene) => "lod0:" + scene;
+
         public static StreamManifest Parse(string json)
         {
             if (string.IsNullOrWhiteSpace(json))

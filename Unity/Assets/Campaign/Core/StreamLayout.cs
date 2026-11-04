@@ -64,6 +64,37 @@ namespace SdfCampaign
             }
         }
 
+        /// <summary>The name of the bundle holding the LOD0 meshes of <paramref name="bundle"/> (ticket 60): fungal-assets is fungal-lod0, shared-1234 is shared-1234-lod0.</summary>
+        public static string Lod0Name(string bundle) => bundle.EndsWith("-assets") ? bundle.Substring(0, bundle.Length - "-assets".Length) + "-lod0" : bundle + "-lod0";
+
+        /// <summary>
+        /// The LOD0 bundles (ticket 60): each planned bundle's share of <paramref name="lod0Assets"/> goes to its own <c>-lod0</c> bundle, and each
+        /// level's <c>lod0:Name</c> entry lists the ones for the bundles its <c>scene:Name</c> entry (in <paramref name="entries"/>) loads. A level with no LOD0 meshes gets no entry.
+        /// </summary>
+        public static void PlanLod0(IList<PlannedBundle> bundles, IEnumerable<StreamedEntry> entries, ICollection<string> lod0Assets, out List<PlannedBundle> lod0Bundles, out List<StreamedEntry> lod0Entries)
+        {
+            lod0Bundles = new List<PlannedBundle>();
+            foreach (var bundle in bundles)
+            {
+                if (bundle.isScene)
+                    continue;
+                var share = bundle.assets.Where(lod0Assets.Contains).ToArray();
+                if (share.Length > 0)
+                    lod0Bundles.Add(new PlannedBundle { name = Lod0Name(bundle.name), assets = share });
+            }
+            lod0Entries = new List<StreamedEntry>();
+            var have = new HashSet<string>(lod0Bundles.Select(b => b.name));
+            var plain = new HashSet<string>(bundles.Where(b => !b.isScene).Select(b => b.name));
+            foreach (var entry in entries)
+            {
+                if (!entry.key.StartsWith("scene:"))
+                    continue;
+                var list = entry.bundles.Where(plain.Contains).Select(Lod0Name).Where(have.Contains).ToArray();
+                if (list.Length > 0)
+                    lod0Entries.Add(new StreamedEntry { key = StreamManifest.Lod0Key(entry.key.Substring("scene:".Length)), bundles = list });
+            }
+        }
+
         private static string ShortHash(string text)
         {
             using var sha = SHA1.Create();

@@ -230,7 +230,7 @@ namespace SdfLevel
             for (var p = 0; p < prototypes.Length; p++)
             {
                 var prototype = prototypes[p];
-                levels[p] = prototype.levels != null && prototype.levels.Length > 0 ? prototype.levels : LevelsOf(prototype.prefab);
+                levels[p] = Lod0Meshes.WithFallback(prototype.levels != null && prototype.levels.Length > 0 ? prototype.levels : LevelsOf(prototype.prefab));
                 prototypeGroups[p] = Array.FindIndex(groups, g => g.name == prototype.group);
                 if (prototypeGroups[p] < 0 && levels[p].Length > 0)
                     Debug.LogWarning($"SDF scatter: {prototype.name} is in draw group '{prototype.group}', which {name} has no settings for; it is not drawn");
@@ -436,6 +436,32 @@ namespace SdfLevel
                 levels[level] = new ScatterLevel { parts = parts.ToArray() };
             }
             return levels;
+        }
+
+        /// <summary>
+        /// Puts the real LOD0 meshes (<see cref="Lod0Meshes.Loaded"/>) where the LOD1 meshes stand in for them (ticket 60), in the prototypes
+        /// given directly and in what was loaded from the prefabs; returns how many parts changed. The bounds stay: a stub has the real mesh's.
+        /// </summary>
+        public int ReplaceLod0Meshes()
+        {
+            var changed = 0;
+            void Patch(ScatterLevel[] list)
+            {
+                if (list == null || list.Length == 0)
+                    return;
+                foreach (var part in list[0].parts)
+                    if (Lod0Meshes.RealFor(part.mesh) is { } real)
+                    {
+                        part.mesh = real;
+                        changed++;
+                    }
+            }
+            if (levels != null)
+                foreach (var list in levels)
+                    Patch(list);
+            foreach (var prototype in prototypes)
+                Patch(prototype.levels);
+            return changed;
         }
 
         /// <summary>The part a mesh is a level of: model_body_LOD2 is model_body.</summary>

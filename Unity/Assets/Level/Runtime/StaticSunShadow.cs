@@ -50,6 +50,9 @@ namespace SdfLevel
         private Matrix4x4 worldToMap;
         private float texel;
         private Quaternion renderedRotation;
+
+        /// <summary>The map is drawn again before the next frame (the level's LOD0 meshes arrived, ticket 60).</summary>
+        public void Invalidate() => renderedSize = -1;
         private int renderedSize;
 
         private void OnEnable() => RenderPipelineManager.beginContextRendering += BeforeCameras;

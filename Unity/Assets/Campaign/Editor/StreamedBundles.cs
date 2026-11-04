@@ -127,12 +127,39 @@ namespace SdfCampaign.Editor
             WriteLink(scenes, uses.Keys, codeAssets);
             ReportDuplicates(uses, playerScenes);
 
+            // Ticket 60: the LOD0 meshes only the finest level of a LOD group uses are built first, as they are, into the -lod0 bundles;
+            // the level bundles are then built with stubs in their place (put back at once, whatever happens)
+            Lod0Split.RecoverLeftovers();
+            var lod0Meshes = Lod0Split.Find(scenes, uses.Keys, PlayerAssets(playerScenes));
+            StreamLayout.PlanLod0(planned, plannedEntries, lod0Meshes, out var lod0Planned, out var lod0Entries);
+            Debug.Log($"StreamedBundles: {lod0Meshes.Count} LOD0 meshes go to {lod0Planned.Count} -lod0 bundles");
+
             var raw = Path.Combine(RawFolder, target.ToString());
-            Directory.CreateDirectory(raw);
-            foreach (var old in Directory.GetFiles(raw))
-                File.Delete(old);
+            var rawLod0 = raw + "-lod0";
+            foreach (var folder in new[] { raw, rawLod0 })
+            {
+                Directory.CreateDirectory(folder);
+                foreach (var old in Directory.GetFiles(folder))
+                    File.Delete(old);
+            }
+            var lod0Builds = lod0Planned.Select(b => new AssetBundleBuild { assetBundleName = b.name, assetNames = b.assets }).ToList();
+            var lod0Hashes = new Dictionary<string, string>();
+            if (lod0Builds.Count > 0)
+            {
+                var builtLod0 = BuildPipeline.BuildAssetBundles(rawLod0, lod0Builds.ToArray(), BuildAssetBundleOptions.ChunkBasedCompression, target);
+                if (builtLod0 == null)
+                    throw new Exception("StreamedBundles: BuildAssetBundles failed for the LOD0 bundles (see the errors above)");
+                // The manifest object is gone after the next build
+                foreach (var build in lod0Builds)
+                    lod0Hashes[build.assetBundleName] = builtLod0.GetAssetBundleHash(build.assetBundleName).ToString();
+            }
             Debug.Log($"StreamedBundles: building {builds.Count} bundles ({uses.Count} assets, {scenes.Count} scenes) for {target}");
-            var built = BuildPipeline.BuildAssetBundles(raw, builds.ToArray(), BuildAssetBundleOptions.ChunkBasedCompression, target);
+            AssetBundleManifest built;
+            using (var split = new Lod0Split())
+            {
+                split.Stub(lod0Meshes);
+                built = BuildPipeline.BuildAssetBundles(raw, builds.ToArray(), BuildAssetBundleOptions.ChunkBasedCompression, target);
+            }
             if (built == null)
                 throw new Exception("StreamedBundles: BuildAssetBundles failed (see the errors above)");
 
@@ -146,7 +173,15 @@ namespace SdfCampaign.Editor
                 bundles.Add(new StreamedBundle { name = build.assetBundleName, file = file, hash = hash, size = new FileInfo(source).Length });
                 Files[file] = source;
             }
-            Manifest = new StreamManifest { bundles = bundles.ToArray(), entries = plannedEntries.ToArray() };
+            foreach (var build in lod0Builds)
+            {
+                var source = Path.Combine(rawLod0, build.assetBundleName);
+                var hash = lod0Hashes[build.assetBundleName];
+                var file = $"{build.assetBundleName}-{hash.Substring(0, 12)}.bundle";
+                bundles.Add(new StreamedBundle { name = build.assetBundleName, file = file, hash = hash, size = new FileInfo(source).Length });
+                Files[file] = source;
+            }
+            Manifest = new StreamManifest { bundles = bundles.ToArray(), entries = plannedEntries.Concat(lod0Entries).ToArray() };
             // The key of a scene is its real name ("Fungal"); the Resources manifest carries it
             File.WriteAllText(ManifestAsset, Manifest.ToJson());
             AssetDatabase.ImportAsset(ManifestAsset, ImportAssetOptions.ForceSynchronousImport);
@@ -159,18 +194,24 @@ namespace SdfCampaign.Editor
             foreach (var bundle in Manifest.bundles.OrderByDescending(b => b.size))
                 text.AppendLine($"  {bundle.size / 1048576f,7:0.0} MB  {bundle.name}");
             text.AppendLine($"  {Manifest.bundles.Sum(b => b.size) / 1048576f,7:0.0} MB  total ({Manifest.bundles.Length} files)");
-            foreach (var entry in Manifest.entries.Where(e => e.key.StartsWith("scene:")))
+            foreach (var entry in Manifest.entries.Where(e => e.key.StartsWith("scene:") || e.key.StartsWith("lod0:")))
                 text.AppendLine($"  {entry.key}: {string.Join(", ", entry.bundles)} = {Manifest.Remaining(entry.key, null) / 1048576f:0.0} MB");
             Debug.Log(text.ToString());
         }
 
         // Assets that are in the player (Boot's closure, everything in Resources) as well as in a bundle: a copy each
-        private static void ReportDuplicates(Dictionary<string, SortedSet<string>> uses, List<string> playerScenes)
+        private static HashSet<string> PlayerAssets(List<string> playerScenes)
         {
             var player = new HashSet<string>(AssetDatabase.GetDependencies(playerScenes.ToArray(), true));
             var resources = AssetDatabase.FindAssets("", new[] { "Assets" }).Select(AssetDatabase.GUIDToAssetPath).Where(p => p.Contains("/Resources/") && !AssetDatabase.IsValidFolder(p)).ToArray();
             foreach (var path in AssetDatabase.GetDependencies(resources, true))
                 player.Add(path);
+            return player;
+        }
+
+        private static void ReportDuplicates(Dictionary<string, SortedSet<string>> uses, List<string> playerScenes)
+        {
+            var player = PlayerAssets(playerScenes);
             var dup = uses.Keys.Where(player.Contains).Select(p => (path: p, size: File.Exists(p) ? new FileInfo(p).Length : 0)).OrderByDescending(d => d.size).ToList();
             var text = new StringBuilder($"StreamedBundles: {dup.Count} assets are in the player and in a bundle too ({dup.Sum(d => d.size) / 1048576f:0.0} MB of source files); largest:\n");
             foreach (var d in dup.Take(25))
