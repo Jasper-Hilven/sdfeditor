@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SdfLevel;
+using SdfPlatform;
 using UnityEngine;
 
 namespace SdfBattle
@@ -89,6 +90,8 @@ namespace SdfBattle
                 Current = this;
         }
 
+        private void OnDestroy() => WebPortal.UserChanged -= OnPortalUserChanged;
+
         private void OnDisable()
         {
             if (Current == this)
@@ -126,6 +129,7 @@ namespace SdfBattle
             // Ticket 47: a new cast of heads for these players
             SdfHeads.HeadSelection.BeginMatch();
             MakePlayers();
+            WebPortal.UserChanged += OnPortalUserChanged;
             Current = this;
             // The web build's scenes have no GUI of their own (ticket 62): the campaign's serves them
             if (gui != null || SdfGui.GuiFlow.Persistent != null)
@@ -217,7 +221,7 @@ namespace SdfBattle
 #if UNITY_EDITOR
             spectate |= UnityEditor.EditorPrefs.GetBool(SpectatePreference, false);
 #endif
-            var names = new NameCast();
+            var names = nameCast = new NameCast();
             if (Setup != null)
                 names.Reserve(Setup.redNames).Reserve(Setup.blueNames);
             // Spectating (ticket 23): your camera watches, the match is eight bots
@@ -232,9 +236,11 @@ namespace SdfBattle
                 var player = you.GetComponent<Player>();
                 if (player == null)
                     player = you.gameObject.AddComponent<Player>();
-                var yourName = Setup != null ? Setup.NameOf(yourTeam, 1) : Cast.You;
+                yourFallbackName = Setup != null ? Setup.NameOf(yourTeam, 1) : Cast.You;
+                var yourName = YourName();
                 names.Reserve(yourName);
-                player.Bind(State.AddPlayer(yourName, yourTeam, false));
+                yourState = State.AddPlayer(yourName, yourTeam, false);
+                player.Bind(yourState);
                 players.Add(player);
             }
             else
@@ -251,6 +257,46 @@ namespace SdfBattle
                 for (var number = first; number <= rules.SizeOf(team); number++)
                     players.Add(MakeBot(Setup != null ? Setup.NameOf(team, number, names) : names.Draw(), team, root));
             }
+            ResolveNameClashes();
+        }
+
+        // ---------------------------------------------------------------- Your name (ticket 65)
+
+        private NameCast nameCast;
+        private PlayerState yourState;
+        private string yourFallbackName = Cast.You;
+
+        /// <summary>Your name: the signed-in CrazyGames user's, cleaned for the GUI and cut to the HUD's length; else the setup's or the cast's.</summary>
+        private string YourName()
+        {
+            var portal = PortalUserName.Clean(WebPortal.UserName, PlayerNames.MaxLength);
+            return portal.Length > 0 ? portal : yourFallbackName;
+        }
+
+        /// <summary>The user signed in or out mid-match: your name changes at once, everywhere it is read (the HUD reads the state's name each frame).</summary>
+        private void OnPortalUserChanged()
+        {
+            if (yourState == null)
+                return;
+            yourState.Name = YourName();
+            nameCast?.Reserve(yourState.Name);
+            ResolveNameClashes();
+        }
+
+        /// <summary>A bot never carries your name (by <see cref="PlayerNames.Key"/>, so "Sneaky_Waffle" and "SneakyWaffle" clash): it draws a fresh one.</summary>
+        private void ResolveNameClashes()
+        {
+            if (yourState == null || nameCast == null)
+                return;
+            var key = PlayerNames.Key(yourState.Name);
+            foreach (var other in State.Players)
+                if (other != yourState && PlayerNames.Key(other.Name) == key)
+                {
+                    other.Name = nameCast.Draw();
+                    var body = PlayerOf(other);
+                    if (body != null)
+                        body.name = other.Name;
+                }
         }
 
         private Player MakeBot(string botName, Team team, Transform root)

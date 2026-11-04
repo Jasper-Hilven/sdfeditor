@@ -36,6 +36,15 @@ namespace SdfPlatform
         /// <summary>The save goes through the portal's data store: a web build with the SDK up (on CrazyGames or localhost).</summary>
         public static bool CloudSave => Active && Application.platform == RuntimePlatform.WebGLPlayer;
 
+        /// <summary>
+        /// The signed-in CrazyGames user's name as the portal gives it (ticket 65), or null when nobody is signed in or there is no SDK. Raw:
+        /// it can be long and hold any character; the game cleans it with <see cref="PortalUserName.Clean"/>. Never prompts a login.
+        /// </summary>
+        public static string UserName { get; private set; }
+
+        /// <summary>The signed-in user changed (signed in, out, or the first answer); <see cref="UserName"/> already holds the new name.</summary>
+        public static event Action UserChanged;
+
         static readonly GameplayTracker tracker = new();
         static readonly AdBreakPolicy ads = new();
         static bool initStarted, initDone, wantPlaying, loading;
@@ -106,6 +115,7 @@ namespace SdfPlatform
                     Device.SdkReady();
                     tracker.Forget();
                     Apply();
+                    WatchUser();
                     var callback = onReady;
                     onReady = null;
                     callback?.Invoke();
@@ -118,6 +128,38 @@ namespace SdfPlatform
                 var callback = onReady;
                 onReady = null;
                 callback?.Invoke();
+            }
+        }
+
+        // ---------------------------------------------------------------- User
+
+        static void WatchUser()
+        {
+            try
+            {
+                CrazySDK.User.GetUser(SetUser);
+                // The editor's simulation has no auth events (the SDK ignores the listener there)
+                CrazySDK.User.AddAuthListener(SetUser);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"WebPortal: the user is not read ({e.Message})");
+            }
+        }
+
+        static void SetUser(PortalUser user)
+        {
+            var name = string.IsNullOrWhiteSpace(user?.username) ? null : user.username.Trim();
+            if (name == UserName)
+                return;
+            UserName = name;
+            try
+            {
+                UserChanged?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
             }
         }
 

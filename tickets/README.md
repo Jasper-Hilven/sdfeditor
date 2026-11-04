@@ -100,6 +100,7 @@ section says what is left.
 | 6 | [62 The common LOD0 and the gore pieces after the start](62-common-lod0-and-gore-later.md) | — | 60, 61 |
 | 7 | [63 Reset all progress](63-reset-progress.md) | — | 42, 47 |
 | 8 | [64 Menu wording and fit at every screen size](64-menu-wording-and-fit.md) | — | 54, 56, 57, 63 |
+| 9 | [65 The CrazyGames username is your name](65-crazygames-username.md) | — | 36 |
 
 The first play stays on the Fungal level (the user's decision): the 20 MB has to come from the download, not a lighter first level.
 

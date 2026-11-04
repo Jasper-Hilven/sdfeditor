@@ -45,6 +45,22 @@ namespace SdfBattle.Tests
         }
 
         [Test]
+        public void ABot_NeverGetsYourPortalName_EvenSpelledAnotherWay()
+        {
+            // "Sneaky_Waffle" is a pool name; a signed-in player called "sneakywaffle" (or the same cut short) must not meet it
+            foreach (var portal in new[] { "ToastyMage", "toasty mage", "Zed_13", "Big Gerald", "Nightowl42" })
+            {
+                var yours = SdfPlatform.PortalUserName.Clean(portal, PlayerNames.MaxLength);
+                for (var seed = 0; seed < 100; seed++)
+                {
+                    var draw = new NameCast(new Random(seed)).Reserve(yours);
+                    for (var i = 0; i < 15; i++)
+                        Assert.AreNotEqual(PlayerNames.Key(yours), PlayerNames.Key(draw.Draw()), portal);
+                }
+            }
+        }
+
+        [Test]
         public void TheSameSeed_DrawsTheSameNames_AndMatchesDiffer()
         {
             List<string> Draw(int seed)
