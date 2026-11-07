@@ -68,6 +68,20 @@ namespace SdfMedia.Editor
         /// <summary><c>tools/unity-batch.sh encode -executeMethod SdfMedia.Editor.PreviewVideoEncoder.EncodeInBatch</c>: no recording, exits 0 or 1.</summary>
         public static void EncodeInBatch() => UnityEditor.EditorApplication.Exit(EncodeAll() ? 0 : 1);
 
+        /// <summary>One take's frames (<c>0000.png</c> on) as a plain video to review, no cover; false if ffmpeg failed.</summary>
+        public static bool EncodeTake(string frames, string output)
+        {
+            var arguments = new List<string>
+            {
+                "-y", "-framerate", Fps.ToString(), "-start_number", "0", "-i", Path.Combine(frames, "%04d.png"),
+                "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", output,
+            };
+            if (Run(FfmpegPath, arguments, out _, out var errors))
+                return true;
+            Debug.LogError($"SDF Media: ffmpeg failed for the take {output}:\n{errors}");
+            return false;
+        }
+
         public static bool EncodeAll()
         {
             var ok = true;

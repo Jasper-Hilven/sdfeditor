@@ -37,8 +37,32 @@ namespace SdfMedia.Editor
         private float halfHorizontal;
         private float halfVertical;
 
-        /// <summary>The opponents you have killed since <see cref="Attach"/>; a clip is kept only if this grew while it was recorded.</summary>
+        /// <summary>Metres within which a kill of yours is close enough to show its splatter well.</summary>
+        public const float CloseKill = 16;
+
+        /// <summary>The opponents you have killed since <see cref="Attach"/>.</summary>
         public int YourKills { get; private set; }
+
+        /// <summary>
+        /// Your kills since <see cref="Attach"/> of an opponent within <see cref="CloseKill"/> metres and on screen in every video shape:
+        /// the ones whose splatter the clip shows. A take is built round one of these.
+        /// </summary>
+        public int CloseKills { get; private set; }
+
+        /// <summary>Metres within which a headshot kill of yours (the sniper's, seen zoomed in) is close enough to show its splatter well.</summary>
+        public const float HeadshotKill = 45;
+
+        /// <summary>
+        /// Your headshot kills since <see cref="Attach"/> of an opponent within <see cref="HeadshotKill"/> metres and on screen in every video
+        /// shape: what a sniper take is built round.
+        /// </summary>
+        public int CloseHeadshots { get; private set; }
+
+        /// <summary>Your hits on an opponent since <see cref="Attach"/>.</summary>
+        public int YourHits { get; private set; }
+
+        /// <summary>Whether your trigger is held now.</summary>
+        public bool Firing => arsenal != null && arsenal.Firing;
 
         /// <summary>Opponents counted in view by the last <see cref="Score"/>, for the log.</summary>
         public int OpponentsInView { get; private set; }
@@ -95,8 +119,18 @@ namespace SdfMedia.Editor
             if (shooter != you)
                 return;
             lastHit = Time.time;
-            if (kill)
-                YourKills++;
+            YourHits++;
+            if (!kill)
+                return;
+            YourKills++;
+            if (victim != null && view != null)
+            {
+                var point = victim.transform.position + Vector3.up * 1.2f;
+                if (Vector3.Distance(view.transform.position, point) <= CloseKill && Sees(view.transform.position, point, CloseKill))
+                    CloseKills++;
+                if (head && Sees(view.transform.position, point, HeadshotKill))
+                    CloseHeadshots++;
+            }
         }
 
         private void OnDamaged(PlayerState victim, Damage damage, float amount)

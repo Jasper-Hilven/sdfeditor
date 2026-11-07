@@ -39,6 +39,36 @@ namespace SdfBattle
         /// </summary>
         [System.NonSerialized] public System.Func<Vector3, Vector3, Vector3> route;
 
+        /// <summary>
+        /// The most it turns, degrees a second, over its skill's turn speed (the preview recorder's autopilot turns slowly, for a calm
+        /// camera); infinity for every bot.
+        /// </summary>
+        [System.NonSerialized] public float turnLimit = float.PositiveInfinity;
+
+        /// <summary>
+        /// Seconds over which its view eases to where it wants to look (a smooth start and stop of each turn, its aim's jitter smoothed
+        /// out) instead of turning at a steady speed; 0, the steady turn, for every bot.
+        /// </summary>
+        [System.NonSerialized] public float aimEase;
+
+        /// <summary>
+        /// A shot that flies straight goes at the target's head instead of its chest, and the sniper fires only fully zoomed in and dead on
+        /// it (the preview recorder's sniper headshot); off for every bot.
+        /// </summary>
+        [System.NonSerialized] public bool aimHead;
+
+        /// <summary>What its aim's error is multiplied by (the preview recorder's sniper is steadier than any bot); 1 for every bot.</summary>
+        [System.NonSerialized] public float aimErrorScale = 1;
+
+        /// <summary>Seconds the sniper stays zoomed in after it last wanted to (the splatter seen through the scope); 0 for every bot.</summary>
+        [System.NonSerialized] public float zoomLinger;
+
+        /// <summary>It stands still while zoomed in or zooming (the preview recorder's sniper: a steady scope); off for every bot.</summary>
+        [System.NonSerialized] public bool stillWhileZoomed;
+
+        private float zoomUntil = -1;
+        private bool zooming;
+
         private const float SeenRecently = 0.35f;
 
         private Bots owner;
@@ -85,6 +115,8 @@ namespace SdfBattle
 
         private float yaw;
         private float pitch;
+        private float yawSpeed;
+        private float pitchSpeed;
         private Vector3 desiredAim;
         private bool aimed;
 
@@ -139,11 +171,13 @@ namespace SdfBattle
             guardIn = 0;
             lookAtUntil = 0;
             yaw = player.Controller.Yaw;
+            yawSpeed = pitchSpeed = 0;
             pitch = 0;
             lastSample = transform.position;
             sampleIn = 0.5f;
             arsenal?.SetTrigger(false);
             arsenal?.SetZoom(false);
+            zoomUntil = -1;
         }
 
         /// <summary>Thinks again within <paramref name="seconds"/> (an event: a flag taken, dropped, home).</summary>
@@ -637,6 +671,8 @@ namespace SdfBattle
             // A train near the track it is about to cross (ticket 27.10): it waits at the track's edge until the train has passed
             if (BotNavigation.MustWait(feet, corners, corner, 14, SdfLevel.PathMover.Clock))
                 want = Vector3.zero;
+            if (stillWhileZoomed && (zooming || (arsenal != null && arsenal.Zoomed)))
+                want = Vector3.zero;
             want.y = 0;
             if (want.sqrMagnitude > 1)
                 want.Normalize();
@@ -749,7 +785,7 @@ namespace SdfBattle
                 var velocity = owner.VelocityOf(target);
                 var across = Vector3.ProjectOnPlane(velocity, to.normalized).magnitude;
                 var angular = across / Mathf.Max(1, to.magnitude) * Mathf.Rad2Deg;
-                var offset = aim.Tick(dt, angular);
+                var offset = aim.Tick(dt, angular) * aimErrorScale;
                 wantYaw += offset.x;
                 wantPitch += offset.y;
                 aimed = reachable;
@@ -793,8 +829,17 @@ namespace SdfBattle
                 }
                 turn *= 0.6f;
             }
-            yaw = Mathf.MoveTowardsAngle(yaw, wantYaw, turn * dt);
-            pitch = Mathf.MoveTowards(pitch, Mathf.Clamp(wantPitch, -80, 80), turn * dt);
+            turn = Mathf.Min(turn, turnLimit);
+            if (aimEase > 0 && dt > 0)
+            {
+                yaw = Mathf.SmoothDampAngle(yaw, wantYaw, ref yawSpeed, aimEase, turn, dt);
+                pitch = Mathf.SmoothDamp(pitch, Mathf.Clamp(wantPitch, -80, 80), ref pitchSpeed, aimEase, turn, dt);
+            }
+            else
+            {
+                yaw = Mathf.MoveTowardsAngle(yaw, wantYaw, turn * dt);
+                pitch = Mathf.MoveTowards(pitch, Mathf.Clamp(wantPitch, -80, 80), turn * dt);
+            }
             controller.SetAim(yaw, pitch);
         }
 
@@ -834,6 +879,11 @@ namespace SdfBattle
                     return feet + Vector3.up * 1.0f;
                 default:
                     reachable = distance <= weapon.range;
+                    if (aimHead && weapon.mode == FireMode.Hitscan)
+                    {
+                        var worn = target.WornHead;
+                        return feet + Vector3.up * (worn != null ? worn.CentreHeight : Combat.Current != null ? Combat.Current.headCentre : 1.41f);
+                    }
                     return feet + Vector3.up * 1.15f;
             }
         }
@@ -855,7 +905,15 @@ namespace SdfBattle
                 // The sniper waits for a steadier aim before each shot
                 if (weapon.zoomFieldOfView > 0 && aim.Tracked < 0.3f)
                     held = false;
+                // Aiming at the head: only fully zoomed in, dead on it
+                if (aimHead && weapon.zoomFieldOfView > 0 && (!arsenal.Zoomed || off > 0.35f))
+                    held = false;
             }
+            if (zoom)
+                zoomUntil = now + zoomLinger;
+            else if (weapon != null && weapon.zoomFieldOfView > 0 && now < zoomUntil)
+                zoom = true;
+            zooming = zoom;
             arsenal.SetTrigger(held);
             arsenal.SetZoom(zoom);
         }

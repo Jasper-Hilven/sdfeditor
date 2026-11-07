@@ -15,7 +15,7 @@ using Object = UnityEngine.Object;
 namespace SdfMedia.Editor
 {
     /// <summary>
-    /// Records the CrazyGames preview videos: four clips of four seconds of real battle, one each from the Meadow, Chessboard, Toybox and
+    /// Records the CrazyGames preview videos: four clips of four seconds of real battle, one each from the Fungal, Chessboard, Toybox and
     /// Kitchen arenas, each frame rendered three times from the same camera pose (landscape, portrait and square), and then stitched
     /// into <c>Media/preview-landscape.mp4</c>, <c>preview-portrait.mp4</c> and <c>preview-square.mp4</c> by
     /// <see cref="PreviewVideoEncoder"/>. Tools > SDF Media > Record Preview Videos (Regenerate Promo Videos does the same, see
@@ -27,8 +27,8 @@ namespace SdfMedia.Editor
     /// <item><b>The match.</b> The arena's scene plays as it does on its own: 4 against 4, you and seven bots, the scene's own rules (no
     /// campaign setup). The recorder makes you play: a <see cref="Bot"/> brain of the hunting style goes on your player (your own keyboard
     /// and mouse are switched off, <see cref="Arsenal.scripted"/>), so you walk the arena, find fights and fire the way a bot does, and the
-    /// picture is the real first-person view with your weapon in the corner. You take 40 % of the damage (and none after two clips were lost to
-    /// your death), the number of captures that ends the match is raised out of reach so it never ends, and the quality level is Epic,
+    /// picture is the real first-person view with your weapon in the corner. You take no damage (infinite life, so no take is lost to your
+    /// death), the number of captures that ends the match is raised out of reach so it never ends, and the quality level is Epic,
     /// held every frame (the HUD's automatic quality change is also silenced for the run).</item>
     /// <item><b>The hidden HUD.</b> The GUI's flow is switched off and all its canvases hidden: no clock, scores, kill feed, banners, quality
     /// countdown or other text, and no mouse cursor. The pictures are rendered from the camera into render textures, which the GUI (a screen
@@ -37,12 +37,27 @@ namespace SdfMedia.Editor
     /// fading as in the HUD), both read from the HUD's own <see cref="MatchView"/>, and sized like the HUD at that picture size.</item>
     /// <item><b>Fixed frame rate.</b> <see cref="Time.captureFramerate"/> is 30 from the first frame, so every frame of the game is
     /// exactly 1/30 s long whatever it cost to draw, and the clips never stutter. The editor takes as long as it needs per frame.</item>
-    /// <item><b>When to start a clip.</b> After <see cref="WarmSeconds"/> of play (so the teams have met), <see cref="PreviewAction"/> scores
-    /// the view five times a second (opponents in view within 25 m, kills, hits, hurt, firing, flag carriers, machines). A clip starts when
+    /// <item><b>When to roll.</b> After <see cref="WarmSeconds"/> of play (so the teams have met), <see cref="PreviewAction"/> scores
+    /// the view five times a second (opponents in view within 25 m, kills, hits, hurt, firing, flag carriers, machines). Rolling starts when
     /// the score holds at or above the bar twice in a row. The bar starts at <see cref="StartBar"/> (a real fight) and sinks to
-    /// <see cref="EndBar"/> over <see cref="TimeoutSeconds"/>; after that the next moment you are alive is taken, so a quiet arena still
-    /// gives its best moment of the wait (the lowest bar passed). If you die during a clip, the clip is thrown away and the search goes on;
-    /// so is a clip in which you kill nobody (after <see cref="MaxKilllessClips"/> of those the next one is kept anyway, with a warning).</item>
+    /// <see cref="EndBar"/> over <see cref="TimeoutSeconds"/>; after that any moment you are alive starts it.</item>
+    /// <item><b>Takes round a kill.</b> While rolling, every frame is rendered into Media/Video/roll, the last four seconds kept. A take
+    /// is made only round a kill of yours of an opponent close by and on screen (<see cref="PreviewAction.CloseKills"/>, so the splatter is
+    /// seen): <see cref="PostKillFrames"/> after it, four seconds in all, so the kill lands about 2.5 s in. Rolling stops after
+    /// <see cref="QuietSeconds"/> without an opponent in view or a shot of yours, or when you die (that buffer is thrown away). Each take
+    /// is scored (<see cref="TakeScore"/>: close kills first, then hits, firing, opponents in view, less for a camera that turns fast).
+    /// An arena keeps going until it has <see cref="TakesPerArena"/> takes (or <see cref="ArenaSeconds"/> of searching with at least
+    /// <see cref="KeptTakes"/>); its best <see cref="KeptTakes"/> are kept in Media/Video/takes/&lt;arena&gt;/take1..3 (take1 the best,
+    /// a landscape take1..3.mp4 beside them to review, scores.txt with the numbers) and take1 is the arena's clip in the videos.</item>
+    /// <item><b>The sniper clip.</b> The Fungal clip is a sniper headshot, the sniper given to you though the level has none: zoom in,
+    /// kill, the head's pieces bursting through the scope, zoom out. The autopilot aims at the head (<see cref="Bot.aimHead"/>) with a
+    /// fraction of a bot's error (<see cref="SniperAimError"/>), stands still while zoomed (<see cref="Bot.stillWhileZoomed"/>; walking
+    /// makes the shot's trail look odd), zooms slowly enough to be seen (<see cref="ZoomSpeed"/>), fires only fully zoomed and dead on,
+    /// and stays zoomed <see cref="ZoomLinger"/> seconds after. Its takes are built round a headshot kill on screen within
+    /// <see cref="PreviewAction.HeadshotKill"/> metres instead of a close kill, <see cref="SniperPostKillFrames"/> after it, and score
+    /// more for showing the whole zoom, in and out.</item>
+    /// <item><b>A calm camera.</b> The autopilot turns at most <see cref="TurnLimit"/> degrees a second, eased over <see cref="AimEase"/>
+    /// seconds (<see cref="Bot.turnLimit"/>, <see cref="Bot.aimEase"/>): a bot's own snap turns are hard to watch.</item>
     /// <item><b>The camera.</b> The camera in your player is rendered three times a frame with a render texture as its target and then
     /// put back: the landscape (1920x1080, 16:9) keeps the game's vertical field of view; the portrait (1080x1620, 2:3) and the square
     /// (1080x1080) cannot keep both directions, so they take a narrower horizontal field of view than the landscape's and a wider vertical
@@ -97,10 +112,13 @@ namespace SdfMedia.Editor
         };
 
         /// <summary>The arenas, in clip order: clip N is arena N-1.</summary>
-        public static readonly string[] Arenas = { "Meadow", "Chessboard", "Toybox", "Kitchen" };
+        public static readonly string[] Arenas = { "Fungal", "Chessboard", "Toybox", "Kitchen" };
 
-        /// <summary>The weapon you hold in each arena's clip (never the single pistol), in the order of <see cref="Arenas"/>.</summary>
-        public static readonly string[] Weapons = { WeaponIds.Minigun, WeaponIds.Flamethrower, WeaponIds.BlobGun, WeaponIds.DualPistols };
+        /// <summary>
+        /// The weapon you hold in each arena's clip (never the single pistol), in the order of <see cref="Arenas"/>; the Fungal clip's sniper
+        /// is hardcoded for the video, the level itself has none.
+        /// </summary>
+        public static readonly string[] Weapons = { WeaponIds.Sniper, WeaponIds.Flamethrower, WeaponIds.BlobGun, WeaponIds.DualPistols };
 
         public const string ScenesFolder = "Assets/Scenes/";
         public const int Fps = PreviewVideoEncoder.Fps;
@@ -116,8 +134,38 @@ namespace SdfMedia.Editor
         /// <summary>Seconds of searching over which the bar sinks; then the next living moment is taken.</summary>
         public const float TimeoutSeconds = 100;
 
-        /// <summary>Clips without a kill of yours thrown away in an arena before one is kept anyway.</summary>
-        public const int MaxKilllessClips = 8;
+        /// <summary>Frames of a take after its kill: the splatter's time.</summary>
+        public const int PostKillFrames = 45;
+
+        /// <summary>Seconds without an opponent in view or a shot of yours that stop rolling.</summary>
+        public const float QuietSeconds = 3;
+
+        /// <summary>Takes an arena collects before it moves on, and how many of them, the best, are kept.</summary>
+        public const int TakesPerArena = 6, KeptTakes = 3;
+
+        /// <summary>Seconds of searching after which an arena with <see cref="KeptTakes"/> takes moves on; with one, after twice this.</summary>
+        public const float ArenaSeconds = 240;
+
+        /// <summary>Seconds of searching after which an arena without a take gives up (its clip is left out of the videos).</summary>
+        public const float GiveUpSeconds = 900;
+
+        /// <summary>The autopilot's turn: at most this many degrees a second, eased over <see cref="AimEase"/> seconds.</summary>
+        public const float TurnLimit = 90, AimEase = 0.22f;
+
+        /// <summary>The sniper clip: the share of a bot's aim error left, degrees a second of the zoom, seconds it stays zoomed after.</summary>
+        public const float SniperAimError = 0.12f, ZoomSpeed = 80, ZoomLinger = 1.3f;
+
+        /// <summary>
+        /// The sniper's frames of a take after its kill: the zoom held while the head bursts (<see cref="ZoomLinger"/>), the zoom out
+        /// (half a second) and a moment after; the zoom in and the aim before it get the 1.8 s left.
+        /// </summary>
+        public const int SniperPostKillFrames = 66;
+
+        /// <summary>The take score's bonus for showing the sniper's whole zoom: in before the kill, out again by the end.</summary>
+        public const float ZoomInBonus = 8;
+
+        /// <summary>Frames of a take after its kill, for this arena's weapon.</summary>
+        private static int PostKill => Sniping ? SniperPostKillFrames : PostKillFrames;
 
         /// <summary>The share of the damage you take.</summary>
         public const float YourDamage = 0.4f;
@@ -156,10 +204,40 @@ namespace SdfMedia.Editor
         private static int streak;
         private static int frame;
         private static int aborts;
-        private static int killless;
-        private static int killsAtStart;
+
+        // The rolling buffer: frames rollStart..frame-1 are on disk; per frame what happened in it
+        private struct FrameNote
+        {
+            public bool firing, hit, closeKill, zoomed;
+            public int opponents;
+            public float turn;
+        }
+
+        private sealed class Take
+        {
+            public string folder;
+            public float score;
+            public int closeKills, hits;
+            public float firing, opponents, turn;
+            public bool zoomIn;
+        }
+
+        private static int rollStart;
+        private static readonly List<FrameNote> notes = new List<FrameNote>();
+        private static int killFrame = -1;
+        private static int lastFrameWithAction;
+        private static int closeKillsBefore, hitsBefore;
+        private static Vector2 lastAim;
+        private static readonly List<Take> takes = new List<Take>();
         private static bool immortal;
         private static float landscapeFov;
+        private static Bot autopilot;
+
+        /// <summary>Whether this arena's clip is the sniper's: the take is built round a headshot.</summary>
+        private static bool Sniping => Weapons[SessionState.GetInt(ArenaKey, 0)] == WeaponIds.Sniper;
+
+        /// <summary>The kills a take is built round: close headshots for the sniper, close kills for the rest.</summary>
+        private static int TakeKills => Sniping ? action.CloseHeadshots : action.CloseKills;
 
         private static Match match;
         private static Player you;
@@ -231,6 +309,13 @@ namespace SdfMedia.Editor
                 if (Directory.Exists(folder))
                     Directory.Delete(folder, true);
             }
+            // The takes and the rolling buffer of the last run are thrown away (a locked clip's arena keeps its takes)
+            foreach (var old in new[] { "roll" }.Concat(Arenas.Where((_, i) => !Locked(i + 1)).Select(a => Path.Combine("takes", a))))
+            {
+                var folder = Path.Combine(videos, old);
+                if (Directory.Exists(folder))
+                    Directory.Delete(folder, true);
+            }
             // The locked clips' frames go in as they are; their arenas are not played again
             for (var clip = 1; clip <= Arenas.Length; clip++)
                 if (Locked(clip))
@@ -261,13 +346,17 @@ namespace SdfMedia.Editor
 
         /// <summary>
         /// Where a locked clip's frames are kept: Media/Video/locked/&lt;size&gt;/clipN, a clip copied there whole for every shape. A locked
-        /// clip is not recorded again; delete its folder to record it anew.
+        /// clip is not recorded again; delete its folder to record it anew. It may be cut shorter than four seconds by hand (at least
+        /// <see cref="LockedMinFrames"/>): the Fungal clip is the sniper take from 0.5 s to 3.5 s, 90 frames.
         /// </summary>
         public static string LockedFolder(Shape shape, int clip) =>
             Path.Combine(PreviewVideoEncoder.MediaFolder, "Video", "locked", $"{shape.width}x{shape.height}", "clip" + clip);
 
         private static bool Locked(int clip) =>
-            Shapes.All(shape => Directory.Exists(LockedFolder(shape, clip)) && Directory.GetFiles(LockedFolder(shape, clip), "*.png").Length >= ClipFrames);
+            Shapes.All(shape => Directory.Exists(LockedFolder(shape, clip)) && Directory.GetFiles(LockedFolder(shape, clip), "*.png").Length >= LockedMinFrames);
+
+        /// <summary>The fewest frames a locked clip may have: one cut shorter by hand (the Fungal sniper clip, 3 s) still counts.</summary>
+        public const int LockedMinFrames = 3 * Fps;
 
         private static string ActiveScenePath() => UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;
 
@@ -338,8 +427,10 @@ namespace SdfMedia.Editor
                 stage = Stage.Warm;
                 streak = 0;
                 aborts = 0;
-                killless = 0;
-                immortal = false;
+                takes.Clear();
+                autopilot = null;
+                // Infinite life from the start: no take is lost to your death, so an arena is done sooner
+                immortal = true;
                 timeReleased = false;
             }
             else if (change == PlayModeStateChange.EnteredEditMode)
@@ -381,6 +472,9 @@ namespace SdfMedia.Editor
             KeepEpic();
             KeepTime();
             KeepWeapon();
+            // Zoomed in, the turn slows with the view, so it looks as calm on screen
+            if (autopilot != null && landscapeFov > 0)
+                autopilot.turnLimit = TurnLimit * Mathf.Clamp01(view.fieldOfView / landscapeFov);
             if (Time.captureFramerate != Fps)
                 Time.captureFramerate = Fps;
 
@@ -454,6 +548,17 @@ namespace SdfMedia.Editor
             var random = new System.Random(2025 + SessionState.GetInt(ArenaKey, 0));
             var bot = you.gameObject.AddComponent<Bot>();
             bot.keepWeapon = true;
+            bot.turnLimit = TurnLimit;
+            bot.aimEase = AimEase;
+            autopilot = bot;
+            if (Sniping)
+            {
+                bot.aimHead = true;
+                bot.aimErrorScale = SniperAimError;
+                bot.zoomLinger = ZoomLinger;
+                bot.stillWhileZoomed = true;
+                arsenal.zoomSpeed = ZoomSpeed;
+            }
             LoadRoad(Arenas[SessionState.GetInt(ArenaKey, 0)]);
             if (road.Count > 1)
                 bot.route = AlongRoad;
@@ -574,46 +679,177 @@ namespace SdfMedia.Editor
             streak = alive && score >= bar ? streak + 1 : 0;
             if (!alive || (streak < 2 && !due))
                 return;
-            var clip = SessionState.GetInt(ArenaKey, 0) + 1;
-            Debug.Log($"SDF Media: clip {clip} ({Arenas[clip - 1]}) starts at {Time.time:0.0} s of play: action {score:0.0} (bar {bar:0.0}{(due ? ", timed out" : "")}), {action.OpponentsInView} opponents in view{(action.CarrierInView ? ", a flag carrier" : "")}");
+            var arena = Arenas[SessionState.GetInt(ArenaKey, 0)];
+            Debug.Log($"SDF Media: {arena}: rolling at {Time.time:0.0} s of play: action {score:0.0} (bar {bar:0.0}{(due ? ", timed out" : "")}), {action.OpponentsInView} opponents in view");
+            ClearRoll();
             foreach (var shape in Shapes)
-            {
-                var folder = PreviewVideoEncoder.ClipFolder(shape, clip);
-                if (Directory.Exists(folder))
-                    Directory.Delete(folder, true);
-                Directory.CreateDirectory(folder);
-            }
+                Directory.CreateDirectory(RollFolder(shape));
             frame = 0;
-            killsAtStart = action.YourKills;
+            rollStart = 0;
+            notes.Clear();
+            killFrame = -1;
+            lastFrameWithAction = 0;
+            closeKillsBefore = TakeKills;
+            hitsBefore = action.YourHits;
+            lastAim = new Vector2(view.transform.eulerAngles.y, view.transform.eulerAngles.x);
             stage = Stage.Record;
+        }
+
+        /// <summary>Media/Video/roll/&lt;size&gt;: the rolling buffer's frames, named by their frame number.</summary>
+        private static string RollFolder(Shape shape) =>
+            Path.Combine(PreviewVideoEncoder.MediaFolder, "Video", "roll", $"{shape.width}x{shape.height}");
+
+        /// <summary>Media/Video/takes/&lt;arena&gt;: an arena's kept takes.</summary>
+        public static string TakesFolder(string arena) => Path.Combine(PreviewVideoEncoder.MediaFolder, "Video", "takes", arena);
+
+        private static void ClearRoll()
+        {
+            WaitForWrites();
+            var roll = Path.Combine(PreviewVideoEncoder.MediaFolder, "Video", "roll");
+            if (Directory.Exists(roll))
+                Directory.Delete(roll, true);
         }
 
         private static void RecordFrame()
         {
             if (!you.State.Alive)
             {
-                AbortClip();
+                AbortRoll();
                 return;
             }
-            var clip = SessionState.GetInt(ArenaKey, 0) + 1;
-            CaptureFrame(clip);
-            frame++;
-            if (frame < ClipFrames)
-                return;
-            var kills = action.YourKills - killsAtStart;
-            if (kills == 0)
+            CaptureFrame();
+
+            // What happened in this frame
+            var aim = new Vector2(view.transform.eulerAngles.y, view.transform.eulerAngles.x);
+            var turn = Mathf.Sqrt(Mathf.Pow(Mathf.DeltaAngle(lastAim.x, aim.x), 2) + Mathf.Pow(Mathf.DeltaAngle(lastAim.y, aim.y), 2));
+            lastAim = aim;
+            action.Score();
+            var note = new FrameNote
             {
-                if (killless < MaxKilllessClips)
-                {
-                    killless++;
-                    DiscardClip();
-                    Debug.Log($"SDF Media: no kill of yours in clip {clip}; thrown away, trying again ({killless} of {MaxKilllessClips}).");
-                    return;
-                }
-                Debug.LogWarning($"SDF Media: clip {clip} has no kill of yours after {MaxKilllessClips} tries; it is kept anyway.");
+                firing = action.Firing,
+                hit = action.YourHits > hitsBefore,
+                closeKill = TakeKills > closeKillsBefore,
+                zoomed = view.fieldOfView < landscapeFov - 1,
+                opponents = action.OpponentsInView,
+                turn = turn,
+            };
+            hitsBefore = action.YourHits;
+            closeKillsBefore = TakeKills;
+            notes.Add(note);
+            if (note.closeKill && killFrame < 0)
+            {
+                killFrame = frame;
+                Debug.Log($"SDF Media: a close {(Sniping ? "headshot " : "")}kill at frame {frame} of the roll.");
             }
+            if (note.firing || note.hit || note.opponents > 0)
+                lastFrameWithAction = frame;
+            frame++;
+
+            // The buffer keeps four seconds, unless a take is waiting for its end
+            var keepFrom = killFrame >= 0 ? Mathf.Min(frame - ClipFrames, killFrame + PostKill - ClipFrames) : frame - ClipFrames;
+            for (var old = rollStart; old < keepFrom; old++)
+                foreach (var shape in Shapes)
+                    File.Delete(Path.Combine(RollFolder(shape), old.ToString("00000") + ".png"));
+            rollStart = Mathf.Max(rollStart, keepFrom);
+
+            if (killFrame >= 0)
+            {
+                var takeEnd = Mathf.Max(killFrame + PostKill, rollStart + ClipFrames);
+                if (frame >= takeEnd)
+                    MakeTake(takeEnd - ClipFrames);
+            }
+            else if ((frame - lastFrameWithAction) > QuietSeconds * Fps)
+            {
+                Debug.Log("SDF Media: the fight went quiet; rolling stops.");
+                ClearRoll();
+                streak = 0;
+                stage = Stage.Search;
+            }
+            if (stage != Stage.Record)
+                NextOrMore();
+        }
+
+        // Frames start..start+ClipFrames-1 of the roll become a take; the roll goes on from here with an empty buffer
+        private static void MakeTake(int start)
+        {
             WaitForWrites();
-            Debug.Log($"SDF Media: clip {clip} recorded ({kills} kills) ({ClipFrames} frames per shape, {Time.time:0.0} s of play).");
+            var arena = Arenas[SessionState.GetInt(ArenaKey, 0)];
+            var folder = Path.Combine(TakesFolder(arena), "new" + (takes.Count + 1));
+            if (Directory.Exists(folder))
+                Directory.Delete(folder, true);
+            foreach (var shape in Shapes)
+            {
+                var target = Path.Combine(folder, $"{shape.width}x{shape.height}");
+                Directory.CreateDirectory(target);
+                for (var i = 0; i < ClipFrames; i++)
+                    File.Move(Path.Combine(RollFolder(shape), (start + i).ToString("00000") + ".png"), Path.Combine(target, i.ToString("0000") + ".png"));
+            }
+            var window = notes.GetRange(start, ClipFrames);
+            var take = new Take
+            {
+                folder = folder,
+                closeKills = window.Count(n => n.closeKill),
+                hits = window.Count(n => n.hit),
+                firing = window.Count(n => n.firing) / (float)Fps,
+                opponents = (float)window.Average(n => n.opponents),
+                turn = window.Average(n => n.turn) * Fps,
+                zoomIn = ZoomsIn(window),
+            };
+            take.score = TakeScore(take.closeKills, take.hits, take.firing, take.opponents, take.turn) + (take.zoomIn ? ZoomInBonus : 0);
+            takes.Add(take);
+            Debug.Log($"SDF Media: {arena}: take {takes.Count}: score {take.score:0.0} ({Describe(take)}).");
+
+            // Go on rolling after it: the frames from here on only
+            for (var old = rollStart; old < frame; old++)
+                foreach (var shape in Shapes)
+                    File.Delete(Path.Combine(RollFolder(shape), old.ToString("00000") + ".png"));
+            rollStart = frame;
+            killFrame = -1;
+            lastFrameWithAction = frame;
+            if (Enough())
+            {
+                ClearRoll();
+                stage = Stage.Search;
+            }
+        }
+
+        // Whether the take shows the whole zoom: unzoomed at first, zoomed in at the kill, out again at the end
+        private static bool ZoomsIn(List<FrameNote> window)
+        {
+            var kill = window.FindIndex(n => n.closeKill);
+            return kill > 0 && !window[0].zoomed && window[kill].zoomed && !window[^1].zoomed;
+        }
+
+        private static string Describe(Take take) =>
+            $"{take.closeKills} close {(Sniping ? "headshot kills" : "kills")}, {take.hits} hits, {take.firing:0.0} s firing, {take.opponents:0.0} opponents in view, turning {take.turn:0} deg/s{(take.zoomIn ? ", zooms in and out" : "")}";
+
+        /// <summary>
+        /// A take's score: 10 a close kill, half a point a hit (at most 6), a point a second of firing, two an opponent in view on average,
+        /// less a point for every 30 degrees a second the camera turns on average.
+        /// </summary>
+        public static float TakeScore(int closeKills, int hits, float firingSeconds, float opponents, float turnDegreesPerSecond) =>
+            10 * closeKills + Mathf.Min(6, 0.5f * hits) + firingSeconds + 2 * opponents - turnDegreesPerSecond / 30;
+
+        private static bool Enough()
+        {
+            var searched = Time.time - searchStart;
+            return takes.Count >= TakesPerArena
+                || (takes.Count >= KeptTakes && searched > ArenaSeconds)
+                || (takes.Count > 0 && searched > 2 * ArenaSeconds);
+        }
+
+        // Out of rolling: the arena is done when it has enough takes (or gives up), else the search goes on
+        private static void NextOrMore()
+        {
+            var searched = Time.time - searchStart;
+            if (!Enough() && !(takes.Count == 0 && searched > GiveUpSeconds))
+                return;
+            var clip = SessionState.GetInt(ArenaKey, 0) + 1;
+            var arena = Arenas[clip - 1];
+            if (takes.Count == 0)
+                Debug.LogWarning($"SDF Media: {arena}: no take with a close {(Sniping ? "headshot " : "")}kill in {GiveUpSeconds} s; its clip is left out.");
+            else
+                KeepBest(clip, arena);
             action.Detach();
             SessionState.SetInt(ArenaKey, clip);
             SessionState.SetInt(PhaseKey, 0);
@@ -623,37 +859,61 @@ namespace SdfMedia.Editor
             EditorApplication.isPlaying = false;
         }
 
-        // You died in the clip: the death camera pulls back, so the clip is thrown away and the search goes on
-        private static void AbortClip()
+        // The best takes become take1..KeptTakes (the rest are deleted) and take1 is the arena's clip
+        private static void KeepBest(int clip, string arena)
         {
-            var clip = SessionState.GetInt(ArenaKey, 0) + 1;
-            DiscardClip();
+            WaitForWrites();
+            var ranked = takes.OrderByDescending(t => t.score).ToList();
+            var folder = TakesFolder(arena);
+            foreach (var old in Directory.GetDirectories(folder, "take*"))
+                Directory.Delete(old, true);
+            foreach (var old in Directory.GetFiles(folder, "take*.mp4"))
+                File.Delete(old);
+            var lines = new List<string>();
+            for (var i = 0; i < ranked.Count; i++)
+            {
+                var take = ranked[i];
+                if (i >= KeptTakes)
+                {
+                    Directory.Delete(take.folder, true);
+                    continue;
+                }
+                var kept = Path.Combine(folder, "take" + (i + 1));
+                Directory.Move(take.folder, kept);
+                take.folder = kept;
+                lines.Add($"take{i + 1}: score {take.score:0.0}, {Describe(take)}");
+            }
+            File.WriteAllLines(Path.Combine(folder, "scores.txt"), lines);
+            foreach (var shape in Shapes)
+            {
+                var target = PreviewVideoEncoder.ClipFolder(shape, clip);
+                if (Directory.Exists(target))
+                    Directory.Delete(target, true);
+                Directory.CreateDirectory(target);
+                foreach (var file in Directory.GetFiles(Path.Combine(ranked[0].folder, $"{shape.width}x{shape.height}"), "*.png"))
+                    File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+            }
+            Debug.Log($"SDF Media: {arena}: kept the best {Mathf.Min(KeptTakes, ranked.Count)} of {ranked.Count} takes; clip {clip} is take1 (score {ranked[0].score:0.0}).");
+        }
+
+        // You died while rolling: the death camera pulls back, so the buffer is thrown away and the search goes on
+        private static void AbortRoll()
+        {
+            ClearRoll();
             aborts++;
             // Twice is enough: from then on nothing can hurt you
             if (aborts >= 2)
                 immortal = true;
-            Debug.Log($"SDF Media: you died in clip {clip} at frame {frame}; trying again{(immortal ? " (you cannot be hurt now)" : "")}.");
-        }
-
-        // The clip's frames are deleted and the search starts again
-        private static void DiscardClip()
-        {
-            WaitForWrites();
-            var clip = SessionState.GetInt(ArenaKey, 0) + 1;
-            foreach (var shape in Shapes)
-            {
-                var folder = PreviewVideoEncoder.ClipFolder(shape, clip);
-                if (Directory.Exists(folder))
-                    Directory.Delete(folder, true);
-            }
             streak = 0;
             stage = Stage.Warm;
             sceneStart = Time.time - WarmSeconds;
+            Debug.Log($"SDF Media: you died while rolling, at frame {frame}; trying again{(immortal ? " (you cannot be hurt now)" : "")}.");
+            NextOrMore();
         }
 
         // ---------------------------------------------------------------- Rendering
 
-        private static void CaptureFrame(int clip)
+        private static void CaptureFrame()
         {
             var original = view.fieldOfView;
             var previousActive = RenderTexture.active;
@@ -684,7 +944,7 @@ namespace SdfMedia.Editor
                     RenderTexture.active = targets[i];
                     readers[i].ReadPixels(new Rect(0, 0, shape.width, shape.height), 0, 0, false);
                     var bytes = readers[i].EncodeToPNG();
-                    var path = Path.Combine(PreviewVideoEncoder.ClipFolder(shape, clip), frame.ToString("0000") + ".png");
+                    var path = Path.Combine(RollFolder(shape), frame.ToString("00000") + ".png");
                     writing.Add(Task.Run(() => File.WriteAllBytes(path, bytes)));
                 }
             }
@@ -817,6 +1077,14 @@ namespace SdfMedia.Editor
             Deactivate();
             Debug.Log("SDF Media: all clips recorded; encoding the videos with ffmpeg.");
             var ok = PreviewVideoEncoder.EncodeAll();
+            // Each arena's kept takes as landscape videos, to review them
+            foreach (var arena in Arenas)
+                for (var take = 1; take <= KeptTakes; take++)
+                {
+                    var frames = Path.Combine(TakesFolder(arena), "take" + take, $"{Shapes[0].width}x{Shapes[0].height}");
+                    if (Directory.Exists(frames))
+                        ok &= PreviewVideoEncoder.EncodeTake(frames, Path.Combine(TakesFolder(arena), $"take{take}.mp4"));
+                }
             Reopen(back);
             Debug.Log(ok
                 ? $"SDF Media: preview videos written to {PreviewVideoEncoder.MediaFolder} (preview-landscape.mp4, preview-portrait.mp4, preview-square.mp4)."
