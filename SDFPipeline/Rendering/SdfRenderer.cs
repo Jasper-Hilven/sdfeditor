@@ -59,6 +59,29 @@ public sealed record RenderResult(byte[] Png, RenderFraming Framing);
 /// </summary>
 public static class SdfRenderer
 {
+    /// <summary>The Chromes still running, stopped when the process exits normally or on Ctrl+C (the watchdog covers a hard kill).</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Process, byte> Running = new();
+
+    static SdfRenderer()
+    {
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => StopAll();
+        Console.CancelKeyPress += (_, _) => StopAll();
+    }
+
+    private static void StopAll()
+    {
+        foreach (var chrome in Running.Keys)
+            try
+            {
+                if (!chrome.HasExited)
+                    chrome.Kill(entireProcessTree: true);
+            }
+            catch (Exception)
+            {
+                // Already gone, or exiting as we look; nothing more to stop.
+            }
+    }
+
     public static async Task<RenderResult> RenderAsync(SDFProgram program, RenderOptions? options = null)
     {
         options ??= new RenderOptions();
@@ -110,6 +133,7 @@ public static class SdfRenderer
             if (!chrome.HasExited)
                 chrome.Kill(entireProcessTree: true);
             await chrome.WaitForExitAsync();
+            Running.TryRemove(chrome, out _);
             listener.Stop();
             await serving;
             TryDelete(profile);
@@ -170,14 +194,41 @@ public static class SdfRenderer
         }
     }
 
+    /// <summary>
+    /// Runs Chrome as the child of a shell that stops it once this process is gone, so a renderer killed or crashed before its
+    /// finally block (an aborted test run, a cancelled CLI, a timed-out agent) does not leave a headless Chrome behind for good.
+    /// "$1" is the owner's process id and the rest is the Chrome command line; the shell exits with Chrome's exit code.
+    /// </summary>
+    private const string Watchdog =
+        """
+        owner=$1; shift
+        "$@" &
+        chrome=$!
+        trap 'kill $chrome 2>/dev/null; wait $chrome; exit 143' TERM INT HUP
+        while kill -0 "$owner" 2>/dev/null && kill -0 "$chrome" 2>/dev/null; do sleep 1; done
+        kill $chrome 2>/dev/null
+        wait $chrome
+        """;
+
     private static Process StartChrome(int port, int size, string profile)
     {
-        var start = new ProcessStartInfo(ChromeLocator.Find())
+        var chromePath = ChromeLocator.Find();
+        var watched = !OperatingSystem.IsWindows() && File.Exists("/bin/sh");
+        var start = new ProcessStartInfo(watched ? "/bin/sh" : chromePath)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        if (watched)
+        {
+            start.ArgumentList.Add("-c");
+            start.ArgumentList.Add(Watchdog);
+            start.ArgumentList.Add("sdf-render-watchdog");
+            start.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+            start.ArgumentList.Add(chromePath);
+        }
+
         foreach (var argument in new[]
                  {
                      "--headless=new",
@@ -193,6 +244,9 @@ public static class SdfRenderer
             start.ArgumentList.Add(argument);
 
         var chrome = Process.Start(start) ?? throw new InvalidOperationException("Chrome could not be started");
+        Running.TryAdd(chrome, 0);
+        chrome.Exited += (_, _) => Running.TryRemove(chrome, out _);
+        chrome.EnableRaisingEvents = true;
         chrome.OutputDataReceived += (_, _) => { };
         chrome.ErrorDataReceived += (_, _) => { };
         chrome.BeginOutputReadLine();

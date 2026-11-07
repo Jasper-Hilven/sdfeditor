@@ -3,9 +3,8 @@
 format 1
 collider mesh
 
-# Half the vertices its size would give it, and its parts half too: big, simple forms, and dozens of game pieces lie on the
-# board
-Detail detail=0.5
+# 0.8 of the vertices its size would give it, and its parts 0.8 too: big, simple forms, but the printed marks blurred at half
+Detail detail=0.8
     Union
         # The ace, its bottom edge sunk 10 cm into the ground, leaning back towards -z (a negative turn about x)
         Translate translation=(0, -0.1, 0)

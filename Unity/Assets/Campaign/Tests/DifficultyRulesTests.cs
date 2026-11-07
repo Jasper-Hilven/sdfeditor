@@ -26,7 +26,7 @@ namespace SdfCampaign.Tests
         }
 
         [Test]
-        public void EasyTakesStepOffTheEnemyAndCapsItAtFour()
+        public void EasyTakesStepOffTheEnemy()
         {
             var result = DifficultyRules.Apply(Setup(0.5f, 4), Difficulty.Easy, Team.Blue);
             Assert.AreEqual(0.35f, result.blueSkill, 1e-6f);
@@ -34,12 +34,12 @@ namespace SdfCampaign.Tests
         }
 
         [Test]
-        public void SuperEasyTakesTwoStepsAndCapsAtThree()
+        public void SuperEasyTakesTwoStepsAndKeepsFourEnemies()
         {
             var result = DifficultyRules.Apply(Setup(0.5f, 4), Difficulty.SuperEasy, Team.Blue);
             Assert.AreEqual(0.2f, result.blueSkill, 1e-6f);
-            Assert.AreEqual(3, result.blueSize);
-            Assert.AreEqual(3, result.blueNames.Length, "the names are cut to the team");
+            Assert.AreEqual(4, result.blueSize, "every level is 4 vs 4, Super Easy too");
+            Assert.AreEqual(4, result.blueNames.Length, "the names are kept");
         }
 
         [Test]
@@ -69,13 +69,20 @@ namespace SdfCampaign.Tests
         }
 
         [Test]
-        public void TheSizeCapGoesToTheEnemySideOnly()
+        public void EveryDifficultyIsFourVsFour_OnEitherSide()
         {
-            var setup = Setup(0.5f, 4);
-            setup.redSize = 4;
-            var result = DifficultyRules.Apply(setup, Difficulty.SuperEasy, Team.Red);
-            Assert.AreEqual(3, result.redSize);
-            Assert.AreEqual(4, result.blueSize);
+            // The game loop's own setup (a new BattleSetup) at every difficulty, with you on either team: 4 vs 4 in the match's rules too
+            foreach (var d in new[] { Difficulty.SuperEasy, Difficulty.Easy, Difficulty.Normal, Difficulty.Hard })
+                foreach (var enemy in new[] { Team.Red, Team.Blue })
+                {
+                    var result = DifficultyRules.Apply(new BattleSetup { yourTeam = enemy.Other() }, d, enemy);
+                    Assert.AreEqual(4, result.redSize, $"{d}, enemy {enemy}: red");
+                    Assert.AreEqual(4, result.blueSize, $"{d}, enemy {enemy}: blue");
+                    var rules = new MatchRules();
+                    result.ToMatchSetup().Apply(rules);
+                    Assert.AreEqual(4, rules.SizeOf(Team.Red), $"{d}, enemy {enemy}: red in the match");
+                    Assert.AreEqual(4, rules.SizeOf(Team.Blue), $"{d}, enemy {enemy}: blue in the match");
+                }
         }
 
         [Test]
