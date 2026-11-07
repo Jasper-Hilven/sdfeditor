@@ -18,8 +18,9 @@ namespace SdfMedia.Editor
     /// Records the CrazyGames preview videos: four clips of four seconds of real battle, one each from the Meadow, Chessboard, Toybox and
     /// Kitchen arenas, each frame rendered three times from the same camera pose (landscape, portrait and square), and then stitched
     /// into <c>Media/preview-landscape.mp4</c>, <c>preview-portrait.mp4</c> and <c>preview-square.mp4</c> by
-    /// <see cref="PreviewVideoEncoder"/>. Tools > SDF Media > Record Preview Videos (Tools > SDF Media > Regenerate Promo Videos And Cover
-    /// Art does the cover art first, see <see cref="PreviewPromo"/>). Start it from edit mode; it opens each arena scene, enters Play mode
+    /// <see cref="PreviewVideoEncoder"/>. Tools > SDF Media > Record Preview Videos (Regenerate Promo Videos does the same, see
+    /// <see cref="PreviewPromo"/>; Encode Preview Videos only re-encodes the frames there are; the covers in Media/Covers are
+    /// hand-retouched art and are never rendered again). Start it from edit mode; it opens each arena scene, enters Play mode
     /// itself, and leaves it when the clip is done, so leave the editor alone until the log says the videos are written (Tools > SDF Media >
     /// Cancel Preview Recording stops it). The scene open before is opened again at the end.
     /// <list type="number">
@@ -40,7 +41,8 @@ namespace SdfMedia.Editor
     /// the view five times a second (opponents in view within 25 m, kills, hits, hurt, firing, flag carriers, machines). A clip starts when
     /// the score holds at or above the bar twice in a row. The bar starts at <see cref="StartBar"/> (a real fight) and sinks to
     /// <see cref="EndBar"/> over <see cref="TimeoutSeconds"/>; after that the next moment you are alive is taken, so a quiet arena still
-    /// gives its best moment of the wait (the lowest bar passed). If you die during a clip, the clip is thrown away and the search goes on.</item>
+    /// gives its best moment of the wait (the lowest bar passed). If you die during a clip, the clip is thrown away and the search goes on;
+    /// so is a clip in which you kill nobody (after <see cref="MaxKilllessClips"/> of those the next one is kept anyway, with a warning).</item>
     /// <item><b>The camera.</b> The camera in your player is rendered three times a frame with a render texture as its target and then
     /// put back: the landscape (1920x1080, 16:9) keeps the game's vertical field of view; the portrait (1080x1620, 2:3) and the square
     /// (1080x1080) cannot keep both directions, so they take a narrower horizontal field of view than the landscape's and a wider vertical
@@ -114,6 +116,9 @@ namespace SdfMedia.Editor
         /// <summary>Seconds of searching over which the bar sinks; then the next living moment is taken.</summary>
         public const float TimeoutSeconds = 100;
 
+        /// <summary>Clips without a kill of yours thrown away in an arena before one is kept anyway.</summary>
+        public const int MaxKilllessClips = 8;
+
         /// <summary>The share of the damage you take.</summary>
         public const float YourDamage = 0.4f;
 
@@ -151,6 +156,8 @@ namespace SdfMedia.Editor
         private static int streak;
         private static int frame;
         private static int aborts;
+        private static int killless;
+        private static int killsAtStart;
         private static bool immortal;
         private static float landscapeFov;
 
@@ -331,6 +338,7 @@ namespace SdfMedia.Editor
                 stage = Stage.Warm;
                 streak = 0;
                 aborts = 0;
+                killless = 0;
                 immortal = false;
                 timeReleased = false;
             }
@@ -576,6 +584,7 @@ namespace SdfMedia.Editor
                 Directory.CreateDirectory(folder);
             }
             frame = 0;
+            killsAtStart = action.YourKills;
             stage = Stage.Record;
         }
 
@@ -591,8 +600,20 @@ namespace SdfMedia.Editor
             frame++;
             if (frame < ClipFrames)
                 return;
+            var kills = action.YourKills - killsAtStart;
+            if (kills == 0)
+            {
+                if (killless < MaxKilllessClips)
+                {
+                    killless++;
+                    DiscardClip();
+                    Debug.Log($"SDF Media: no kill of yours in clip {clip}; thrown away, trying again ({killless} of {MaxKilllessClips}).");
+                    return;
+                }
+                Debug.LogWarning($"SDF Media: clip {clip} has no kill of yours after {MaxKilllessClips} tries; it is kept anyway.");
+            }
             WaitForWrites();
-            Debug.Log($"SDF Media: clip {clip} recorded ({ClipFrames} frames per shape, {Time.time:0.0} s of play).");
+            Debug.Log($"SDF Media: clip {clip} recorded ({kills} kills) ({ClipFrames} frames per shape, {Time.time:0.0} s of play).");
             action.Detach();
             SessionState.SetInt(ArenaKey, clip);
             SessionState.SetInt(PhaseKey, 0);
@@ -605,6 +626,18 @@ namespace SdfMedia.Editor
         // You died in the clip: the death camera pulls back, so the clip is thrown away and the search goes on
         private static void AbortClip()
         {
+            var clip = SessionState.GetInt(ArenaKey, 0) + 1;
+            DiscardClip();
+            aborts++;
+            // Twice is enough: from then on nothing can hurt you
+            if (aborts >= 2)
+                immortal = true;
+            Debug.Log($"SDF Media: you died in clip {clip} at frame {frame}; trying again{(immortal ? " (you cannot be hurt now)" : "")}.");
+        }
+
+        // The clip's frames are deleted and the search starts again
+        private static void DiscardClip()
+        {
             WaitForWrites();
             var clip = SessionState.GetInt(ArenaKey, 0) + 1;
             foreach (var shape in Shapes)
@@ -613,14 +646,9 @@ namespace SdfMedia.Editor
                 if (Directory.Exists(folder))
                     Directory.Delete(folder, true);
             }
-            aborts++;
-            // Twice is enough: from then on nothing can hurt you
-            if (aborts >= 2)
-                immortal = true;
             streak = 0;
             stage = Stage.Warm;
             sceneStart = Time.time - WarmSeconds;
-            Debug.Log($"SDF Media: you died in clip {clip} at frame {frame}; trying again{(immortal ? " (you cannot be hurt now)" : "")}.");
         }
 
         // ---------------------------------------------------------------- Rendering

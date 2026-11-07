@@ -61,6 +61,13 @@ namespace SdfMedia.Editor
         public static string OutputPath(PreviewVideoRecorder.Shape shape) => Path.Combine(MediaFolder, $"preview-{shape.name}.mp4");
 
         /// <summary>Encodes the three videos from the recorded frames; false if one failed. Shows a progress bar.</summary>
+        /// <summary>Encodes the three videos again from the frames already in Media/Video, with the covers in Media/Covers.</summary>
+        [UnityEditor.MenuItem("Tools/SDF Media/Encode Preview Videos")]
+        public static void EncodeFromMenu() => EncodeAll();
+
+        /// <summary><c>tools/unity-batch.sh encode -executeMethod SdfMedia.Editor.PreviewVideoEncoder.EncodeInBatch</c>: no recording, exits 0 or 1.</summary>
+        public static void EncodeInBatch() => UnityEditor.EditorApplication.Exit(EncodeAll() ? 0 : 1);
+
         public static bool EncodeAll()
         {
             var ok = true;

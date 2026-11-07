@@ -45,7 +45,9 @@ namespace SdfMedia.Editor
     }
 
     /// <summary>
-    /// Renders the three CrazyGames cover images of the game into the repository's Media/Covers folder (next to Unity/):
+    /// Renders the three CrazyGames cover images of the game into the repository's Media/Covers/Rendered folder (next to Unity/),
+    /// as drafts: the covers in Media/Covers are hand-retouched art (2026-11-07, originals in Media/Covers/retouched) and are never
+    /// written by this tool; <see cref="Render"/> refuses that folder. The drafts:
     /// <c>cover-landscape.png</c> 1920 × 1080, <c>cover-portrait.png</c> 800 × 1200 and <c>cover-square.png</c> 800 × 800. They are
     /// staged pictures, not screenshots: <see cref="CoverStage"/> builds one scene, "mid-air minigun" (a red soldier with a Jack-o'-Lantern
     /// head leaping at the camera with his minigun blazing, two blue soldiers with werewolf and Cthulhu heads diving aside and a blue soldier's Frankenstein head bursting behind them) on the Meadow
@@ -72,8 +74,11 @@ namespace SdfMedia.Editor
         public static string Level = "fungal";
         /// <summary>Each cover is rendered at this many times its size and averaged down.</summary>
         public const int Super = 2;
-        /// <summary>Where the covers are written, from the repository root.</summary>
-        public const string OutputFolder = "Media/Covers";
+        /// <summary>Where the rendered covers are written, from the repository root: drafts, not the covers the game ships with.</summary>
+        public const string OutputFolder = "Media/Covers/Rendered";
+
+        /// <summary>The covers the game ships with (retouched by hand), from the repository root: this tool never writes there.</summary>
+        public const string FinalFolder = "Media/Covers";
         /// <summary>The cover is the game's name; the logo's Second Place ribbon is part of that logo. Set false to leave the ribbon out.</summary>
         public const bool ShowSubtitle = true;
         /// <summary>
@@ -131,8 +136,19 @@ namespace SdfMedia.Editor
             FieldOfView = format.FieldOfView, Roll = format.Roll, LogoCentre = format.LogoCentre, LogoShare = format.LogoShare,
         };
 
-        /// <summary>Media/Covers next to the Unity project's folder.</summary>
+        /// <summary>Media/Covers/Rendered next to the Unity project's folder.</summary>
         public static string OutputPath => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", OutputFolder));
+
+        /// <summary>Media/Covers next to the Unity project's folder: the shipped, retouched covers.</summary>
+        public static string FinalPath => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", FinalFolder));
+
+        /// <summary>Whether <paramref name="folder"/> is the shipped covers' folder or its retouched originals, which a render must not touch.</summary>
+        internal static bool Protected(string folder)
+        {
+            var full = Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar);
+            var final = FinalPath.TrimEnd(Path.DirectorySeparatorChar);
+            return string.Equals(full, final, StringComparison.Ordinal) || string.Equals(full, Path.Combine(final, "retouched"), StringComparison.Ordinal);
+        }
 
         private static CoverSession preview;
 
@@ -263,9 +279,14 @@ namespace SdfMedia.Editor
             // (batch mode has no dialog to ask, and no scenes of anyone's to save)
             if (!batch && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return false;
+            var folder = outputFolder ?? OutputPath;
+            if (Protected(folder))
+            {
+                Debug.LogError($"SDF media: {folder} holds the retouched covers the game ships with; renders go to {OutputPath} (or another -coverDir).");
+                return false;
+            }
             ClearPreview();
             Prepare();
-            var folder = outputFolder ?? OutputPath;
             var succeeded = false;
             Directory.CreateDirectory(folder);
             var asyncCompilation = ShaderUtil.allowAsyncCompilation;

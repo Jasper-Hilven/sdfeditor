@@ -37,6 +37,9 @@ namespace SdfMedia.Editor
         private float halfHorizontal;
         private float halfVertical;
 
+        /// <summary>The opponents you have killed since <see cref="Attach"/>; a clip is kept only if this grew while it was recorded.</summary>
+        public int YourKills { get; private set; }
+
         /// <summary>Opponents counted in view by the last <see cref="Score"/>, for the log.</summary>
         public int OpponentsInView { get; private set; }
 
@@ -89,8 +92,11 @@ namespace SdfMedia.Editor
 
         private void OnHit(Player shooter, Player victim, bool kill, bool head)
         {
-            if (shooter == you)
-                lastHit = Time.time;
+            if (shooter != you)
+                return;
+            lastHit = Time.time;
+            if (kill)
+                YourKills++;
         }
 
         private void OnDamaged(PlayerState victim, Damage damage, float amount)
