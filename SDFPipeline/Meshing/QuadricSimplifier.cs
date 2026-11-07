@@ -86,11 +86,18 @@ public static class QuadricSimplifier
     /// </para>
     /// </summary>
     /// <param name="maxErrors">The error limit of each level, in metres, growing.</param>
+    /// <param name="locked">As for <see cref="Simplify"/>: the contour's vertices that stay (see <see cref="MeshingOptions.KeepDensity"/>).</param>
+    /// <param name="faceRegions">
+    /// Optional, instead of <paramref name="regions"/>: the region of each face, for a mesh cut along its material borders (see
+    /// <see cref="BorderCut"/>). Faces keep their region; a vertex in faces of one region folds freely, a border point (in faces of two)
+    /// only along its border, into the next point of it, and one where three or more regions meet stays. The levels' meshes then have
+    /// <see cref="TriangleMesh.FaceRegions"/>.
+    /// </param>
     public static IEnumerable<TriangleMesh> SimplifyInSteps(ContouredMesh mesh, Func<Vector3, float> sdf, IReadOnlyList<float> maxErrors,
         float cellSize, float creaseAngleDegrees, int[]? regions = null, bool batched = false, float[]? attributes = null, GpuSdf? gpu = null,
-        bool[]? locked = null)
+        bool[]? locked = null, int[]? faceRegions = null)
     {
-        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked, batched, attributes) { Gpu = gpu };
+        var simplification = new Simplification(mesh, sdf, cellSize, creaseAngleDegrees, regions, locked, batched, attributes, faceRegions) { Gpu = gpu };
         for (var level = 0; level < maxErrors.Count; level++)
             yield return simplification.Run(maxErrors[level], coarse: level > 0);
     }
@@ -157,6 +164,8 @@ public static class QuadricSimplifier
         private readonly Vector3[] outward;
         private readonly int[]? regions;
         private readonly bool[] regionBorder;
+        /// <summary>The region of each face, for a mesh cut along its borders (see <see cref="SimplifyInSteps"/>); null with vertex regions.</summary>
+        private readonly int[]? faceRegion;
         private readonly bool[]? locked;
         private readonly int[] version;
         private readonly bool[] removedVertex;
@@ -216,7 +225,8 @@ public static class QuadricSimplifier
         // Tracked points (batched mode): every vertex folded away stays as a point at its original position, bound to the triangle of the
         // current mesh it now lies on. A fold is allowed only if every point it touches stays within the error limit of the surface.
         private readonly List<Vector3> trackedPosition = new();
-        private readonly List<int> trackedRegion = new();
+        /// <summary>The regions of each tracked point's vertex: (r, r) inside region r, (a, b) for a point of the border between a and b.</summary>
+        private readonly List<(int, int)> trackedRegion = new();
         private readonly List<float> trackedError = new();
         private List<int>?[] trackedOnTriangle = [];
         /// <summary>
@@ -237,8 +247,10 @@ public static class QuadricSimplifier
         private readonly double attributeScale;
 
         public Simplification(ContouredMesh contoured, Func<Vector3, float> sdf, float cellSize, float creaseAngleDegrees, int[]? regions,
-            bool[]? locked, bool batched = false, float[]? attributes = null)
+            bool[]? locked, bool batched = false, float[]? attributes = null, int[]? faceRegions = null)
         {
+            if (regions is not null && faceRegions is not null)
+                throw new ArgumentException("Regions are given by vertex or by face, not both");
             this.sdf = sdf;
             this.batched = batched;
             this.attributes = attributes;
@@ -258,13 +270,19 @@ public static class QuadricSimplifier
             for (var v = 0; v < vertexCount; v++)
                 welded[v] = first.TryAdd(positions[v], v) ? v : first[positions[v]];
             var kept = new List<int>();
+            var keptRegions = new List<int>();
             for (var t = 0; t < mesh.TriangleCount; t++)
             {
                 var (a, b, c) = (welded[mesh.Triangles[3 * t]], welded[mesh.Triangles[3 * t + 1]], welded[mesh.Triangles[3 * t + 2]]);
                 if (a != b && b != c && a != c)
+                {
                     kept.AddRange([a, b, c]);
+                    if (faceRegions is not null)
+                        keptRegions.Add(faceRegions[t]);
+                }
             }
             triangles = kept.ToArray();
+            faceRegion = faceRegions is null ? null : keptRegions.ToArray();
             var triangleCount = triangles.Length / 3;
             removedTriangle = new bool[triangleCount];
 
@@ -328,6 +346,25 @@ public static class QuadricSimplifier
                 for (var v = 0; v < vertexCount; v++)
                     if (regionBorder[v] && across[v].LengthSquared() > 0)
                         creaseQuadrics[v] += Quadric.Plane(Vector3.Normalize(across[v]), positions[v], area);
+            }
+            if (faceRegion is not null)
+            {
+                // The border runs along edges: each edge of it gets a plane through it, upright on the surface, at both its ends, counted
+                // in full like a crease (Garland and Heckbert's boundary planes), so folding along a straight border costs nothing and
+                // cutting across a curved one costs as much as leaving the surface
+                foreach (var (u, v) in Edges())
+                {
+                    if (!IsBorderEdge(u, v))
+                        continue;
+                    regionBorder[u] = regionBorder[v] = true;
+                    var up = outward[u] + outward[v];
+                    var across = Vector3.Cross(positions[v] - positions[u], up);
+                    if (across.LengthSquared() <= 0)
+                        continue;
+                    var plane = Quadric.Plane(Vector3.Normalize(across), positions[u], area);
+                    creaseQuadrics[u] += plane;
+                    creaseQuadrics[v] += plane;
+                }
             }
 
             if (locked is not null)
@@ -651,12 +688,16 @@ public static class QuadricSimplifier
                     var touched = RingOf(u).Concat(RingOf(into)).Distinct().ToList();
                     var fan = trianglesOf[u].ToList();
                     tracking ??= EvaluateFold(u, into, double.PositiveInfinity)!;
-                    if (regions is not null)
+                    if (regions is not null || faceRegion is not null)
                     {
                         // A border vertex folded along its chain: the chord from the next link to the one after stands for what it did
                         var ringOfU = RingOf(u);
-                        var otherRegion = ringOfU.Select(w => regions[w]).FirstOrDefault(r => r != regions[u], -1);
-                        if (otherRegion >= 0 && ChainOf(u, ringOfU, otherRegion) is { } links)
+                        (int First, int Second)? chainOfU = null;
+                        if (faceRegion is not null)
+                            chainOfU = RegionsAround(u).Count == 2 ? BorderChainOf(u, ringOfU) : null;
+                        else if (ringOfU.Select(w => regions![w]).FirstOrDefault(r => r != regions![u], -1) is var otherRegion && otherRegion >= 0)
+                            chainOfU = ChainOf(u, ringOfU, otherRegion);
+                        if (chainOfU is { } links)
                         {
                             var b = into == links.First ? links.Second : links.First;
                             var standing = StandingFor(u, into, b);
@@ -743,6 +784,56 @@ public static class QuadricSimplifier
             return links.Count == 2 ? (links[0], links[1]) : null;
         }
 
+        /// <summary>The regions of the faces around a vertex (face regions only).</summary>
+        private List<int> RegionsAround(int u)
+        {
+            var around = new List<int>(3);
+            foreach (var t in trianglesOf[u])
+                if (!around.Contains(faceRegion![t]))
+                    around.Add(faceRegion[t]);
+            return around;
+        }
+
+        /// <summary>A vertex's regions as a tracked point keeps them: (r, r) inside region r, (a, b) on the border between a and b.</summary>
+        private (int, int) RegionsOf(int u)
+        {
+            if (faceRegion is not null)
+                return RegionsAround(u) switch { [var only] => (only, only), [var a, var b, ..] => (a, b), _ => (-1, -1) };
+            return regions is null ? (0, 0) : (regions[u], regions[u]);
+        }
+
+        /// <summary>Whether the two faces on the edge are of different regions: the edge is a piece of a border (face regions only).</summary>
+        private bool IsBorderEdge(int u, int v)
+        {
+            int first = -1;
+            foreach (var t in trianglesOf[u])
+            {
+                var (a, b, c) = Corners(t);
+                if (a != v && b != v && c != v)
+                    continue;
+                if (first < 0)
+                    first = faceRegion![t];
+                else if (faceRegion![t] != first)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>The two neighbours of a border point along its border, or null where the border does not run plainly through it.</summary>
+        private (int First, int Second)? BorderChainOf(int u, List<int> ring)
+        {
+            int first = -1, second = -1;
+            foreach (var w in ring)
+            {
+                if (!IsBorderEdge(u, w))
+                    continue;
+                if (first < 0) first = w;
+                else if (second < 0) second = w;
+                else return null;
+            }
+            return second >= 0 ? (first, second) : null;
+        }
+
         /// <summary>The border vertices that would stand for the chain's new edge when <paramref name="u"/> is folded away.</summary>
         private List<Vector3> StandingFor(int u, int a, int b)
         {
@@ -794,15 +885,30 @@ public static class QuadricSimplifier
             var chain = regions is not null && otherRegion >= 0 ? ChainOf(u, ring, otherRegion) : null;
             if (regions is not null && otherRegion >= 0 && chain is null)
                 return (-1, double.PositiveInfinity);
+            var onBorder = regions is not null && otherRegion >= 0;
+            if (faceRegion is not null)
+            {
+                // Cut along its borders: a border point folds only along the border, and where three regions meet it stays
+                var around = RegionsAround(u).Count;
+                if (around >= 3)
+                    return (-1, double.PositiveInfinity);
+                if (around == 2)
+                {
+                    chain = BorderChainOf(u, ring);
+                    if (chain is null)
+                        return (-1, double.PositiveInfinity);
+                    onBorder = true;
+                }
+            }
             var options = new List<(int V, double Cost, float Length)>();
             foreach (var v in ring)
             {
-                if (regions is not null)
+                if (regions is not null && regions[v] != regions[u])
+                    continue;
+                if (regions is not null || faceRegion is not null)
                 {
-                    if (regions[v] != regions[u])
-                        continue;
                     // On a border, only along it, into the next link of its chain
-                    if (otherRegion >= 0)
+                    if (onBorder)
                     {
                         if (v != chain!.Value.First && v != chain.Value.Second)
                             continue;
@@ -863,6 +969,8 @@ public static class QuadricSimplifier
         {
             public readonly List<(int Point, int Triangle, float Distance)> Placed = new();
             public double WorstSquared;
+            /// <summary>The regions of the vertex folded away, as <see cref="trackedRegion"/> keeps them.</summary>
+            public (int, int) Regions;
         }
 
         /// <summary>
@@ -883,12 +991,13 @@ public static class QuadricSimplifier
                 fan.Add((t, positions[ia], positions[ib], positions[ic], ia, ib, ic));
             }
             var result = new FoldTracking();
-            var points = new List<(int Index, Vector3 Position, int Region)>();
+            var points = new List<(int Index, Vector3 Position, (int, int) Region)>();
             foreach (var t in trianglesOf[u])
                 if (trackedOnTriangle.Length > t && trackedOnTriangle[t] is { } bucket)
                     foreach (var point in bucket)
-                        points.Add((point, trackedPosition[point], regions is null ? 0 : trackedRegion[point]));
-            points.Add((-1, positions[u], regions is null ? 0 : regions[u]));
+                        points.Add((point, trackedPosition[point], trackedRegion[point]));
+            result.Regions = RegionsOf(u);
+            points.Add((-1, positions[u], result.Regions));
             if (fan.Count == 0)
                 return points.Count == 1 ? result : null;
 
@@ -904,14 +1013,21 @@ public static class QuadricSimplifier
                     var distanceSquared = (double)Vector3.DistanceSquared(position, closest);
                     if (distanceSquared >= bestDistance)
                         continue;
-                    if (regions is not null)
+                    if (faceRegion is not null)
                     {
+                        // A point lands only on a face of its own region; a border point on a face of either side
+                        if (faceRegion[triangle] != region.Item1 && faceRegion[triangle] != region.Item2)
+                            continue;
+                    }
+                    else if (regions is not null)
+                    {
+                        var own1 = region.Item1;
                         float own = 0;
                         var any = false;
-                        if (regions[ia] == region) { own += weights.X; any = true; }
-                        if (regions[ib] == region) { own += weights.Y; any = true; }
-                        if (regions[ic] == region) { own += weights.Z; any = true; }
-                        var pure = regions[ia] == region && regions[ib] == region && regions[ic] == region;
+                        if (regions[ia] == own1) { own += weights.X; any = true; }
+                        if (regions[ib] == own1) { own += weights.Y; any = true; }
+                        if (regions[ic] == own1) { own += weights.Z; any = true; }
+                        var pure = regions[ia] == own1 && regions[ib] == own1 && regions[ic] == own1;
                         if (!pure && (!any || own < 0.5f))
                             continue;
                     }
@@ -940,7 +1056,7 @@ public static class QuadricSimplifier
                 {
                     index = trackedPosition.Count;
                     trackedPosition.Add(originalPositions[removed]);
-                    trackedRegion.Add(regions is null ? 0 : regions[removed]);
+                    trackedRegion.Add(tracking.Regions);
                     trackedError.Add(0);
                 }
                 trackedError[index] = distance;
@@ -995,6 +1111,29 @@ public static class QuadricSimplifier
             // vertex beside the border may merge into it and take its place, or the row beside every border would stay as dense as it is
             if (regions is not null && (regions[u] != regions[v] || regionBorder[u] != regionBorder[v] && !coarse))
                 return;
+            Vector3? fixedTarget = null;
+            if (faceRegion is not null)
+            {
+                // Cut along its borders: a border point merges only along its border, and a point where three regions meet stays
+                var (ru, rv) = (RegionsAround(u).Count, RegionsAround(v).Count);
+                if (ru >= 3 && rv >= 3)
+                    return;
+                if (ru >= 2 && rv >= 2)
+                {
+                    if (!IsBorderEdge(u, v))
+                        return;
+                    if (ru == 2 && BorderChainOf(u, RingOf(u)) is null || rv == 2 && BorderChainOf(v, RingOf(v)) is null)
+                        return;
+                    if (ru != rv)
+                        fixedTarget = positions[ru > rv ? u : v];
+                }
+                else if (ru != rv)
+                {
+                    if (!coarse)
+                        return;
+                    fixedTarget = positions[ru > rv ? u : v];
+                }
+            }
             // A locked vertex stays: the free one merges into it, which CollapseInto does when the locked one comes first
             if (locked is not null && (locked[u] || locked[v]))
             {
@@ -1011,9 +1150,9 @@ public static class QuadricSimplifier
 
             var quadric = quadrics[u] + quadrics[v];
             var crease = creaseQuadrics[u] + creaseQuadrics[v];
-            var target = regionBorder[u] != regionBorder[v]
+            var target = fixedTarget ?? (faceRegion is null && regionBorder[u] != regionBorder[v]
                 ? positions[regionBorder[u] ? u : v]
-                : (quadric.Averaged() + crease.Averaged()).Optimum((positions[u] + positions[v]) * 0.5f);
+                : (quadric.Averaged() + crease.Averaged()).Optimum((positions[u] + positions[v]) * 0.5f));
             if (!float.IsFinite(target.X + target.Y + target.Z))
                 return;
             var cost = Math.Max(quadric.Error(target), crease.Error(target));
@@ -1311,9 +1450,12 @@ public static class QuadricSimplifier
             var kept = new List<Vector3>();
             var keptSources = new List<int>();
             var keptTriangles = new List<int>();
+            var keptRegions = new List<int>();
             for (var t = 0; t < removedTriangle.Length; t++)
             {
                 if (removedTriangle[t]) continue;
+                if (faceRegion is not null)
+                    keptRegions.Add(faceRegion[t]);
                 for (var c = 0; c < 3; c++)
                 {
                     var vertex = triangles[3 * t + c];
@@ -1329,6 +1471,7 @@ public static class QuadricSimplifier
             return new TriangleMesh(kept.ToArray(), keptTriangles.ToArray())
             {
                 Sources = keptSources.ToArray(),
+                FaceRegions = faceRegion is null ? null : keptRegions.ToArray(),
                 TrackedError = trackedError.Count > 0 ? trackedError.Max() : 0,
                 TrackedTests = trackedTests,
                 Timings = batched ? timings.With(bracketTicks, trackingTicks) : null,

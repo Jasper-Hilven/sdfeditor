@@ -4,11 +4,12 @@ using System.Text;
 using System.Text.Json;
 using SDFPipeline.Meshing;
 using SDFProject.ProgramDefinition;
+using Xunit.Abstractions;
 using static SDFPipeline.Tests.Meshing.MeshTestPrograms;
 
 namespace SDFPipeline.Tests.Meshing;
 
-public class LevelOfDetailTests
+public class LevelOfDetailTests(ITestOutputHelper output)
 {
     private static readonly Dictionary<string, string> Parts = new()
     {
@@ -63,13 +64,14 @@ public class LevelOfDetailTests
                 Assert.Equal(mesh.Name, levels[level].Name);
                 Assert.True(levels[level].MaxError > levels[level - 1].MaxError);
                 // Much cheaper, unless it is already down to a few dozen: the batched simplifier folds only into existing vertices and
-                // keeps the loops of a material border, so a capsule with a band stops at about fifty triangles
+                // keeps a material border's points where it bends, so a capsule with a band may stop at a few dozen triangles
                 Assert.True(levels[level].TriangleCount <= Math.Max(levels[level - 1].TriangleCount * 0.6f, 60),
                     $"{mesh.Name} LOD{level} has {levels[level].TriangleCount} triangles, LOD{level - 1} {levels[level - 1].TriangleCount}");
             }
         }
-        // The body, a capsule, ends as a few dozen triangles
-        Assert.InRange(model.Meshes[0].Lods[^1].TriangleCount, 20, 150);
+        // The body, a capsule, ends as a few dozen triangles at most: its band's borders fold along themselves like the rest
+        Assert.InRange(model.Meshes[0].Lods[^1].TriangleCount, 8, 150);
+        AssertClosedAndOriented(Welded(model.Meshes[0].Lods[^1]));
     }
 
     [Fact]
@@ -227,32 +229,28 @@ public class LevelOfDetailTests
         """;
 
     [Fact]
-    public void CapOverStem_ColoursChangeOnlyAtTheBorder_OnEveryLevel()
+    public void CapOverStem_EveryFaceIsOfOneMaterial_AndTheBorderRunsOnTheTrueBorder_OnEveryLevel()
     {
         var model = ModelMesher.Mesh(Read(CapOverStem), new MeshingOptions { Resolution = 128, LodCount = 3 });
         var mesh = Assert.Single(model.Meshes);
         var cell = model.Grid!.CellSize;
         float FromBorder(Vector3 p) => new Vector2(new Vector2(p.X, p.Z).Length() - 0.189f, p.Y - 1.176f).Length();
 
-        // A face whose corners have different materials blends from one colour to the other across it, so its corners must all hug the
-        // border: within a row of vertices of it (two cells, or the level's error limit), not out at the cap's rim or down the stem
+        // The mesh is cut along the border: no face has corners of two materials (it would blend across its width, and the border
+        // would show the triangles), and the border is a line of points, each split into a copy per material, on the SDF's border
         var levels = new[] { mesh }.Concat(mesh.Lods).ToArray();
         for (var level = 0; level < levels.Length; level++)
         {
             var lod = levels[level];
-            var band = 2 * cell + lod.MaxError;
-            var mixed = 0;
             for (var t = 0; t < lod.Triangles.Length; t += 3)
-            {
-                var corners = lod.Triangles[t..(t + 3)];
-                if (corners.Select(v => lod.Materials[v].Blend < 0.5f ? lod.Materials[v].First : lod.Materials[v].Second).Distinct().Count() == 1)
-                    continue;
-                mixed++;
-                foreach (var v in corners)
-                    Assert.True(FromBorder(lod.Positions[v]) <= band,
-                        $"LOD{level}: a face of both materials has a corner at {lod.Positions[v]}, {FromBorder(lod.Positions[v]) / cell:0.0} cells from the border");
-            }
-            Assert.True(mixed > 0, $"LOD{level} has no border");
+                Assert.Single(lod.Triangles[t..(t + 3)].Select(v => lod.Materials[v].First).Distinct());
+            var border = lod.Positions.Select((p, v) => (p, v)).GroupBy(x => x.p)
+                .Where(g => g.Select(x => lod.Materials[x.v].First).Distinct().Count() > 1).Select(g => g.Key).ToArray();
+            Assert.True(border.Length >= 8, $"LOD{level} has {border.Length} border points");
+            var worst = border.Max(FromBorder);
+            output.WriteLine($"LOD{level}: {lod.TriangleCount} triangles, {border.Length} border points, the furthest {worst / cell:0.00} cells from the border");
+            // Folds never move a vertex, so the coarse levels' border points are LOD0's, found on the SDF's border
+            Assert.True(worst <= 0.25f * cell, $"LOD{level}: a border point is {worst / cell:0.00} cells from the border");
         }
     }
 

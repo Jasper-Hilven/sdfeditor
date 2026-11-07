@@ -184,34 +184,62 @@ public static class ModelMesher
         // Materials are evaluated in parallel but numbered in vertex order, so the table comes out the same every time
         var cellSize = grid.CellSize;
         var regions = Evaluate(contoured.Mesh.Positions, p => Dominant(shape.Surface(p))).Select(table.IndexOf).ToArray();
-        contoured = MaterialBorders.Straightened(contoured, regions, p =>
+        int RegionAt(Vector3 p)
         {
-            var source = Dominant(shape.Surface(p));
-            lock (table) return table.IndexOf(source);
-        }, shape.Distance, cellSize);
+            var dominant = Dominant(shape.Surface(p));
+            lock (table) return table.IndexOf(dominant);
+        }
+        contoured = MaterialBorders.Straightened(contoured, regions, RegionAt, shape.Distance, cellSize);
+        // The faces across material borders are cut along the SDF's border, so each face is of one material and the border runs along
+        // edges, through points where it crosses the contour's edges and where three materials meet; simplification keeps it so. The
+        // contour's edges are within a fraction of a cell of the surface, so the material is sampled on them as they are
+        var cut = BorderCut.Cut(contoured.Mesh, regions, RegionAt);
+        contoured = WithBorderPoints(contoured, cut, shape.Distance, cellSize);
+        var vertexRegions = regions.Concat(Enumerable.Repeat(-1, contoured.Mesh.Positions.Length - regions.Length)).ToArray();
+
         var maxErrors = Enumerable.Range(0, Math.Max(options.LodCount, 1)).Select(level => options.LodErrorInCells(level) * cellSize).ToArray();
         var levels = new List<PartMesh>();
-        // How far each vertex has blended into a second material: a fold that changes it much is dearer (batched simplification)
+        // How far each vertex has blended into a second material: a fold that changes it much is dearer (batched simplification). A
+        // border point, where either material may be the stronger, takes the least of the vertices it lies between
         var batched = options.Simplifier == Simplifier.Batched;
-        var blends = batched ? Evaluate(contoured.Mesh.Positions, p => Blend(shape.Surface(p))) : null;
+        var blends = batched ? Evaluate(contoured.Mesh.Positions[..regions.Length], p => Blend(shape.Surface(p))) : null;
+        if (blends is not null)
+            blends = blends.Concat(cut.Parents.Select(parents => parents.Min(v => blends[v]))).ToArray();
         // Where the model asks to keep its density (a rigged model's joints), the contour's vertices stay
         var kept = options.KeepDensity.Count > 0 && source.Instances.Count == 0
             ? contoured.Mesh.Positions.Select(p => options.KeepDensity.Any(region => region.Contains(p))).ToArray()
             : null;
-        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees, regions, batched, blends, gpu, kept))
+        foreach (var simplified in QuadricSimplifier.SimplifyInSteps(contoured, shape.Distance, maxErrors, cellSize, options.CreaseAngleDegrees,
+                     null, batched, blends, gpu, kept, cut.FaceRegions))
         {
             var level = levels.Count;
-            var shaded = CreaseNormals.Split(simplified, shape.Distance, cellSize, options.CreaseAngleDegrees);
-
             // A coarse level's vertices may sit off the surface by up to its error limit, outside on round shapes: their material,
             // thickness and occlusion are those of the nearest point of the surface, as LOD0's are of the surface at its vertices
             var onSurface = level == 0
                 ? simplified.Positions
                 : Evaluate(simplified.Positions, p => MaterialBorders.OntoSurface(p, shape.Distance, cellSize * 1e-3f));
             var samples = Evaluate(onSurface, shape.Surface);
-            InRegions(onSurface, samples, simplified.Sources!, regions, contoured.Mesh.Positions, shape, table, cellSize);
+            InRegions(onSurface, samples, simplified.Sources!, vertexRegions, contoured.Mesh.Positions, shape, table, cellSize);
             var materialOfSource = samples.Select(sample => SurfaceAttributes.Material(sample, table)).ToArray();
-            var materials = shaded.Source.Select(v => materialOfSource[v]).ToArray();
+
+            // The border points are split, one copy per side, and each copy takes the material just inside its own side
+            var (shaded, shadedRegions) = BorderCut.SplitByRegion(
+                CreaseNormals.Split(simplified, shape.Distance, cellSize, options.CreaseAngleDegrees), simplified.FaceRegions!);
+            var facesOf = new List<int>[shaded.Positions.Length];
+            for (var t = 0; t < shaded.Triangles.Length; t++)
+                if (cut.IsBorderPoint(simplified.Sources![shaded.Source[shaded.Triangles[t]]]))
+                    (facesOf[shaded.Triangles[t]] ??= []).Add(t / 3);
+            var borderSamples = new SurfaceSample?[shaded.Positions.Length];
+            var insidePoints = new Vector3[shaded.Positions.Length];
+            Parallel.For(0, shaded.Positions.Length, v =>
+            {
+                if (facesOf[v] is { } faces)
+                    (borderSamples[v], insidePoints[v]) = InsideItsSide(shaded, faces, v, shadedRegions[v], onSurface, shape, RegionAt, cellSize);
+            });
+            OneSidedNormals(shaded, facesOf, insidePoints, shape.Distance, cellSize, options.CreaseAngleDegrees);
+            var materials = shaded.Source.Select((from, v) =>
+                OwnFirst(borderSamples[v] is { } sample ? SurfaceAttributes.Material(sample, table) : materialOfSource[from], shadedRegions[v])).ToArray();
+            OfItsSide(materials, shaded.Triangles, shadedRegions);
 
             // A part meshed once for all of its uses is measured against the model where its first use puts it, and its thickness
             // given back in its own metres
@@ -236,7 +264,7 @@ public static class ModelMesher
                 occlusion[v] = SurfaceAttributes.Occlusion(measured.Distance, position, normal);
             });
 
-            var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, simplified.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed, simplified.TrackedError, simplified.Timings) { ContourTime = level == 0 ? contourTime : default };
+            var statistics = new MeshStatistics(contoured.Mesh.TriangleCount, shaded.TriangleCount, shaded.Positions.Length, stopwatch.Elapsed, simplified.TrackedError, simplified.Timings) { ContourTime = level == 0 ? contourTime : default };
             levels.Add(new PartMesh(source.Name, shaded.Positions, shaded.Normals, materials, thickness, occlusion, shaded.Triangles, maxErrors[level], statistics)
             {
                 Detail = source.Detail,
@@ -266,6 +294,8 @@ public static class ModelMesher
         Parallel.For(0, positions.Length, v =>
         {
             var region = regions[sources[v]];
+            if (region < 0)
+                return; // a border point, sampled on each side of the border instead
             int sampled;
             lock (table) sampled = table.IndexOf(Dominant(samples[v]));
             if (sampled == region)
@@ -287,6 +317,120 @@ public static class ModelMesher
     }
 
     private const int RegionBisectionSteps = 10;
+
+    /// <summary>
+    /// The contour as cut along its borders, each border point with the SDF's tangent plane there as its Hermite data. The points stay
+    /// where the cut put them, on the contour's own edges and faces (within a fraction of a cell of the surface): moved onto the
+    /// surface, a point next to a crease could turn the thin faces beside it over.
+    /// </summary>
+    private static ContouredMesh WithBorderPoints(ContouredMesh contoured, CutMesh cut, Func<Vector3, float> sdf, float cellSize)
+    {
+        var positions = cut.Mesh.Positions;
+        var planes = new SurfacePlane[positions.Length][];
+        Array.Copy(contoured.Planes, planes, cut.OriginalCount);
+        Parallel.For(cut.OriginalCount, positions.Length, v =>
+        {
+            var onSurface = MaterialBorders.OntoSurface(positions[v], sdf, cellSize * 1e-3f);
+            var normal = DualContouring.Normal(sdf, onSurface, cellSize);
+            planes[v] = normal.LengthSquared() > 0 ? [new SurfacePlane(onSurface, Vector3.Normalize(normal))] : [];
+        });
+        return new ContouredMesh(cut.Mesh, planes);
+    }
+
+    /// <summary>How far into its faces a border point's copy is sampled, as shares of the way to their middle, nearest first.</summary>
+    private static readonly float[] InsideSteps = [0.05f, 0.1f, 0.2f, 0.4f, 0.7f];
+
+    /// <summary>
+    /// The surface sampled for a copy of a border point: it stands exactly on the border, where either material may be the stronger,
+    /// so it is sampled a little way into its own faces (all of its region), at the first step where its region is the stronger.
+    /// </summary>
+    private static (SurfaceSample Sample, Vector3 Point) InsideItsSide(ShadedMesh shaded, List<int> faces, int vertex, int region, Vector3[] onSurface,
+        SdfCalculatorCpu.Prepared shape, Func<Vector3, int> regionAt, float cellSize)
+    {
+        var at = onSurface[shaded.Source[vertex]];
+        var middle = Vector3.Zero;
+        foreach (var face in faces)
+            for (var c = 0; c < 3; c++)
+                middle += onSurface[shaded.Source[shaded.Triangles[3 * face + c]]];
+        middle /= 3 * faces.Count;
+        foreach (var step in InsideSteps)
+        {
+            var sampled = MaterialBorders.OntoSurface(Vector3.Lerp(at, middle, step), shape.Distance, cellSize * 1e-3f);
+            if (regionAt(sampled) == region)
+                return (shape.Surface(sampled), sampled);
+        }
+        // Its faces are thin, or the border bends away inside them: the nearest of their corners that is of its region
+        var nearest = faces.SelectMany(face => Enumerable.Range(0, 3).Select(c => onSurface[shaded.Source[shaded.Triangles[3 * face + c]]]))
+            .Where(p => p != at).OrderBy(p => Vector3.DistanceSquared(p, at)).FirstOrDefault(p => regionAt(p) == region, at);
+        return (shape.Surface(nearest), nearest);
+    }
+
+    /// <summary>
+    /// The normals of the copies of each border point, from the SDF just inside each copy's own side (where its material is sampled).
+    /// The cut splits faces in their own planes, so where two shapes meet in a fold (an eye set into a head) the faces either side of
+    /// the border lie in one plane across the fold, and the crease split sees no crease: the copies would share the SDF's normal at
+    /// the fold itself, half eye and half skin, and the skin beside the eye would shade as if it bent towards the eye. Copies whose
+    /// own normals are within the crease angle of each other (paint on a smooth surface, a smooth union) share their average, so the
+    /// border shows no seam; the others keep their own.
+    /// </summary>
+    private static void OneSidedNormals(ShadedMesh shaded, List<int>?[] facesOf, Vector3[] insidePoints, Func<Vector3, float> sdf,
+        float cellSize, float creaseAngleDegrees)
+    {
+        var own = new Vector3[shaded.Positions.Length];
+        Parallel.For(0, own.Length, v =>
+        {
+            if (facesOf[v] is null)
+                return;
+            var gradient = DualContouring.Normal(sdf, insidePoints[v], cellSize);
+            own[v] = gradient.LengthSquared() > 0 && float.IsFinite(gradient.X + gradient.Y + gradient.Z) ? Vector3.Normalize(gradient) : Vector3.Zero;
+        });
+        var creaseCosine = MathF.Cos(creaseAngleDegrees * MathF.PI / 180);
+        var copiesOf = new Dictionary<int, List<int>>();
+        for (var v = 0; v < own.Length; v++)
+            if (facesOf[v] is not null)
+                (copiesOf.TryGetValue(shaded.Source[v], out var list) ? list : copiesOf[shaded.Source[v]] = []).Add(v);
+        foreach (var copies in copiesOf.Values)
+            foreach (var v in copies)
+            {
+                if (own[v] == Vector3.Zero)
+                    continue;
+                var sum = Vector3.Zero;
+                foreach (var w in copies)
+                    if (own[w] != Vector3.Zero && Vector3.Dot(own[v], own[w]) >= creaseCosine)
+                        sum += own[w];
+                shaded.Normals[v] = Vector3.Normalize(sum);
+            }
+    }
+
+    /// <summary>
+    /// The rare vertex whose material still is not its region's (a copy of a border point whose faces are all slivers along the border,
+    /// so no sample inside them is of its region) takes the material of a neighbour on its side that has it.
+    /// </summary>
+    private static void OfItsSide(VertexMaterial[] materials, int[] triangles, int[] regions)
+    {
+        for (var t = 0; t < triangles.Length; t++)
+        {
+            var v = triangles[t];
+            if (materials[v].First == regions[v])
+                continue;
+            var face = t - t % 3;
+            for (var c = 0; c < 3; c++)
+                if (triangles[face + c] is var w && materials[w].First == regions[v])
+                {
+                    materials[v] = materials[w];
+                    break;
+                }
+        }
+    }
+
+    /// <summary>
+    /// The vertex's material with its own region first. Where materials are blended evenly (a smooth union of two), either may come
+    /// out the stronger at a vertex; the faces' region says which side of the border it is on.
+    /// </summary>
+    private static VertexMaterial OwnFirst(VertexMaterial material, int region) =>
+        material.First != region && material.Second == region
+            ? material with { First = material.Second, Second = material.First, Blend = 1 - material.Blend }
+            : material;
 
     /// <summary>0 where one material has the surface to itself, towards 1 as another takes a share.</summary>
     private static float Blend(SurfaceSample sample)

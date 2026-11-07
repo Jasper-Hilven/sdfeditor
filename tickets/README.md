@@ -123,6 +123,12 @@ Rules for every agent:
 - Batch Unity only through `tools/unity-batch.sh` (one at a time, with a lock), and only with the editor closed; if it is open,
   ask the user to close it and poll. Run long commands in the foreground; never stop "waiting" with nothing running.
 
+## Pipeline
+
+| Order | Ticket | Runs alongside | After |
+|---|---|---|---|
+| 1 | [66 Meshes cut along material borders (from TowerDefenseV2)](66-border-cut-meshing.md) | any non-pipeline ticket | — |
+
 ## The level
 
 - There are now three levels: the meadow (`Meadow.unity`, a plain meadow after ticket 15), the chessboard (`Chessboard.unity`, board games)

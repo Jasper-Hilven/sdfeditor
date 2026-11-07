@@ -18,6 +18,9 @@ public sealed record TriangleMesh(Vector3[] Positions, int[] Triangles)
     /// </summary>
     public int[]? Sources { get; init; }
 
+    /// <summary>For a mesh simplified from one cut along its material borders, the region of each face; null for any other mesh.</summary>
+    public int[]? FaceRegions { get; init; }
+
     /// <summary>
     /// For a mesh simplified in batched rounds: the furthest any vertex folded away is from the surface that replaced it, in metres
     /// (every one is tracked), and how many point-to-triangle tests the tracking took.
